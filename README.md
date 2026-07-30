@@ -21,7 +21,13 @@ work happens in git worktrees, one per branch. See
 ## Documentation
 
 All documentation lives under [docs/](docs/index.md): architecture decision
-records, developer guides, contributing notes, and the security policy.
+records, developer guides, contributing notes, and the security policy. It
+reads fine as plain markdown, and MkDocs with the Material theme serves it as
+a site:
+
+```sh
+uvx --with mkdocs-material mkdocs serve   # live reload at http://127.0.0.1:8000
+```
 
 ## License
 

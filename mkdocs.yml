@@ -1,0 +1,41 @@
+site_name: Chess improvement app
+site_description: Architecture decisions, developer guides, and repository policies.
+docs_dir: docs
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.superfences
+  - pymdownx.details
+
+nav:
+  - Home: index.md
+  - Architecture:
+      - Overview: architecture/index.md
+  - Guides:
+      - Overview: guides/index.md
+      - Local setup: guides/local-setup.md
+  - Repository:
+      - Contributing: CONTRIBUTING.md
+      - Security policy: SECURITY.md
