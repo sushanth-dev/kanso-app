@@ -31,14 +31,19 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Architecture:
-      - Overview: architecture/index.md
-      - 0000 Record architecture decisions: architecture/0000-record-architecture-decisions.md
-      - 0001 DTCG 2025.10 token format: architecture/0001-dtcg-2025-10-token-format.md
-      - 0002 Commit token sources: architecture/0002-commit-tokens-to-repository.md
-      - 0003 Style Dictionary token build: architecture/0003-style-dictionary-token-build.md
-      - 0004 Tailwind CSS 4 consumes tokens: architecture/0004-tailwind-4-consumes-tokens.md
-      - 0005 Astryx primitives: architecture/0005-astryx-primitives.md
+  - ADRs:
+      - Overview: adrs/index.md
+      - Frontend:
+          - Records: adrs/frontend/index.md
+          - 0000 Record architecture decisions: adrs/frontend/0000-record-architecture-decisions.md
+          - 0001 DTCG 2025.10 token format: adrs/frontend/0001-dtcg-2025-10-token-format.md
+          - 0002 Commit token sources: adrs/frontend/0002-commit-tokens-to-repository.md
+          - 0003 Style Dictionary token build: adrs/frontend/0003-style-dictionary-token-build.md
+          - 0004 Tailwind CSS 4 consumes tokens: adrs/frontend/0004-tailwind-4-consumes-tokens.md
+          - 0005 Astryx primitives: adrs/frontend/0005-astryx-primitives.md
+          - 0006 D3 for data visualization: adrs/frontend/0006-d3-visualizations.md
+      - Backend:
+          - Records: adrs/backend/index.md
   - Guides:
       - Overview: guides/index.md
       - Local setup: guides/local-setup.md

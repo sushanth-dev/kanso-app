@@ -6,8 +6,8 @@ repository.
 
 ## Sections
 
-* [Architecture](architecture/index.md) - ADRs recording significant
-  technical decisions.
+* [Architecture decision records](adrs/index.md) - ADRs recording
+  significant technical decisions, grouped by frontend and backend.
 * [Guides](guides/index.md) - How-to documentation for developers and,
   later, for users.
 

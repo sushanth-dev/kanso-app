@@ -17,6 +17,10 @@ record (ADR): a short, numbered markdown file in this directory.
 
 * One file per decision, named `NNNN-short-title.md` with a four-digit,
   zero-padded number that never changes and is never reused.
+* Records live under `docs/adrs/`, grouped into `frontend/` and
+  `backend/`. The folders share one number sequence: a number is
+  assigned once and never restarted per folder, so "ADR-0003" always
+  means the same decision.
 * Sections: Status, Date, Context, Decision, Consequences.
 * Status is one of `proposed`, `accepted`, `deprecated`, or `superseded by
   NNNN`.

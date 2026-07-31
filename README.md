@@ -20,8 +20,9 @@ work happens in git worktrees, one per branch. See
 
 ## Documentation
 
-All documentation lives under [docs/](docs/index.md): architecture decision
-records, developer guides, contributing notes, and the security policy. It
+All documentation lives under [docs/](docs/index.md): architecture
+decision records, developer guides, contributing notes, and the security
+policy. It
 reads fine as plain markdown, and MkDocs with the Material theme serves it as
 a site:
 
