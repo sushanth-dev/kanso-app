@@ -14,4 +14,5 @@ number is assigned once, never reused, and never restarted per folder.
 
 * [Frontend](frontend/index.md) - the record format and the design-system
   decisions.
-* [Backend](backend/index.md) - none yet.
+* [Backend](backend/index.md) - the API service: framework, validation,
+  data access, chess handling, authentication, and engine analysis.

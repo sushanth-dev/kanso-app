@@ -44,6 +44,16 @@ nav:
           - 0006 D3 for data visualization: adrs/frontend/0006-d3-visualizations.md
       - Backend:
           - Records: adrs/backend/index.md
+          - 0007 Hono HTTP framework: adrs/backend/0007-hono-http-framework.md
+          - 0008 Zod validation: adrs/backend/0008-zod-validation.md
+          - 0009 Drizzle ORM: adrs/backend/0009-drizzle-orm.md
+          - 0010 chess.js, PGN and FEN storage: adrs/backend/0010-chess-js-pgn-game-logic.md
+          - 0011 better-auth sessions: adrs/backend/0011-better-auth-session-management.md
+          - 0012 Stockfish WASM and pg-boss: adrs/backend/0012-pg-boss-stockfish-analysis.md
+          - 0013 REST with OpenAPI contract: adrs/backend/0013-rest-openapi-api-contract.md
+          - 0014 AWS hosting layout: adrs/backend/0014-aws-hosting-layout.md
+          - 0015 SST infrastructure as code: adrs/backend/0015-sst-infrastructure-as-code.md
+          - 0016 SSE analysis result delivery: adrs/backend/0016-sse-analysis-result-delivery.md
   - Guides:
       - Overview: guides/index.md
       - Local setup: guides/local-setup.md
