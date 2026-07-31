@@ -1,0 +1,495 @@
+{
+  "$description": "CI contrast declaration. Every foreground/background pair with required and measured WCAG 2.x ratio. A measured value below required fails the build. Complete for light, dark, high-contrast themes and both board themes.",
+  "pairs": [
+    {
+      "theme": "light",
+      "foreground": "color.text.primary",
+      "background": "color.surface.page",
+      "required": 4.5,
+      "measured": 14.93
+    },
+    {
+      "theme": "light",
+      "foreground": "color.text.primary",
+      "background": "color.surface.raised",
+      "required": 4.5,
+      "measured": 16.36
+    },
+    {
+      "theme": "light",
+      "foreground": "color.text.primary",
+      "background": "color.surface.sunken",
+      "required": 4.5,
+      "measured": 13.45
+    },
+    {
+      "theme": "light",
+      "foreground": "color.text.muted",
+      "background": "color.surface.page",
+      "required": 4.5,
+      "measured": 7.29
+    },
+    {
+      "theme": "light",
+      "foreground": "color.text.muted",
+      "background": "color.surface.raised",
+      "required": 4.5,
+      "measured": 8
+    },
+    {
+      "theme": "light",
+      "foreground": "color.text.muted",
+      "background": "color.surface.sunken",
+      "required": 4.5,
+      "measured": 6.57
+    },
+    {
+      "theme": "light",
+      "foreground": "color.link",
+      "background": "color.surface.page",
+      "required": 4.5,
+      "measured": 5.84
+    },
+    {
+      "theme": "light",
+      "foreground": "color.action.primary.text",
+      "background": "color.action.primary.default",
+      "required": 4.5,
+      "measured": 6.5
+    },
+    {
+      "theme": "light",
+      "foreground": "color.action.primary.text",
+      "background": "color.action.primary.hover",
+      "required": 4.5,
+      "measured": 8.33
+    },
+    {
+      "theme": "light",
+      "foreground": "color.info",
+      "background": "color.surface.page",
+      "required": 4.5,
+      "measured": 6.7
+    },
+    {
+      "theme": "light",
+      "foreground": "color.success",
+      "background": "color.surface.page",
+      "required": 4.5,
+      "measured": 4.57
+    },
+    {
+      "theme": "light",
+      "foreground": "color.danger",
+      "background": "color.surface.page",
+      "required": 4.5,
+      "measured": 5.27
+    },
+    {
+      "theme": "light",
+      "foreground": "color.border.strong",
+      "background": "color.surface.page",
+      "required": 3,
+      "measured": 3.87
+    },
+    {
+      "theme": "light",
+      "foreground": "color.focus.ring",
+      "background": "color.surface.page",
+      "required": 3,
+      "measured": 6.7
+    },
+    {
+      "theme": "light",
+      "foreground": "color.eval.white-advantage",
+      "background": "color.eval.black-advantage",
+      "required": 3,
+      "measured": 16.36
+    },
+    {
+      "theme": "light",
+      "foreground": "color.eval.track-border",
+      "background": "color.surface.page",
+      "required": 3,
+      "measured": 7.29
+    },
+    {
+      "theme": "dark",
+      "foreground": "color.text.primary",
+      "background": "color.surface.page",
+      "required": 4.5,
+      "measured": 16.29
+    },
+    {
+      "theme": "dark",
+      "foreground": "color.text.primary",
+      "background": "color.surface.raised",
+      "required": 4.5,
+      "measured": 14.45
+    },
+    {
+      "theme": "dark",
+      "foreground": "color.text.primary",
+      "background": "color.surface.sunken",
+      "required": 4.5,
+      "measured": 17.04
+    },
+    {
+      "theme": "dark",
+      "foreground": "color.text.muted",
+      "background": "color.surface.page",
+      "required": 4.5,
+      "measured": 7.53
+    },
+    {
+      "theme": "dark",
+      "foreground": "color.text.muted",
+      "background": "color.surface.raised",
+      "required": 4.5,
+      "measured": 6.68
+    },
+    {
+      "theme": "dark",
+      "foreground": "color.text.muted",
+      "background": "color.surface.sunken",
+      "required": 4.5,
+      "measured": 7.87
+    },
+    {
+      "theme": "dark",
+      "foreground": "color.link",
+      "background": "color.surface.page",
+      "required": 4.5,
+      "measured": 7.14
+    },
+    {
+      "theme": "dark",
+      "foreground": "color.action.primary.text",
+      "background": "color.action.primary.default",
+      "required": 4.5,
+      "measured": 7.31
+    },
+    {
+      "theme": "dark",
+      "foreground": "color.action.primary.text",
+      "background": "color.action.primary.hover",
+      "required": 4.5,
+      "measured": 9.06
+    },
+    {
+      "theme": "dark",
+      "foreground": "color.info",
+      "background": "color.surface.page",
+      "required": 4.5,
+      "measured": 9.41
+    },
+    {
+      "theme": "dark",
+      "foreground": "color.success",
+      "background": "color.surface.page",
+      "required": 4.5,
+      "measured": 8.87
+    },
+    {
+      "theme": "dark",
+      "foreground": "color.danger",
+      "background": "color.surface.page",
+      "required": 4.5,
+      "measured": 7.58
+    },
+    {
+      "theme": "dark",
+      "foreground": "color.border.strong",
+      "background": "color.surface.page",
+      "required": 3,
+      "measured": 3.16
+    },
+    {
+      "theme": "dark",
+      "foreground": "color.focus.ring",
+      "background": "color.surface.page",
+      "required": 3,
+      "measured": 7.14
+    },
+    {
+      "theme": "dark",
+      "foreground": "color.eval.white-advantage",
+      "background": "color.eval.black-advantage",
+      "required": 3,
+      "measured": 17.04
+    },
+    {
+      "theme": "dark",
+      "foreground": "color.eval.track-border",
+      "background": "color.surface.page",
+      "required": 3,
+      "measured": 7.53
+    },
+    {
+      "theme": "high-contrast",
+      "foreground": "color.text.primary",
+      "background": "color.surface.page",
+      "required": 7,
+      "measured": 21
+    },
+    {
+      "theme": "high-contrast",
+      "foreground": "color.text.primary",
+      "background": "color.surface.raised",
+      "required": 7,
+      "measured": 21
+    },
+    {
+      "theme": "high-contrast",
+      "foreground": "color.text.primary",
+      "background": "color.surface.sunken",
+      "required": 7,
+      "measured": 18.76
+    },
+    {
+      "theme": "high-contrast",
+      "foreground": "color.text.muted",
+      "background": "color.surface.page",
+      "required": 7,
+      "measured": 12.63
+    },
+    {
+      "theme": "high-contrast",
+      "foreground": "color.text.muted",
+      "background": "color.surface.raised",
+      "required": 7,
+      "measured": 12.63
+    },
+    {
+      "theme": "high-contrast",
+      "foreground": "color.text.muted",
+      "background": "color.surface.sunken",
+      "required": 7,
+      "measured": 11.29
+    },
+    {
+      "theme": "high-contrast",
+      "foreground": "color.link",
+      "background": "color.surface.page",
+      "required": 7,
+      "measured": 9.37
+    },
+    {
+      "theme": "high-contrast",
+      "foreground": "color.action.primary.text",
+      "background": "color.action.primary.default",
+      "required": 7,
+      "measured": 9.37
+    },
+    {
+      "theme": "high-contrast",
+      "foreground": "color.action.primary.text",
+      "background": "color.action.primary.hover",
+      "required": 7,
+      "measured": 21
+    },
+    {
+      "theme": "high-contrast",
+      "foreground": "color.info",
+      "background": "color.surface.page",
+      "required": 7,
+      "measured": 9.92
+    },
+    {
+      "theme": "high-contrast",
+      "foreground": "color.success",
+      "background": "color.surface.page",
+      "required": 7,
+      "measured": 9.54
+    },
+    {
+      "theme": "high-contrast",
+      "foreground": "color.danger",
+      "background": "color.surface.page",
+      "required": 7,
+      "measured": 10.13
+    },
+    {
+      "theme": "high-contrast",
+      "foreground": "color.border.strong",
+      "background": "color.surface.page",
+      "required": 3,
+      "measured": 21
+    },
+    {
+      "theme": "high-contrast",
+      "foreground": "color.focus.ring",
+      "background": "color.surface.page",
+      "required": 3,
+      "measured": 21
+    },
+    {
+      "theme": "high-contrast",
+      "foreground": "color.eval.white-advantage",
+      "background": "color.eval.black-advantage",
+      "required": 3,
+      "measured": 21
+    },
+    {
+      "theme": "high-contrast",
+      "foreground": "color.eval.track-border",
+      "background": "color.surface.page",
+      "required": 3,
+      "measured": 21
+    },
+    {
+      "theme": "board-wood",
+      "foreground": "board.coordinate.on-light",
+      "background": "board.square.light",
+      "required": 4.5,
+      "measured": 5.17
+    },
+    {
+      "theme": "board-wood",
+      "foreground": "board.coordinate.on-dark",
+      "background": "board.square.dark",
+      "required": 4.5,
+      "measured": 5.12
+    },
+    {
+      "theme": "board-wood",
+      "foreground": "board.square.light",
+      "background": "board.square.dark",
+      "required": 3,
+      "measured": 3.95
+    },
+    {
+      "theme": "board-wood",
+      "foreground": "board.piece.white.fill",
+      "background": "board.square.dark",
+      "required": 3,
+      "measured": 5.49
+    },
+    {
+      "theme": "board-wood",
+      "foreground": "board.piece.white.outline",
+      "background": "board.square.light",
+      "required": 3,
+      "measured": 11.97
+    },
+    {
+      "theme": "board-wood",
+      "foreground": "board.piece.black.fill",
+      "background": "board.square.light",
+      "required": 3,
+      "measured": 12.42
+    },
+    {
+      "theme": "board-wood",
+      "foreground": "board.piece.black.outline",
+      "background": "board.square.dark",
+      "required": 3,
+      "measured": 4.8
+    },
+    {
+      "theme": "board-wood",
+      "foreground": "board.highlight.last-move.border",
+      "background": "board.highlight.last-move.fill",
+      "required": 3,
+      "measured": 8.79
+    },
+    {
+      "theme": "board-wood",
+      "foreground": "board.hint.dot.fill",
+      "background": "board.square.light",
+      "required": 3,
+      "measured": 11.97
+    },
+    {
+      "theme": "board-wood",
+      "foreground": "board.hint.dot.ring",
+      "background": "board.square.dark",
+      "required": 3,
+      "measured": 5.4
+    },
+    {
+      "theme": "board-wood",
+      "foreground": "board.highlight.check.icon",
+      "background": "board.highlight.check.fill",
+      "required": 3,
+      "measured": 8.28
+    },
+    {
+      "theme": "board-green",
+      "foreground": "board.coordinate.on-light",
+      "background": "board.square.light",
+      "required": 4.5,
+      "measured": 4.9
+    },
+    {
+      "theme": "board-green",
+      "foreground": "board.coordinate.on-dark",
+      "background": "board.square.dark",
+      "required": 4.5,
+      "measured": 4.91
+    },
+    {
+      "theme": "board-green",
+      "foreground": "board.square.light",
+      "background": "board.square.dark",
+      "required": 3,
+      "measured": 4.08
+    },
+    {
+      "theme": "board-green",
+      "foreground": "board.piece.white.fill",
+      "background": "board.square.dark",
+      "required": 3,
+      "measured": 4.91
+    },
+    {
+      "theme": "board-green",
+      "foreground": "board.piece.white.outline",
+      "background": "board.square.light",
+      "required": 3,
+      "measured": 13.82
+    },
+    {
+      "theme": "board-green",
+      "foreground": "board.piece.black.fill",
+      "background": "board.square.light",
+      "required": 3,
+      "measured": 14.34
+    },
+    {
+      "theme": "board-green",
+      "foreground": "board.piece.black.outline",
+      "background": "board.square.dark",
+      "required": 3,
+      "measured": 4.49
+    },
+    {
+      "theme": "board-green",
+      "foreground": "board.highlight.last-move.border",
+      "background": "board.highlight.last-move.fill",
+      "required": 3,
+      "measured": 11.77
+    },
+    {
+      "theme": "board-green",
+      "foreground": "board.hint.dot.fill",
+      "background": "board.square.light",
+      "required": 3,
+      "measured": 13.82
+    },
+    {
+      "theme": "board-green",
+      "foreground": "board.hint.dot.ring",
+      "background": "board.square.dark",
+      "required": 3,
+      "measured": 4.83
+    },
+    {
+      "theme": "board-green",
+      "foreground": "board.highlight.check.icon",
+      "background": "board.highlight.check.fill",
+      "required": 3,
+      "measured": 8.28
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "motion": {
+    "$description": "Reduced-motion theme: merged over base when prefers-reduced-motion is set. Every duration collapses to zero; easing irrelevant but kept for structure.",
+    "duration": {
+      "instant": {
+        "$value": "0ms"
+      },
+      "fast": {
+        "$value": "0ms"
+      },
+      "base": {
+        "$value": "0ms"
+      },
+      "slow": {
+        "$value": "0ms"
+      }
+    }
+  }
+}

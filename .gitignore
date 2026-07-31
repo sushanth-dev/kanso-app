@@ -35,3 +35,7 @@ Thumbs.db
 
 # Docs site build
 site/
+
+# Style Dictionary build output; tokens/ sources are committed, generated files are not
+tokens/_computed.json
+tokens/build/

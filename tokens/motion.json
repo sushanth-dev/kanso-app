@@ -1,0 +1,33 @@
+{
+  "motion": {
+    "$description": "WORKAROUND: durations expressed as string primitives, not DTCG duration type — Style Dictionary support pending (amzn/style-dictionary#1590). Revisit when it closes.",
+    "duration": {
+      "instant": {
+        "$value": "0ms"
+      },
+      "fast": {
+        "$value": "120ms",
+        "$description": "Hovers, toggles."
+      },
+      "base": {
+        "$value": "200ms",
+        "$description": "Piece slides, panel reveals."
+      },
+      "slow": {
+        "$value": "320ms",
+        "$description": "Route/board transitions."
+      }
+    },
+    "ease": {
+      "standard": {
+        "$value": "cubic-bezier(0.2, 0, 0, 1)"
+      },
+      "decelerate": {
+        "$value": "cubic-bezier(0, 0, 0, 1)"
+      },
+      "accelerate": {
+        "$value": "cubic-bezier(0.3, 0, 1, 1)"
+      }
+    }
+  }
+}

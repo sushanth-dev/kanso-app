@@ -1,0 +1,100 @@
+{
+  "$description": "Semantic tier, light theme (base). Components consume ONLY these.",
+  "color": {
+    "$type": "color",
+    "surface": {
+      "page": {
+        "$value": "{color.paper.50}",
+        "$description": "Warm paper page ground, kept one step duller than any board theme so the board is the brightest object on screen."
+      },
+      "raised": {
+        "$value": "{color.paper.0}",
+        "$description": "Cards, panels, move list. One step brighter than page; elevation without shadows."
+      },
+      "sunken": {
+        "$value": "{color.paper.100}",
+        "$description": "Wells and input grounds. Recedes behind raised content without losing muted-text contrast."
+      }
+    },
+    "text": {
+      "primary": {
+        "$value": "{color.ink.900}",
+        "$description": "Warm near-black body ink. 14.9:1 on page; survives AAA on all three surfaces."
+      },
+      "muted": {
+        "$value": "{color.ink.700}",
+        "$description": "Secondary labels, timestamps, captions. Held at 7:1+ so \"muted\" never means \"illegible\"."
+      },
+      "on-accent": {
+        "$value": "{color.white}",
+        "$description": "Text and icons on filled accent controls."
+      },
+      "inverse": {
+        "$value": "{color.paper.0}",
+        "$description": "Text on ink-colored fills such as the black half of the evaluation bar."
+      }
+    },
+    "action": {
+      "primary": {
+        "default": {
+          "$value": "{color.terracotta.600}",
+          "$description": "Single action accent. Warm without drifting into saffron; never placed adjacent to a green so the pair cannot read as a flag or trip red/green deficiency."
+        },
+        "hover": {
+          "$value": "{color.terracotta.700}",
+          "$description": "Hover/pressed step of the action accent; keeps 4.5:1 with on-accent text."
+        },
+        "text": {
+          "$value": "{color.white}",
+          "$description": "Label color on primary actions."
+        }
+      }
+    },
+    "link": {
+      "$value": "{color.terracotta.600}",
+      "$description": "Inline links share the action hue; underline is the mandatory second channel."
+    },
+    "info": {
+      "$value": "{color.teal.600}",
+      "$description": "Informational role: coach notes, progress annotations. Chosen as the accent’s opposite under deuteranopia/protanopia simulation."
+    },
+    "success": {
+      "$value": "{color.green.600}",
+      "$description": "Correct puzzle result, accuracy gains. Always paired with a check icon — hue is never the only channel."
+    },
+    "danger": {
+      "$value": "{color.red.600}",
+      "$description": "Errors, blunder flags, destructive actions. Rose-leaning red so it separates from the terracotta accent; always paired with an icon or label."
+    },
+    "border": {
+      "subtle": {
+        "$value": "{color.paper.300}",
+        "$description": "Hairlines and dividers; decorative, so exempt from the 3:1 non-text rule."
+      },
+      "strong": {
+        "$value": "{color.sand.500}",
+        "$description": "Control boundaries (inputs, checkboxes). Held at 3:1+ against page per WCAG 1.4.11."
+      }
+    },
+    "focus": {
+      "ring": {
+        "$value": "{color.teal.600}",
+        "$description": "Focus indicator. 3:1+ against page and distinct from the action accent so focus never reads as selection."
+      }
+    },
+    "eval": {
+      "white-advantage": {
+        "$value": "{color.paper.0}",
+        "$description": "White’s half of the evaluation bar. Neutral, not green — direction is carried by the numeric label and the bordered midline."
+      },
+      "black-advantage": {
+        "$value": "{color.ink.900}",
+        "$description": "Black’s half of the evaluation bar."
+      },
+      "track-border": {
+        "$value": "{color.ink.700}",
+        "$description": "Bar outline; keeps the bar legible against page regardless of which side dominates."
+      }
+    }
+  }
+}

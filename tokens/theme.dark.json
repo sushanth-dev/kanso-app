@@ -1,0 +1,82 @@
+{
+  "$description": "Dark theme overrides, merged over color.semantic.json at build time. Palette from direction 1b (Rapid).",
+  "color": {
+    "$type": "color",
+    "surface": {
+      "page": {
+        "$value": "{color.slate.900}"
+      },
+      "raised": {
+        "$value": "{color.slate.850}"
+      },
+      "sunken": {
+        "$value": "{color.slate.950}"
+      }
+    },
+    "text": {
+      "primary": {
+        "$value": "{color.slate.100}"
+      },
+      "muted": {
+        "$value": "{color.slate.400}"
+      },
+      "on-accent": {
+        "$value": "{color.periwinkle.950}"
+      },
+      "inverse": {
+        "$value": "{color.slate.950}"
+      }
+    },
+    "action": {
+      "primary": {
+        "default": {
+          "$value": "{color.periwinkle.300}",
+          "$description": "Dark-mode action accent: light enough to pass 4.5:1 as body text on the page, so one token serves text and fills."
+        },
+        "hover": {
+          "$value": "{color.periwinkle.200}"
+        },
+        "text": {
+          "$value": "{color.periwinkle.950}"
+        }
+      }
+    },
+    "link": {
+      "$value": "{color.periwinkle.300}"
+    },
+    "info": {
+      "$value": "{color.cyan.300}",
+      "$description": "Data/informational role in dark mode; stays distinct from the periwinkle accent under color-vision simulation."
+    },
+    "success": {
+      "$value": "{color.green.300}"
+    },
+    "danger": {
+      "$value": "{color.red.300}"
+    },
+    "border": {
+      "subtle": {
+        "$value": "{color.slate.700}"
+      },
+      "strong": {
+        "$value": "{color.slate.500}"
+      }
+    },
+    "focus": {
+      "ring": {
+        "$value": "{color.periwinkle.300}"
+      }
+    },
+    "eval": {
+      "white-advantage": {
+        "$value": "{color.slate.100}"
+      },
+      "black-advantage": {
+        "$value": "{color.slate.950}"
+      },
+      "track-border": {
+        "$value": "{color.slate.400}"
+      }
+    }
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "color": {
+    "$type": "color",
+    "$description": "Authored high-contrast theme targeting WCAG 1.4.6 AAA (7:1) for all text. A forced-colors block additionally respects system palettes; that block is not token-driven.",
+    "surface": {
+      "page": {
+        "$value": "{color.white}"
+      },
+      "raised": {
+        "$value": "{color.white}"
+      },
+      "sunken": {
+        "$value": "{color.grey.100}"
+      }
+    },
+    "text": {
+      "primary": {
+        "$value": "{color.black}"
+      },
+      "muted": {
+        "$value": "{color.grey.800}"
+      },
+      "on-accent": {
+        "$value": "{color.white}"
+      },
+      "inverse": {
+        "$value": "{color.white}"
+      }
+    },
+    "action": {
+      "primary": {
+        "default": {
+          "$value": "{color.terracotta.900}"
+        },
+        "hover": {
+          "$value": "{color.black}"
+        },
+        "text": {
+          "$value": "{color.white}"
+        }
+      }
+    },
+    "link": {
+      "$value": "{color.terracotta.900}"
+    },
+    "info": {
+      "$value": "{color.teal.900}"
+    },
+    "success": {
+      "$value": "{color.green.900}"
+    },
+    "danger": {
+      "$value": "{color.red.900}"
+    },
+    "border": {
+      "subtle": {
+        "$value": "{color.grey.800}"
+      },
+      "strong": {
+        "$value": "{color.black}"
+      }
+    },
+    "focus": {
+      "ring": {
+        "$value": "{color.black}",
+        "$description": "Rendered as a double ring (black over a white offset) to satisfy 2.4.13 on any ground."
+      }
+    },
+    "eval": {
+      "white-advantage": {
+        "$value": "{color.white}"
+      },
+      "black-advantage": {
+        "$value": "{color.black}"
+      },
+      "track-border": {
+        "$value": "{color.black}"
+      }
+    }
+  }
+}

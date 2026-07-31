@@ -1,0 +1,75 @@
+{
+  "board": {
+    "$type": "color",
+    "$description": "Classic walnut board. All four piece-on-square combinations ≥3:1; coordinates ≥4.5:1. Board themes are user-selectable independently of the UI theme.",
+    "square": {
+      "light": {
+        "$value": "{color.wood.100}"
+      },
+      "dark": {
+        "$value": "{color.wood.600}"
+      }
+    },
+    "coordinate": {
+      "on-light": {
+        "$value": "{color.wood.700}",
+        "$description": "Rank/file label on light squares; 4.5:1 (coordinates are text)."
+      },
+      "on-dark": {
+        "$value": "{color.wood.50}",
+        "$description": "Rank/file label on dark squares; 4.5:1."
+      }
+    },
+    "piece": {
+      "white": {
+        "fill": {
+          "$value": "{color.white}"
+        },
+        "outline": {
+          "$value": "{color.ink.900}",
+          "$description": "Second channel: white pieces carry a dark outline so fill contrast never decides legibility alone."
+        }
+      },
+      "black": {
+        "fill": {
+          "$value": "{color.ink.950}"
+        },
+        "outline": {
+          "$value": "{color.cream.50}",
+          "$description": "Light outline for black pieces on dark squares."
+        }
+      }
+    },
+    "highlight": {
+      "last-move": {
+        "fill": {
+          "$value": "{color.gold.400}"
+        },
+        "border": {
+          "$value": "{color.ink.900}",
+          "$description": "Border is the meaning channel for last move; fill alone is decoration."
+        }
+      },
+      "check": {
+        "fill": {
+          "$value": "{color.red.800}"
+        },
+        "icon": {
+          "$value": "{color.white}",
+          "$description": "Check always renders an icon inside the fill — never hue alone."
+        }
+      }
+    },
+    "hint": {
+      "dot": {
+        "fill": {
+          "$value": "{color.ink.900}"
+        },
+        "ring": {
+          "$value": "{color.paper.0}",
+          "$description": "Ring guarantees 3:1 on dark squares where the ink fill cannot."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,145 @@
+{
+  "space": {
+    "0": {
+      "$value": {
+        "value": 0,
+        "unit": "rem"
+      }
+    },
+    "1": {
+      "$value": {
+        "value": 0.25,
+        "unit": "rem"
+      }
+    },
+    "2": {
+      "$value": {
+        "value": 0.5,
+        "unit": "rem"
+      }
+    },
+    "3": {
+      "$value": {
+        "value": 0.75,
+        "unit": "rem"
+      }
+    },
+    "4": {
+      "$value": {
+        "value": 1,
+        "unit": "rem"
+      }
+    },
+    "5": {
+      "$value": {
+        "value": 1.5,
+        "unit": "rem"
+      }
+    },
+    "6": {
+      "$value": {
+        "value": 2,
+        "unit": "rem"
+      }
+    },
+    "7": {
+      "$value": {
+        "value": 3,
+        "unit": "rem"
+      }
+    },
+    "8": {
+      "$value": {
+        "value": 4,
+        "unit": "rem"
+      }
+    },
+    "$type": "dimension",
+    "$description": "Base-4 scale in rem."
+  },
+  "spacing": {
+    "$type": "dimension",
+    "inset": {
+      "snug": {
+        "$value": "{space.2}",
+        "$description": "Compact control padding."
+      },
+      "base": {
+        "$value": "{space.4}",
+        "$description": "Default panel padding."
+      },
+      "roomy": {
+        "$value": "{space.6}",
+        "$description": "Section padding."
+      }
+    },
+    "stack": {
+      "tight": {
+        "$value": "{space.2}"
+      },
+      "base": {
+        "$value": "{space.4}"
+      },
+      "loose": {
+        "$value": "{space.6}"
+      }
+    }
+  },
+  "radius": {
+    "$type": "dimension",
+    "sm": {
+      "$value": {
+        "value": 0.25,
+        "unit": "rem"
+      }
+    },
+    "md": {
+      "$value": {
+        "value": 0.5,
+        "unit": "rem"
+      }
+    },
+    "lg": {
+      "$value": {
+        "value": 0.75,
+        "unit": "rem"
+      }
+    },
+    "full": {
+      "$value": {
+        "value": 9999,
+        "unit": "px"
+      }
+    },
+    "control": {
+      "$value": "{radius.md}",
+      "$description": "Buttons, inputs."
+    },
+    "surface": {
+      "$value": "{radius.lg}",
+      "$description": "Cards and panels."
+    },
+    "pill": {
+      "$value": "{radius.full}"
+    }
+  },
+  "size": {
+    "$type": "dimension",
+    "target": {
+      "min": {
+        "$value": {
+          "value": 24,
+          "unit": "px"
+        },
+        "$description": "WCAG 2.5.8 floor for any interactive target."
+      },
+      "comfortable": {
+        "$value": {
+          "value": 44,
+          "unit": "px"
+        },
+        "$description": "Preferred touch target; board squares and primary buttons use this."
+      }
+    }
+  }
+}
