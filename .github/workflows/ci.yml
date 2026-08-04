@@ -24,9 +24,9 @@ jobs:
   gates:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           # Reads .node-version, so CI and a laptop cannot disagree about the
           # runtime (ADR-0020).
@@ -55,7 +55,7 @@ jobs:
       - name: Tests
         run: npm run test:coverage
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: coverage
@@ -71,14 +71,15 @@ jobs:
     # security scan should not sit in front of a fast lint failure.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
 
       - name: Semgrep
-        run: |
-          uvx semgrep --error --metrics=off \
-            --config p/typescript \
-            --config p/security-audit \
-            --config p/secrets \
-            .
+        # p/default is the community ruleset and the only one of the obvious
+        # candidates that actually fires. p/typescript loads 74 rules and
+        # caught nothing on a file containing eval(); p/default loads over a
+        # thousand and caught it. Verified by running both against a file
+        # written to fail. See docs/guides/local-setup.md for the gap this
+        # still leaves.
+        run: uvx semgrep --error --metrics=off --config p/default .
