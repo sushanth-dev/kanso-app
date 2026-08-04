@@ -58,6 +58,7 @@ nav:
           - 0018 AI explanation layer: adrs/backend/0018-ai-explanation-layer.md
           - 0019 Vitest testing setup: adrs/backend/0019-vitest-testing-setup.md
           - 0020 Node.js 24 LTS runtime: adrs/backend/0020-node-24-lts-runtime.md
+          - 0021 postgres.js driver: adrs/backend/0021-postgres-js-driver.md
   - Guides:
       - Overview: guides/index.md
       - Local setup: guides/local-setup.md

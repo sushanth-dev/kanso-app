@@ -2,6 +2,7 @@
 
 * Status: accepted
 * Date: 2026-07-31
+* Driver chosen in: [0021](0021-postgres-js-driver.md)
 
 ## Context
 

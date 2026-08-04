@@ -21,6 +21,7 @@ number sequence is shared with the frontend records.
 * [0018. Use Gemini Flash for coaching prose, over engine-verified facts only](0018-ai-explanation-layer.md)
 * [0019. Test with Vitest, one runner for the whole workspace](0019-vitest-testing-setup.md)
 * [0020. Run on Node.js 24 LTS](0020-node-24-lts-runtime.md)
+* [0021. Connect to PostgreSQL with postgres.js](0021-postgres-js-driver.md)
 
 Still open, to be recorded when the work starts: frontend routing and data
 fetching (once the app shell exists), and observability (once there is
