@@ -2,6 +2,7 @@
 
 * Status: accepted
 * Date: 2026-07-31
+* Runtime version corrected by: [0020](0020-node-24-lts-runtime.md)
 
 ## Context
 

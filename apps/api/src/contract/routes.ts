@@ -1,0 +1,445 @@
+/**
+ * The version one API surface.
+ *
+ * ADR-0013 makes this REST with an OpenAPI document generated from the Zod
+ * schemas, and the frontend consumes it through a generated client. Every route
+ * below names the requirement it serves. A route that cannot say which one it
+ * serves is a candidate for the backlog rather than the contract.
+ *
+ * Authentication is not described here. better-auth (ADR-0011) mounts its own
+ * routes under `/api/auth/*` and owns its own contract; everything in this file
+ * assumes a session cookie and answers 401 without one.
+ */
+import { createRoute, z } from '@hono/zod-openapi';
+import {
+  ActiveFocus,
+  ApiError,
+  AttachGuardian,
+  CreatePlayer,
+  Explanation,
+  FocusCatalogueEntry,
+  GameDetail,
+  GameList,
+  ImportJob,
+  Me,
+  Player,
+  ProofSheet,
+  Report,
+  SetFocus,
+  SharedProofSheet,
+  SocraticQuestion,
+  StartImport,
+  Stream,
+  UpdatePlayer,
+  Uuid,
+} from './schemas.ts';
+
+const json = <T extends z.ZodType>(schema: T, description: string) => ({
+  description,
+  content: { 'application/json': { schema } },
+});
+
+const error = (description: string) => json(ApiError, description);
+
+/** Every authenticated route can answer these three, so they are declared once. */
+const authErrors = {
+  400: error('The request body or query failed validation.'),
+  401: error('No session.'),
+  403: error('The session has no claim on this player.'),
+};
+
+const playerParams = z.object({
+  playerId: Uuid.openapi({ param: { name: 'playerId', in: 'path' } }),
+});
+
+// ─── Account ─────────────────────────────────────────────────────────────────
+
+export const getMe = createRoute({
+  method: 'get',
+  path: '/me',
+  tags: ['Account'],
+  summary: 'The signed-in user, the players they play as, and the players they pay for',
+  description:
+    'B4. The person paying and the person playing are different people, so this returns two lists rather than one.',
+  responses: {
+    200: json(Me, 'The current session.'),
+    401: error('No session.'),
+  },
+});
+
+export const createPlayer = createRoute({
+  method: 'post',
+  path: '/players',
+  tags: ['Account'],
+  summary: 'Create a chess identity',
+  request: { body: json(CreatePlayer, 'The new player.') },
+  responses: {
+    201: json(Player, 'Created.'),
+    ...authErrors,
+  },
+});
+
+export const updatePlayer = createRoute({
+  method: 'patch',
+  path: '/players/{playerId}',
+  tags: ['Account'],
+  summary: 'Update ratings and site usernames',
+  request: {
+    params: playerParams,
+    body: json(UpdatePlayer, 'The fields to change.'),
+  },
+  responses: {
+    200: json(Player, 'Updated.'),
+    ...authErrors,
+    404: error('No such player.'),
+  },
+});
+
+export const attachGuardian = createRoute({
+  method: 'post',
+  path: '/players/{playerId}/guardians',
+  tags: ['Account'],
+  summary: 'Attach a paying adult to a playing child',
+  description:
+    'B4, N7. The consent mechanism this records is undecided and blocks launch, so the endpoint exists and the verification behind it does not yet.',
+  request: {
+    params: playerParams,
+    body: json(AttachGuardian, 'The adult to attach.'),
+  },
+  responses: {
+    204: { description: 'Attached.' },
+    ...authErrors,
+    404: error('No such player.'),
+    409: error('That adult is already attached to this player.'),
+  },
+});
+
+// ─── Import ──────────────────────────────────────────────────────────────────
+
+export const startImport = createRoute({
+  method: 'post',
+  path: '/players/{playerId}/imports',
+  tags: ['Import'],
+  summary: 'Import games by site username, or from an uploaded PGN',
+  description:
+    'S1, F1, F2, T1. Every game is tagged with its stream at import. Malformed PGN is rejected here rather than stored and skipped later.',
+  request: {
+    params: playerParams,
+    body: json(StartImport, 'What to import.'),
+  },
+  responses: {
+    202: json(ImportJob, 'Queued. Poll the job or watch the event stream.'),
+    ...authErrors,
+    404: error('No such player.'),
+    429: error('The free tier import cap is reached.'),
+  },
+});
+
+export const getImport = createRoute({
+  method: 'get',
+  path: '/imports/{importId}',
+  tags: ['Import'],
+  summary: 'Import job status',
+  request: {
+    params: z.object({
+      importId: Uuid.openapi({ param: { name: 'importId', in: 'path' } }),
+    }),
+  },
+  responses: {
+    200: json(ImportJob, 'The job.'),
+    401: error('No session.'),
+    403: error('Not your job.'),
+    404: error('No such job.'),
+  },
+});
+
+// ─── Games ───────────────────────────────────────────────────────────────────
+
+export const listGames = createRoute({
+  method: 'get',
+  path: '/players/{playerId}/games',
+  tags: ['Games'],
+  summary: 'A player’s games, filtered by stream',
+  request: {
+    params: playerParams,
+    query: z.object({
+      stream: Stream.optional().openapi({ param: { name: 'stream', in: 'query' } }),
+      limit: z.coerce
+        .number()
+        .int()
+        .min(1)
+        .max(100)
+        .default(50)
+        .openapi({ param: { name: 'limit', in: 'query' } }),
+      // Pages are 1-based rather than a 0-based offset. `z.coerce.number()`
+      // turns null into 0, so a lower bound of 0 would quietly accept null and
+      // the generated document would have to describe the parameter as
+      // nullable. A lower bound of 1 rejects it.
+      page: z.coerce
+        .number()
+        .int()
+        .min(1)
+        .default(1)
+        .openapi({ param: { name: 'page', in: 'query' } }),
+    }),
+  },
+  responses: {
+    200: json(GameList, 'The page of games.'),
+    ...authErrors,
+    404: error('No such player.'),
+  },
+});
+
+export const getGame = createRoute({
+  method: 'get',
+  path: '/games/{gameId}',
+  tags: ['Games'],
+  summary: 'One game with its per-ply evaluations and classified mistakes',
+  request: {
+    params: z.object({
+      gameId: Uuid.openapi({ param: { name: 'gameId', in: 'path' } }),
+    }),
+  },
+  responses: {
+    200: json(GameDetail, 'The game.'),
+    401: error('No session.'),
+    403: error('Not your game.'),
+    404: error('No such game.'),
+  },
+});
+
+export const queueAnalysis = createRoute({
+  method: 'post',
+  path: '/games/{gameId}/analysis',
+  tags: ['Analysis'],
+  summary: 'Queue engine analysis for one game',
+  description:
+    'F3, N1. Analysis runs on SQS and Lambda (ADR-0014) and takes minutes, so this returns immediately and the result arrives on the event stream.',
+  request: {
+    params: z.object({
+      gameId: Uuid.openapi({ param: { name: 'gameId', in: 'path' } }),
+    }),
+  },
+  responses: {
+    202: json(z.object({ gameId: Uuid, status: z.string() }), 'Queued.'),
+    401: error('No session.'),
+    403: error('Not your game.'),
+    404: error('No such game.'),
+    409: error('Analysis is already running for this game.'),
+    429: error('The free tier analysis cap is reached.'),
+  },
+});
+
+export const analysisEvents = createRoute({
+  method: 'get',
+  path: '/players/{playerId}/analysis/events',
+  tags: ['Analysis'],
+  summary: 'Server-sent events for analysis progress',
+  description:
+    'ADR-0016, N1. A player is never made to wait on a blank screen. Events carry the game id and its new analysis status; the client refetches the game on completion.',
+  request: { params: playerParams },
+  responses: {
+    200: {
+      description: 'An event stream that stays open until the client closes it.',
+      content: { 'text/event-stream': { schema: z.string() } },
+    },
+    401: error('No session.'),
+    403: error('Not your player.'),
+  },
+});
+
+// ─── Report ──────────────────────────────────────────────────────────────────
+
+export const getReport = createRoute({
+  method: 'get',
+  path: '/players/{playerId}/report',
+  tags: ['Report'],
+  summary: 'The weakness report for one stream, ranked by rating leak',
+  description:
+    'F7, F9, S2. Tournament and online games are aggregated separately, so `stream` is required rather than defaulted. A blended report would describe a player who does not exist.',
+  request: {
+    params: playerParams,
+    query: z.object({
+      stream: Stream.openapi({ param: { name: 'stream', in: 'query' } }),
+    }),
+  },
+  responses: {
+    200: json(Report, 'The report.'),
+    ...authErrors,
+    404: error('No such player, or no analyzed games in that stream yet.'),
+  },
+});
+
+// ─── AI ──────────────────────────────────────────────────────────────────────
+
+export const getExplanation = createRoute({
+  method: 'get',
+  path: '/mistakes/{mistakeId}/explanation',
+  tags: ['Coaching'],
+  summary: 'Plain-language explanation of one mistake',
+  description:
+    'ADR-0018. Generated on first read from facts we computed, then served from storage. The model never receives the position, so a wrong explanation traces to a fact we got wrong.',
+  request: {
+    params: z.object({
+      mistakeId: Uuid.openapi({ param: { name: 'mistakeId', in: 'path' } }),
+    }),
+  },
+  responses: {
+    200: json(Explanation, 'The explanation.'),
+    401: error('No session.'),
+    403: error('Not your mistake.'),
+    404: error('No such mistake.'),
+    502: error('The model call failed. Retry; we never substitute canned text.'),
+  },
+});
+
+export const getSocraticQuestion = createRoute({
+  method: 'get',
+  path: '/mistakes/{mistakeId}/question',
+  tags: ['Coaching'],
+  summary: 'A question about the mistake, instead of the answer',
+  request: {
+    params: z.object({
+      mistakeId: Uuid.openapi({ param: { name: 'mistakeId', in: 'path' } }),
+    }),
+  },
+  responses: {
+    200: json(SocraticQuestion, 'The question.'),
+    401: error('No session.'),
+    403: error('Not your mistake.'),
+    404: error('No such mistake.'),
+    502: error('The model call failed. Retry; we never substitute canned text.'),
+  },
+});
+
+// ─── Focus ───────────────────────────────────────────────────────────────────
+
+export const listFocuses = createRoute({
+  method: 'get',
+  path: '/focuses',
+  tags: ['Focus'],
+  summary: 'The catalogue of focuses the system can measure',
+  description:
+    'F10, F13. Versioned rather than frozen. It grows when enough unmeasurable coach instructions say the same thing.',
+  responses: {
+    200: json(z.array(FocusCatalogueEntry), 'The catalogue.'),
+    401: error('No session.'),
+  },
+});
+
+export const getFocus = createRoute({
+  method: 'get',
+  path: '/players/{playerId}/focus',
+  tags: ['Focus'],
+  summary: 'The active focus and its verification trend',
+  description:
+    'F10, F12. One focus at a time, verified over a rolling window kept per stream, reported with the number of games behind it.',
+  request: { params: playerParams },
+  responses: {
+    200: json(ActiveFocus, 'The active focus.'),
+    ...authErrors,
+    404: error('No such player, or no active focus.'),
+  },
+});
+
+export const setFocus = createRoute({
+  method: 'put',
+  path: '/players/{playerId}/focus',
+  tags: ['Focus'],
+  summary: 'Set the active focus, ending the previous one',
+  description:
+    'F10, F13. A coach instruction we cannot measure is still accepted: it is stored verbatim, shown as active, marked unverified, and paired with a measurable focus so the loop still closes. It is also logged as a candidate for the catalogue.',
+  request: {
+    params: playerParams,
+    body: json(SetFocus, 'The focus to take.'),
+  },
+  responses: {
+    200: json(ActiveFocus, 'The new active focus.'),
+    ...authErrors,
+    404: error('No such player, or no such catalogue key.'),
+  },
+});
+
+// ─── Proof sheet ─────────────────────────────────────────────────────────────
+
+export const createProofSheet = createRoute({
+  method: 'post',
+  path: '/players/{playerId}/proof-sheets',
+  tags: ['Proof sheet'],
+  summary: 'Create a shareable before-and-after page',
+  description:
+    'F14, N5, N8. Sharing is an explicit act, which is why this is a POST and not a flag on the report. The numbers are frozen at creation so a page already in a parent’s inbox does not change underneath them.',
+  request: {
+    params: playerParams,
+    body: json(z.object({ expiresAt: z.iso.datetime().optional() }), 'Optional expiry.'),
+  },
+  responses: {
+    201: json(ProofSheet, 'Created.'),
+    ...authErrors,
+    404: error('No such player, or no active focus to prove anything about.'),
+  },
+});
+
+export const revokeProofSheet = createRoute({
+  method: 'delete',
+  path: '/proof-sheets/{proofSheetId}',
+  tags: ['Proof sheet'],
+  summary: 'Revoke a shared page',
+  description: 'N8. Revocation is why the row is marked rather than deleted.',
+  request: {
+    params: z.object({
+      proofSheetId: Uuid.openapi({ param: { name: 'proofSheetId', in: 'path' } }),
+    }),
+  },
+  responses: {
+    204: { description: 'Revoked. The link stops working immediately.' },
+    401: error('No session.'),
+    403: error('Not your proof sheet.'),
+    404: error('No such proof sheet.'),
+  },
+});
+
+export const getSharedProofSheet = createRoute({
+  method: 'get',
+  path: '/shared/proof-sheets/{token}',
+  tags: ['Proof sheet'],
+  summary: 'Read a shared page by its token',
+  /** The one route in the API that answers without a session. */
+  security: [],
+  description:
+    'F14, S6. The one unauthenticated route in the API, and the only screen designed to leave the account that created it. A revoked or expired token answers 404 rather than 403, so a link cannot be used to confirm a player exists.',
+  request: {
+    params: z.object({
+      token: z
+        .string()
+        .min(32)
+        .openapi({ param: { name: 'token', in: 'path' } }),
+    }),
+  },
+  responses: {
+    200: json(SharedProofSheet, 'The page.'),
+    404: error('No such page, or it was revoked or has expired.'),
+  },
+});
+
+export const routes = [
+  getMe,
+  createPlayer,
+  updatePlayer,
+  attachGuardian,
+  startImport,
+  getImport,
+  listGames,
+  getGame,
+  queueAnalysis,
+  analysisEvents,
+  getReport,
+  getExplanation,
+  getSocraticQuestion,
+  listFocuses,
+  getFocus,
+  setFocus,
+  createProofSheet,
+  revokeProofSheet,
+  getSharedProofSheet,
+] as const;

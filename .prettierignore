@@ -1,0 +1,20 @@
+# Generated. Both are committed so a reviewer can see what a schema change does,
+# and neither is ever hand-edited, so neither is ever reformatted.
+apps/api/openapi.json
+apps/api/drizzle/
+
+# Build output and vendored files.
+node_modules/
+site/
+coverage/
+dist/
+tokens/build/
+package-lock.json
+
+# Prose and its config. Markdown here is hand-wrapped to the writing style in
+# the `project` repository, and a formatter that renumbers lists and rewrites
+# list markers would fight it for no gain. Reviews cover prose; Prettier covers
+# code.
+*.md
+*.yml
+*.yaml

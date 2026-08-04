@@ -1,0 +1,84 @@
+name: CI
+
+# The gates that count. The pre-commit hook runs the same checks locally for
+# fast feedback, but this is the version that cannot be skipped and runs in a
+# clean environment. A red run blocks the merge.
+#
+# The working agreements are in the `project` repository, under
+# docs/process/code-quality.md, docs/process/testing.md, and
+# docs/process/security.md.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          # Reads .node-version, so CI and a laptop cannot disagree about the
+          # runtime (ADR-0020).
+          node-version-file: .node-version
+          cache: npm
+
+      - run: npm ci
+
+      - name: Format
+        run: npx prettier --check .
+
+      - name: Lint
+        run: npx eslint .
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Contract is generated, not hand-edited
+        # openapi.json is generated from the route definitions and committed so
+        # a reviewer can see what a contract change does. If regenerating it
+        # produces a diff, someone edited the output instead of the source.
+        run: |
+          npm run openapi
+          git diff --exit-code -- apps/api/openapi.json
+
+      - name: Tests
+        run: npm run test:coverage
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: coverage/
+          if-no-files-found: ignore
+
+      - name: Dependency audit
+        # docs/process/security.md: high or critical findings block the merge.
+        run: npm audit --audit-level=high
+
+  semgrep:
+    # Split out because it pulls its own toolchain and rulesets, and a slow
+    # security scan should not sit in front of a fast lint failure.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v7
+
+      - name: Semgrep
+        run: |
+          uvx semgrep --error --metrics=off \
+            --config p/typescript \
+            --config p/security-audit \
+            --config p/secrets \
+            .

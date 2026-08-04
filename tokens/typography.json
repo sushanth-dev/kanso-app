@@ -2,27 +2,15 @@
   "font": {
     "$type": "fontFamily",
     "display": {
-      "$value": [
-        "Source Serif 4",
-        "Georgia",
-        "serif"
-      ],
+      "$value": ["Source Serif 4", "Georgia", "serif"],
       "$description": "Headings and marketing display. Printed-book seriousness that reads credible to a coach and aspirational to a 12-year-old."
     },
     "ui": {
-      "$value": [
-        "Public Sans",
-        "system-ui",
-        "sans-serif"
-      ],
+      "$value": ["Public Sans", "system-ui", "sans-serif"],
       "$description": "All interface text."
     },
     "mono": {
-      "$value": [
-        "IBM Plex Mono",
-        "ui-monospace",
-        "monospace"
-      ],
+      "$value": ["IBM Plex Mono", "ui-monospace", "monospace"],
       "$description": "Moves, clocks, coordinates, evaluations. Tabular by nature."
     }
   },

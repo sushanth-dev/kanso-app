@@ -56,6 +56,8 @@ nav:
           - 0015 SST infrastructure as code: adrs/backend/0015-sst-infrastructure-as-code.md
           - 0016 SSE analysis result delivery: adrs/backend/0016-sse-analysis-result-delivery.md
           - 0018 AI explanation layer: adrs/backend/0018-ai-explanation-layer.md
+          - 0019 Vitest testing setup: adrs/backend/0019-vitest-testing-setup.md
+          - 0020 Node.js 24 LTS runtime: adrs/backend/0020-node-24-lts-runtime.md
   - Guides:
       - Overview: guides/index.md
       - Local setup: guides/local-setup.md

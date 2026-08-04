@@ -1,0 +1,120 @@
+/**
+ * The cross-cutting behaviour every handler inherits.
+ *
+ * These are the tests worth having before the handlers exist, because they
+ * cover the things a handler cannot opt into and must not opt out of: a request
+ * without a session never reaches route code, an unknown path answers in the
+ * contract's error shape rather than the framework's, and a thrown exception
+ * never carries its message to a player.
+ */
+import { describe, expect, test, vi } from 'vitest';
+import { createApp, publicPaths, toHonoPath } from './app.ts';
+import { routes } from './contract/routes.ts';
+import { ApiError } from './contract/schemas.ts';
+
+/** A session object; its shape is better-auth's problem, its presence is ours. */
+const signedIn = () => ({ userId: '00000000-0000-4000-8000-000000000000' });
+
+describe('toHonoPath', () => {
+  test('rewrites an OpenAPI path parameter into the router syntax', () => {
+    expect(toHonoPath('/players/{playerId}/focus')).toBe('/players/:playerId/focus');
+  });
+
+  test('rewrites every parameter in a path, not only the first', () => {
+    expect(toHonoPath('/players/{playerId}/games/{gameId}')).toBe(
+      '/players/:playerId/games/:gameId',
+    );
+  });
+
+  test('leaves a path with no parameters alone', () => {
+    expect(toHonoPath('/me')).toBe('/me');
+  });
+});
+
+describe('publicPaths', () => {
+  test('is derived from the contract rather than restated', () => {
+    // The shared proof sheet is the one route designed to be read by someone
+    // with no account (F14, S6). If a second public route is ever added, it
+    // declares itself with `security: []` and appears here without this file
+    // being touched. If this assertion fails, read the new route before
+    // changing the number.
+    expect(publicPaths()).toEqual(['/shared/proof-sheets/{token}']);
+  });
+});
+
+describe('the session guard', () => {
+  test('refuses every authenticated route without a session', async () => {
+    const app = createApp();
+    const authenticated = routes.filter((route) => !publicPaths().includes(route.path));
+    expect(authenticated.length).toBeGreaterThan(0);
+
+    for (const route of authenticated) {
+      // Path parameters are filled with something syntactically plausible; the
+      // guard runs before anything looks at them.
+      const path = route.path.replace(/\{[^{}]+\}/g, 'x'.repeat(32));
+      const response = await app.request(path, { method: route.method.toUpperCase() });
+
+      expect(response.status, `${route.method} ${route.path}`).toBe(401);
+      const body: unknown = await response.json();
+      expect(ApiError.safeParse(body).success, `${route.method} ${route.path}`).toBe(true);
+      expect(body).toMatchObject({ code: 'no_session' });
+    }
+  });
+
+  test('lets the shared proof sheet through without a session', async () => {
+    const app = createApp();
+    const response = await app.request(`/shared/proof-sheets/${'x'.repeat(32)}`);
+
+    // No handler is mounted yet, so this falls through to the 404. What matters
+    // is that it is not a 401: the one public route stayed public.
+    expect(response.status).not.toBe(401);
+  });
+
+  test('fails closed when no session reader is supplied', async () => {
+    // The default is "nobody is signed in". An app assembled without wiring
+    // better-auth serves no data rather than serving everyone's.
+    const response = await createApp().request('/me');
+    expect(response.status).toBe(401);
+  });
+
+  test('lets a signed-in request past the guard', async () => {
+    const app = createApp({ getSession: signedIn });
+    const response = await app.request('/me');
+
+    // Past the guard, into the 404 that stands where the handler will be.
+    expect(response.status).toBe(404);
+  });
+});
+
+describe('the not-found response', () => {
+  test('answers an unknown path in the contract error shape', async () => {
+    const response = await createApp().request('/no-such-thing');
+
+    expect(response.status).toBe(404);
+    const body: unknown = await response.json();
+    expect(ApiError.safeParse(body).success).toBe(true);
+    expect(body).toEqual({ code: 'not_found', message: 'No such endpoint.' });
+  });
+});
+
+describe('the error handler', () => {
+  test('turns a thrown exception into a 500 that leaks nothing', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const app = createApp({ getSession: signedIn });
+    app.get('/boom', () => {
+      throw new Error('postgres://user:hunter2@db.internal:5432/chess');
+    });
+
+    const response = await app.request('/boom');
+
+    expect(response.status).toBe(500);
+    const body: unknown = await response.json();
+    expect(ApiError.safeParse(body).success).toBe(true);
+    expect(body).toEqual({ code: 'internal_error', message: 'Something went wrong.' });
+    expect(JSON.stringify(body)).not.toContain('hunter2');
+
+    // The detail is not lost, it is only kept away from the client.
+    expect(logged).toHaveBeenCalled();
+    logged.mockRestore();
+  });
+});
