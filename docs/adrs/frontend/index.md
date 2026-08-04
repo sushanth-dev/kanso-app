@@ -13,3 +13,5 @@ frontend decisions. The format and rules are in
 * [0004. Consume tokens through Tailwind CSS 4](0004-tailwind-4-consumes-tokens.md)
 * [0005. Use Astryx for interface primitives](0005-astryx-primitives.md)
 * [0006. Use D3 for data visualization](0006-d3-visualizations.md)
+* [0017. Use Canvas UI for decorative motion, on named surfaces
+  only](0017-canvas-ui-effects.md)
