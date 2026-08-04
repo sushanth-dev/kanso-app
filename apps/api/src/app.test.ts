@@ -102,7 +102,10 @@ describe('the error handler', () => {
     const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const app = createApp({ getSession: signedIn });
     app.get('/boom', () => {
-      throw new Error('postgres://user:hunter2@db.internal:5432/chess');
+      // A deliberately real-looking connection string. The point of the test is
+      // that it never reaches a response body, so weakening it to a placeholder
+      // would weaken the test. The directive has to sit on the offending line.
+      throw new Error('postgres://user:hunter2@db.internal:5432/chess'); // gitleaks:allow
     });
 
     const response = await app.request('/boom');

@@ -35,6 +35,16 @@ if git diff --cached --name-only --diff-filter=ACM -z |
 	exit 1
 fi
 
+echo "pre-commit: secrets"
+# Semgrep does not detect hardcoded credentials without a Semgrep account, so
+# this is the gate that does. Staged content only: catching a secret before the
+# commit exists is the difference between deleting a line and rewriting history.
+if ! command -v gitleaks >/dev/null 2>&1; then
+	echo "  gitleaks not found. brew install gitleaks"
+	exit 1
+fi
+gitleaks git --staged --no-banner --redact .
+
 echo "pre-commit: semgrep"
 if ! command -v uvx >/dev/null 2>&1; then
 	echo "  uvx not found. Install uv (https://docs.astral.sh/uv/) so Semgrep can run."
