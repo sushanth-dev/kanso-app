@@ -1,0 +1,40 @@
+#!/bin/sh
+# Refuse a direct push to main.
+#
+# docs/process/branching-strategy.md in the `project` repository says work
+# happens on a branch and reaches main by pull request. Nothing enforced that
+# until now: branch protection and rulesets both need GitHub Pro on a private
+# repository, and these are private on a free account.
+#
+# So this is the enforcement, and it is worth being honest about what it is
+# worth. It runs on your machine, it can be skipped with --no-verify, and it
+# does not exist for anyone who clones without running the setup. It is a
+# reminder with teeth, not a control. If the rule ever matters more than that,
+# the answer is GitHub Pro rather than a cleverer hook.
+#
+# Wired by core.hooksPath, same as pre-commit.
+
+protected_branch=main
+
+while read -r _local_ref local_sha remote_ref _remote_sha; do
+	case "$remote_ref" in
+	"refs/heads/$protected_branch")
+		# An all-zero local sha means the push deletes the branch.
+		if [ "$local_sha" = "0000000000000000000000000000000000000000" ]; then
+			echo "pre-push: refusing to delete $protected_branch."
+		else
+			echo "pre-push: refusing a direct push to $protected_branch."
+		fi
+		echo
+		echo "  Work on a branch and open a pull request:"
+		echo
+		echo "    git --git-dir=../.bare worktree add ../<name> -b <type>/<name> origin/$protected_branch"
+		echo
+		echo "  Branch types are feature/, fix/, docs/, and chore/."
+		echo "  The rule is in the project repository, docs/process/branching-strategy.md."
+		exit 1
+		;;
+	esac
+done
+
+exit 0

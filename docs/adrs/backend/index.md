@@ -22,6 +22,7 @@ number sequence is shared with the frontend records.
 * [0019. Test with Vitest, one runner for the whole workspace](0019-vitest-testing-setup.md)
 * [0020. Run on Node.js 24 LTS](0020-node-24-lts-runtime.md)
 * [0021. Connect to PostgreSQL with postgres.js](0021-postgres-js-driver.md)
+* [0022. Run PostgreSQL 18](0022-postgresql-18.md)
 
 Still open, to be recorded when the work starts: frontend routing and data
 fetching (once the app shell exists), and observability (once there is
