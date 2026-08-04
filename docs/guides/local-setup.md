@@ -52,6 +52,18 @@ a comment explaining why. Turning a rule off across the project to silence one
 warning removes the protection everywhere and is not allowed. The full working
 agreement is in the `project` repository under `docs/process/code-quality.md`.
 
+Semgrep runs the `p/default` community ruleset. The narrower `p/typescript`,
+`p/security-audit`, and `p/secrets` were tried first and rejected: run against a
+file written to fail, containing `eval()`, a hardcoded AWS key, and string-built
+SQL, all three together found nothing, while `p/default` found the `eval`. Do
+not swap the ruleset without running that check again, because a scanner that
+runs and finds nothing looks exactly like a scanner that works.
+
+One gap this leaves, recorded rather than papered over: none of the rulesets
+detected the hardcoded credential, because Semgrep's secret detection needs an
+account. Secrets are currently caught by review and by `.gitignore`, not by a
+scanner. It is on the product backlog in the `delivery` repository.
+
 ## Still to come
 
 This guide gains a section per piece of infrastructure as it arrives: the

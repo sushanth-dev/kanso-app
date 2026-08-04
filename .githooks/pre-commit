@@ -40,10 +40,8 @@ if ! command -v uvx >/dev/null 2>&1; then
 	echo "  uvx not found. Install uv (https://docs.astral.sh/uv/) so Semgrep can run."
 	exit 1
 fi
-uvx semgrep --error --quiet --metrics=off \
-	--config p/typescript \
-	--config p/security-audit \
-	--config p/secrets \
-	.
+# p/default is the community ruleset. The narrower p/typescript, p/security-audit,
+# and p/secrets were tried first and caught nothing on a file written to fail.
+uvx semgrep --error --quiet --metrics=off --config p/default .
 
 echo "pre-commit: all gates passed"
