@@ -42,6 +42,7 @@ nav:
           - 0004 Tailwind CSS 4 consumes tokens: adrs/frontend/0004-tailwind-4-consumes-tokens.md
           - 0005 Astryx primitives: adrs/frontend/0005-astryx-primitives.md
           - 0006 D3 for data visualization: adrs/frontend/0006-d3-visualizations.md
+          - 0017 Canvas UI decorative motion: adrs/frontend/0017-canvas-ui-effects.md
       - Backend:
           - Records: adrs/backend/index.md
           - 0007 Hono HTTP framework: adrs/backend/0007-hono-http-framework.md
@@ -54,6 +55,7 @@ nav:
           - 0014 AWS hosting layout: adrs/backend/0014-aws-hosting-layout.md
           - 0015 SST infrastructure as code: adrs/backend/0015-sst-infrastructure-as-code.md
           - 0016 SSE analysis result delivery: adrs/backend/0016-sse-analysis-result-delivery.md
+          - 0018 AI explanation layer: adrs/backend/0018-ai-explanation-layer.md
   - Guides:
       - Overview: guides/index.md
       - Local setup: guides/local-setup.md
