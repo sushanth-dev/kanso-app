@@ -1,0 +1,2689 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Chess improvement app API",
+    "version": "0.1.0",
+    "description": "Version one. Every route traces to a requirement in the business analysis. Authentication routes are mounted by better-auth and are not described here."
+  },
+  "security": [
+    {
+      "cookieAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Account",
+      "description": "The login, the players it plays as, and the adults who pay."
+    },
+    {
+      "name": "Import",
+      "description": "Getting games in, by username or by upload."
+    },
+    {
+      "name": "Games",
+      "description": "Stored games and their evaluations."
+    },
+    {
+      "name": "Analysis",
+      "description": "Queueing engine analysis and watching it finish."
+    },
+    {
+      "name": "Report",
+      "description": "The cross-game diagnosis, ranked by rating leak."
+    },
+    {
+      "name": "Coaching",
+      "description": "Prose over engine-verified facts."
+    },
+    {
+      "name": "Focus",
+      "description": "What to work on, and whether it worked."
+    },
+    {
+      "name": "Proof sheet",
+      "description": "The page a coach sends a parent."
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "better-auth.session_token",
+        "description": "Session cookie issued by better-auth (ADR-0011)."
+      }
+    },
+    "schemas": {
+      "Me": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "name": {
+            "type": "string"
+          },
+          "tier": {
+            "$ref": "#/components/schemas/Tier"
+          },
+          "players": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Player"
+            }
+          },
+          "guardedPlayers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Player"
+            }
+          }
+        },
+        "required": [
+          "userId",
+          "email",
+          "name",
+          "tier",
+          "players",
+          "guardedPlayers"
+        ]
+      },
+      "Tier": {
+        "type": "string",
+        "enum": [
+          "free",
+          "paid"
+        ]
+      },
+      "Player": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "birthYear": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "fideId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "fideRating": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "uscfId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "uscfRating": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "chesscomUsername": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lichessUsername": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "displayName",
+          "birthYear",
+          "fideId",
+          "fideRating",
+          "uscfId",
+          "uscfRating",
+          "chesscomUsername",
+          "lichessUsername",
+          "createdAt"
+        ]
+      },
+      "ApiError": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "not_found"
+          },
+          "message": {
+            "type": "string"
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path",
+                "message"
+              ]
+            }
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      },
+      "CreatePlayer": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "birthYear": {
+            "type": "integer",
+            "minimum": 1900,
+            "maximum": 2100
+          },
+          "fideId": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "fideRating": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3500
+          },
+          "uscfId": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "uscfRating": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3500
+          },
+          "chesscomUsername": {
+            "type": "string",
+            "maxLength": 60
+          },
+          "lichessUsername": {
+            "type": "string",
+            "maxLength": 60
+          }
+        },
+        "required": [
+          "displayName"
+        ]
+      },
+      "UpdatePlayer": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "birthYear": {
+            "type": "integer",
+            "minimum": 1900,
+            "maximum": 2100
+          },
+          "fideId": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "fideRating": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3500
+          },
+          "uscfId": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "uscfRating": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3500
+          },
+          "chesscomUsername": {
+            "type": "string",
+            "maxLength": 60
+          },
+          "lichessUsername": {
+            "type": "string",
+            "maxLength": 60
+          }
+        }
+      },
+      "AttachGuardian": {
+        "type": "object",
+        "properties": {
+          "guardianEmail": {
+            "type": "string",
+            "format": "email"
+          },
+          "relationship": {
+            "type": "string",
+            "maxLength": 40
+          }
+        },
+        "required": [
+          "guardianEmail"
+        ]
+      },
+      "ImportJob": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "playerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source": {
+            "$ref": "#/components/schemas/GameSource"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "backfill",
+              "incremental"
+            ]
+          },
+          "stream": {
+            "$ref": "#/components/schemas/Stream"
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "gamesFound": {
+            "type": "integer"
+          },
+          "gamesImported": {
+            "type": "integer"
+          },
+          "gamesRejected": {
+            "type": "integer"
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "playerId",
+          "source",
+          "kind",
+          "stream",
+          "status",
+          "gamesFound",
+          "gamesImported",
+          "gamesRejected",
+          "error",
+          "createdAt",
+          "finishedAt"
+        ]
+      },
+      "GameSource": {
+        "type": "string",
+        "enum": [
+          "chesscom",
+          "lichess",
+          "pgn_upload"
+        ]
+      },
+      "Stream": {
+        "type": "string",
+        "enum": [
+          "tournament",
+          "online"
+        ],
+        "description": "Tournament games and online games describe different players and are never aggregated together."
+      },
+      "JobStatus": {
+        "type": "string",
+        "enum": [
+          "queued",
+          "running",
+          "complete",
+          "failed"
+        ]
+      },
+      "StartImport": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string",
+                "enum": [
+                  "chesscom"
+                ]
+              },
+              "username": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60
+              },
+              "stream": {
+                "type": "string",
+                "enum": [
+                  "online"
+                ]
+              },
+              "since": {
+                "type": "string",
+                "format": "date"
+              }
+            },
+            "required": [
+              "source",
+              "username",
+              "stream"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string",
+                "enum": [
+                  "lichess"
+                ]
+              },
+              "username": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60
+              },
+              "stream": {
+                "type": "string",
+                "enum": [
+                  "online"
+                ]
+              },
+              "since": {
+                "type": "string",
+                "format": "date"
+              }
+            },
+            "required": [
+              "source",
+              "username",
+              "stream"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string",
+                "enum": [
+                  "pgn_upload"
+                ]
+              },
+              "pgn": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 5000000
+              },
+              "stream": {
+                "$ref": "#/components/schemas/Stream"
+              }
+            },
+            "required": [
+              "source",
+              "pgn",
+              "stream"
+            ]
+          }
+        ]
+      },
+      "GameList": {
+        "type": "object",
+        "properties": {
+          "games": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GameSummary"
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "games",
+          "total",
+          "page",
+          "limit"
+        ]
+      },
+      "GameSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "stream": {
+            "$ref": "#/components/schemas/Stream"
+          },
+          "source": {
+            "$ref": "#/components/schemas/GameSource"
+          },
+          "playerColor": {
+            "$ref": "#/components/schemas/Color"
+          },
+          "result": {
+            "$ref": "#/components/schemas/GameResult"
+          },
+          "playedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "event": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "round": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "board": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "whiteName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "blackName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "whiteElo": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "blackElo": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "eco": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "opening": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "moveCount": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "hasClockData": {
+            "type": "boolean"
+          },
+          "analysisStatus": {
+            "$ref": "#/components/schemas/AnalysisStatus"
+          },
+          "analyzedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "stream",
+          "source",
+          "playerColor",
+          "result",
+          "playedAt",
+          "event",
+          "round",
+          "board",
+          "whiteName",
+          "blackName",
+          "whiteElo",
+          "blackElo",
+          "eco",
+          "opening",
+          "moveCount",
+          "hasClockData",
+          "analysisStatus",
+          "analyzedAt"
+        ]
+      },
+      "Color": {
+        "type": "string",
+        "enum": [
+          "white",
+          "black"
+        ]
+      },
+      "GameResult": {
+        "type": "string",
+        "enum": [
+          "1-0",
+          "0-1",
+          "1/2-1/2",
+          "*"
+        ]
+      },
+      "AnalysisStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "queued",
+          "analyzing",
+          "complete",
+          "failed"
+        ]
+      },
+      "GameDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/GameSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "pgn": {
+                "type": "string"
+              },
+              "plies": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/MovePly"
+                }
+              },
+              "mistakes": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Mistake"
+                }
+              }
+            },
+            "required": [
+              "pgn",
+              "plies",
+              "mistakes"
+            ]
+          }
+        ]
+      },
+      "MovePly": {
+        "type": "object",
+        "properties": {
+          "ply": {
+            "type": "integer"
+          },
+          "san": {
+            "type": "string"
+          },
+          "uci": {
+            "type": "string"
+          },
+          "fenBefore": {
+            "type": "string"
+          },
+          "phase": {
+            "$ref": "#/components/schemas/Phase"
+          },
+          "evaluation": {
+            "$ref": "#/components/schemas/Evaluation"
+          },
+          "bestMoveSan": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "clockMs": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "moveTimeMs": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "ply",
+          "san",
+          "uci",
+          "fenBefore",
+          "phase",
+          "evaluation",
+          "bestMoveSan",
+          "clockMs",
+          "moveTimeMs"
+        ]
+      },
+      "Phase": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "enum": [
+          "opening",
+          "middlegame",
+          "endgame",
+          null
+        ]
+      },
+      "Evaluation": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "cp": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "mate": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "cp",
+          "mate"
+        ],
+        "example": {
+          "cp": -240,
+          "mate": null
+        }
+      },
+      "Mistake": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "gameId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ply": {
+            "type": "integer"
+          },
+          "moveNumber": {
+            "type": "integer"
+          },
+          "movingColor": {
+            "$ref": "#/components/schemas/Color"
+          },
+          "phase": {
+            "$ref": "#/components/schemas/Phase"
+          },
+          "fen": {
+            "type": "string"
+          },
+          "moveSan": {
+            "type": "string"
+          },
+          "bestMoveSan": {
+            "type": "string"
+          },
+          "evalBefore": {
+            "$ref": "#/components/schemas/Evaluation"
+          },
+          "evalAfter": {
+            "$ref": "#/components/schemas/Evaluation"
+          },
+          "judgement": {
+            "$ref": "#/components/schemas/Judgement"
+          },
+          "cpLoss": {
+            "type": "integer"
+          },
+          "winProbDrop": {
+            "type": "number"
+          },
+          "motif": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "crossedResultBoundary": {
+            "type": "boolean"
+          },
+          "halfPointsLost": {
+            "type": "number"
+          },
+          "explanation": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "gameId",
+          "ply",
+          "moveNumber",
+          "movingColor",
+          "phase",
+          "fen",
+          "moveSan",
+          "bestMoveSan",
+          "evalBefore",
+          "evalAfter",
+          "judgement",
+          "cpLoss",
+          "winProbDrop",
+          "motif",
+          "crossedResultBoundary",
+          "halfPointsLost",
+          "explanation"
+        ]
+      },
+      "Judgement": {
+        "type": "string",
+        "enum": [
+          "inaccuracy",
+          "mistake",
+          "blunder"
+        ]
+      },
+      "Report": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "playerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "stream": {
+            "$ref": "#/components/schemas/Stream"
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "gamesCovered": {
+            "type": "integer"
+          },
+          "windowStart": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "windowEnd": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "timeTroubleFromMove": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "weaknesses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Weakness"
+            }
+          },
+          "narrative": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "playerId",
+          "stream",
+          "generatedAt",
+          "gamesCovered",
+          "windowStart",
+          "windowEnd",
+          "timeTroubleFromMove",
+          "weaknesses",
+          "narrative"
+        ]
+      },
+      "Weakness": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/WeaknessKind"
+          },
+          "label": {
+            "type": "string",
+            "example": "Sicilian, Alapin"
+          },
+          "eco": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "B22"
+          },
+          "ratingLeak": {
+            "type": "integer",
+            "example": 34,
+            "description": "Rating points this weakness costs the player over a season."
+          },
+          "halfPointsLost": {
+            "type": "number"
+          },
+          "gamesAffected": {
+            "type": "integer"
+          },
+          "occurrences": {
+            "type": "integer"
+          },
+          "rank": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "label",
+          "eco",
+          "ratingLeak",
+          "halfPointsLost",
+          "gamesAffected",
+          "occurrences",
+          "rank"
+        ]
+      },
+      "WeaknessKind": {
+        "type": "string",
+        "enum": [
+          "opening",
+          "motif",
+          "phase",
+          "time_trouble"
+        ]
+      },
+      "Explanation": {
+        "type": "object",
+        "properties": {
+          "mistakeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "text": {
+            "type": "string"
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "mistakeId",
+          "text",
+          "generatedAt"
+        ]
+      },
+      "SocraticQuestion": {
+        "type": "object",
+        "properties": {
+          "mistakeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "question": {
+            "type": "string"
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "mistakeId",
+          "question",
+          "generatedAt"
+        ]
+      },
+      "FocusCatalogueEntry": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string",
+            "example": "converting_won_positions"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "measureDescription": {
+            "type": "string"
+          },
+          "measurableStreams": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Stream"
+            }
+          },
+          "version": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "title",
+          "description",
+          "measureDescription",
+          "measurableStreams",
+          "version"
+        ]
+      },
+      "ActiveFocus": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "recommended",
+              "coach",
+              "self"
+            ]
+          },
+          "catalogue": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FocusCatalogueEntry"
+              },
+              {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              }
+            ]
+          },
+          "coachInstruction": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "unverified": {
+            "type": "boolean"
+          },
+          "pairedFocusId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "measurements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FocusMeasurement"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "source",
+          "catalogue",
+          "coachInstruction",
+          "unverified",
+          "pairedFocusId",
+          "startedAt",
+          "measurements"
+        ]
+      },
+      "FocusMeasurement": {
+        "type": "object",
+        "properties": {
+          "stream": {
+            "$ref": "#/components/schemas/Stream"
+          },
+          "measuredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "windowGames": {
+            "type": "integer"
+          },
+          "baselineValue": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "currentValue": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "unit": {
+            "type": "string"
+          },
+          "trend": {
+            "$ref": "#/components/schemas/FocusTrend"
+          }
+        },
+        "required": [
+          "stream",
+          "measuredAt",
+          "windowGames",
+          "baselineValue",
+          "currentValue",
+          "unit",
+          "trend"
+        ]
+      },
+      "FocusTrend": {
+        "type": "string",
+        "enum": [
+          "improving",
+          "flat",
+          "declining",
+          "insufficient_evidence"
+        ]
+      },
+      "SetFocus": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string",
+                "enum": [
+                  "recommended",
+                  "self"
+                ]
+              },
+              "catalogueKey": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "source",
+              "catalogueKey"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string",
+                "enum": [
+                  "coach"
+                ]
+              },
+              "catalogueKey": {
+                "type": "string"
+              },
+              "coachInstruction": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              "pairedCatalogueKey": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "source",
+              "coachInstruction",
+              "pairedCatalogueKey"
+            ]
+          }
+        ]
+      },
+      "ProofSheet": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "token": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "revokedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "token",
+          "url",
+          "createdAt",
+          "revokedAt",
+          "expiresAt"
+        ]
+      },
+      "SharedProofSheet": {
+        "type": "object",
+        "properties": {
+          "playerDisplayName": {
+            "type": "string"
+          },
+          "focusTitle": {
+            "type": "string"
+          },
+          "coachInstruction": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "stream": {
+            "$ref": "#/components/schemas/Stream"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "beforeValue": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "afterValue": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "trend": {
+            "$ref": "#/components/schemas/FocusTrend"
+          },
+          "gamesBefore": {
+            "type": "integer"
+          },
+          "gamesAfter": {
+            "type": "integer"
+          },
+          "periodStart": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "periodEnd": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "playerDisplayName",
+          "focusTitle",
+          "coachInstruction",
+          "stream",
+          "unit",
+          "beforeValue",
+          "afterValue",
+          "trend",
+          "gamesBefore",
+          "gamesAfter",
+          "periodStart",
+          "periodEnd"
+        ]
+      }
+    },
+    "parameters": {}
+  },
+  "paths": {
+    "/me": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "The signed-in user, the players they play as, and the players they pay for",
+        "description": "B4. The person paying and the person playing are different people, so this returns two lists rather than one.",
+        "responses": {
+          "200": {
+            "description": "The current session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/players": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Create a chess identity",
+        "requestBody": {
+          "description": "The new player.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePlayer"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Player"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The session has no claim on this player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/players/{playerId}": {
+      "patch": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Update ratings and site usernames",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "playerId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "description": "The fields to change.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePlayer"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Player"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The session has no claim on this player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/players/{playerId}/guardians": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Attach a paying adult to a playing child",
+        "description": "B4, N7. The consent mechanism this records is undecided and blocks launch, so the endpoint exists and the verification behind it does not yet.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "playerId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "description": "The adult to attach.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttachGuardian"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Attached."
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The session has no claim on this player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "That adult is already attached to this player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/players/{playerId}/imports": {
+      "post": {
+        "tags": [
+          "Import"
+        ],
+        "summary": "Import games by site username, or from an uploaded PGN",
+        "description": "S1, F1, F2, T1. Every game is tagged with its stream at import. Malformed PGN is rejected here rather than stored and skipped later.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "playerId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "description": "What to import.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartImport"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Queued. Poll the job or watch the event stream.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportJob"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The session has no claim on this player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The free tier import cap is reached.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/imports/{importId}": {
+      "get": {
+        "tags": [
+          "Import"
+        ],
+        "summary": "Import job status",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "importId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The job.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportJob"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not your job.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such job.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/players/{playerId}/games": {
+      "get": {
+        "tags": [
+          "Games"
+        ],
+        "summary": "A player’s games, filtered by stream",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "playerId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/Stream"
+            },
+            "required": false,
+            "description": "Tournament games and online games describe different players and are never aggregated together.",
+            "name": "stream",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The page of games.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GameList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The session has no claim on this player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/games/{gameId}": {
+      "get": {
+        "tags": [
+          "Games"
+        ],
+        "summary": "One game with its per-ply evaluations and classified mistakes",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "gameId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The game.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GameDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not your game.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such game.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/games/{gameId}/analysis": {
+      "post": {
+        "tags": [
+          "Analysis"
+        ],
+        "summary": "Queue engine analysis for one game",
+        "description": "F3, N1. Analysis runs on SQS and Lambda (ADR-0014) and takes minutes, so this returns immediately and the result arrives on the event stream.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "gameId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Queued.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "gameId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "status": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "gameId",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not your game.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such game.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Analysis is already running for this game.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The free tier analysis cap is reached.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/players/{playerId}/analysis/events": {
+      "get": {
+        "tags": [
+          "Analysis"
+        ],
+        "summary": "Server-sent events for analysis progress",
+        "description": "ADR-0016, N1. A player is never made to wait on a blank screen. Events carry the game id and its new analysis status; the client refetches the game on completion.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "playerId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "An event stream that stays open until the client closes it.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not your player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/players/{playerId}/report": {
+      "get": {
+        "tags": [
+          "Report"
+        ],
+        "summary": "The weakness report for one stream, ranked by rating leak",
+        "description": "F7, F9, S2. Tournament and online games are aggregated separately, so `stream` is required rather than defaulted. A blended report would describe a player who does not exist.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "playerId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/Stream"
+            },
+            "required": true,
+            "description": "Tournament games and online games describe different players and are never aggregated together.",
+            "name": "stream",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The report.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Report"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The session has no claim on this player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such player, or no analyzed games in that stream yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mistakes/{mistakeId}/explanation": {
+      "get": {
+        "tags": [
+          "Coaching"
+        ],
+        "summary": "Plain-language explanation of one mistake",
+        "description": "ADR-0018. Generated on first read from facts we computed, then served from storage. The model never receives the position, so a wrong explanation traces to a fact we got wrong.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "mistakeId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The explanation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Explanation"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not your mistake.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such mistake.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The model call failed. Retry; we never substitute canned text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mistakes/{mistakeId}/question": {
+      "get": {
+        "tags": [
+          "Coaching"
+        ],
+        "summary": "A question about the mistake, instead of the answer",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "mistakeId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The question.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SocraticQuestion"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not your mistake.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such mistake.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The model call failed. Retry; we never substitute canned text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/focuses": {
+      "get": {
+        "tags": [
+          "Focus"
+        ],
+        "summary": "The catalogue of focuses the system can measure",
+        "description": "F10, F13. Versioned rather than frozen. It grows when enough unmeasurable coach instructions say the same thing.",
+        "responses": {
+          "200": {
+            "description": "The catalogue.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FocusCatalogueEntry"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/players/{playerId}/focus": {
+      "get": {
+        "tags": [
+          "Focus"
+        ],
+        "summary": "The active focus and its verification trend",
+        "description": "F10, F12. One focus at a time, verified over a rolling window kept per stream, reported with the number of games behind it.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "playerId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The active focus.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActiveFocus"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The session has no claim on this player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such player, or no active focus.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Focus"
+        ],
+        "summary": "Set the active focus, ending the previous one",
+        "description": "F10, F13. A coach instruction we cannot measure is still accepted: it is stored verbatim, shown as active, marked unverified, and paired with a measurable focus so the loop still closes. It is also logged as a candidate for the catalogue.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "playerId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "description": "The focus to take.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetFocus"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The new active focus.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActiveFocus"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The session has no claim on this player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such player, or no such catalogue key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/players/{playerId}/proof-sheets": {
+      "post": {
+        "tags": [
+          "Proof sheet"
+        ],
+        "summary": "Create a shareable before-and-after page",
+        "description": "F14, N5, N8. Sharing is an explicit act, which is why this is a POST and not a flag on the report. The numbers are frozen at creation so a page already in a parent’s inbox does not change underneath them.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "playerId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "description": "Optional expiry.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "expiresAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProofSheet"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The session has no claim on this player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such player, or no active focus to prove anything about.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/proof-sheets/{proofSheetId}": {
+      "delete": {
+        "tags": [
+          "Proof sheet"
+        ],
+        "summary": "Revoke a shared page",
+        "description": "N8. Revocation is why the row is marked rather than deleted.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "proofSheetId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Revoked. The link stops working immediately."
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not your proof sheet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such proof sheet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shared/proof-sheets/{token}": {
+      "get": {
+        "tags": [
+          "Proof sheet"
+        ],
+        "summary": "Read a shared page by its token",
+        "security": [],
+        "description": "F14, S6. The one unauthenticated route in the API, and the only screen designed to leave the account that created it. A revoked or expired token answers 404 rather than 403, so a link cannot be used to confirm a player exists.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 32
+            },
+            "required": true,
+            "name": "token",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The page.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedProofSheet"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such page, or it was revoked or has expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "webhooks": {}
+}

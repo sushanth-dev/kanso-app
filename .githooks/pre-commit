@@ -1,0 +1,49 @@
+#!/bin/sh
+# The quality gates, run locally before a commit is recorded.
+#
+# The working agreement is in the `project` repository under
+# docs/process/code-quality.md: lint, format, typecheck, and Semgrep run on
+# every commit and again in CI. Local hooks give fast feedback; CI is the
+# version that counts, because it runs in a clean environment and cannot be
+# skipped.
+#
+# Wired by `npm run prepare`, which sets core.hooksPath to this directory.
+# Bypassing this hook with --no-verify is not a workflow. If a gate is wrong,
+# fix the gate.
+set -e
+
+echo "pre-commit: format"
+npx prettier --check .
+
+echo "pre-commit: lint"
+npx eslint .
+
+echo "pre-commit: typecheck"
+npm run --silent typecheck
+
+echo "pre-commit: tests"
+npm run --silent test
+
+echo "pre-commit: TODO comments"
+# A TODO with no linked task is a note to nobody. The policy allows a TODO that
+# names a story or backlog item; this rejects the ones that name nothing.
+if git diff --cached --name-only --diff-filter=ACM -z |
+	grep -zE '\.(ts|tsx|js|mjs)$' |
+	xargs -0 -r grep -nE '(TODO|FIXME)' 2>/dev/null |
+	grep -vE '(TODO|FIXME)[^\n]*(#[0-9]+|[A-Z]+-[0-9]+|stories/)'; then
+	echo "  A TODO or FIXME above has no linked task. Link a story or delete it."
+	exit 1
+fi
+
+echo "pre-commit: semgrep"
+if ! command -v uvx >/dev/null 2>&1; then
+	echo "  uvx not found. Install uv (https://docs.astral.sh/uv/) so Semgrep can run."
+	exit 1
+fi
+uvx semgrep --error --quiet --metrics=off \
+	--config p/typescript \
+	--config p/security-audit \
+	--config p/secrets \
+	.
+
+echo "pre-commit: all gates passed"

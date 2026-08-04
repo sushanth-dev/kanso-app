@@ -1,0 +1,22 @@
+{
+  "name": "@chess-app/api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "openapi": "node src/contract/emit-openapi.ts",
+    "db:generate": "drizzle-kit generate"
+  },
+  "dependencies": {
+    "@hono/zod-openapi": "^1.1.4",
+    "chess.js": "^1.4.0",
+    "drizzle-orm": "^0.45.2",
+    "hono": "^4.10.6",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "drizzle-kit": "^0.31.6",
+    "typescript": "^5.9.3"
+  }
+}
