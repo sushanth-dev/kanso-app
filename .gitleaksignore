@@ -1,0 +1,12 @@
+# Findings in history that are not leaks. One line per fingerprint, which is
+# commit:path:rule:line, so an entry stops applying the moment the line moves.
+#
+# This file is not the place to silence a real credential. A secret that
+# reached a commit is disclosed even after the line is deleted, because the
+# commit keeps it; the response is to rotate the credential and then rewrite or
+# abandon the history, not to add a line here.
+
+# A fake connection string in the test that proves the 500 handler does not
+# leak one. The working copy carries a `gitleaks:allow` directive, but the
+# commit below predates it and commits do not change.
+2f83157747086c3bd7d41e17e982e26e506adfc4:apps/api/src/app.test.ts:database-connection-uri:105

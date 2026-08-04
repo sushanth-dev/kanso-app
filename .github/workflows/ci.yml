@@ -80,6 +80,35 @@ jobs:
         # candidates that actually fires. p/typescript loads 74 rules and
         # caught nothing on a file containing eval(); p/default loads over a
         # thousand and caught it. Verified by running both against a file
-        # written to fail. See docs/guides/local-setup.md for the gap this
-        # still leaves.
+        # written to fail. Hardcoded credentials are the gap it leaves, and
+        # the secrets job below is what covers them.
         run: uvx semgrep --error --metrics=off --config p/default .
+
+  secrets:
+    # The local hook scans staged content, which cannot see a secret that was
+    # committed before the hook existed or on a machine without it. This scans
+    # the whole history, which is the version that counts.
+    runs-on: ubuntu-latest
+    env:
+      GITLEAKS_VERSION: 8.30.1
+      GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Zero means the full history. The default is a shallow clone, which
+          # would scan the tip and report clean on a repository with a
+          # credential three commits back.
+          fetch-depth: 0
+
+      - name: Install gitleaks
+        # Installed from the pinned release and checksummed rather than through
+        # a third-party action, so the only trust here is in a tarball whose
+        # hash is in this file. docs/process/security.md wants dependencies
+        # pinned; this is what that means for a binary.
+        run: |
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -o gitleaks.tar.gz
+          echo "${GITLEAKS_SHA256}  gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf gitleaks.tar.gz gitleaks
+
+      - name: Secret scan
+        run: ./gitleaks git --no-banner --redact .

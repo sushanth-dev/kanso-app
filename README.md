@@ -30,8 +30,9 @@ run across every workspace.
 
 Every change passes the same checks, whether a human or an agent wrote it.
 Prettier for formatting, ESLint with type-aware rules, TypeScript in strict
-mode, Vitest for tests, Semgrep for static analysis, and `npm audit` for
-dependencies. They run locally on every commit through `.githooks/pre-commit`
+mode, Vitest for tests, Semgrep for static analysis, gitleaks for committed
+secrets, and `npm audit` for dependencies. They run locally on every commit
+through `.githooks/pre-commit`
 and again in CI, which is the version that counts. A failing gate blocks the
 merge. See [docs/guides/local-setup.md](docs/guides/local-setup.md) for the
 commands and the `project` repository for the working agreements behind them.

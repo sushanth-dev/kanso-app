@@ -12,6 +12,10 @@ passes before it can be committed.
   is pinned to an LTS line.
 * [uv](https://docs.astral.sh/uv/), which runs Semgrep and MkDocs without
   installing either one globally.
+* [gitleaks](https://gitleaks.io/), which scans for committed secrets:
+  `brew install gitleaks`. The pre-commit hook refuses to run without it
+  rather than skipping the check, because a secret scanner that quietly does
+  not run is worse than none at all.
 * PostgreSQL, once there is code that talks to it. Nothing here needs it yet.
 
 ## Install
@@ -59,10 +63,24 @@ SQL, all three together found nothing, while `p/default` found the `eval`. Do
 not swap the ruleset without running that check again, because a scanner that
 runs and finds nothing looks exactly like a scanner that works.
 
-One gap this leaves, recorded rather than papered over: none of the rulesets
-detected the hardcoded credential, because Semgrep's secret detection needs an
-account. Secrets are currently caught by review and by `.gitignore`, not by a
-scanner. It is on the product backlog in the `delivery` repository.
+The gap that leaves is hardcoded credentials, which none of the Semgrep
+rulesets detected because its secret detection needs an account. Gitleaks
+covers it instead, and needs no account. The hook scans staged content only,
+so a secret is caught before the commit exists, which is the difference
+between deleting a line and rewriting history. CI scans the whole history,
+because the hook cannot see a commit made on a machine that did not have it.
+
+Its rules are in `.gitleaks.toml`. The default set catches credentials with a
+recognisable shape and misses a database connection string, which has no
+prefix and is the one we actually handle, so there is a rule for it. That rule
+allows placeholders and anything pointing at localhost.
+
+Two ways to mark a false positive, and they are not interchangeable. A
+`gitleaks:allow` comment on the offending line works for the working copy, and
+it has to be on that line rather than the one above. A finding already in a
+commit needs its fingerprint in `.gitleaksignore`, because commits do not
+change. Neither is the answer for a real credential: a secret that reached a
+commit is disclosed, and the response is to rotate it first.
 
 ## Still to come
 

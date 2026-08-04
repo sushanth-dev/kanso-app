@@ -1,0 +1,33 @@
+# Secret scanning rules.
+#
+# The default ruleset covers the credentials with a recognisable shape: AWS
+# keys, GitHub tokens, Slack tokens, private key blocks, and a generic
+# high-entropy assignment. Verified against planted examples rather than
+# assumed, because a scanner that runs and finds nothing looks exactly like a
+# scanner that works. See docs/guides/local-setup.md.
+#
+# The one rule below exists because the default set misses the credential this
+# project actually handles. A PostgreSQL connection string carries its password
+# inline, has no distinguishing prefix, and is the exact thing that gets pasted
+# into a file "just for a minute" (ST-001's security assessment says so).
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "database-connection-uri"
+description = "Database connection URI with an inline password"
+regex = '''(?i)\b(?:postgres(?:ql)?|mysql|mariadb|mongodb(?:\+srv)?|redis|rediss|amqps?|clickhouse)://[^\s:/?#\[\]@]+:[^\s:/?#\[\]@]{3,}@[^\s/?#]+'''
+tags = ["database", "credential"]
+
+# Placeholders and local development are not leaks. A URI pointing at localhost
+# cannot be a production credential, and one whose password reads `password` or
+# `${DB_PASSWORD}` is documentation. Everything else fires, including a
+# plausible-looking password against a non-local host, which is the case worth
+# being noisy about.
+[rules.allowlist]
+regexTarget = "match"
+regexes = [
+  '''(?i):(password|passwd|pass|secret|changeme|placeholder|example|your[-_]?password|xxx+|\*+|<[^>]+>|\$\{[^}]+\})@''',
+  '''(?i)@(localhost|127\.0\.0\.1|host\.docker\.internal)[:/]''',
+]
