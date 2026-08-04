@@ -1,8 +1,8 @@
 # Local setup
 
 There is no application to run yet. What there is, and what this guide covers,
-is the toolchain: the runtime, the dependencies, and the gates every change
-passes before it can be committed.
+is the toolchain: the runtime, the dependencies, the database the tests need,
+and the gates every change passes before it can be committed.
 
 ## Prerequisites
 
@@ -16,7 +16,11 @@ passes before it can be committed.
   `brew install gitleaks`. The pre-commit hook refuses to run without it
   rather than skipping the check, because a secret scanner that quietly does
   not run is worse than none at all.
-* PostgreSQL, once there is code that talks to it. Nothing here needs it yet.
+* PostgreSQL 18, for the integration tests. Docker or Podman is the easiest
+  way to get one; see [The database](#the-database) below.
+  [ADR-0022](../adrs/backend/0022-postgresql-18.md) explains why the version
+  is pinned and why running a different one locally makes the test suite lie
+  to you.
 
 ## Install
 
@@ -25,8 +29,47 @@ npm ci
 ```
 
 That also runs `npm run prepare`, which points git at `.githooks/` so the
-pre-commit gates are live. There is no separate setup step and no hook-runner
-dependency.
+pre-commit and pre-push gates are live. There is no separate setup step and no
+hook-runner dependency.
+
+Then copy the environment file:
+
+```sh
+cp .env.example .env
+```
+
+`.env` is gitignored and must stay that way. It holds a connection string,
+which is a credential.
+
+## The database
+
+The integration tests need a real PostgreSQL, because the testing policy in
+the `project` repository forbids mocking it. The reason is specific: our
+uniqueness rules are partial indexes with `where` clauses, and a stand-in
+would happily accept the rows a real database rejects.
+
+Run the same major version CI and production run
+([ADR-0022](../adrs/backend/0022-postgresql-18.md)):
+
+```sh
+docker run --name kanso-db -e POSTGRES_PASSWORD=postgres \
+  -p 5432:5432 -d postgres:18
+```
+
+Then create the development database:
+
+```sh
+docker exec kanso-db createdb -U postgres kanso_dev
+```
+
+That matches the `DATABASE_URL` already in `.env.example`. The container is a
+throwaway: the integration suite resets state between tests, so never point
+`DATABASE_URL` at a database whose contents matter to you.
+
+Migrations are committed in `apps/api/drizzle/` and the test suite applies
+them to a fresh database itself. Do not create tables by hand. The prototype
+did that for five months and ended up with ten versions of the same function
+in `public`, nine of them dead and none documented.
 
 ## The commands
 
@@ -50,6 +93,15 @@ Lint, format, typecheck, tests, and Semgrep run on every commit through
 `.githooks/pre-commit`, and again in CI on every pull request. The local hook
 is for fast feedback; CI is the version that counts, because it runs in a clean
 environment and cannot be skipped.
+
+`.githooks/pre-push` refuses a direct push to `main`. The branching strategy
+in the `project` repository says work reaches `main` by pull request, and
+nothing enforced that: branch protection and rulesets both need GitHub Pro on
+a private repository, and these repositories are private on a free account.
+The hook is worth exactly what a local hook is worth. It runs on your machine,
+`--no-verify` skips it, and a clone that never ran `npm ci` does not have it.
+It is a reminder with teeth, not a control. If the rule ever matters more than
+that, the answer is GitHub Pro rather than a cleverer hook.
 
 If a gate is wrong about a specific line, suppress it inline on that line with
 a comment explaining why. Turning a rule off across the project to silence one
@@ -85,5 +137,5 @@ commit is disclosed, and the response is to rotate it first.
 ## Still to come
 
 This guide gains a section per piece of infrastructure as it arrives: the
-`.env.example` file and the local database, the development servers for the
-backend and the Vite frontend, and the Playwright setup for end-to-end tests.
+development servers for the backend and the Vite frontend, and the Playwright
+setup for end-to-end tests.
