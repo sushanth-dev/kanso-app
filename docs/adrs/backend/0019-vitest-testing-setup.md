@@ -93,3 +93,19 @@ The `*.integration.test.ts` naming is a convention with nothing enforcing it
 until the first integration test exists. The first story that writes one
 adds the runner project and the CI service container, and that story owns
 proving the arrangement works.
+
+## Addendum, 2026-08-05: the arrangement ST-001 landed
+
+The second project now exists. `vitest.config.mts` holds two projects, `unit`
+and `integration`, selected by file name (`*.test.ts` against
+`*.integration.test.ts`). `npm test` runs the unit project alone, so the
+pre-commit hook and a contributor with no database stay fast; CI runs the
+integration project in a separate job against a `postgres:18` service
+container.
+
+The harness (`apps/api/src/db/test-harness.ts`) creates a randomly-named
+database per run, applies the committed migrations through
+`drizzle-orm/postgres-js/migrator`, truncates every table between tests, and
+drops the database on the way out. Truncation rather than transaction
+rollback: at this table count it costs milliseconds, and it keeps each
+test's committed data visible when a failure needs inspecting.
