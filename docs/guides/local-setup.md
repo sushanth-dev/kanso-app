@@ -66,6 +66,10 @@ That matches the `DATABASE_URL` already in `.env.example`. The container is a
 throwaway: the integration suite resets state between tests, so never point
 `DATABASE_URL` at a database whose contents matter to you.
 
+The suite creates its own randomly-named database on that server and drops it
+on the way out, applying the committed migrations itself. `kanso_dev` exists
+only as the connection's landing database; the tests never touch its tables.
+
 Migrations are committed in `apps/api/drizzle/` and the test suite applies
 them to a fresh database itself. Do not create tables by hand. The prototype
 did that for five months and ended up with ten versions of the same function
@@ -74,9 +78,10 @@ in `public`, nine of them dead and none documented.
 ## The commands
 
 ```sh
-npm test                # the whole suite
-npm run test:watch      # the suite, re-running on save
-npm run test:coverage   # the suite with a coverage report
+npm test                # the unit suite: fast, no database needed
+npm run test:watch      # the unit suite, re-running on save
+npm run test:coverage   # the unit suite with a coverage report
+npm run test:integration   # the integration suite, against the database in DATABASE_URL
 
 npm run typecheck       # tsc --noEmit across every workspace
 npm run lint            # eslint
