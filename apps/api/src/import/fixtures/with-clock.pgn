@@ -1,0 +1,9 @@
+[Event "Online Blitz"]
+[Site "Chess.com"]
+[Round "-"]
+[White "Player, Test"]
+[Black "Opponent, D"]
+[Result "0-1"]
+[TimeControl "180+2"]
+
+1. e4 {[%clk 0:03:00]} e5 {[%clk 0:03:00]} 2. Nf3 {[%clk 0:02:58]} 0-1

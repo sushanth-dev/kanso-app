@@ -1,0 +1,17 @@
+[Event "Mixed"]
+[Site "Local"]
+[Round "1"]
+[White "Good, Game"]
+[Black "Opponent, A"]
+[Result "1-0"]
+
+1. e4 e5 1-0
+
+[Event "Mixed"]
+[Site "Local"]
+[Round "2"]
+[White "Bad, Game"]
+[Black "Opponent, B"]
+[Result "*"]
+
+1. e4 e9 *
