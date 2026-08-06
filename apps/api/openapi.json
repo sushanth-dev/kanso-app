@@ -1722,6 +1722,16 @@
                 }
               }
             }
+          },
+          "501": {
+            "description": "Username import is not built yet; upload a PGN.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }

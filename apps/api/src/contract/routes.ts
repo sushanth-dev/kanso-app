@@ -132,6 +132,7 @@ export const startImport = createRoute({
     ...authErrors,
     404: error('No such player.'),
     429: error('The free tier import cap is reached.'),
+    501: error('Username import is not built yet; upload a PGN.'),
   },
 });
 
