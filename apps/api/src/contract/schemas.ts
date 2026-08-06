@@ -170,7 +170,7 @@ export const GameSummary = z
     id: Uuid,
     stream: Stream,
     source: GameSource,
-    playerColor: Color,
+    playerColor: z.enum(['white', 'black']).nullable(),
     result: GameResult,
     playedAt: z.iso.datetime().nullable(),
     event: z.string().nullable(),
