@@ -1,0 +1,31 @@
+import { describe, expect, test } from 'vitest';
+import { decidePlayerColor } from './player-color.ts';
+
+describe('decidePlayerColor', () => {
+  test('matches the player to White', () => {
+    expect(
+      decidePlayerColor('Sushanth Kamabathula', 'Kamabathula, Sushanth', 'Carlsen, Magnus'),
+    ).toBe('white');
+  });
+
+  test('matches the player to Black', () => {
+    expect(
+      decidePlayerColor('Sushanth Kamabathula', 'Carlsen, Magnus', 'Kamabathula, Sushanth'),
+    ).toBe('black');
+  });
+
+  test('returns null when neither side matches', () => {
+    expect(
+      decidePlayerColor('Sushanth Kamabathula', 'Carlsen, Magnus', 'Nakamura, Hikaru'),
+    ).toBeNull();
+  });
+
+  test('returns null when both sides match, rather than guessing', () => {
+    expect(decidePlayerColor('Test Player', 'Player, Test', 'Test Player')).toBeNull();
+  });
+
+  test('returns null when a name tag is absent', () => {
+    expect(decidePlayerColor('Sushanth Kamabathula', null, 'Kamabathula, Sushanth')).toBe('black');
+    expect(decidePlayerColor('Sushanth Kamabathula', null, null)).toBeNull();
+  });
+});
