@@ -1,0 +1,1 @@
+ALTER TABLE "game" ALTER COLUMN "player_color" DROP NOT NULL;

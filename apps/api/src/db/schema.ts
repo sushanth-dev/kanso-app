@@ -235,7 +235,7 @@ export const game = pgTable(
     pgnHash: text('pgn_hash').notNull(),
     pgn: text('pgn').notNull(),
 
-    playerColor: colorEnum('player_color').notNull(),
+    playerColor: colorEnum('player_color'),
     result: gameResultEnum('result').notNull(),
     playedAt: timestamp('played_at', { withTimezone: true }),
     moveCount: smallint('move_count'),
