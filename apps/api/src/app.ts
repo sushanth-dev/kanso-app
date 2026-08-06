@@ -13,7 +13,10 @@
  */
 import { OpenAPIHono } from '@hono/zod-openapi';
 import type { Context, MiddlewareHandler } from 'hono';
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { routes } from './contract/routes.ts';
+import { mountImport } from './import/import-games.ts';
+import type * as schema from './db/schema.ts';
 
 /** The shape of every error the API emits, from `ApiError` in the contract. */
 export interface ErrorBody {
@@ -70,9 +73,15 @@ export interface AppOptions {
    * an app with no auth provider mounted: fail closed, never open.
    */
   getSession?: (c: Context) => unknown;
+  /**
+   * The database handlers read and write. Optional because the cross-cutting
+   * tests assemble an app that never reaches a handler; a handler that needs it
+   * is only mounted when it is supplied.
+   */
+  db?: PostgresJsDatabase<typeof schema>;
 }
 
-export function createApp({ getSession = () => null }: AppOptions = {}) {
+export function createApp({ getSession = () => null, db }: AppOptions = {}) {
   const app = new OpenAPIHono({
     /**
      * A validation failure is a 400 in the contract, so it is answered in the
@@ -103,6 +112,8 @@ export function createApp({ getSession = () => null }: AppOptions = {}) {
     if (open.has(route.path)) continue;
     app.use(toHonoPath(route.path), requireSession(getSession));
   }
+
+  if (db) mountImport(app, { db, getSession });
 
   app.notFound((c) => c.json<ErrorBody>({ code: 'not_found', message: 'No such endpoint.' }, 404));
 
