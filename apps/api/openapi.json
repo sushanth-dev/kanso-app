@@ -528,7 +528,15 @@
             "$ref": "#/components/schemas/GameSource"
           },
           "playerColor": {
-            "$ref": "#/components/schemas/Color"
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "white",
+              "black",
+              null
+            ]
           },
           "result": {
             "$ref": "#/components/schemas/GameResult"
@@ -634,13 +642,6 @@
           "hasClockData",
           "analysisStatus",
           "analyzedAt"
-        ]
-      },
-      "Color": {
-        "type": "string",
-        "enum": [
-          "white",
-          "black"
         ]
       },
       "GameResult": {
@@ -871,6 +872,13 @@
           "crossedResultBoundary",
           "halfPointsLost",
           "explanation"
+        ]
+      },
+      "Color": {
+        "type": "string",
+        "enum": [
+          "white",
+          "black"
         ]
       },
       "Judgement": {
