@@ -225,8 +225,22 @@ describe('POST /players/{playerId}/imports (pgn_upload)', () => {
       stream: 'tournament',
       pgn: fixture('multi-game.pgn'),
     });
-    const job = (await res.json()) as { gamesUndetermined: number };
+    const job = (await res.json()) as { gamesImported: number; gamesUndetermined: number };
+    expect(job.gamesImported).toBe(3);
     expect(job.gamesUndetermined).toBe(0);
+  });
+
+  test('counts exactly the undetermined games in a mix of decided and undecided sides', async () => {
+    const playerId = await seedPlayer('Sushanth Kamabathula');
+    const res = await upload(OWNER, playerId, {
+      source: 'pgn_upload',
+      stream: 'tournament',
+      pgn: fixture('mixed-sides.pgn'),
+    });
+    expect(res.status).toBe(202);
+    const job = (await res.json()) as { gamesImported: number; gamesUndetermined: number };
+    expect(job.gamesImported).toBe(3);
+    expect(job.gamesUndetermined).toBe(1);
   });
 
   test('decides the side when the crosstable abbreviates the first name', async () => {

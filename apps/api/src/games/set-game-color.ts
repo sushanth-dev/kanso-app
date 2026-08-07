@@ -70,24 +70,29 @@ export function mountSetGameColor(
     // extracting. ST-005 writes it, and this one joins through the player
     // rather than reading it directly, so a shared helper now would have one
     // shape and two exceptions.
-    const owner = await deps.db
-      .select({ ownerUserId: player.ownerUserId })
-      .from(game)
-      .innerJoin(player, eq(game.playerId, player.id))
-      .where(eq(game.id, gameId));
-    if (owner.length === 0) {
+    const outcome = await deps.db.transaction(async (tx) => {
+      const owner = await tx
+        .select({ ownerUserId: player.ownerUserId })
+        .from(game)
+        .innerJoin(player, eq(game.playerId, player.id))
+        .where(eq(game.id, gameId))
+        .for('update');
+      if (owner.length === 0) return { kind: 'not_found' as const };
+      if (owner[0].ownerUserId !== session.userId) return { kind: 'forbidden' as const };
+      const [updated] = await tx
+        .update(game)
+        .set({ playerColor })
+        .where(eq(game.id, gameId))
+        .returning();
+      return { kind: 'updated' as const, row: updated };
+    });
+
+    if (outcome.kind === 'not_found') {
       return c.json({ code: 'not_found', message: 'No such game.' }, 404);
     }
-    if (owner[0].ownerUserId !== session.userId) {
+    if (outcome.kind === 'forbidden') {
       return c.json({ code: 'forbidden', message: 'Not your game.' }, 403);
     }
-
-    const [updated] = await deps.db
-      .update(game)
-      .set({ playerColor })
-      .where(eq(game.id, gameId))
-      .returning();
-
-    return c.json(toGameSummary(updated), 200);
+    return c.json(toGameSummary(outcome.row), 200);
   });
 }
