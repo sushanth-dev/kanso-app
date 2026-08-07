@@ -157,6 +157,8 @@ export const ImportJob = z
     gamesFound: z.number().int(),
     gamesImported: z.number().int(),
     gamesRejected: z.number().int(),
+    /** F1. Games stored with no side decided; the player says which through PATCH /games/{gameId}. */
+    gamesUndetermined: z.number().int(),
     error: z.string().nullable(),
     createdAt: z.iso.datetime(),
     finishedAt: z.iso.datetime().nullable(),

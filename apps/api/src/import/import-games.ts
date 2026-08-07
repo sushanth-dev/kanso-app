@@ -133,11 +133,16 @@ export function mountImport(
         // A re-upload is idempotent on (player_id, pgn_hash). The conflicting
         // rows are skipped, and the count of returned ids is what was new.
         .onConflictDoNothing({ target: [game.playerId, game.pgnHash] })
-        .returning({ id: game.id });
+        .returning({ id: game.id, playerColor: game.playerColor });
+
+      // Only the rows this upload actually inserted. A re-upload that conflicts
+      // on every game imported nothing, so it leaves nothing undetermined
+      // either, and the first upload's count stands.
+      const undetermined = inserted.filter((row) => row.playerColor === null).length;
 
       const [updated] = await tx
         .update(importJob)
-        .set({ gamesImported: inserted.length })
+        .set({ gamesImported: inserted.length, gamesUndetermined: undetermined })
         .where(eq(importJob.id, created.id))
         .returning();
 
@@ -155,6 +160,7 @@ export function mountImport(
         gamesFound: job.gamesFound,
         gamesImported: job.gamesImported,
         gamesRejected: job.gamesRejected,
+        gamesUndetermined: job.gamesUndetermined,
         error: job.error,
         createdAt: job.createdAt.toISOString(),
         finishedAt: job.finishedAt?.toISOString() ?? null,
