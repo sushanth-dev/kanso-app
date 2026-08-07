@@ -38,9 +38,12 @@ function stripBracketed(name: string): string {
  * surname, and splitting it lets "Anna Muller" match "Muller-Schmidt, Anna" —
  * two different people. Every other punctuation mark is a separator.
  *
- * A leading title is dropped only when the source wrote it in capitals. "GM" in
- * front of a name is a title; "Im" in front of one is a surname, and deleting it
- * would match its bearer to every other Sung Hyun in the event.
+ * A leading title is dropped only when the source used case to set it apart
+ * from the name: the first token is capitalised and the rest of the segment
+ * is not also all-caps. "GM Player" marks a title this way. A crosstable
+ * shouting "IM SUNG HYUN" does not — every token is capitalised alike, "Im" is
+ * a Korean surname there, and deleting it would match its bearer to every
+ * other Sung Hyun in the event.
  */
 function cleanTokens(part: string): string[] {
   const tokens = part
@@ -48,11 +51,13 @@ function cleanTokens(part: string): string[] {
     .replace(/[^A-Za-z0-9\s]/g, ' ')
     .split(/\s+/)
     .filter((token) => token.length > 0 && !/^\d+$/.test(token));
-  if (
-    tokens.length > 0 &&
+  const rest = tokens.slice(1).join('');
+  const titleIsMarked =
+    tokens.length > 1 &&
     tokens[0] === tokens[0].toUpperCase() &&
-    TITLES.has(tokens[0].toLowerCase())
-  ) {
+    TITLES.has(tokens[0].toLowerCase()) &&
+    rest !== rest.toUpperCase();
+  if (titleIsMarked) {
     tokens.shift();
   }
   return tokens.map((token) => token.toLowerCase());

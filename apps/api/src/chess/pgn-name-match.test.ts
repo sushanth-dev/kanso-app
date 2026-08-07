@@ -43,6 +43,10 @@ describe('normalizeName', () => {
   test('drops a bare FIDE identifier', () => {
     expect(normalizeName('Carlsen, Magnus 1500000')).toEqual(new Set(['carlsen', 'magnus']));
   });
+
+  test('keeps a title-shaped token when the whole line is shouting, since case can no longer mark it as a title', () => {
+    expect(normalizeName('IM SUNG HYUN')).toEqual(new Set(['im', 'sung', 'hyun']));
+  });
 });
 
 describe('parseName', () => {
@@ -174,6 +178,10 @@ describe('names that must not match', () => {
     expect(matches('Im Sung Hyun', 'Kim, Sung Hyun')).toBe(false);
   });
 
+  test('a shouting crosstable line does not let a title-shaped surname match a different person', () => {
+    expect(matches('Sung Hyun Kim', 'IM SUNG HYUN')).toBe(false);
+  });
+
   test('a hyphenated surname is not split so its first half matches a shorter surname', () => {
     expect(matches('Anna Muller', 'Muller-Schmidt, Anna')).toBe(false);
   });
@@ -194,5 +202,13 @@ describe('fixes did not go too far', () => {
 
   test('a real title, capitalised and leading, is still dropped', () => {
     expect(matches('Sung Hyun Im', 'IM Im, Sung Hyun')).toBe(true);
+  });
+
+  test('a shouting crosstable line still matches its own bearer, title-shaped surname and all', () => {
+    expect(matches('Im Sung Hyun', 'IM SUNG HYUN')).toBe(true);
+  });
+
+  test('an all-caps line with a real title still matches its own bearer', () => {
+    expect(matches('Test Player', 'GM PLAYER, TEST')).toBe(true);
   });
 });
