@@ -340,6 +340,9 @@
           "gamesRejected": {
             "type": "integer"
           },
+          "gamesUndetermined": {
+            "type": "integer"
+          },
           "error": {
             "type": [
               "string",
@@ -368,6 +371,7 @@
           "gamesFound",
           "gamesImported",
           "gamesRejected",
+          "gamesUndetermined",
           "error",
           "createdAt",
           "finishedAt"

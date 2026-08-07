@@ -200,6 +200,12 @@ export const importJob = pgTable(
     gamesImported: integer('games_imported').notNull().default(0),
     /** F2. Malformed PGN is rejected at the boundary and the count is reported back. */
     gamesRejected: integer('games_rejected').notNull().default(0),
+    /**
+     * F1. Games stored with no side decided, because the player's name matched
+     * both tags or neither. A record of what this import found rather than a
+     * live count: resolving a game later does not rewrite the job's history.
+     */
+    gamesUndetermined: integer('games_undetermined').notNull().default(0),
     error: text('error'),
     startedAt: timestamp('started_at', { withTimezone: true }),
     finishedAt: timestamp('finished_at', { withTimezone: true }),
