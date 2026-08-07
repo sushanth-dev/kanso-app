@@ -90,6 +90,8 @@ describe('PATCH /games/{gameId}', () => {
     const gameId = await seedUndecidedGame(OWNER);
     const res = await patch(null, gameId, { playerColor: 'white' });
     expect(res.status).toBe(401);
+    const [row] = await harness.sql`SELECT player_color FROM game WHERE id = ${gameId}`;
+    expect(row.player_color).toBeNull();
   });
 
   test('answers 403 for a game belonging to another account’s player', async () => {

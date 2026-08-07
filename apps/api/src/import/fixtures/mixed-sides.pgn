@@ -1,0 +1,26 @@
+[Event "Club Night"]
+[Site "Local"]
+[Round "1"]
+[White "Player, Test"]
+[Black "Carlsen, Magnus"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 Nc6 1-0
+
+[Event "Club Night"]
+[Site "Local"]
+[Round "2"]
+[White "Nakamura, Hikaru"]
+[Black "Carlsen, Magnus"]
+[Result "0-1"]
+
+1. d4 d5 2. c4 e6 0-1
+
+[Event "Club Night"]
+[Site "Local"]
+[Round "3"]
+[White "Carlsen, Magnus"]
+[Black "Player, T."]
+[Result "0-1"]
+
+1. c4 c5 0-1
