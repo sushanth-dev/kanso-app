@@ -37,6 +37,7 @@ describe('normalizeName', () => {
   test('drops a bracketed federation code', () => {
     expect(normalizeName('Carlsen, Magnus (NOR)')).toEqual(new Set(['carlsen', 'magnus']));
     expect(normalizeName('Carlsen, Magnus [NOR]')).toEqual(new Set(['carlsen', 'magnus']));
+    expect(normalizeName('Carlsen, Magnus {NOR}')).toEqual(new Set(['carlsen', 'magnus']));
   });
 
   test('drops a bare FIDE identifier', () => {
@@ -147,5 +148,51 @@ describe('decorated crosstable names', () => {
 
   test('still rejects a different player wearing the same decorations', () => {
     expect(matches('Sushanth Kamabathula', 'GM Kamabathula, A. (IND) 1503014')).toBe(false);
+  });
+});
+
+describe('names that must not match', () => {
+  /**
+   * Each of these matched before the positional given-name comparison, the
+   * capitalised-leading-title rule, and the hyphen/comma surname fixes. Every
+   * one is two different people; a match here is a wrong colour shown with
+   * confidence.
+   */
+  test('a middle initial does not answer a different first name', () => {
+    expect(matches('Alan Smith', 'Smith, John A.')).toBe(false);
+  });
+
+  test('a middle initial in the crosstable does not answer the player’s first name', () => {
+    expect(matches('Sushanth Kamabathula', 'Kamabathula, Anita S.')).toBe(false);
+  });
+
+  test('a middle initial the player typed does not answer a different first name', () => {
+    expect(matches('Anita S. Kamabathula', 'Kamabathula, Sushanth')).toBe(false);
+  });
+
+  test('a Korean surname that is also a chess title is not dropped as a title', () => {
+    expect(matches('Im Sung Hyun', 'Kim, Sung Hyun')).toBe(false);
+  });
+
+  test('a hyphenated surname is not split so its first half matches a shorter surname', () => {
+    expect(matches('Anna Muller', 'Muller-Schmidt, Anna')).toBe(false);
+  });
+
+  test('a multi-token surname before the comma is not reduced to its last token', () => {
+    expect(matches('Magnus Van den Berg', 'Van der Berg, M.')).toBe(false);
+  });
+});
+
+describe('fixes did not go too far', () => {
+  test('an initial in the first given-name position still matches', () => {
+    expect(matches('Sushanth Kamabathula', 'Kamabathula, S. Anita')).toBe(true);
+  });
+
+  test('a name that is also a chess title still matches its own bearer', () => {
+    expect(matches('Im Sung Hyun', 'Im, Sung Hyun')).toBe(true);
+  });
+
+  test('a real title, capitalised and leading, is still dropped', () => {
+    expect(matches('Sung Hyun Im', 'IM Im, Sung Hyun')).toBe(true);
   });
 });

@@ -26,25 +26,36 @@
  */
 const TITLES = new Set(['gm', 'im', 'fm', 'cm', 'nm', 'wgm', 'wim', 'wfm', 'wcm', 'wnm']);
 
-/**
- * Federation codes and identifiers ride in brackets: "(NOR)", "[2830]". The
- * expression is fixed and non-nesting, so a long adversarial name costs time
- * linear in its length rather than exponential.
- */
+/** Federation codes and identifiers ride in brackets: "(NOR)", "[2830]". */
 function stripBracketed(name: string): string {
-  return name.replace(/[([{][^)\]}]*[)\]}]/g, ' ');
+  return name.replace(/\([^)]*\)|\[[^\]]*\]|\{[^}]*\}/g, ' ');
 }
 
 /**
- * Lowercase, drop punctuation, and split. Titles and bare FIDE identifiers go
- * with it: both are metadata about a player rather than part of their name.
+ * Split one segment of a name into tokens.
+ *
+ * A hyphen or apostrophe joins rather than separates. "Muller-Schmidt" is one
+ * surname, and splitting it lets "Anna Muller" match "Muller-Schmidt, Anna" —
+ * two different people. Every other punctuation mark is a separator.
+ *
+ * A leading title is dropped only when the source wrote it in capitals. "GM" in
+ * front of a name is a title; "Im" in front of one is a surname, and deleting it
+ * would match its bearer to every other Sung Hyun in the event.
  */
 function cleanTokens(part: string): string[] {
-  return part
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, ' ')
+  const tokens = part
+    .replace(/['’‘-]/g, '')
+    .replace(/[^A-Za-z0-9\s]/g, ' ')
     .split(/\s+/)
-    .filter((token) => token.length > 0 && !TITLES.has(token) && !/^\d+$/.test(token));
+    .filter((token) => token.length > 0 && !/^\d+$/.test(token));
+  if (
+    tokens.length > 0 &&
+    tokens[0] === tokens[0].toUpperCase() &&
+    TITLES.has(tokens[0].toLowerCase())
+  ) {
+    tokens.shift();
+  }
+  return tokens.map((token) => token.toLowerCase());
 }
 
 /** The tokens of a name, with the crosstable's decoration removed. */
@@ -70,9 +81,11 @@ export function parseName(name: string): ParsedName {
   const stripped = stripBracketed(name);
   const comma = stripped.indexOf(',');
   if (comma >= 0) {
+    // The comma is the crosstable's own statement of where the surname ends, so
+    // all of it is the surname. "Van der Berg, M." is not a Berg.
     const surnameTokens = cleanTokens(stripped.slice(0, comma));
     return {
-      surname: surnameTokens.at(-1) ?? null,
+      surname: surnameTokens.length > 0 ? surnameTokens.join(' ') : null,
       given: cleanTokens(stripped.slice(comma + 1)),
     };
   }
@@ -88,9 +101,23 @@ function tokenMatches(a: string, b: string): boolean {
   return false;
 }
 
-/** Every token in `a` is answered by some token in `b`. Extra tokens in `b` are fine. */
-function covered(a: string[], b: string[]): boolean {
-  return a.every((token) => b.some((other) => tokenMatches(token, other)));
+/**
+ * Given names compared in order, a single letter standing for the token in the
+ * same position. Position is the point: without it a middle initial answers a
+ * first name, and "Alan Smith" matches "Smith, John A." — two different people
+ * with one wrong colour between them.
+ *
+ * A name with no given names at all is not a match here. Path A already handles
+ * a player who typed only their surname; letting an empty list match vacuously
+ * would attach them to every namesake in the event.
+ */
+function givenMatches(a: string[], b: string[]): boolean {
+  const shared = Math.min(a.length, b.length);
+  if (shared === 0) return false;
+  for (let i = 0; i < shared; i++) {
+    if (!tokenMatches(a[i], b[i])) return false;
+  }
+  return true;
 }
 
 export function isNameMatch(user: string, pgn: string): boolean {
@@ -98,8 +125,9 @@ export function isNameMatch(user: string, pgn: string): boolean {
   const pgnTokens = normalizeName(pgn);
   if (userTokens.size === 0 || pgnTokens.size === 0) return false;
 
-  // Path A: the prototype's subset match, unchanged in behaviour. Order does
-  // not matter here, which is what catches a reversed name with no comma.
+  // Path A: the prototype's subset match, over a tokenizer that now strips
+  // brackets, titles, and identifiers. Order does not matter here, which is
+  // what catches a reversed name with no comma.
   const userIsSubset = Array.from(userTokens).every((token) => pgnTokens.has(token));
   const pgnIsSubset = Array.from(pgnTokens).every((token) => userTokens.has(token));
   if (userIsSubset || pgnIsSubset) return true;
@@ -110,5 +138,5 @@ export function isNameMatch(user: string, pgn: string): boolean {
   const theirs = parseName(pgn);
   if (mine.surname === null || theirs.surname === null) return false;
   if (mine.surname !== theirs.surname) return false;
-  return covered(mine.given, theirs.given) || covered(theirs.given, mine.given);
+  return givenMatches(mine.given, theirs.given);
 }
