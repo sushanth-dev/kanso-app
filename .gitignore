@@ -39,3 +39,6 @@ site/
 # Style Dictionary build output; tokens/ sources are committed, generated files are not
 tokens/_computed.json
 tokens/build/
+
+# graphify knowledge graph output; regenerated from the repo, not a source of record
+graphify-out/
