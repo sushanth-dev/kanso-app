@@ -191,6 +191,17 @@ export const GameSummary = z
   })
   .openapi('GameSummary');
 
+/**
+ * F1. The player says which side of the board they were on, for a game the
+ * importer could not decide. Colour is the only field: everything else on a
+ * game is what the PGN said, and correcting the PGN is a re-upload.
+ */
+export const SetGameColor = z
+  .object({
+    playerColor: Color,
+  })
+  .openapi('SetGameColor');
+
 export const MovePly = z
   .object({
     ply: z.number().int(),

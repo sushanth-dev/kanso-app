@@ -18,17 +18,9 @@ import * as schema from '../db/schema.ts';
 import { game, importJob, player } from '../db/schema.ts';
 import { parsePgn } from './parse-pgn.ts';
 import { decidePlayerColor } from './player-color.ts';
+import { readSession } from '../session.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
-
-interface Session {
-  userId: string;
-}
-
-function readSession(getSession: (c: Context) => unknown, c: Context): Session | null {
-  const s = getSession(c);
-  return s != null && typeof (s as Session).userId === 'string' ? (s as Session) : null;
-}
 
 export function mountImport(
   app: OpenAPIHono,
