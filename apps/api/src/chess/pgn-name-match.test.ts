@@ -1,15 +1,16 @@
 /**
  * Which side of the board the player was on, decided from a PGN tag.
  *
- * Eighteen lines that we hit on day one of importing tournament games, because
- * crosstables write "Player, Test" and a player types "Test
- * Player". Getting it wrong reports the opponent's mistakes as the
- * player's own, which is worse than reporting nothing.
+ * A file we hit on day one of importing tournament games, because crosstables
+ * write "Player, Test" where a player types "Test Player",
+ * abbreviate the first name, and decorate it with a title, a federation code,
+ * and a FIDE identifier. Getting it wrong reports the opponent's mistakes as
+ * the player's own, which is worse than reporting nothing.
  */
 import { describe, expect, test } from 'vitest';
-import { isNameMatch, normalizeName } from './pgn-name-match.ts';
+import { isNameMatch, normalizeName, parseName } from './pgn-name-match.ts';
 
-const matches = (user: string, pgn: string) => isNameMatch(normalizeName(user), normalizeName(pgn));
+const matches = (user: string, pgn: string) => isNameMatch(user, pgn);
 
 describe('normalizeName', () => {
   test('lowercases and splits on whitespace', () => {
@@ -27,6 +28,52 @@ describe('normalizeName', () => {
   test('collapses repeated whitespace instead of emitting empty tokens', () => {
     expect(normalizeName('  Magnus   Carlsen ')).toEqual(new Set(['magnus', 'carlsen']));
   });
+
+  test('drops a title prefix rather than treating it as a name', () => {
+    expect(normalizeName('GM Carlsen, Magnus')).toEqual(new Set(['carlsen', 'magnus']));
+    expect(normalizeName('WIM Carlsen, Magnus')).toEqual(new Set(['carlsen', 'magnus']));
+  });
+
+  test('drops a bracketed federation code', () => {
+    expect(normalizeName('Carlsen, Magnus (NOR)')).toEqual(new Set(['carlsen', 'magnus']));
+    expect(normalizeName('Carlsen, Magnus [NOR]')).toEqual(new Set(['carlsen', 'magnus']));
+    expect(normalizeName('Carlsen, Magnus {NOR}')).toEqual(new Set(['carlsen', 'magnus']));
+  });
+
+  test('drops a bare FIDE identifier', () => {
+    expect(normalizeName('Carlsen, Magnus 1500000')).toEqual(new Set(['carlsen', 'magnus']));
+  });
+
+  test('keeps a title-shaped token when the whole line is shouting, since case can no longer mark it as a title', () => {
+    expect(normalizeName('IM SUNG HYUN')).toEqual(new Set(['im', 'sung', 'hyun']));
+  });
+});
+
+describe('parseName', () => {
+  test('takes the surname from before the comma a crosstable writes', () => {
+    expect(parseName('Player, Test')).toEqual({
+      surname: 'player',
+      given: ['test'],
+    });
+  });
+
+  test('takes the surname from the last token when there is no comma', () => {
+    expect(parseName('Test Player')).toEqual({
+      surname: 'player',
+      given: ['test'],
+    });
+  });
+
+  test('reads a surname through a title and a federation code', () => {
+    expect(parseName('GM Player, T. (IND) 1500000')).toEqual({
+      surname: 'player',
+      given: ['t'],
+    });
+  });
+
+  test('reports a null surname for an empty name rather than throwing', () => {
+    expect(parseName('')).toEqual({ surname: null, given: [] });
+  });
 });
 
 describe('isNameMatch', () => {
@@ -36,6 +83,10 @@ describe('isNameMatch', () => {
 
   test('matches the surname-first order tournament crosstables use', () => {
     expect(matches('Test Player', 'Player, Test')).toBe(true);
+  });
+
+  test('matches surname-first with no comma to mark it', () => {
+    expect(matches('Test Player', 'Player Test')).toBe(true);
   });
 
   test('matches when the PGN carries a middle name the player did not type', () => {
@@ -61,19 +112,103 @@ describe('isNameMatch', () => {
   });
 });
 
-describe('known gap: abbreviated first names', () => {
+describe('abbreviated first names', () => {
   /**
-   * Documented in the prototype carry-over notes as worth fixing when the file
-   * moved. It has not been fixed, so this records the behaviour rather than the
-   * intent: `{t, player}` is not a subset of `{test, player}` in
-   * either direction, so the match fails and the import asks the player which
-   * side they were.
-   *
-   * This test is expected to flip to `true` when the initials-matching story
-   * lands. A failure here after that story is the fix working, not a
-   * regression.
+   * DEBT-002, paid here. The assertion in this block used to record the
+   * failure; it now records the fix. An initial stands for a full first name,
+   * but only once the surname has matched exactly, which is what keeps the
+   * loosening from becoming a match on anything.
    */
-  test('does not yet match an initial against the full first name', () => {
-    expect(matches('Test Player', 'Player, T.')).toBe(false);
+  test('matches an initial against the full first name', () => {
+    expect(matches('Test Player', 'Player, T.')).toBe(true);
+  });
+
+  test('matches an initial written before the surname', () => {
+    expect(matches('Test Player', 'T. Player')).toBe(true);
+  });
+
+  test('matches when the player is the one who abbreviated', () => {
+    expect(matches('T. Player', 'Player, Test')).toBe(true);
+  });
+
+  test('rejects an initial that stands for a different first name', () => {
+    expect(matches('Test Player', 'Player, A.')).toBe(false);
+  });
+
+  test('rejects a full first name that merely shares the initial', () => {
+    expect(matches('Test Player', 'Player, Anita')).toBe(false);
+  });
+
+  test('rejects an initialled surname, because a surname is never matched by a letter', () => {
+    expect(matches('Test Player', 'T. P.')).toBe(false);
+    expect(matches('T. P.', 'Test Player')).toBe(false);
+  });
+});
+
+describe('decorated crosstable names', () => {
+  test('matches through a title, a federation code, and a FIDE identifier', () => {
+    expect(matches('Test Player', 'GM Player, T. (IND) 1500000')).toBe(true);
+  });
+
+  test('still rejects a different player wearing the same decorations', () => {
+    expect(matches('Test Player', 'GM Player, A. (IND) 1500000')).toBe(false);
+  });
+});
+
+describe('names that must not match', () => {
+  /**
+   * Each of these matched before the positional given-name comparison, the
+   * capitalised-leading-title rule, and the hyphen/comma surname fixes. Every
+   * one is two different people; a match here is a wrong colour shown with
+   * confidence.
+   */
+  test('a middle initial does not answer a different first name', () => {
+    expect(matches('Alan Smith', 'Smith, John A.')).toBe(false);
+  });
+
+  test('a middle initial in the crosstable does not answer the player’s first name', () => {
+    expect(matches('Test Player', 'Player, Anita S.')).toBe(false);
+  });
+
+  test('a middle initial the player typed does not answer a different first name', () => {
+    expect(matches('Anita T. Player', 'Player, Test')).toBe(false);
+  });
+
+  test('a Korean surname that is also a chess title is not dropped as a title', () => {
+    expect(matches('Im Sung Hyun', 'Kim, Sung Hyun')).toBe(false);
+  });
+
+  test('a shouting crosstable line does not let a title-shaped surname match a different person', () => {
+    expect(matches('Sung Hyun Kim', 'IM SUNG HYUN')).toBe(false);
+  });
+
+  test('a hyphenated surname is not split so its first half matches a shorter surname', () => {
+    expect(matches('Anna Muller', 'Muller-Schmidt, Anna')).toBe(false);
+  });
+
+  test('a multi-token surname before the comma is not reduced to its last token', () => {
+    expect(matches('Magnus Van den Berg', 'Van der Berg, M.')).toBe(false);
+  });
+});
+
+describe('fixes did not go too far', () => {
+  test('an initial in the first given-name position still matches', () => {
+    expect(matches('Test Player', 'Player, T. Anita')).toBe(true);
+  });
+
+  test('a name that is also a chess title still matches its own bearer', () => {
+    expect(matches('Im Sung Hyun', 'Im, Sung Hyun')).toBe(true);
+  });
+
+  test('a real title, capitalised and leading, is still dropped', () => {
+    expect(matches('Sung Hyun Im', 'IM Im, Sung Hyun')).toBe(true);
+  });
+
+  test('a shouting crosstable line still matches its own bearer, title-shaped surname and all', () => {
+    expect(matches('Im Sung Hyun', 'IM SUNG HYUN')).toBe(true);
+  });
+
+  test('an all-caps line with a real title still matches its own bearer', () => {
+    expect(matches('Test Player', 'GM PLAYER, TEST')).toBe(true);
   });
 });

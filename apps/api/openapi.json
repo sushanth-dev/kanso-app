@@ -340,6 +340,9 @@
           "gamesRejected": {
             "type": "integer"
           },
+          "gamesUndetermined": {
+            "type": "integer"
+          },
           "error": {
             "type": [
               "string",
@@ -368,6 +371,7 @@
           "gamesFound",
           "gamesImported",
           "gamesRejected",
+          "gamesUndetermined",
           "error",
           "createdAt",
           "finishedAt"
@@ -887,6 +891,17 @@
           "inaccuracy",
           "mistake",
           "blunder"
+        ]
+      },
+      "SetGameColor": {
+        "type": "object",
+        "properties": {
+          "playerColor": {
+            "$ref": "#/components/schemas/Color"
+          }
+        },
+        "required": [
+          "playerColor"
         ]
       },
       "Report": {
@@ -1922,6 +1937,86 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GameDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not your game.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such game.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Games"
+        ],
+        "summary": "Say which side of the board the player was on",
+        "description": "F1. The importer leaves the colour unset when the player’s name matched both tags or neither, and reports how many games it left that way. This is how one of them stops being undecided, and colour is the only field on a game a player can set.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "gameId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "description": "The side the player was on.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetGameColor"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The game, with the side now set.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GameSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }

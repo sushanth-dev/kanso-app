@@ -20,12 +20,14 @@ import {
   FocusCatalogueEntry,
   GameDetail,
   GameList,
+  GameSummary,
   ImportJob,
   Me,
   Player,
   ProofSheet,
   Report,
   SetFocus,
+  SetGameColor,
   SharedProofSheet,
   SocraticQuestion,
   StartImport,
@@ -203,6 +205,28 @@ export const getGame = createRoute({
   },
   responses: {
     200: json(GameDetail, 'The game.'),
+    401: error('No session.'),
+    403: error('Not your game.'),
+    404: error('No such game.'),
+  },
+});
+
+export const setGameColor = createRoute({
+  method: 'patch',
+  path: '/games/{gameId}',
+  tags: ['Games'],
+  summary: 'Say which side of the board the player was on',
+  description:
+    'F1. The importer leaves the colour unset when the player’s name matched both tags or neither, and reports how many games it left that way. This is how one of them stops being undecided, and colour is the only field on a game a player can set.',
+  request: {
+    params: z.object({
+      gameId: Uuid.openapi({ param: { name: 'gameId', in: 'path' } }),
+    }),
+    body: json(SetGameColor, 'The side the player was on.'),
+  },
+  responses: {
+    200: json(GameSummary, 'The game, with the side now set.'),
+    400: error('The request body failed validation.'),
     401: error('No session.'),
     403: error('Not your game.'),
     404: error('No such game.'),
@@ -432,6 +456,7 @@ export const routes = [
   getImport,
   listGames,
   getGame,
+  setGameColor,
   queueAnalysis,
   analysisEvents,
   getReport,
