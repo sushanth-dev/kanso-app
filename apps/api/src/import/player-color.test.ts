@@ -28,4 +28,16 @@ describe('decidePlayerColor', () => {
     expect(decidePlayerColor('Sushanth Kamabathula', null, 'Kamabathula, Sushanth')).toBe('black');
     expect(decidePlayerColor('Sushanth Kamabathula', null, null)).toBeNull();
   });
+
+  test('matches an abbreviated crosstable name to a side', () => {
+    expect(decidePlayerColor('Sushanth Kamabathula', 'Carlsen, Magnus', 'Kamabathula, S.')).toBe(
+      'black',
+    );
+  });
+
+  test('returns null when an initial makes both sides match', () => {
+    expect(
+      decidePlayerColor('S. Kamabathula', 'Kamabathula, Sushanth', 'Kamabathula, S.'),
+    ).toBeNull();
+  });
 });

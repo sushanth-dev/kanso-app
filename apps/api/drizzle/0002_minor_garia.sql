@@ -1,0 +1,1 @@
+ALTER TABLE "import_job" ADD COLUMN "games_undetermined" integer DEFAULT 0 NOT NULL;

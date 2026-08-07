@@ -16,6 +16,7 @@ import type { Context, MiddlewareHandler } from 'hono';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { routes } from './contract/routes.ts';
 import { mountImport } from './import/import-games.ts';
+import { mountSetGameColor } from './games/set-game-color.ts';
 import type * as schema from './db/schema.ts';
 
 /** The shape of every error the API emits, from `ApiError` in the contract. */
@@ -108,12 +109,17 @@ export function createApp({ getSession = () => null, db }: AppOptions = {}) {
   });
 
   const open = new Set(publicPaths());
+  const guarded = new Set<string>();
   for (const route of routes) {
-    if (open.has(route.path)) continue;
+    if (open.has(route.path) || guarded.has(route.path)) continue;
+    guarded.add(route.path);
     app.use(toHonoPath(route.path), requireSession(getSession));
   }
 
-  if (db) mountImport(app, { db, getSession });
+  if (db) {
+    mountImport(app, { db, getSession });
+    mountSetGameColor(app, { db, getSession });
+  }
 
   app.notFound((c) => c.json<ErrorBody>({ code: 'not_found', message: 'No such endpoint.' }, 404));
 
