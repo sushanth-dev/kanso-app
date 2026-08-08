@@ -20,38 +20,9 @@ import { setGameColor } from '../contract/routes.ts';
 import * as schema from '../db/schema.ts';
 import { game, player } from '../db/schema.ts';
 import { readSession } from '../session.ts';
+import { toGameSummary } from './game-summary.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
-
-/**
- * A stored row in the contract's `GameSummary` shape.
- *
- * ponytail: this belongs beside the list handler, and ST-005 is the story that
- * writes one. Two callers is when it moves; one caller is when it stays here.
- */
-function toGameSummary(row: typeof game.$inferSelect) {
-  return {
-    id: row.id,
-    stream: row.stream,
-    source: row.source,
-    playerColor: row.playerColor,
-    result: row.result,
-    playedAt: row.playedAt?.toISOString() ?? null,
-    event: row.event,
-    round: row.round,
-    board: row.board,
-    whiteName: row.whiteName,
-    blackName: row.blackName,
-    whiteElo: row.whiteElo,
-    blackElo: row.blackElo,
-    eco: row.eco,
-    opening: row.opening,
-    moveCount: row.moveCount,
-    hasClockData: row.hasClockData,
-    analysisStatus: row.analysisStatus,
-    analyzedAt: row.analyzedAt?.toISOString() ?? null,
-  };
-}
 
 export function mountSetGameColor(
   app: OpenAPIHono,
