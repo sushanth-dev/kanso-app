@@ -16,6 +16,7 @@ import type { Context, MiddlewareHandler } from 'hono';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { routes } from './contract/routes.ts';
 import { mountImport } from './import/import-games.ts';
+import { mountListGames } from './games/list-games.ts';
 import { mountSetGameColor } from './games/set-game-color.ts';
 import type * as schema from './db/schema.ts';
 
@@ -118,6 +119,7 @@ export function createApp({ getSession = () => null, db }: AppOptions = {}) {
 
   if (db) {
     mountImport(app, { db, getSession });
+    mountListGames(app, { db, getSession });
     mountSetGameColor(app, { db, getSession });
   }
 
