@@ -27,7 +27,7 @@ export default $config({
     const database = await import('./infra/database.ts');
     const api = await import('./infra/api.ts');
     return {
-      api: api.router.url,
+      api: api.api.url,
       database: database.database.host,
     };
   },

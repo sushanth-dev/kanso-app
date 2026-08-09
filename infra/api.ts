@@ -7,23 +7,36 @@
  * exists in the task definition rather than in the image or the repository.
  * Nothing here is a literal anybody could commit.
  *
- * The public address is a CloudFront distribution rather than the load balancer
- * itself, because a load balancer can only serve HTTPS with a certificate, a
- * certificate needs a domain name, and we do not own one yet. CloudFront brings
- * its own certificate for its own `*.cloudfront.net` hostname, so the story's
- * HTTPS criterion is met today at no cost and without inventing a domain. When
- * a real domain arrives, it attaches to this same distribution.
+ * HTTPS is terminated twice: once at Cloudflare, which holds the public
+ * hostname and its own certificate, and once at the load balancer, which holds
+ * an ACM certificate for the same name. Cloudflare is set to Full (strict), so
+ * it checks the second one. Both legs are encrypted and neither certificate is
+ * ours to rotate.
  */
 import { database, vpc } from './database.ts';
 
 const cluster = new sst.aws.Cluster('Cluster', { vpc });
 
-// The addresses CloudFront makes origin requests from, kept current by AWS.
-// Restricting the load balancer to these is what stops the plain-HTTP origin
-// from being an open bypass around the HTTPS the distribution enforces.
-const cloudfrontOrigins = aws.ec2.getManagedPrefixListOutput({
-  name: 'com.amazonaws.global.cloudfront.origin-facing',
-});
+// Production owns the bare name; every other stage gets a subdomain of it, so
+// a second stage never collides with the first. The certificate covers both.
+const hostname =
+  $app.stage === 'production' ? 'api.kansochess.app' : `${$app.stage}.api.kansochess.app`;
+
+// Covers `api.kansochess.app` and `*.api.kansochess.app`, DNS validated. ACM
+// renews it on its own as long as the validation record stays in Cloudflare.
+// Created once by hand rather than by SST, because SST can only create and
+// validate a certificate for a domain whose DNS it controls, and ours is on
+// Cloudflare with no API token given to this repository.
+const certificateArn =
+  'arn:aws:acm:ap-south-2:082867428520:certificate/87afb476-827f-4427-8be9-8a4938fd76fb';
+
+// Read at deploy time rather than pasted in, because Cloudflare changes this
+// list and a stale copy fails closed: the load balancer would start refusing
+// the edge it is supposed to serve. This is the only network call the
+// configuration makes.
+const cloudflare = (await (await fetch('https://api.cloudflare.com/client/v4/ips')).json()) as {
+  result: { ipv4_cidrs: string[]; ipv6_cidrs: string[] };
+};
 
 // `new Service({ cluster })` rather than `cluster.addService()`: the second is
 // deprecated in SST 4 and both produce the same resources.
@@ -34,22 +47,29 @@ export const api = new sst.aws.Service('Api', {
   link: [database],
   transform: {
     loadBalancerSecurityGroup: (args) => {
+      // Without this the load balancer answers the whole internet directly,
+      // which is a way around every control Cloudflare applies in front of it.
       args.ingress = [
         {
           protocol: 'tcp',
-          fromPort: 80,
-          toPort: 80,
-          prefixListIds: [cloudfrontOrigins.id],
-          description:
-            'CloudFront origin requests only. The public entry point is the distribution.',
+          fromPort: 443,
+          toPort: 443,
+          cidrBlocks: cloudflare.result.ipv4_cidrs,
+          ipv6CidrBlocks: cloudflare.result.ipv6_cidrs,
+          description: 'Cloudflare edge only. The public entry point is the proxied hostname.',
         },
       ];
     },
   },
   loadBalancer: {
-    // HTTP here, HTTPS at the distribution in front. The listener is reachable
-    // only from CloudFront, per the security group above.
-    rules: [{ listen: '80/http', forward: '3000/http' }],
+    domain: {
+      name: hostname,
+      // Cloudflare holds the zone and this repository holds no token for it,
+      // so the two records are added by hand. The deploy guide carries them.
+      dns: false,
+      cert: certificateArn,
+    },
+    rules: [{ listen: '443/https', forward: '3000/http' }],
     health: {
       '3000/http': {
         path: '/health',
@@ -70,12 +90,4 @@ export const api = new sst.aws.Service('Api', {
   dev: {
     command: 'npm run start --workspace apps/api',
   },
-});
-
-/**
- * The public address, and the thing that terminates TLS. Everything reaches the
- * API through here; the load balancer behind it answers nothing else.
- */
-export const router = new sst.aws.Router('Router', {
-  routes: { '/*': api.url },
 });

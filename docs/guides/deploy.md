@@ -43,7 +43,7 @@ made, so a later pass can read the real list off a completed deploy instead of
 assembling a policy by imagination and discovering the gaps one failure at a
 time. What the first deploy is known to have touched is EC2 for the VPC and the
 security groups, RDS, ECR, ECS, ELBv2, IAM for the task roles, Secrets Manager,
-CloudWatch Logs, S3 and SSM for SST's own state, and CloudFront.
+CloudWatch Logs, ACM, and S3 and SSM for SST's own state.
 
 ## The budget alarm
 
@@ -133,10 +133,21 @@ convenience, and the one-off task costs a few cents of Fargate time.
 
 ## Prove it
 
-The service is not reachable from outside the VPC either, for the same class of
-reason: the load balancer's security group only accepts requests from
-CloudFront's origin addresses. So the checks run from inside, as another one-off
-task with a command override, pointed at the running task's private address:
+Once the DNS records below exist, the check is one line:
+
+```sh
+curl https://dev.api.kansochess.app/health
+```
+
+Expected: `{"status":"ok","database":"ok"}`. That single response proves more
+than it looks like: a valid certificate at the edge, Cloudflare reaching the
+load balancer, the load balancer reaching the task, and the task reaching the
+private database, because `/health` answers 200 only after a `select 1` returns.
+
+Before those records exist, or any time the public path is in doubt and the
+question is whether the application itself is healthy, the same checks run from
+inside the VPC as another one-off task with a command override, pointed at the
+running task's private address:
 
 ```sh
 TASK_IP=$(aws ecs describe-tasks --cluster "$CLUSTER" \
@@ -168,34 +179,76 @@ aws elbv2 describe-target-health --target-group-arn \
   $(aws elbv2 describe-target-groups --query 'TargetGroups[0].TargetGroupArn' --output text)
 ```
 
-## HTTPS, and the one thing that is not automatic
+## HTTPS and DNS
 
-The public entry point is meant to be a CloudFront distribution, defined as the
-`Router` in `infra/api.ts`. CloudFront brings its own certificate for its own
-`*.cloudfront.net` hostname, which is how the environment gets HTTPS without
-owning a domain. The load balancer behind it speaks plain HTTP and accepts
-requests only from CloudFront's published origin address ranges, so the HTTP
-origin is not a way around the HTTPS in front of it.
+`kansochess.app` is on Cloudflare, so Cloudflare is the public edge and there is
+no CloudFront distribution in this stack. Requests arrive at Cloudflare over
+HTTPS on Cloudflare's own certificate, and Cloudflare forwards them to the load
+balancer over HTTPS on an ACM certificate for the same hostname. Both legs are
+encrypted, and the Cloudflare SSL/TLS mode for the zone must be **Full
+(strict)**, which is what makes Cloudflare actually check the second
+certificate rather than accept anything.
 
-On a brand new AWS account that step fails:
+The load balancer's security group accepts port 443 from Cloudflare's published
+address ranges and nothing else. `infra/api.ts` reads those ranges from
+Cloudflare's API at deploy time rather than keeping a pasted copy, because the
+list changes and a stale copy fails closed: the load balancer would start
+refusing the edge it exists to serve.
 
+The hostname is `api.kansochess.app` on the `production` stage and
+`<stage>.api.kansochess.app` everywhere else, so a second stage never collides
+with the first.
+
+### The certificate
+
+One ACM certificate in `ap-south-2` covers `api.kansochess.app` and
+`*.api.kansochess.app`, which is every stage we will ever have. It was
+requested once by hand and it renews itself:
+
+```sh
+aws acm request-certificate --domain-name api.kansochess.app \
+  --subject-alternative-names '*.api.kansochess.app' --validation-method DNS
 ```
-AccessDenied: Your account must be verified before you can add new CloudFront
-resources. To verify your account, please contact AWS Support and include this
-error message.
+
+SST would normally create and validate this itself, but it can only do that for
+a domain whose DNS it controls. Ours is on Cloudflare and this repository holds
+no Cloudflare token, so `infra/api.ts` passes `dns: false` and the certificate
+ARN instead, and the records below are added by hand.
+
+### The two DNS records
+
+Both live in the Cloudflare dashboard for `kansochess.app`. They are added once
+and they survive every teardown, because neither of them names anything a
+teardown deletes.
+
+The **validation record** proves we own the domain, and ACM re-checks it at
+every renewal, so it stays forever. Its exact name and value come from:
+
+```sh
+aws acm describe-certificate --certificate-arn <arn> \
+  --query 'Certificate.DomainValidationOptions[0].ResourceRecord'
 ```
 
-This is an account-level hold on CloudFront, not a problem with the
-configuration, and it is cleared by opening a support case in the console. It
-is worth doing before the first deploy on a fresh account, since everything
-else in the stage comes up regardless and only the last resource fails.
+It is a `CNAME`, and it must be **DNS only** in Cloudflare, the grey cloud. A
+proxied validation record does not resolve to what ACM is looking for and the
+certificate never leaves `PENDING_VALIDATION`.
 
-Two things follow from that. Until the hold is cleared, the stage has no public
-address at all, which is a safe state rather than a broken one: the application
-is provably running and provably reachable from inside the VPC, and nothing is
-exposed. And a load balancer cannot fill the gap on its own, because serving
-HTTPS from one needs a certificate, a certificate needs a domain name, and we do
-not own one. When a domain does arrive it attaches to the same distribution.
+The **service record** points the hostname at the load balancer. Its value is
+the load balancer's DNS name, which only exists after the first deploy:
+
+```sh
+aws elbv2 describe-load-balancers --query 'LoadBalancers[0].DNSName' --output text
+```
+
+It is a `CNAME` and it must be **Proxied**, the orange cloud. That is what puts
+Cloudflare in front, and it is also what makes the security group rule above
+correct: unproxied, requests would come from the whole internet and the load
+balancer would refuse them.
+
+This means the very first deploy of a stage has a gap between the load balancer
+existing and the record pointing at it. Later deploys reuse the same load
+balancer name, so the record keeps working. A teardown and rebuild produces a
+new name and the service record has to be updated.
 
 ## Tear it down
 
@@ -251,8 +304,11 @@ even by accident.
   code uses.
 * **RDS Proxy.** ADR-0014 defers it until connection counts justify it. One
   Fargate task with a pool of ten connections does not.
-* **A custom domain.** It arrives when we own one, and it attaches to the
-  CloudFront distribution that is already in `infra/api.ts`.
+* **Cloudflare DNS managed by SST.** A token scoped to `Zone:DNS:Edit` on this
+  one zone would let SST create and remove the service record on every deploy,
+  which is the only manual step left in a rebuild. It is not here because a
+  token is a credential to store and rotate, and the step it removes is one
+  record edit per teardown. Worth revisiting if teardowns become frequent.
 * **Separate accounts per environment, and a narrower deploy permission set.**
   Both are recorded in [AWS account setup](aws-account-setup.md) as things a
   one-person project does not need on day one.
