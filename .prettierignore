@@ -5,6 +5,7 @@ apps/api/drizzle/
 
 # Build output and vendored files.
 node_modules/
+.sst/
 site/
 coverage/
 dist/

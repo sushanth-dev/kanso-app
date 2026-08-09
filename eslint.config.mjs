@@ -12,6 +12,8 @@ export default tseslint.config(
   {
     ignores: [
       'node_modules/',
+      // SST generates this and git ignores it; it is not ours to lint.
+      '.sst/',
       'site/',
       'coverage/',
       'dist/',
@@ -50,5 +52,16 @@ export default tseslint.config(
   {
     files: ['*.mjs', '*.js', 'vitest.config.mts'],
     ...tseslint.configs.disableTypeChecked,
+  },
+  // The SST configuration is the same case. It gets its types from
+  // `.sst/platform/config.d.ts`, which SST generates and git ignores, so there
+  // is no tsconfig to point type-aware rules at. `sst deploy` typechecks it.
+  // Its globals are injected by SST at run time rather than imported.
+  {
+    files: ['sst.config.ts', 'infra/**/*.ts'],
+    ...tseslint.configs.disableTypeChecked,
+    languageOptions: {
+      globals: { $app: 'readonly', $config: 'readonly', $interpolate: 'readonly', sst: 'readonly' },
+    },
   },
 );
