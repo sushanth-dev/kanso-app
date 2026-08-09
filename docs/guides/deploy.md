@@ -136,13 +136,38 @@ convenience, and the one-off task costs a few cents of Fargate time.
 Once the DNS records below exist, the check is one line:
 
 ```sh
-curl https://dev.api.kansochess.app/health
+curl https://dev-api.kansochess.app/health
 ```
 
-Expected: `{"status":"ok","database":"ok"}`. That single response proves more
-than it looks like: a valid certificate at the edge, Cloudflare reaching the
-load balancer, the load balancer reaching the task, and the task reaching the
-private database, because `/health` answers 200 only after a `select 1` returns.
+Expected, and what came back:
+
+```
+{"status":"ok","database":"ok"}
+```
+
+That single response proves more than it looks like: a valid certificate at the
+edge, Cloudflare reaching the load balancer, the load balancer reaching the
+task, and the task reaching the private database, because `/health` answers 200
+only after a `select 1` returns.
+
+Two more that are worth running once per stage. The session guard, live on a
+real endpoint, where 401 is the correct answer to a request with no cookie:
+
+```
+$ curl https://dev-api.kansochess.app/me
+{"code":"no_session","message":"Sign in to use this endpoint."}
+```
+
+And the negative one, which is the only check that proves the origin is not
+quietly reachable around Cloudflare:
+
+```sh
+curl https://<load balancer DNS name>/health
+```
+
+That has to fail to connect. If it answers, the security group rule below is not
+doing its job and every control Cloudflare applies can be skipped by anyone who
+learns the load balancer's name.
 
 Before those records exist, or any time the public path is in doubt and the
 question is whether the application itself is healthy, the same checks run from
@@ -196,18 +221,31 @@ list changes and a stale copy fails closed: the load balancer would start
 refusing the edge it exists to serve.
 
 The hostname is `api.kansochess.app` on the `production` stage and
-`<stage>.api.kansochess.app` everywhere else, so a second stage never collides
+`<stage>-api.kansochess.app` everywhere else, so a second stage never collides
 with the first.
+
+That hyphen is not a style choice. The certificate Cloudflare includes with the
+zone covers `kansochess.app` and `*.kansochess.app` and stops there, so a name
+two levels deep has nothing to present at the edge. `dev.api.kansochess.app` was
+tried first and every request failed the TLS handshake before reaching any of
+our infrastructure:
+
+```
+curl: (35) error:1404B410:SSL routines:ST_CONNECT:sslv3 alert handshake failure
+```
+
+Covering deeper names needs Cloudflare's Advanced Certificate Manager at about
+$10 a month, which is a quarter of what this whole environment costs, for a dot.
 
 ### The certificate
 
-One ACM certificate in `ap-south-2` covers `api.kansochess.app` and
-`*.api.kansochess.app`, which is every stage we will ever have. It was
-requested once by hand and it renews itself:
+One ACM certificate in `ap-south-2` for `*.kansochess.app`, which covers
+`api.kansochess.app` and every stage name beside it. It was requested once by
+hand and it renews itself:
 
 ```sh
-aws acm request-certificate --domain-name api.kansochess.app \
-  --subject-alternative-names '*.api.kansochess.app' --validation-method DNS
+aws acm request-certificate --domain-name '*.kansochess.app' \
+  --validation-method DNS
 ```
 
 SST would normally create and validate this itself, but it can only do that for
@@ -231,7 +269,14 @@ aws acm describe-certificate --certificate-arn <arn> \
 
 It is a `CNAME`, and it must be **DNS only** in Cloudflare, the grey cloud. A
 proxied validation record does not resolve to what ACM is looking for and the
-certificate never leaves `PENDING_VALIDATION`.
+certificate never leaves `PENDING_VALIDATION`. Depth is not a constraint here
+the way it is for the service record: nothing ever completes a TLS handshake
+against a validation record, so the one-label rule above does not apply to it.
+
+Cloudflare appends the zone name to whatever goes in the **Name** field, so only
+the part before `.kansochess.app` is typed in. Pasting the full name produces
+`....kansochess.app.kansochess.app`, which validates nothing. Validation took
+about three minutes once the record was live.
 
 The **service record** points the hostname at the load balancer. Its value is
 the load balancer's DNS name, which only exists after the first deploy:

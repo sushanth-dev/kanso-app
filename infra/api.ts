@@ -17,18 +17,25 @@ import { database, vpc } from './database.ts';
 
 const cluster = new sst.aws.Cluster('Cluster', { vpc });
 
-// Production owns the bare name; every other stage gets a subdomain of it, so
-// a second stage never collides with the first. The certificate covers both.
+// Production owns `api`; every other stage gets its own name beside it, so a
+// second stage never collides with the first.
+//
+// One label rather than `<stage>.api`, which reads better but does not work:
+// Cloudflare's included certificate covers `kansochess.app` and
+// `*.kansochess.app` and stops there, so a name two levels deep has nothing to
+// present at the edge and the handshake fails before the request reaches us.
+// Covering deeper names is a paid Cloudflare add-on costing a quarter of what
+// this whole environment costs, which is a lot to pay for a dot.
 const hostname =
-  $app.stage === 'production' ? 'api.kansochess.app' : `${$app.stage}.api.kansochess.app`;
+  $app.stage === 'production' ? 'api.kansochess.app' : `${$app.stage}-api.kansochess.app`;
 
-// Covers `api.kansochess.app` and `*.api.kansochess.app`, DNS validated. ACM
+// `*.kansochess.app`, DNS validated, which covers every stage name above. ACM
 // renews it on its own as long as the validation record stays in Cloudflare.
 // Created once by hand rather than by SST, because SST can only create and
 // validate a certificate for a domain whose DNS it controls, and ours is on
 // Cloudflare with no API token given to this repository.
 const certificateArn =
-  'arn:aws:acm:ap-south-2:082867428520:certificate/87afb476-827f-4427-8be9-8a4938fd76fb';
+  'arn:aws:acm:ap-south-2:082867428520:certificate/3490faff-7dac-4eb3-964c-1bf5de5e85c0';
 
 // Read at deploy time rather than pasted in, because Cloudflare changes this
 // list and a stale copy fails closed: the load balancer would start refusing
