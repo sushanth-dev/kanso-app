@@ -20,7 +20,10 @@ size.
 
 ## Decision
 
-Use SST (version 3, the current line at the time of writing). SST is
+Use SST. Version 3 was the current line when this record was written; ST-006
+deploys on version 4, which is the same Pulumi engine and the same Terraform
+providers under the same components, so the reasoning below is unchanged and
+only the number moved. SST is
 TypeScript-first and built for this shape: it models the API, the queue,
 the functions, and the database as code in the same language as the app,
 and it handles state without a separate hosted backend to sign up for. It

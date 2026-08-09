@@ -52,13 +52,19 @@ available on RDS and has a patch release or two behind it, upgrading is a
 decision to make deliberately, and it supersedes this record rather than
 happening quietly.
 
-One thing this record asserts and does not yet verify: that RDS offers
-PostgreSQL 18 in our region. Upstream released it eleven months ago and RDS
-has historically added a major within months, so the expectation is
-reasonable, but nobody here has opened the console. **Confirm it when E3
-builds the hosting layout.** If RDS does not offer 18, this record is revised
-downward to whatever RDS does offer, and CI moves with it in the same change,
-because the two moving together is the whole point.
+One thing this record asserted and did not verify: that RDS offers PostgreSQL
+18 in our region. ST-006 checked it, against the API rather than the release
+notes. `aws rds describe-db-engine-versions --engine postgres --engine-version
+18 --region ap-south-2` returns `18.1 18.2 18.3 18.4`, and `db.t4g.micro`, the
+instance class the deployed database runs on, is orderable on 18.4 in all three
+Hyderabad availability zones. The expectation held, so this record stands
+unchanged. Had it not, this record would have been revised downward to whatever
+RDS does offer with CI moving in the same change, because the two moving
+together is the whole point.
+
+The SST `Postgres` component defaults to version 17, so 18 is set explicitly in
+`infra/database.ts`. A default left alone would have been the exact drift this
+record exists to prevent.
 
 ## Consequences
 
