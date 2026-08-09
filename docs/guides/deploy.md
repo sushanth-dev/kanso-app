@@ -83,11 +83,11 @@ footnote.
 npx sst deploy --stage dev
 ```
 
-The first deploy takes about ten minutes, and almost all of it is two
-resources: the RDS instance takes around nine minutes and the load balancer
-around three. Later deploys that only change application code take about a
-minute, because the image layers are cached in ECR and nothing else has to be
-replaced.
+The first deploy of a stage took 11 minutes 13 seconds, and almost all of it is
+two resources: the RDS instance took 8 minutes 48 seconds and the load balancer
+2 minutes 51 seconds. Later deploys are much shorter because the image layers
+are cached in ECR and nothing else has to be replaced; changing only the load
+balancer's certificate took 15 seconds.
 
 The stage name is ours to choose. `production` is special: `sst.config.ts` sets
 `removal: 'retain'` and `protect: true` for it, so a mistyped remove command
