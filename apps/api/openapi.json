@@ -54,6 +54,61 @@
       }
     },
     "schemas": {
+      "Health": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok"
+            ]
+          },
+          "database": {
+            "type": "string",
+            "enum": [
+              "ok"
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "database"
+        ]
+      },
+      "ApiError": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "not_found"
+          },
+          "message": {
+            "type": "string"
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path",
+                "message"
+              ]
+            }
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      },
       "Me": {
         "type": "object",
         "properties": {
@@ -167,40 +222,6 @@
           "chesscomUsername",
           "lichessUsername",
           "createdAt"
-        ]
-      },
-      "ApiError": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string",
-            "example": "not_found"
-          },
-          "message": {
-            "type": "string"
-          },
-          "issues": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "path": {
-                  "type": "string"
-                },
-                "message": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "path",
-                "message"
-              ]
-            }
-          }
-        },
-        "required": [
-          "code",
-          "message"
         ]
       },
       "CreatePlayer": {
@@ -1392,6 +1413,38 @@
     "parameters": {}
   },
   "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "Ops"
+        ],
+        "summary": "Is the API up, and can it reach the database",
+        "description": "E3. Public, because a load balancer has no session and a health check behind auth is a health check nothing can call. It answers 200 only when a query reaches the database, and 503 otherwise.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "The API is up and the database answered.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The API is up and the database did not answer.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/me": {
       "get": {
         "tags": [
