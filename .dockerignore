@@ -1,0 +1,14 @@
+# The build context is the repository root, because the workspace lockfile lives
+# here, so this file has to live here too. Docker reads `.dockerignore` from the
+# context directory, not from beside the Dockerfile.
+node_modules
+**/node_modules
+.git
+.githooks
+
+# Gitignored, and read from the working tree rather than from git, so a
+# developer's real connection string sits in the context unless it is named.
+.env
+.env.*
+
+**/*.test.ts
