@@ -21,6 +21,7 @@ import {
   GameDetail,
   GameList,
   GameSummary,
+  Health,
   ImportJob,
   Me,
   Player,
@@ -52,6 +53,22 @@ const authErrors = {
 
 const playerParams = z.object({
   playerId: Uuid.openapi({ param: { name: 'playerId', in: 'path' } }),
+});
+
+// ─── Ops ─────────────────────────────────────────────────────────────────────
+
+export const getHealth = createRoute({
+  method: 'get',
+  path: '/health',
+  tags: ['Ops'],
+  summary: 'Is the API up, and can it reach the database',
+  description:
+    'E3. Public, because a load balancer has no session and a health check behind auth is a health check nothing can call. It answers 200 only when a query reaches the database, and 503 otherwise.',
+  security: [],
+  responses: {
+    200: json(Health, 'The API is up and the database answered.'),
+    503: error('The API is up and the database did not answer.'),
+  },
 });
 
 // ─── Account ─────────────────────────────────────────────────────────────────
@@ -448,6 +465,7 @@ export const getSharedProofSheet = createRoute({
 });
 
 export const routes = [
+  getHealth,
   getMe,
   createPlayer,
   updatePlayer,

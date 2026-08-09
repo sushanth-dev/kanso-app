@@ -3,11 +3,14 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "start": "node src/server.ts",
     "typecheck": "tsc --noEmit",
     "openapi": "node src/contract/emit-openapi.ts",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "node src/db/migrate.ts"
   },
   "dependencies": {
+    "@hono/node-server": "^2.1.0",
     "@hono/zod-openapi": "^1.1.4",
     "chess.js": "^1.4.0",
     "drizzle-orm": "^0.45.2",

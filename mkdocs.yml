@@ -63,6 +63,8 @@ nav:
   - Guides:
       - Overview: guides/index.md
       - Local setup: guides/local-setup.md
+      - AWS account setup: guides/aws-account-setup.md
+      - Deploying to AWS: guides/deploy.md
   - Repository:
       - Contributing: CONTRIBUTING.md
       - Security policy: SECURITY.md

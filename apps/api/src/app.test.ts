@@ -33,12 +33,14 @@ describe('toHonoPath', () => {
 
 describe('publicPaths', () => {
   test('is derived from the contract rather than restated', () => {
-    // The shared proof sheet is the one route designed to be read by someone
-    // with no account (F14, S6). If a second public route is ever added, it
+    // Two routes are public, and both are deliberate. The shared proof sheet is
+    // designed to be read by someone with no account (F14, S6). `/health` is
+    // called by a load balancer, which has no session, and it exposes nothing
+    // but whether the process can reach its database (E3). A third public route
     // declares itself with `security: []` and appears here without this file
     // being touched. If this assertion fails, read the new route before
-    // changing the number.
-    expect(publicPaths()).toEqual(['/shared/proof-sheets/{token}']);
+    // changing the list.
+    expect(publicPaths()).toEqual(['/health', '/shared/proof-sheets/{token}']);
   });
 });
 
