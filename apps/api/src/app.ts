@@ -15,6 +15,7 @@ import { OpenAPIHono } from '@hono/zod-openapi';
 import type { Context, MiddlewareHandler } from 'hono';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { routes } from './contract/routes.ts';
+import { mountHealth } from './health.ts';
 import { mountImport } from './import/import-games.ts';
 import { mountListGames } from './games/list-games.ts';
 import { mountSetGameColor } from './games/set-game-color.ts';
@@ -118,6 +119,7 @@ export function createApp({ getSession = () => null, db }: AppOptions = {}) {
   }
 
   if (db) {
+    mountHealth(app, { db });
     mountImport(app, { db, getSession });
     mountListGames(app, { db, getSession });
     mountSetGameColor(app, { db, getSession });

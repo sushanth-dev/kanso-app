@@ -420,3 +420,18 @@ export const SocraticQuestion = z
     generatedAt: z.iso.datetime(),
   })
   .openapi('SocraticQuestion');
+
+// ─── Ops ─────────────────────────────────────────────────────────────────────
+
+/**
+ * E3. What a load balancer, and a person, get to ask every thirty seconds.
+ * `database` is the part worth having: a process that is up with a database it
+ * cannot reach answers every other route with a 500, and a health check that
+ * did not look would keep it in service.
+ */
+export const Health = z
+  .object({
+    status: z.literal('ok'),
+    database: z.literal('ok'),
+  })
+  .openapi('Health');
