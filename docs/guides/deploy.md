@@ -204,10 +204,24 @@ npx sst remove --stage dev
 ```
 
 That deletes everything the stage created: the VPC, the database and its data,
-the cluster and the running task, the load balancer, and the ECR image. The
-bill for the stage stops when the remove finishes. On `production` the
-`removal: 'retain'` setting keeps the database behind, deliberately, so the
-same command cannot destroy real data.
+the cluster and the running task, the load balancer, and the ECR image. It
+takes about six minutes, most of it the database and the VPC. The bill for the
+stage stops when the remove finishes. On `production` the `removal: 'retain'`
+setting keeps the database behind, deliberately, so the same command cannot
+destroy real data.
+
+Two account-level things survive on purpose, because they are shared by every
+stage rather than owned by one: the `sst-asset` ECR repository, now empty, and
+the S3 bucket holding SST's deploy state. Neither costs anything measurable
+when no stage is up. Worth checking afterwards that nothing else did:
+
+```sh
+aws rds describe-db-instances --query 'DBInstances[].DBInstanceIdentifier'
+aws elbv2 describe-load-balancers --query 'LoadBalancers[].LoadBalancerName'
+aws ecs list-clusters --query 'clusterArns'
+```
+
+All three should come back empty. Those are the three that cost real money.
 
 Tearing down between measurements is the intended way to use this, not a
 cleanup afterthought. The environment costs about $45 a month while it is up,
