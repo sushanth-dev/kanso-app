@@ -25,8 +25,9 @@ export default $config({
   },
   async run() {
     const database = await import('./infra/database.ts');
-    await import('./infra/api.ts');
+    const api = await import('./infra/api.ts');
     return {
+      api: api.router.url,
       database: database.database.host,
     };
   },

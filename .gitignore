@@ -11,6 +11,7 @@ build/
 # SST's local state and generated types. The deploy state itself lives in an
 # S3 bucket SST creates, not here.
 .sst/
+sst-env.d.ts
 
 # Environment files; secrets never live in the repo (see docs/CONTRIBUTING.md)
 .env

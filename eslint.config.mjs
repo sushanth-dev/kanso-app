@@ -12,8 +12,9 @@ export default tseslint.config(
   {
     ignores: [
       'node_modules/',
-      // SST generates this and git ignores it; it is not ours to lint.
+      // SST generates these and git ignores them; they are not ours to lint.
       '.sst/',
+      '**/sst-env.d.ts',
       'site/',
       'coverage/',
       'dist/',

@@ -12,3 +12,7 @@ node_modules
 .env.*
 
 **/*.test.ts
+
+# SST's local state and generated platform code. Large, machine-specific, and
+# nothing the image needs.
+.sst
