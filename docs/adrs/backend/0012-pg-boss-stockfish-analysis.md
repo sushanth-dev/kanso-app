@@ -1,12 +1,16 @@
 # 0012. Run Stockfish as WASM, queued through pg-boss
 
-* Status: superseded by [0014](0014-aws-hosting-layout.md)
+* Status: superseded by [0014](0014-aws-hosting-layout.md) and
+  [0023](0023-stockfish-native-lambda-depth-21.md)
 * Date: 2026-07-31
 * Builds on: [ADR-0009](0009-drizzle-orm.md)
 
-> The WASM choice in this record still stands. The queue choice (pg-boss
-> with a long-lived worker) is replaced by SQS with Lambda in ADR-0014,
-> once the hosting layout made the always-on worker the thing to avoid.
+> Nothing in this record still stands. The queue choice (pg-boss with a
+> long-lived worker) was replaced by SQS with Lambda in ADR-0014, once the
+> hosting layout made the always-on worker the thing to avoid. The WASM
+> choice was replaced by a native engine in a Lambda container image in
+> ADR-0023, once measurement showed native searching 1.78 times faster with
+> an identical search. WASM survives there only as the engine the tests run.
 
 ## Context
 

@@ -3,7 +3,8 @@
 * Status: accepted
 * Date: 2026-07-31
 * Supersedes: [ADR-0012](0012-pg-boss-stockfish-analysis.md) (the queue
-  and worker choice; the Stockfish WASM choice stands)
+  and worker choice; its Stockfish WASM choice was replaced later, by
+  [ADR-0023](0023-stockfish-native-lambda-depth-21.md))
 * Builds on: [ADR-0007](0007-hono-http-framework.md), [ADR-0009](0009-drizzle-orm.md)
 
 ## Context
