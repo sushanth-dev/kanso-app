@@ -67,9 +67,9 @@ jobs:
         run: npm audit --audit-level=high
 
   integration:
-    # The integration suite runs against a real PostgreSQL because the testing
-    # policy forbids mocking it. The service container version is pinned by
-    # ADR-0022 and must match docs/guides/local-setup.md.
+    # The integration suite runs against a real PostgreSQL and a real SQS
+    # because the testing policy forbids mocking either. The service container
+    # versions are pinned by ADR-0022 and must match docs/guides/local-setup.md.
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -84,8 +84,24 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      localstack:
+        image: localstack/localstack:4
+        env:
+          SERVICES: sqs
+        ports:
+          - 4566:4566
+        options: >-
+          --health-cmd "curl -sf http://localhost:4566/_localstack/health"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/kanso_dev
+      # LocalStack takes any credentials; the SDK refuses to send without them.
+      AWS_ENDPOINT_URL: http://localhost:4566
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
