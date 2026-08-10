@@ -60,6 +60,7 @@ nav:
           - 0020 Node.js 24 LTS runtime: adrs/backend/0020-node-24-lts-runtime.md
           - 0021 postgres.js driver: adrs/backend/0021-postgres-js-driver.md
           - 0022 PostgreSQL 18: adrs/backend/0022-postgresql-18.md
+          - 0023 Native Stockfish in Lambda: adrs/backend/0023-stockfish-native-lambda-depth-21.md
   - Guides:
       - Overview: guides/index.md
       - Local setup: guides/local-setup.md
