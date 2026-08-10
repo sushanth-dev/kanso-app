@@ -264,4 +264,23 @@ describe('POST /players/{playerId}/imports (pgn_upload)', () => {
     const [row] = await harness.sql`SELECT player_color FROM game WHERE player_id = ${playerId}`;
     expect(row.player_color).toBe('white');
   });
+
+  test('imports and answers without a queue, leaving the games pending analysis', async () => {
+    // No `ANALYSIS_QUEUE_URL` here, which is how the API runs locally and how
+    // every other test in this file runs. Import must not depend on a queue,
+    // and it must not wait on analysis either: the response is the import's,
+    // and the games are left `pending` for the worker.
+    const playerId = await seedPlayer('Test Player');
+    const res = await upload(OWNER, playerId, {
+      source: 'pgn_upload',
+      stream: 'tournament',
+      pgn: fixture('clean-tournament.pgn'),
+    });
+
+    expect(res.status).toBe(202);
+    const rows = await harness.sql`
+      SELECT analysis_status FROM game WHERE player_id = ${playerId}`;
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) expect(row.analysis_status).toBe('pending');
+  });
 });

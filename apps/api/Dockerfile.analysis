@@ -1,0 +1,45 @@
+# The analysis worker: a Lambda container image with a native Stockfish in it.
+#
+# ADR-0023. The engine is compiled from a pinned release tag rather than
+# downloaded, because that release publishes no Linux arm64 binary and arm64 is
+# where the function runs: Graviton is about 20% cheaper per GB-second and the
+# engine is the whole workload. Two builds a month apart must still evaluate the
+# same position the same way, so the tag is the pin, for the source and for the
+# network file the Makefile fetches with it.
+
+ARG STOCKFISH_RELEASE=sf_18
+
+FROM public.ecr.aws/amazonlinux/amazonlinux:2023 AS engine
+ARG STOCKFISH_RELEASE
+RUN dnf install -y git gcc-c++ make && dnf clean all
+WORKDIR /build
+RUN git clone --depth 1 --branch "${STOCKFISH_RELEASE}" \
+  https://github.com/official-stockfish/Stockfish.git .
+WORKDIR /build/src
+# armv8-dotprod: Graviton2 and later are Neoverse cores with the dot-product
+# instructions the network evaluation uses. profile-build is the profile-guided
+# build, which is what the published binaries are and what ADR-0023 measured.
+RUN make -j"$(nproc)" profile-build ARCH=armv8-dotprod && strip stockfish
+
+FROM public.ecr.aws/lambda/nodejs:24 AS deps
+WORKDIR /app
+COPY package.json package-lock.json ./
+COPY apps/api/package.json apps/api/
+# --ignore-scripts, because `prepare` points git at .githooks and there is no
+# git directory in an image. --omit=dev is also what keeps the WebAssembly
+# engine the tests use out of this image: production runs the native one.
+RUN npm ci --workspace apps/api --omit=dev --ignore-scripts
+
+FROM public.ecr.aws/lambda/nodejs:24
+ENV NODE_ENV=production
+ENV ENGINE_PATH=/opt/stockfish/stockfish
+COPY --from=engine /build/src/stockfish ${ENGINE_PATH}
+RUN chmod 755 ${ENGINE_PATH}
+
+# No build step: Node 24 runs TypeScript by stripping types. The entry point is
+# a .mjs re-export because the Lambda runtime resolves a handler by .mjs, .js or
+# .cjs and would not find a .ts one.
+COPY --from=deps /app/node_modules ${LAMBDA_TASK_ROOT}/node_modules
+COPY apps/api/package.json ${LAMBDA_TASK_ROOT}/apps/api/
+COPY apps/api/src ${LAMBDA_TASK_ROOT}/apps/api/src
+CMD ["apps/api/src/analysis/lambda-entry.handler"]
