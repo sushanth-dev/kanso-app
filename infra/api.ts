@@ -13,6 +13,7 @@
  * it checks the second one. Both legs are encrypted and neither certificate is
  * ours to rotate.
  */
+import { analysisQueue } from './analysis.ts';
 import { database, vpc } from './database.ts';
 
 const cluster = new sst.aws.Cluster('Cluster', { vpc });
@@ -87,8 +88,12 @@ export const api = new sst.aws.Service('Api', {
       },
     },
   },
+  // Send, and nothing else. The API fills the analysis queue and must not be
+  // able to read it: the worker is the only thing that drains it.
+  permissions: [{ actions: ['sqs:SendMessage'], resources: [analysisQueue.arn] }],
   environment: {
     DATABASE_URL: $interpolate`postgresql://${database.username}:${database.password}@${database.host}:${database.port}/${database.database}`,
+    ANALYSIS_QUEUE_URL: analysisQueue.url,
   },
   image: {
     context: '.',

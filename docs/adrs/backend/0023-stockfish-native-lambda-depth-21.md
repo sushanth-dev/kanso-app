@@ -80,12 +80,28 @@ fresh engine per game costs nothing worth engineering around.
 ## Decision
 
 **The engine is native Stockfish 18, pinned to the `sf_18` release tag, shipped
-inside a Lambda container image built for arm64.** Not compiled from a branch:
-the prototype's Dockerfile cloned Stockfish's default branch unpinned, so two
-builds a month apart could evaluate the same position differently, and a player
+inside a Lambda container image built for arm64.** Not from a branch: the
+prototype's Dockerfile cloned Stockfish's default branch unpinned, so two builds
+a month apart could evaluate the same position differently, and a player
 comparing this month with last must be comparing like with like. arm64 because
-Graviton is about 20% cheaper per GB-second and Stockfish publishes ARM builds,
-so the prototype's `x86-64-modern` target does not carry over.
+Graviton is about 20% cheaper per GB-second, and the prototype's
+`x86-64-modern` target does not carry over.
+
+The binary is **compiled from that tag inside the image build**, which is not
+what this record first said. It said Stockfish publishes ARM builds, and for
+Linux that is wrong: the `sf_18` release publishes `stockfish-ubuntu-x86-64` in
+several instruction-set flavours, Windows, macOS, and Android, and no Linux
+arm64 asset at all. Checked against the release API on 10 August 2026 rather
+than assumed, which is the only reason it was caught before a Dockerfile was
+written.
+
+So the choice was between compiling for arm64 and taking the published x86-64
+binary at about 25% more per game. Compiling wins, because the pin is what
+matters and a tag builds the same source every time: `git checkout sf_18` then
+`make profile-build ARCH=armv8-dotprod`, in a builder stage whose output is one
+binary copied into the runtime image. Graviton2 is a Neoverse N1 and has the
+dot-product instructions that target wants. The build takes minutes and happens
+when the image is built, not when a game is analysed.
 
 **Four engine processes per invocation, one per vCPU, at 7,077 MB of Lambda
 memory.** Each is single-threaded and owns one position at a time; the game's
@@ -188,6 +204,12 @@ assumed.** An earlier draft chose 400,000 nodes per position, which reaches abou
 depth 18 and would cost about a third of a cent a game. Depth 21 is the quality
 bar this project chose deliberately, and the price of that choice is recorded
 here rather than discovered in a bill.
+
+**The image build compiles an engine, so it is slow and it is a supply chain.**
+Minutes rather than seconds, cached between builds, and it pulls two things over
+the network: the source at tag `sf_18`, and the neural network file the Makefile
+fetches, whose hash is fixed in that source. Both are pinned by the tag. A build
+that cannot reach either fails rather than substituting something newer.
 
 **Two things are now pinned that must move deliberately.** The engine release,
 because evaluations shift between Stockfish versions. And the depth floor,

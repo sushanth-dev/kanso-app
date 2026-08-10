@@ -75,6 +75,38 @@ them to a fresh database itself. Do not create tables by hand. The prototype
 did that for five months and ended up with ten versions of the same function
 in `public`, nine of them dead and none documented.
 
+## The queue
+
+Analysis runs off an SQS queue, and the queue tests are not allowed to mock it
+either: a malformed batch entry or a wrong queue url is exactly the kind of
+mistake a stand-in accepts. LocalStack is a real SQS implementation you can run
+on your machine:
+
+```sh
+docker run --rm -d -p 4566:4566 --name kanso-localstack \
+  -e SERVICES=sqs localstack/localstack:4
+```
+
+The tests create and delete their own queues, so nothing needs to be set up
+inside it. They need an endpoint and credentials, which LocalStack accepts as
+anything at all:
+
+```sh
+export AWS_ENDPOINT_URL=http://localhost:4566
+export AWS_REGION=us-east-1
+export AWS_ACCESS_KEY_ID=test
+export AWS_SECRET_ACCESS_KEY=test
+```
+
+`AWS_ENDPOINT_URL` is also the switch: with it unset the queue tests skip
+rather than run, because without an endpoint the SDK talks to real AWS with
+whatever credentials the machine holds. So the rest of the integration suite
+works with no LocalStack, and CI, which does set it, runs them every time.
+
+`ANALYSIS_QUEUE_URL` stays unset locally. Without it the API imports games and
+does not queue them, which is the path the rest of the suite runs on, and
+analysis can be run by hand against a game id instead.
+
 ## The commands
 
 ```sh

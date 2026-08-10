@@ -54,6 +54,13 @@ export default tseslint.config(
     files: ['*.mjs', '*.js', 'vitest.config.mts'],
     ...tseslint.configs.disableTypeChecked,
   },
+  // The Lambda entry point is a .mjs re-export because the runtime resolves a
+  // handler by .mjs, .js or .cjs and never by .ts. It is one export line and no
+  // tsconfig covers it, so type-aware rules cannot run on it either.
+  {
+    files: ['apps/**/*.mjs'],
+    ...tseslint.configs.disableTypeChecked,
+  },
   // The SST configuration is the same case. It gets its types from
   // `.sst/platform/config.d.ts`, which SST generates and git ignores, so there
   // is no tsconfig to point type-aware rules at. `sst deploy` typechecks it.
