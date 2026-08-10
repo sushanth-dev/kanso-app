@@ -16,6 +16,7 @@ import type { OpenAPIHono } from '@hono/zod-openapi';
 import { startImport } from '../contract/routes.ts';
 import * as schema from '../db/schema.ts';
 import { game, importJob, player } from '../db/schema.ts';
+import { enqueueAnalysis } from '../analysis/queue.ts';
 import { parsePgn } from './parse-pgn.ts';
 import { decidePlayerColor } from './player-color.ts';
 import { readSession } from '../session.ts';
@@ -79,6 +80,7 @@ export function mountImport(
     }
 
     const displayName = owner[0].displayName;
+    const queued: string[] = [];
     const job = await deps.db.transaction(async (tx) => {
       const [created] = await tx
         .insert(importJob)
@@ -132,6 +134,11 @@ export function mountImport(
       // either, and the first upload's count stands.
       const undetermined = inserted.filter((row) => row.playerColor === null).length;
 
+      // A game whose colour could not be decided has nobody to diagnose, so it
+      // is not queued. `analyseGame` refuses one anyway; this is why it never
+      // sees one.
+      queued.push(...inserted.filter((row) => row.playerColor !== null).map((row) => row.id));
+
       const [updated] = await tx
         .update(importJob)
         .set({ gamesImported: inserted.length, gamesUndetermined: undetermined })
@@ -140,6 +147,20 @@ export function mountImport(
 
       return updated;
     });
+
+    // After the commit, never inside it. A message pointing at a game the
+    // transaction went on to roll back is a job that fails forever, and a queue
+    // send inside a database transaction is the usual way to write one.
+    //
+    // A queue that is down does not fail the import: the games are stored, and
+    // they keep `analysis_status = 'pending'`, which is a state someone can see
+    // and re-queue. Failing the upload would instead ask the player to re-send
+    // a file that is already safely in the database.
+    try {
+      await enqueueAnalysis(queued);
+    } catch (error) {
+      console.error('import stored its games but could not queue them for analysis', error);
+    }
 
     return c.json(
       {
