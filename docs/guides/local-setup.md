@@ -98,6 +98,11 @@ export AWS_ACCESS_KEY_ID=test
 export AWS_SECRET_ACCESS_KEY=test
 ```
 
+`AWS_ENDPOINT_URL` is also the switch: with it unset the queue tests skip
+rather than run, because without an endpoint the SDK talks to real AWS with
+whatever credentials the machine holds. So the rest of the integration suite
+works with no LocalStack, and CI, which does set it, runs them every time.
+
 `ANALYSIS_QUEUE_URL` stays unset locally. Without it the API imports games and
 does not queue them, which is the path the rest of the suite runs on, and
 analysis can be run by hand against a game id instead.
