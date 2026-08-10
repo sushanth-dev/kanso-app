@@ -64,11 +64,22 @@ const SAFE_FEN = /^[A-Za-z0-9/ \-+#]+$/;
 type EngineProcess = ChildProcessByStdio<Writable, Readable, null>;
 
 class Engine {
+  // Fields and an assigning constructor rather than parameter properties: Node
+  // runs this file by stripping types, and stripping cannot rewrite a parameter
+  // property into an assignment.
+  private readonly proc: EngineProcess;
+  private readonly listeners: ((line: string) => void)[];
+  private readonly failure: () => Error | null;
+
   private constructor(
-    private readonly proc: EngineProcess,
-    private readonly listeners: ((line: string) => void)[],
-    private readonly failure: () => Error | null,
-  ) {}
+    proc: EngineProcess,
+    listeners: ((line: string) => void)[],
+    failure: () => Error | null,
+  ) {
+    this.proc = proc;
+    this.listeners = listeners;
+    this.failure = failure;
+  }
 
   static async start(options: EngineOptions): Promise<Engine> {
     const isWasm = options.enginePath.endsWith('.js');
