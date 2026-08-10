@@ -77,6 +77,33 @@ private.
 The total is why the teardown section below is a first-class step rather than a
 footnote.
 
+## Build the analysis image
+
+The analysis worker is a Lambda container image, because the engine is a native
+binary compiled for arm64 (ADR-0023). SST builds the API's image itself; this
+one is built and pushed by hand, and the function is pointed at the tag:
+
+```sh
+TAG=$(git rev-parse --short HEAD)
+REPO=$(aws ecr describe-repositories --query \
+  "repositories[?contains(repositoryName, 'analysisrepository')].repositoryUri" --output text)
+
+aws ecr get-login-password | docker login --username AWS --password-stdin "${REPO%%/*}"
+docker buildx build --platform linux/arm64 \
+  -f apps/api/Dockerfile.analysis -t "$REPO:$TAG" --push .
+
+export ANALYSIS_IMAGE_TAG=$TAG
+```
+
+The build compiles Stockfish from source, so it takes minutes rather than
+seconds. Use the commit as the tag rather than `latest`: two deploys of `latest`
+look identical to the deploy tool, so the function would keep running the old
+image while reporting success.
+
+The repository is created by the first `sst deploy`, so on a brand new stage
+deploy once, then build and push, then deploy again with `ANALYSIS_IMAGE_TAG`
+set.
+
 ## Bring it up
 
 ```sh
