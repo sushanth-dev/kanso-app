@@ -15,3 +15,8 @@ frontend decisions. The format and rules are in
 * [0006. Use D3 for data visualization](0006-d3-visualizations.md)
 * [0017. Use Canvas UI for decorative motion, on named surfaces
   only](0017-canvas-ui-effects.md)
+* [0024. Use TanStack Query for REST data fetching and caching](0024-tanstack-query-data-fetching.md)
+* [0025. Use TanStack Table for tabular data](0025-tanstack-table-tabular-data.md)
+* [0026. Use TanStack Virtual for long list rendering](0026-tanstack-virtual-list-rendering.md)
+* [0027. Use TanStack Router for SPA routing](0027-tanstack-router-spa-routing.md)
+* [0028. Defer TanStack Charts until stable](0028-tanstack-charts-deferral.md)
