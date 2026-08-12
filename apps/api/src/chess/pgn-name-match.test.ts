@@ -189,6 +189,18 @@ describe('names that must not match', () => {
   test('a multi-token surname before the comma is not reduced to its last token', () => {
     expect(matches('Magnus Van den Berg', 'Van der Berg, M.')).toBe(false);
   });
+
+  /**
+   * DEBT-007, paid here. The order-agnostic subset path used to match on a
+   * shared given name plus a surname fragment, so Magnus Berg matched Van der
+   * Berg, Magnus - two different people. Path A is now anchored on the
+   * surname, and this asserts both directions because the subset test is
+   * symmetric.
+   */
+  test('a shared given name and a surname fragment do not match when the surnames differ', () => {
+    expect(matches('Magnus Berg', 'Van der Berg, Magnus')).toBe(false);
+    expect(matches('Van der Berg, Magnus', 'Magnus Berg')).toBe(false);
+  });
 });
 
 describe('fixes did not go too far', () => {
