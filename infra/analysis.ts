@@ -83,9 +83,12 @@ export const analysisWorker = new aws.lambda.Function('AnalysisWorker', {
   // About 20% cheaper per GB-second than x86, and the engine is the whole
   // workload. The image is built for this architecture, not translated to it.
   architectures: ['arm64'],
-  // Where Lambda gives four vCPUs: one per engine process. Four engines measured
-  // 3.3x faster than one on the same game at no cost in depth.
-  memorySize: 7077,
+  // Where Lambda gives about one and a half vCPUs: room for two engine
+  // processes. The account's Lambda memory quota caps at 3008 MB (the default;
+  // raising it needs an AWS Support case), so the four-engine design in
+  // ADR-0023 cannot deploy here. Two engines fit the cap and stay on the same
+  // depth contract. Revisit four when the quota is raised.
+  memorySize: 3008,
   // The measured game is about 105 seconds. Ten minutes leaves room for a long
   // one and stays under the 15-minute ceiling, so a pathological game reaches
   // the dead-letter queue rather than being billed for three full attempts.
