@@ -234,11 +234,14 @@ crafted game can consume, and ST-007's security assessment carries the detail.
 
 **Concurrency is capped rather than left to scale freely.** Each invocation opens
 its own connection to a `db.t4g.micro`, and ADR-0014 already names connection
-exhaustion as the burst risk. Reserved concurrency starts low, in the region of
-two to four, which is a number in `infra/` and not one anyone has measured yet.
-ST-008 is where it is tested: it runs analysis on the deployed function, and the
-cap holds or the database runs out of connections in front of us rather than in
-front of a player. The function timeout and the per-game cost estimate above are
-tested by the same story, and all three are expected to move when it reports.
-The recorded exit for connection exhaustion is RDS Proxy, about $15 a month,
-added without changing the flow.
+exhaustion as the burst risk. The cap is the event source mapping's
+`maximumConcurrency` of 2, which is the only trigger. A reserved-concurrency
+hard cap was dropped during ST-008's deploy: the account's total Lambda
+concurrency is the default 10, and raising it needs a manual AWS approval for
+no extra control, because the event source mapping already limits concurrent
+invocations. ST-008 is where the cap is tested: it runs analysis on the deployed
+function, and the cap holds or the database runs out of connections in front of
+us rather than in front of a player. The function timeout and the per-game cost
+estimate above are tested by the same story, and all three are expected to move
+when it reports. The recorded exit for connection exhaustion is RDS Proxy, about
+$15 a month, added without changing the flow.
