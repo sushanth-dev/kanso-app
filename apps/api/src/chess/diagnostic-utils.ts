@@ -8,6 +8,11 @@
 
 import { Chess } from 'chess.js';
 import type { Color } from 'chess.js';
+import { Chess as OpsChess } from 'chessops/chess';
+import { parseFen } from 'chessops/fen';
+import { attacks, between, ray } from 'chessops/attacks';
+import { opposite, parseSquare, roleToChar } from 'chessops';
+import type { Color as OpsColor, Piece, Role } from 'chessops';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -72,96 +77,6 @@ const PIECE_VALUE: Record<string, number> = {
   k: 100,
 };
 
-// ─── Board Geometry ───────────────────────────────────────────────────────────
-
-type BoardPiece = { type: string; color: string } | null;
-type Board = BoardPiece[][];
-
-function squareToRC(square: string): [number, number] {
-  return [8 - parseInt(square[1]), square.charCodeAt(0) - 97];
-}
-
-/**
- * Returns true if the piece at [fromRow, fromCol] geometrically attacks [toRow, toCol].
- * Accounts for sliding-piece ray blocking.
- */
-function pieceAttacks(
-  board: Board,
-  fromRow: number,
-  fromCol: number,
-  toRow: number,
-  toCol: number,
-): boolean {
-  const piece = board[fromRow][fromCol];
-  if (!piece) return false;
-
-  const dr = toRow - fromRow;
-  const dc = toCol - fromCol;
-  if (dr === 0 && dc === 0) return false;
-
-  switch (piece.type.toLowerCase()) {
-    case 'p': {
-      const forward = piece.color === 'w' ? -1 : 1;
-      return dr === forward && Math.abs(dc) === 1;
-    }
-    case 'n':
-      return (
-        (Math.abs(dr) === 2 && Math.abs(dc) === 1) || (Math.abs(dr) === 1 && Math.abs(dc) === 2)
-      );
-    case 'b': {
-      if (Math.abs(dr) !== Math.abs(dc)) return false;
-      const sr = Math.sign(dr),
-        sc = Math.sign(dc);
-      for (let i = 1; i < Math.abs(dr); i++) {
-        if (board[fromRow + i * sr][fromCol + i * sc]) return false;
-      }
-      return true;
-    }
-    case 'r': {
-      if (dr !== 0 && dc !== 0) return false;
-      const sr = Math.sign(dr),
-        sc = Math.sign(dc);
-      const steps = Math.max(Math.abs(dr), Math.abs(dc));
-      for (let i = 1; i < steps; i++) {
-        if (board[fromRow + i * sr][fromCol + i * sc]) return false;
-      }
-      return true;
-    }
-    case 'q': {
-      const isDiag = Math.abs(dr) === Math.abs(dc);
-      const isStraight = dr === 0 || dc === 0;
-      if (!isDiag && !isStraight) return false;
-      const sr = Math.sign(dr),
-        sc = Math.sign(dc);
-      const steps = Math.max(Math.abs(dr), Math.abs(dc));
-      for (let i = 1; i < steps; i++) {
-        if (board[fromRow + i * sr][fromCol + i * sc]) return false;
-      }
-      return true;
-    }
-    case 'k':
-      return Math.abs(dr) <= 1 && Math.abs(dc) <= 1;
-  }
-  return false;
-}
-
-/**
- * Count pieces of `attackerColor` that geometrically attack `square` on `board`.
- */
-function countAttackersOfSquare(board: Board, square: string, attackerColor: string): number {
-  const [tr, tc] = squareToRC(square);
-  let count = 0;
-  for (let r = 0; r < 8; r++) {
-    for (let c = 0; c < 8; c++) {
-      const piece = board[r][c];
-      if (piece && piece.color === attackerColor && pieceAttacks(board, r, c, tr, tc)) {
-        count++;
-      }
-    }
-  }
-  return count;
-}
-
 // ─── 1. Hygiene Check ─────────────────────────────────────────────────────────
 
 interface DCXCResult {
@@ -178,156 +93,60 @@ interface DCXCResult {
  *   BISHOPS: x-ray through friendly Q or B; also through any Pawn but ≤1 sq beyond it.
  *   QUEENS:  x-ray through friendly Q, R, or B; also through any Pawn but ≤1 sq beyond it.
  *
- * Step A — Sliding rays use scanSliderRay with per-piece canXrayThrough checks.
- * Step B — Knights: always dc, never x-ray.
- * Step C — Pawns: always dc (diagonal capture squares).
- * Step D — King: always dc (8 adjacent squares).
+ * DC pieces are counted with ChessOps's `attacks` (Hyperbola Quintessence for
+ * sliders). XC pieces are the sliders of `color` that attack `square` only
+ * through a single transparent blocker, applying the per-piece x-ray rules
+ * above.
  */
-function rayCastDCXC(board: Board, square: string, color: string): DCXCResult {
-  const [tr, tc] = squareToRC(square);
-  let dc = 0,
-    xc = 0;
+function rayCastDCXC(pos: OpsChess, square: number, color: OpsColor): DCXCResult {
+  const board = pos.board;
+  const occ = board.occupied;
 
-  const ROOK_DIRS: [number, number][] = [
-    [0, 1],
-    [0, -1],
-    [1, 0],
-    [-1, 0],
-  ];
-  const BISHOP_DIRS: [number, number][] = [
-    [1, 1],
-    [1, -1],
-    [-1, 1],
-    [-1, -1],
-  ];
-
-  type Piece = NonNullable<BoardPiece>;
-
-  // `canXrayThrough(blocker, xcType, dist)`:
-  //   blocker  — the first piece found on the ray (the transparent piece)
-  //   xcType   — piece type of the second piece (the x-ray attacker)
-  //   dist     — squares between blocker and x-ray attacker (1 = directly adjacent)
-  function scanSliderRay(
-    dirs: [number, number][],
-    canSlide: (t: string) => boolean,
-    canXrayThrough: (blocker: Piece, xcType: string, dist: number) => boolean,
-  ) {
-    for (const [dr, df] of dirs) {
-      let r = tr + dr,
-        f = tc + df;
-      let firstPiece: Piece | null = null;
-      let firstStep = 0;
-      let step = 0;
-      while (r >= 0 && r < 8 && f >= 0 && f < 8) {
-        step++;
-        const p = board[r][f];
-        if (p) {
-          if (!firstPiece) {
-            if (p.color === color && canSlide(p.type)) dc++;
-            firstPiece = p;
-            firstStep = step;
-          } else {
-            const dist = step - firstStep;
-            if (p.color === color && canSlide(p.type) && canXrayThrough(firstPiece, p.type, dist)) {
-              xc++;
-            }
-            break;
-          }
-        }
-        r += dr;
-        f += df;
-      }
-    }
+  // Direct-Contact attackers: any piece of `color` whose attack set contains
+  // `square` on the current occupied squares.
+  let dc = 0;
+  for (const [sq, piece] of board) {
+    if (piece.color === color && attacks(piece, sq, occ).has(square)) dc++;
   }
 
-  // Rook rays — R and Q are direct attackers.
-  // R x-ray: only through friendly R or Q.
-  // Q x-ray: through friendly Q, R, or B; or any Pawn (dist===1 only).
-  scanSliderRay(
-    ROOK_DIRS,
-    (t) => t === 'r' || t === 'q',
-    (blocker, xcType, dist) => {
-      const friendlyRQ = blocker.color === color && (blocker.type === 'r' || blocker.type === 'q');
-      if (xcType === 'r') return friendlyRQ;
-      if (xcType === 'q') {
-        return (
-          (blocker.color === color &&
-            (blocker.type === 'q' || blocker.type === 'r' || blocker.type === 'b')) ||
-          (blocker.type === 'p' && dist === 1)
-        );
-      }
-      return false;
-    },
-  );
-
-  // Bishop rays — B and Q are direct attackers.
-  // B x-ray: through friendly Q or B; or any Pawn (dist===1 only).
-  // Q x-ray: through friendly Q, R, or B; or any Pawn (dist===1 only).
-  scanSliderRay(
-    BISHOP_DIRS,
-    (t) => t === 'b' || t === 'q',
-    (blocker, xcType, dist) => {
-      const friendlyQB = blocker.color === color && (blocker.type === 'q' || blocker.type === 'b');
-      const isPawnAdjacent = blocker.type === 'p' && dist === 1;
-      if (xcType === 'b') return friendlyQB || isPawnAdjacent;
-      if (xcType === 'q') {
-        return (
-          (blocker.color === color &&
-            (blocker.type === 'q' || blocker.type === 'r' || blocker.type === 'b')) ||
-          isPawnAdjacent
-        );
-      }
-      return false;
-    },
-  );
-
-  // Knights — always dc
-  for (const [dr, df] of [
-    [2, 1],
-    [2, -1],
-    [-2, 1],
-    [-2, -1],
-    [1, 2],
-    [1, -2],
-    [-1, 2],
-    [-1, -2],
-  ] as [number, number][]) {
-    const r = tr + dr,
-      f = tc + df;
-    if (r >= 0 && r < 8 && f >= 0 && f < 8) {
-      const p = board[r][f];
-      if (p && p.color === color && p.type === 'n') dc++;
+  // X-ray attackers: a slider of `color` behind exactly one blocker on the
+  // line to `square`, where the blocker is transparent for that slider.
+  let xc = 0;
+  const canXrayThrough = (blocker: Piece, xcType: Role, dist: number): boolean => {
+    const friendly = blocker.color === color;
+    const isPawnAdjacent = blocker.role === 'pawn' && dist === 1;
+    if (xcType === 'rook') return friendly && (blocker.role === 'rook' || blocker.role === 'queen');
+    if (xcType === 'bishop')
+      return (
+        (friendly && (blocker.role === 'queen' || blocker.role === 'bishop')) || isPawnAdjacent
+      );
+    if (xcType === 'queen') {
+      return (
+        (friendly &&
+          (blocker.role === 'queen' || blocker.role === 'rook' || blocker.role === 'bishop')) ||
+        isPawnAdjacent
+      );
     }
-  }
+    return false;
+  };
 
-  // Pawns — always dc (diagonal capture origins)
-  // White pawn attacks from row+1; black pawn attacks from row-1.
-  const pawnRow = color === 'w' ? tr + 1 : tr - 1;
-  for (const df of [-1, 1]) {
-    const f = tc + df;
-    if (pawnRow >= 0 && pawnRow < 8 && f >= 0 && f < 8) {
-      const p = board[pawnRow][f];
-      if (p && p.color === color && p.type === 'p') dc++;
-    }
-  }
-
-  // King — always dc
-  for (const [dr, df] of [
-    [0, 1],
-    [0, -1],
-    [1, 0],
-    [-1, 0],
-    [1, 1],
-    [1, -1],
-    [-1, 1],
-    [-1, -1],
-  ] as [number, number][]) {
-    const r = tr + dr,
-      f = tc + df;
-    if (r >= 0 && r < 8 && f >= 0 && f < 8) {
-      const p = board[r][f];
-      if (p && p.color === color && p.type === 'k') dc++;
-    }
+  // For each slider of `color`, walk its rays from `square` outward. The first
+  // piece on a ray is the potential blocker; the second is a candidate x-ray
+  // attacker. `between` gives the squares strictly between two aligned squares.
+  const sliders = board
+    .pieces(color, 'rook')
+    .union(board.pieces(color, 'bishop'))
+    .union(board.pieces(color, 'queen'));
+  for (const sq of sliders) {
+    const piece = board.get(sq)!;
+    if (attacks(piece, sq, occ).has(square)) continue; // already a DC attacker
+    if (!ray(square, sq).nonEmpty()) continue; // not aligned
+    const blockers = between(square, sq).intersect(occ);
+    if (blockers.size() !== 1) continue; // x-ray needs exactly one blocker
+    const blockerSq = blockers.first()!;
+    const blocker = board.get(blockerSq)!;
+    const dist = between(blockerSq, sq).size() + 1;
+    if (canXrayThrough(blocker, piece.role, dist)) xc++;
   }
 
   return { dc, xc };
@@ -341,14 +160,13 @@ function rayCastDCXC(board: Board, square: string, color: string): DCXCResult {
  * has zero X-ray attackers of `targetSquare` on `fen`.
  */
 export function hasXrayAttacker(fen: string, targetSquare: string, color: Color): boolean {
-  let chess: Chess;
+  let pos: OpsChess;
   try {
-    chess = new Chess(fen);
+    pos = OpsChess.fromSetup(parseFen(fen).unwrap()).unwrap();
   } catch {
     return false;
   }
-  const board = chess.board() as Board;
-  const { xc } = rayCastDCXC(board, targetSquare, color);
+  const { xc } = rayCastDCXC(pos, parseSquare(targetSquare)!, color === 'w' ? 'white' : 'black');
   return xc > 0;
 }
 
@@ -380,18 +198,25 @@ export function computeHygiene(fen: string, moveSan: string): HygieneResult | nu
   // The moving piece is still at fromSquare, so the ray-caster can detect it
   // as a Direct-Contact attacker of targetSquare (e.g. Queen on a diagonal,
   // King one step away, Pawn on the capture diagonal).
-  const preMoveBoard = chess.board() as Board;
-
   const move = chess.move(moveSan, { strict: false });
   if (!move) return null;
 
   const targetSquare = move.to;
   const fromSquare = move.from;
   const userColor = move.color;
-  const enemyColor = userColor === 'w' ? 'b' : 'w';
 
-  const aDCXC = rayCastDCXC(preMoveBoard, targetSquare, userColor);
-  const dDCXC = rayCastDCXC(preMoveBoard, targetSquare, enemyColor);
+  // ChessOps position of the PRE-MOVE board (the moving piece is still at its
+  // original square, so it is counted as a supporter of targetSquare).
+  let pos: OpsChess;
+  try {
+    pos = OpsChess.fromSetup(parseFen(fen).unwrap()).unwrap();
+  } catch {
+    return null;
+  }
+
+  const target = parseSquare(targetSquare);
+  const aDCXC = rayCastDCXC(pos, target, userColor === 'w' ? 'white' : 'black');
+  const dDCXC = rayCastDCXC(pos, target, userColor === 'w' ? 'black' : 'white');
 
   return {
     targetSquare,
@@ -405,72 +230,83 @@ export function computeHygiene(fen: string, moveSan: string): HygieneResult | nu
   };
 }
 
-// ─── 2. Null-Move Threat Detection ───────────────────────────────────────────
+// ─── 2. ChessOps Threat Detection ────────────────────────────────────────────
 
 /**
- * Build the "null-move" FEN: same board, but swap active color.
- * Clears en passant (null move forfeits en passant rights).
+ * Number of pieces of `color` attacking `square` on `pos`, using ChessOps
+ * bitboard attack calculations (Hyperbola Quintessence for sliders).
  */
-function buildNullMoveFen(fen: string): string {
-  const parts = fen.split(' ');
-  parts[1] = parts[1] === 'w' ? 'b' : 'w';
-  parts[3] = '-'; // clear en passant
-  return parts.join(' ');
+function countAttackers(pos: OpsChess, square: number, color: OpsColor): number {
+  const board = pos.board;
+  let n = 0;
+  for (const [sq, piece] of board) {
+    if (piece.color === color && attacks(piece, sq, board.occupied).has(square)) n++;
+  }
+  return n;
 }
 
 /**
- * After playing a quiet move from `preFen`, detect whether the move creates a threat.
- * Uses the null-move trick: swap the turn back and enumerate forcing responses.
+ * Squares of enemy (opposite of `moverColor`) non-king pieces that are hanging:
+ * more pieces of `moverColor` attack the square than pieces of the enemy defend it.
+ */
+function hangingSquares(pos: OpsChess, moverColor: OpsColor): Set<number> {
+  const enemy = opposite(moverColor);
+  const set = new Set<number>();
+  for (const [sq, piece] of pos.board) {
+    if (piece.color !== enemy || piece.role === 'king') continue;
+    if (countAttackers(pos, sq, moverColor) > countAttackers(pos, sq, enemy)) set.add(sq);
+  }
+  return set;
+}
+
+/**
+ * True if `moverColor` has a mate-in-one from `pos`. The null-move trick: the
+ * opponent is assumed to pass, so `pos` is replayed with `moverColor` to move.
+ */
+function hasMateInOne(pos: OpsChess, moverColor: OpsColor): boolean {
+  const setup = pos.toSetup();
+  setup.turn = moverColor;
+  const mover = OpsChess.fromSetup(setup).unwrap();
+  for (const [from, toSet] of mover.allDests()) {
+    for (const to of toSet) {
+      const c = mover.clone();
+      c.play({ from, to });
+      if (c.isCheckmate()) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Detect whether a quiet move from `from` to `to` on `prePos` creates a threat.
+ *
+ * Plays the move on a clone, then compares the hanging enemy pieces before and
+ * after. A move is a Material threat if it makes an enemy non-king piece
+ * hanging that was not hanging before (this is what catches a discovered
+ * attack or a quiet move that lifts a blocker). A move is a Checkmate threat
+ * if the mover then has a mate-in-one. A quiet move that changes nothing
+ * about the hanging set is not a threat.
  *
  * @returns ThreatCategory if this is a genuine threat, or null if it is not
  */
-function detectThreatCategory(postMoveFen: string, moverColor: string): ThreatCategory | null {
-  const nullFen = buildNullMoveFen(postMoveFen);
+function detectThreat(
+  prePos: OpsChess,
+  from: number,
+  to: number,
+  moverColor: OpsColor,
+): ThreatCategory | null {
+  const before = hangingSquares(prePos, moverColor);
+  const beforeMate = hasMateInOne(prePos, moverColor);
 
-  let nullChess: Chess;
-  try {
-    nullChess = new Chess(nullFen);
-  } catch {
-    return null;
-  }
+  const after = prePos.clone();
+  after.play({ from, to });
+  if (after.isCheck()) return null; // checks are handled separately
 
-  const nullMoves = nullChess.moves({ verbose: true });
-  if (nullMoves.length === 0) return null;
+  // Checkmate is the stronger threat; report it before a Material threat.
+  if (!beforeMate && hasMateInOne(after, moverColor)) return 'Checkmate';
 
-  const opponentColor = moverColor === 'w' ? 'b' : 'w';
-  const board = nullChess.board() as Board;
-
-  // Priority 1 — Checkmate threat
-  for (const m of nullMoves) {
-    try {
-      const c2 = new Chess(nullFen);
-      c2.move(m.san);
-      if (c2.isCheckmate()) return 'Checkmate';
-    } catch {
-      // ignore
-    }
-  }
-
-  // Priority 2 — Any winning trade OR any undefended enemy piece (including pawns)
-  // Matches MEMORY.md definition: "quiet move attacking (a) undefended enemy piece
-  // OR (b) higher-value enemy piece"
-  const hasQualifyingCapture = nullMoves.some((m) => {
-    if (!m.captured) return false;
-    const capturedVal = PIECE_VALUE[m.captured] ?? 1;
-    const capturingVal = PIECE_VALUE[m.piece] ?? 1;
-    const netGain = capturedVal - capturingVal;
-    if (netGain > 0) return true; // winning trade
-    if (netGain === 0 && capturedVal >= 3) return true; // equal trade ≥ minor piece
-    // Free capture of any piece, including pawns (no defenders)
-    if (capturedVal > 0) {
-      const defenders = countAttackersOfSquare(board, m.to, opponentColor);
-      return defenders === 0;
-    }
-    return false;
-  });
-  if (hasQualifyingCapture) return 'Material';
-
-  // No concrete threat detected — do not classify as a Threat
+  const created = [...hangingSquares(after, moverColor)].filter((s) => !before.has(s));
+  if (created.length > 0) return 'Material';
   return null;
 }
 
@@ -501,25 +337,30 @@ function computeIsUseful(fen: string, san: string, bestMoveSan?: string): boolea
     const landingSquare = move.to;
     const movingPieceValue = PIECE_VALUE[move.piece] ?? 1;
     const capturedValue = move.captured ? (PIECE_VALUE[move.captured] ?? 1) : 0;
-    const enemyColor = move.color === 'w' ? 'b' : 'w';
 
     // Winning or even capture → useful regardless of recapture risk
     if (capturedValue > 0 && capturedValue >= movingPieceValue) return true;
 
-    // Check enemy attackers of the landing square using pieceAttacks() directly.
-    // This avoids chess.attackers() which can miscount pawns (forward vs diagonal).
-    const board = chess.board() as Board;
-    const [lr, lc] = squareToRC(landingSquare);
+    // Check enemy attackers of the landing square using ChessOps attack
+    // geometry on the post-move board. This avoids chess.attackers() which can
+    // miscount pawns (forward vs diagonal).
+    let pos: OpsChess | null = null;
+    try {
+      pos = OpsChess.fromSetup(parseFen(chess.fen()).unwrap()).unwrap();
+    } catch {
+      return true;
+    }
+    const enemyOpsColor: OpsColor = move.color === 'w' ? 'black' : 'white';
+    const attackers = pos.kingAttackers(
+      parseSquare(landingSquare),
+      enemyOpsColor,
+      pos.board.occupied,
+    );
     let minAttackerVal = Infinity;
-    for (let r = 0; r < 8; r++) {
-      for (let c = 0; c < 8; c++) {
-        const piece = board[r][c];
-        if (!piece || piece.color !== enemyColor) continue;
-        if (pieceAttacks(board, r, c, lr, lc)) {
-          const val = PIECE_VALUE[piece.type] ?? 1;
-          if (val < minAttackerVal) minAttackerVal = val;
-        }
-      }
+    for (const sq of attackers) {
+      const role = pos.board.getRole(sq)!;
+      const val = PIECE_VALUE[roleToChar(role)] ?? 1;
+      if (val < minAttackerVal) minAttackerVal = val;
     }
 
     if (minAttackerVal === Infinity) return true; // No enemy attackers — piece is safe
@@ -531,11 +372,6 @@ function computeIsUseful(fen: string, san: string, bestMoveSan?: string): boolea
     return true;
   }
 }
-
-// TODO(DEBT-005): threat detection below is static attacker and defender
-// counting, so a threat that takes two moves to see is invisible to it. A
-// deeper or engine-backed search is the fix, and it is cheap once the engine is
-// running. Tracked on the product backlog in the `delivery` repository.
 
 // ─── 4. CCT Scope ─────────────────────────────────────────────────────────────
 
@@ -559,6 +395,14 @@ export function findCCT(fen: string, bestMoveSan?: string): CCTResult {
   const checks: CCTMove[] = [];
   const captures: CCTMove[] = [];
   const threats: CCTMove[] = [];
+
+  // ChessOps position for attack-geometry threat detection.
+  let pos: OpsChess | null = null;
+  try {
+    pos = OpsChess.fromSetup(parseFen(fen).unwrap()).unwrap();
+  } catch {
+    // fall back to no threat detection if ChessOps rejects the position
+  }
 
   for (const m of legalMoves) {
     const uci = m.from + m.to + (m.promotion ?? '');
@@ -599,12 +443,11 @@ export function findCCT(fen: string, bestMoveSan?: string): CCTResult {
     }
 
     // ── Threat (quiet moves only) ────────────────────────────────────────────
-    if (!m.captured && !m.san.includes('+') && !m.san.includes('#')) {
-      try {
-        const c2 = new Chess(fen);
-        c2.move(m.san);
-        const postFen = c2.fen();
-        const threatCat = detectThreatCategory(postFen, m.color);
+    if (!m.captured && !m.san.includes('+') && !m.san.includes('#') && pos) {
+      const from = parseSquare(m.from);
+      const to = parseSquare(m.to);
+      if (from !== undefined && to !== undefined) {
+        const threatCat = detectThreat(pos, from, to, pos.turn);
         if (threatCat && !seen.has(m.san)) {
           seen.add(m.san);
           threats.push({
@@ -616,8 +459,6 @@ export function findCCT(fen: string, bestMoveSan?: string): CCTResult {
             isUseful,
           });
         }
-      } catch {
-        // ignore invalid moves
       }
     }
   }
