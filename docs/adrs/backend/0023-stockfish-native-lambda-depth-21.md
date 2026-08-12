@@ -1,4 +1,4 @@
-# 0023. Analyse with four native Stockfish processes per Lambda, to a minimum depth of 21
+# 0023. Analyse with native Stockfish processes per Lambda, to a minimum depth of 21
 
 * Status: accepted
 * Date: 2026-08-10
@@ -103,14 +103,19 @@ binary copied into the runtime image. Graviton2 is a Neoverse N1 and has the
 dot-product instructions that target wants. The build takes minutes and happens
 when the image is built, not when a game is analysed.
 
-**Four engine processes per invocation, one per vCPU, at 7,077 MB of Lambda
+**Two engine processes per invocation, one per vCPU, at 3,008 MB of Lambda
 memory.** Each is single-threaded and owns one position at a time; the game's
-plies are dealt across them. Four is the knee of the curve: 3.3x faster for 1.2x
-the cost, where six buys a further 10% for another 25%. The engines are child
-processes speaking UCI over stdio, not in-process modules, for a reason found by
-measurement: the `stockfish` npm package can only be initialised once per
-process, and it fails inside `worker_threads` because its pthread detection
-misfires there.
+plies are dealt across them. The engines are child processes speaking UCI over
+stdio, not in-process modules, for a reason found by measurement: the
+`stockfish` npm package can only be initialised once per process, and it fails
+inside `worker_threads` because its pthread detection misfires there.
+
+The four-engine design this record first chose does not deploy on this account:
+the account's Lambda memory quota caps at 3,008 MB (the default; raising it
+needs an AWS Support case under "Account and billing"), and four engines need
+7,077 MB for four vCPUs. Two engines fit the cap and stay on the same depth
+contract, at about 1.7x the per-game cost of four (two engines measured 2.1x
+faster than one at no cost in depth). Revisit four when the quota is raised.
 
 **Every position is searched to a minimum depth of 21**, with a ceiling of
 15,000,000 nodes as the bound that keeps a pathological position from running
@@ -186,13 +191,16 @@ to make analysis exist at all.
 
 ## Consequences
 
-**A game takes about 105 seconds and costs about 1.1 US cents.** Four engines
-finish the measured game in about 48 seconds here; Lambda vCPU is roughly two to
-two and a half times slower than this machine, which puts it near 105 seconds,
-or about 740 GB-seconds at 7,077 MB, or about $0.011 in `ap-south-2` on arm64.
-A nine-round tournament is roughly 10 cents. Every one of those numbers is an
-estimate scaled off this machine by an assumed ratio, and replacing them with
-measurements taken on the deployed function is exactly what ST-008 is for.
+**A game takes about 210 seconds and costs about 1.9 US cents.** Two engines
+finish the measured game in about 77 seconds here (two measured 2.1x faster
+than one); Lambda vCPU is roughly two to two and a half times slower than this
+machine, which puts it near 210 seconds, or about 630 GB-seconds at 3,008 MB,
+or about $0.019 in `ap-south-2` on arm64. A nine-round tournament is roughly
+17 cents. Every one of those numbers is an estimate scaled off this machine by
+an assumed ratio, and replacing them with measurements taken on the deployed
+function is exactly what ST-008 is for. The four-engine numbers this record
+first carried (about 105 seconds, about 1.1 cents) return when the Lambda
+memory quota is raised.
 
 **The 15-minute ceiling stops being a design constraint.** At about 105 seconds
 for 107 plies, a game would have to run past 800 plies to reach it. The function
