@@ -8,9 +8,10 @@
  * silent drift.
  *
  * Where the current behaviour is a known compromise it is pinned as such, not
- * blessed. DEBT-005's shallow threat detection is the main one: it counts
- * attackers and defenders rather than searching, so threats that need two moves
- * to see are invisible to it. The tests below record that shape.
+ * blessed. Threat detection (DEBT-005) used to be a static attacker and defender
+ * counter that missed two-move threats and reported false positives; it is now
+ * a one-ply delta search over ChessOps attack geometry. The tests below record
+ * the current shape.
  */
 import { describe, expect, test } from 'vitest';
 import { computeHygiene, findCCT, hasXrayAttacker } from './diagnostic-utils.ts';
@@ -58,13 +59,13 @@ describe('computeHygiene', () => {
 
 describe('hasXrayAttacker', () => {
   test('true when a friendly slider x-rays the target through a friendly blocker', () => {
-    // White rook a2 x-rays a8 through the friendly queen a4.
-    const fen = '4k3/8/8/8/Q7/8/R7/4K3 w - - 0 1';
+    // White rook a7 x-rays a8 through the friendly queen a5.
+    const fen = '7k/8/8/8/Q7/8/R7/4K3 w - - 0 1';
     expect(hasXrayAttacker(fen, 'a8', 'w')).toBe(true);
   });
 
   test('false when the blocker is an enemy piece, which a rook cannot x-ray through', () => {
-    const fen = '4k3/8/8/8/q7/8/R7/4K3 w - - 0 1';
+    const fen = '7k/8/8/8/q7/8/R7/4K3 w - - 0 1';
     expect(hasXrayAttacker(fen, 'a8', 'w')).toBe(false);
   });
 
@@ -102,40 +103,49 @@ describe('findCCT', () => {
     });
   });
 
-  test('DEBT-005: a quiet move attacking an undefended piece is a Material threat', () => {
-    // White rook a1 attacks the undefended black pawn a7.
-    const fen = '4k3/8/8/8/8/8/p7/R3K3 w - - 0 1';
+  test('a quiet move that lifts a blocker creates a Material threat', () => {
+    // White bishop a2 blocks rook a1's attack on the undefended black rook a8.
+    // Moving the bishop away (e.g. Bb3) reveals the rook's attack on a hanging
+    // piece, which the one-ply delta search sees.
+    const fen = 'r3k3/8/8/8/8/8/B7/R3K3 w - - 0 1';
     const result = findCCT(fen);
-    expect(result.threats.some((t) => t.threatCategory === 'Material')).toBe(true);
+    expect(
+      result.threats.some((t) => t.san.startsWith('B') && t.threatCategory === 'Material'),
+    ).toBe(true);
   });
 
-  test('DEBT-005: a quiet move attacking a defended piece is not a threat', () => {
-    // The black pawn a7 is defended by the rook a8, so attacking it is not a
-    // winning trade and the static counter sees no threat.
-    const fen = 'r3k3/8/8/8/8/8/p7/R3K3 w - - 0 1';
+  test('a quiet move attacking a defended piece is not a threat', () => {
+    // The black rook a8 is defended by the king b8, so lifting the bishop does
+    // not make it hanging and no threat is reported.
+    const fen = '1k2r3/8/8/8/8/8/B7/R3K3 w - - 0 1';
     expect(findCCT(fen).threats).toEqual([]);
   });
 
-  test('DEBT-005: a two-move discovered attack is invisible to the static counter', () => {
-    // White rook a1 and bishop c3 line up on black knight a8, defended by the
-    // king b8. Moving the bishop (e.g. Bf6) would reveal the rook's attack, but
-    // the revealed capture Rxa8 is a losing trade (rook for knight), so the
-    // detector counts no winning capture and reports no threat. Pinned as the
-    // current shallow behaviour, not endorsed.
-    const fen = 'nk6/8/8/8/8/2B5/8/R3K3 w - - 0 1';
+  test('a two-move discovered attack is now visible to the delta search', () => {
+    // White rook a1 and bishop a3 line up on the undefended black bishop a6.
+    // Moving the bishop (e.g. Bb4) reveals the rook's attack on a hanging piece,
+    // which the static counter could not see.
+    const fen = '4k3/8/b7/8/8/B7/8/R3K3 w - - 0 1';
     const bishopThreats = findCCT(fen).threats.filter((t) => t.san.startsWith('B'));
-    expect(bishopThreats).toEqual([]);
+    expect(bishopThreats.length).toBeGreaterThan(0);
+    expect(bishopThreats.every((t) => t.threatCategory === 'Material')).toBe(true);
   });
 
-  test('DEBT-005: a quiet king move is flagged Material when a free capture already exists', () => {
-    // The rook a1 already attacks the undefended pawn a7, so after any quiet
-    // move the null-move probe finds black has a free capture and reports a
-    // Material threat, even though the king move created nothing. This is the
-    // false-positive side of the same shallow detector.
+  test('a quiet king move that creates nothing is not a threat', () => {
+    // The rook a1 already attacks the undefended pawn a7, so a quiet king move
+    // changes nothing about the hanging set and is not reported as a threat.
+    // This is the false positive the delta search removes.
     const fen = '4k3/8/8/8/8/8/p7/R3K3 w - - 0 1';
     const result = findCCT(fen);
     expect(
       result.threats.some((t) => t.san.startsWith('K') && t.threatCategory === 'Material'),
-    ).toBe(true);
+    ).toBe(false);
+  });
+
+  test('a quiet move that sets up mate-in-one is a Checkmate threat', () => {
+    // White Qh5 -> Qh6 threatens Qxg7# (the queen is defended by the bishop f6).
+    const fen = '6k1/5ppp/5B2/7Q/8/8/5PPP/6K1 w - - 0 1';
+    const result = findCCT(fen);
+    expect(result.threats.find((t) => t.san === 'Qh6')?.threatCategory).toBe('Checkmate');
   });
 });
