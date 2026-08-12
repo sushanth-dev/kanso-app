@@ -15,12 +15,13 @@ export const ANALYSIS_DEPTH = 21;
 export const ANALYSIS_NODE_CEILING = 15_000_000;
 
 /**
- * One engine process per vCPU at 7,077 MB of Lambda memory. Measured 3.3x
- * faster than a single engine on the same game, at no cost in depth, where
- * giving one engine four threads reached depth 14.4 instead of 18.1 for the
- * same work.
+ * One engine process per vCPU. The account's Lambda memory quota caps at
+ * 3008 MB (about one and a half vCPUs), so two engines fit the deployed
+ * function. ADR-0023 measured four engines 3.3x faster than one at no cost
+ * in depth, and revisits four when the quota is raised; two is the ceiling
+ * this account can deploy today.
  */
-export const ANALYSIS_ENGINES = 4;
+export const ANALYSIS_ENGINES = 2;
 
 /** Transposition table per engine process, not per invocation. */
 export const ANALYSIS_HASH_MB = 128;

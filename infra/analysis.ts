@@ -37,6 +37,11 @@ export const analysisQueue = new sst.aws.Queue('AnalysisQueue', {
 });
 
 const repository = new aws.ecr.Repository('AnalysisRepository', {
+  // ECR repository names must be lowercase, and the resource's generated name
+  // (`AnalysisRepository-<hash>`) is not. Set it explicitly so the deploy
+  // guide's `contains(repositoryName, 'analysisrepository')` query still finds
+  // it.
+  name: 'analysisrepository',
   imageScanningConfiguration: { scanOnPush: true },
   // Outside production an abandoned stage should be removable without emptying
   // its registry by hand first.
@@ -78,17 +83,20 @@ export const analysisWorker = new aws.lambda.Function('AnalysisWorker', {
   // About 20% cheaper per GB-second than x86, and the engine is the whole
   // workload. The image is built for this architecture, not translated to it.
   architectures: ['arm64'],
-  // Where Lambda gives four vCPUs: one per engine process. Four engines measured
-  // 3.3x faster than one on the same game at no cost in depth.
-  memorySize: 7077,
+  // Where Lambda gives about one and a half vCPUs: room for two engine
+  // processes. The account's Lambda memory quota caps at 3008 MB (the default;
+  // raising it needs an AWS Support case), so the four-engine design in
+  // ADR-0023 cannot deploy here. Two engines fit the cap and stay on the same
+  // depth contract. Revisit four when the quota is raised.
+  memorySize: 3008,
   // The measured game is about 105 seconds. Ten minutes leaves room for a long
   // one and stays under the 15-minute ceiling, so a pathological game reaches
   // the dead-letter queue rather than being billed for three full attempts.
   timeout: 600,
-  // Each invocation opens its own connections to a db.t4g.micro. ST-008 tests
-  // this number against the deployed function; ADR-0023 records RDS Proxy as
-  // the exit if it does not hold.
-  reservedConcurrentExecutions: 2,
+  // No reserved concurrency: the event source mapping's maximumConcurrency of
+  // 2 is the cap, and it is the only trigger. Reserved concurrency would need
+  // the account's total Lambda concurrency raised above its default of 10,
+  // which is a manual AWS approval, for no extra control.
   vpcConfig: {
     // Private subnets, to reach the database. The event source mapping is
     // polled by the Lambda service from outside the VPC, so this needs no NAT
