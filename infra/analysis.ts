@@ -93,10 +93,10 @@ export const analysisWorker = new aws.lambda.Function('AnalysisWorker', {
   // one and stays under the 15-minute ceiling, so a pathological game reaches
   // the dead-letter queue rather than being billed for three full attempts.
   timeout: 600,
-  // Each invocation opens its own connections to a db.t4g.micro. ST-008 tests
-  // this number against the deployed function; ADR-0023 records RDS Proxy as
-  // the exit if it does not hold.
-  reservedConcurrentExecutions: 2,
+  // No reserved concurrency: the event source mapping's maximumConcurrency of
+  // 2 is the cap, and it is the only trigger. Reserved concurrency would need
+  // the account's total Lambda concurrency raised above its default of 10,
+  // which is a manual AWS approval, for no extra control.
   vpcConfig: {
     // Private subnets, to reach the database. The event source mapping is
     // polled by the Lambda service from outside the VPC, so this needs no NAT
