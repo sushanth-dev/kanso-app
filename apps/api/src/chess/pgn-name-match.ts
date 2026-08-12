@@ -125,22 +125,55 @@ function givenMatches(a: string[], b: string[]): boolean {
   return true;
 }
 
+/**
+ * A comma-bearing name states its surname, and that surname must appear as a
+ * contiguous token sequence in the other name for the two to correspond. A name
+ * with no comma states no surname and cannot anchor. Leading title tokens are
+ * stripped from the stated surname, so "GM KAMABATHULA, SUSHANTH" still matches
+ * "Sushanth Kamabathula".
+ */
+function surnameAppearsContiguously(surname: string | null, tokens: string[]): boolean {
+  if (surname === null) return false;
+  const seq = surname.split(' ');
+  let start = 0;
+  while (start < seq.length - 1 && TITLES.has(seq[start])) start++;
+  const trimmed = seq.slice(start);
+  if (trimmed.length === 0) return false;
+  outer: for (let i = 0; i <= tokens.length - trimmed.length; i++) {
+    for (let j = 0; j < trimmed.length; j++) {
+      if (tokens[i + j] !== trimmed[j]) continue outer;
+    }
+    return true;
+  }
+  return false;
+}
+
 export function isNameMatch(user: string, pgn: string): boolean {
   const userTokens = normalizeName(user);
   const pgnTokens = normalizeName(pgn);
   if (userTokens.size === 0 || pgnTokens.size === 0) return false;
 
+  const mine = parseName(user);
+  const theirs = parseName(pgn);
+
   // Path A: the prototype's subset match, over a tokenizer that now strips
   // brackets, titles, and identifiers. Order does not matter here, which is
-  // what catches a reversed name with no comma.
+  // what catches a reversed name with no comma. It is anchored on the surname:
+  // a comma-bearing name states its surname, and that surname must appear
+  // contiguously in the other name, or the two are different people who happen
+  // to share a given name and a surname fragment.
   const userIsSubset = Array.from(userTokens).every((token) => pgnTokens.has(token));
   const pgnIsSubset = Array.from(pgnTokens).every((token) => userTokens.has(token));
-  if (userIsSubset || pgnIsSubset) return true;
+  if (
+    (userIsSubset || pgnIsSubset) &&
+    surnameAppearsContiguously(mine.surname, Array.from(pgnTokens)) &&
+    surnameAppearsContiguously(theirs.surname, Array.from(userTokens))
+  ) {
+    return true;
+  }
 
   // Path B: an exact surname, then given names with initials expanded. The
   // surname comparison is exact on purpose; an initial never stands for it.
-  const mine = parseName(user);
-  const theirs = parseName(pgn);
   if (mine.surname === null || theirs.surname === null) return false;
   if (mine.surname !== theirs.surname) return false;
   return givenMatches(mine.given, theirs.given);
