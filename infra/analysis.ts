@@ -37,6 +37,11 @@ export const analysisQueue = new sst.aws.Queue('AnalysisQueue', {
 });
 
 const repository = new aws.ecr.Repository('AnalysisRepository', {
+  // ECR repository names must be lowercase, and the resource's generated name
+  // (`AnalysisRepository-<hash>`) is not. Set it explicitly so the deploy
+  // guide's `contains(repositoryName, 'analysisrepository')` query still finds
+  // it.
+  name: 'analysisrepository',
   imageScanningConfiguration: { scanOnPush: true },
   // Outside production an abandoned stage should be removable without emptying
   // its registry by hand first.
