@@ -1,7 +1,7 @@
 import type { Context } from 'hono';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { createApp } from '../app.ts';
-import { game, guardianLink, player } from '../db/schema.ts';
+import { game, guardianLink, player, tournament } from '../db/schema.ts';
 import { user } from '../db/auth-schema.ts';
 import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-harness.ts';
 
@@ -46,6 +46,18 @@ async function makePlayer(ownerId: string): Promise<string> {
     .values({ ownerUserId: ownerId, displayName: 'Sushanth Kamabathula' })
     .returning({ id: player.id });
   return row.id;
+}
+
+/** Insert a tournament row and return its id. */
+async function seedTournament(
+  playerId: string,
+  fields: Partial<typeof tournament.$inferInsert> = {},
+): Promise<string> {
+  const [t] = await harness.db
+    .insert(tournament)
+    .values({ playerId, name: 'Autumn Open', key: 'autumn open', ...fields })
+    .returning({ id: tournament.id });
+  return t.id;
 }
 
 let seq = 0;
@@ -173,5 +185,50 @@ describe('GET /players/{playerId}/games', () => {
     const g1 = await insertGame(child, {});
     const body = (await (await list(GUARDIAN, child)).json()) as GameListBody;
     expect(body.games.map((game) => game.id)).toEqual([g1]);
+  });
+
+  test('scopes to one tournament and composes with the stream filter', async () => {
+    const mine = await makePlayer(OWNER);
+    const t1 = await seedTournament(mine);
+    const t2 = await seedTournament(mine);
+    const inT1 = await insertGame(mine, { tournamentId: t1, stream: 'tournament' });
+    const inT2 = await insertGame(mine, { tournamentId: t2, stream: 'tournament' });
+    const unattached = await insertGame(mine, { stream: 'tournament' });
+
+    const scopedT1 = (await (await list(OWNER, mine, `?tournament=${t1}`)).json()) as GameListBody;
+    expect(scopedT1.games.map((g) => g.id)).toEqual([inT1]);
+
+    const scopedT2 = (await (await list(OWNER, mine, `?tournament=${t2}`)).json()) as GameListBody;
+    expect(scopedT2.games.map((g) => g.id)).toEqual([inT2]);
+
+    // An unattached game appears in the unfiltered list and in neither scoped one.
+    const both = (await (await list(OWNER, mine)).json()) as GameListBody;
+    expect(both.games.map((g) => g.id).sort()).toEqual([inT1, inT2, unattached].sort());
+
+    // The tournament filter composes with the stream filter rather than
+    // replacing it: scoping to t1 with only tournament games returns t1's.
+    const scopedStream = (await (
+      await list(OWNER, mine, `?stream=tournament&tournament=${t1}`)
+    ).json()) as GameListBody;
+    expect(scopedStream.games.map((g) => g.id)).toEqual([inT1]);
+  });
+
+  test('answers 403 for a tournament the caller has no claim on', async () => {
+    const mine = await makePlayer(OWNER);
+    const theirs = await makePlayer(OTHER);
+    const foreign = await seedTournament(theirs);
+    await insertGame(theirs, { tournamentId: foreign });
+    // A real tournament owned by another player: the 403 proves the claim check,
+    // which a made-up id would not.
+    const res = await list(OWNER, mine, `?tournament=${foreign}`);
+    expect(res.status).toBe(403);
+  });
+
+  test('answers 403 for a tournament that does not exist, not 404', async () => {
+    const mine = await makePlayer(OWNER);
+    // Absence and refusal look identical from outside, so the id cannot be used
+    // to enumerate which tournaments exist.
+    const res = await list(OWNER, mine, '?tournament=00000000-0000-4000-8000-000000000000');
+    expect(res.status).toBe(403);
   });
 });

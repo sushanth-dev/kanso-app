@@ -110,6 +110,7 @@ export async function openingLeaks(
   db: Db,
   playerId: string,
   stream: Stream,
+  tournament?: string,
 ): Promise<OpeningLeakResult> {
   const rows = await db
     .select({
@@ -128,6 +129,7 @@ export async function openingLeaks(
       and(
         eq(game.playerId, playerId),
         eq(game.stream, stream),
+        tournament ? eq(game.tournamentId, tournament) : undefined,
         eq(game.analysisStatus, 'complete'),
         isNotNull(game.eco),
       ),
