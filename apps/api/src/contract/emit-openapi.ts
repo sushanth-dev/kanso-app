@@ -35,6 +35,10 @@ const document = app.getOpenAPI31Document({
     { name: 'Account', description: 'The login, the players it plays as, and the adults who pay.' },
     { name: 'Import', description: 'Getting games in, by username or by upload.' },
     { name: 'Games', description: 'Stored games and their evaluations.' },
+    {
+      name: 'Tournaments',
+      description: 'The tournaments a player has games in, and one read in round order.',
+    },
     { name: 'Analysis', description: 'Queueing engine analysis and watching it finish.' },
     { name: 'Report', description: 'The cross-game diagnosis, ranked by rating leak.' },
     { name: 'Coaching', description: 'Prose over engine-verified facts.' },

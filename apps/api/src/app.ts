@@ -19,6 +19,8 @@ import { mountHealth } from './health.ts';
 import { mountImport } from './import/import-games.ts';
 import { mountListGames } from './games/list-games.ts';
 import { mountSetGameColor } from './games/set-game-color.ts';
+import { mountListTournaments } from './tournaments/list-tournaments.ts';
+import { mountGetTournament } from './tournaments/get-tournament.ts';
 import type * as schema from './db/schema.ts';
 
 /** The shape of every error the API emits, from `ApiError` in the contract. */
@@ -123,6 +125,8 @@ export function createApp({ getSession = () => null, db }: AppOptions = {}) {
     mountImport(app, { db, getSession });
     mountListGames(app, { db, getSession });
     mountSetGameColor(app, { db, getSession });
+    mountListTournaments(app, { db, getSession });
+    mountGetTournament(app, { db, getSession });
   }
 
   app.notFound((c) => c.json<ErrorBody>({ code: 'not_found', message: 'No such endpoint.' }, 404));

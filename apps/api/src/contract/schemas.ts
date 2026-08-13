@@ -257,6 +257,80 @@ export const GameList = z
   })
   .openapi('GameList');
 
+// ─── Tournaments ──────────────────────────────────────────────────────────────
+
+/**
+ * S5. One tournament a player has games in, with the counts a list needs. The
+ * date range is the tournament's own, from the games that formed it (ST-011),
+ * not a window invented for the response.
+ */
+export const TournamentSummary = z
+  .object({
+    id: Uuid,
+    name: z.string(),
+    site: z.string().nullable(),
+    startedAt: z.iso.datetime().nullable(),
+    endedAt: z.iso.datetime().nullable(),
+    gameCount: z.number().int(),
+    /** How many of `gameCount` have been analysed (analysisStatus complete). */
+    analysedCount: z.number().int(),
+  })
+  .openapi('TournamentSummary');
+
+export const TournamentList = z
+  .object({
+    tournaments: z.array(TournamentSummary),
+  })
+  .openapi('TournamentList');
+
+/**
+ * The result of one game from the player's point of view, derived from the
+ * stored colour and the raw PGN result. Null when the result is unknown (`*`)
+ * or the player's side was never decided.
+ */
+export const PlayerResult = z.enum(['win', 'draw', 'loss']).openapi('PlayerResult');
+
+/**
+ * S5. One game inside a tournament, as a player would read it: who the opponent
+ * was, what the result was from their side, and whether it has been analysed.
+ * `opponent` is null when the player's side is undecided, because there is no
+ * way to know which name is theirs.
+ */
+export const TournamentGame = z
+  .object({
+    id: Uuid,
+    round: z.number().int().nullable(),
+    board: z.number().int().nullable(),
+    opponent: z.string().nullable(),
+    playerColor: Color.nullable(),
+    result: PlayerResult.nullable(),
+    analysed: z.boolean(),
+  })
+  .openapi('TournamentGame');
+
+/**
+ * S5. One tournament with its games in round order, then board order within a
+ * round. The score is counted only from games where the player's side is known;
+ * `scoreExcluded` says how many games were left out for that reason, so a score
+ * over an incomplete set is a number a coach can check rather than trust.
+ */
+export const TournamentDetail = z
+  .object({
+    id: Uuid,
+    name: z.string(),
+    site: z.string().nullable(),
+    startedAt: z.iso.datetime().nullable(),
+    endedAt: z.iso.datetime().nullable(),
+    games: z.array(TournamentGame),
+    /** Points: 1 for a win, 0.5 for a draw, 0 otherwise, over known-side games. */
+    score: z.number(),
+    /** How many games the score is counted over. */
+    scoreGames: z.number().int(),
+    /** Games left out of the score because the player's side was undecided. */
+    scoreExcluded: z.number().int(),
+  })
+  .openapi('TournamentDetail');
+
 // ─── Report ──────────────────────────────────────────────────────────────────
 
 /**

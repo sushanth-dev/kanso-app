@@ -24,6 +24,10 @@
       "description": "Stored games and their evaluations."
     },
     {
+      "name": "Tournaments",
+      "description": "The tournaments a player has games in, and one read in round order."
+    },
+    {
       "name": "Analysis",
       "description": "Queueing engine analysis and watching it finish."
     },
@@ -923,6 +927,192 @@
         },
         "required": [
           "playerColor"
+        ]
+      },
+      "TournamentList": {
+        "type": "object",
+        "properties": {
+          "tournaments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TournamentSummary"
+            }
+          }
+        },
+        "required": [
+          "tournaments"
+        ]
+      },
+      "TournamentSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "site": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "startedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "endedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "gameCount": {
+            "type": "integer"
+          },
+          "analysedCount": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "site",
+          "startedAt",
+          "endedAt",
+          "gameCount",
+          "analysedCount"
+        ]
+      },
+      "TournamentDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "site": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "startedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "endedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "games": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TournamentGame"
+            }
+          },
+          "score": {
+            "type": "number"
+          },
+          "scoreGames": {
+            "type": "integer"
+          },
+          "scoreExcluded": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "site",
+          "startedAt",
+          "endedAt",
+          "games",
+          "score",
+          "scoreGames",
+          "scoreExcluded"
+        ]
+      },
+      "TournamentGame": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "round": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "board": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "opponent": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "playerColor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Color"
+              },
+              {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ]
+          },
+          "result": {
+            "$ref": "#/components/schemas/PlayerResult"
+          },
+          "analysed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "round",
+          "board",
+          "opponent",
+          "playerColor",
+          "result",
+          "analysed"
+        ]
+      },
+      "PlayerResult": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "enum": [
+          "win",
+          "draw",
+          "loss",
+          null
         ]
       },
       "Report": {
@@ -2243,6 +2433,130 @@
           },
           "403": {
             "description": "Not your player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/players/{playerId}/tournaments": {
+      "get": {
+        "tags": [
+          "Tournaments"
+        ],
+        "summary": "The tournaments a player has games in, most recent first",
+        "description": "S5. Each tournament carries its game and analysed counts. A player with no tournaments gets an empty list and a 200, not a 404.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "playerId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The tournaments.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TournamentList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The session has no claim on this player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tournaments/{tournamentId}": {
+      "get": {
+        "tags": [
+          "Tournaments"
+        ],
+        "summary": "One tournament with its games in round and board order",
+        "description": "S5. The first endpoint in the API that takes an id which is not a player id, so it resolves the owning player from the tournament id and gates on the same claim rule as every other endpoint. Absence and refusal both answer 403, so naming a tournament id cannot be used to discover which ids are real.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "tournamentId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The tournament, with its games in round order.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TournamentDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not your tournament.",
             "content": {
               "application/json": {
                 "schema": {
