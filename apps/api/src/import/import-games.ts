@@ -19,6 +19,7 @@ import { game, importJob, player } from '../db/schema.ts';
 import { enqueueAnalysis } from '../analysis/queue.ts';
 import { parsePgn } from './parse-pgn.ts';
 import { decidePlayerColor } from './player-color.ts';
+import { attachGames } from '../tournaments/attach.ts';
 import { readSession } from '../session.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
@@ -127,7 +128,14 @@ export function mountImport(
         // A re-upload is idempotent on (player_id, pgn_hash). The conflicting
         // rows are skipped, and the count of returned ids is what was new.
         .onConflictDoNothing({ target: [game.playerId, game.pgnHash] })
-        .returning({ id: game.id, playerColor: game.playerColor });
+        .returning({
+          id: game.id,
+          playerColor: game.playerColor,
+          stream: game.stream,
+          event: game.event,
+          site: game.site,
+          playedAt: game.playedAt,
+        });
 
       // Only the rows this upload actually inserted. A re-upload that conflicts
       // on every game imported nothing, so it leaves nothing undetermined
@@ -138,6 +146,23 @@ export function mountImport(
       // is not queued. `analyseGame` refuses one anyway; this is why it never
       // sees one.
       queued.push(...inserted.filter((row) => row.playerColor !== null).map((row) => row.id));
+
+      // Attach the games this upload inserted to their tournaments, creating a
+      // tournament when this is the first game we have seen from it. Only the
+      // rows this upload actually inserted are attached; a re-upload that
+      // conflicts on every game attaches nothing, so a second import creates no
+      // second tournament and moves no game.
+      await attachGames(
+        tx,
+        playerId,
+        inserted.map((row) => ({
+          id: row.id,
+          stream: row.stream,
+          event: row.event,
+          site: row.site,
+          playedAt: row.playedAt,
+        })),
+      );
 
       const [updated] = await tx
         .update(importJob)

@@ -215,6 +215,55 @@ export const importJob = pgTable(
 );
 
 /**
+ * F1, S5. One row per tournament a player has games in, reconstructed from the
+ * games we already hold rather than collected from the player.
+ *
+ * A tournament belongs to one player. Two players at the same event have two
+ * rows, and that is correct rather than duplication: the row carries that
+ * player's games, and merging them would put one player's history inside
+ * another's. The player id is therefore part of every unique index, so two
+ * players' games can never resolve to one tournament even when their tags are
+ * identical.
+ *
+ * `name` is the event as the player's file wrote it, kept for display; `key` is
+ * the normalised event name the grouping matches on; `site` is the site as
+ * written (the identity rule normalises it for comparison, so it is stored raw
+ * like every other tag). `startedAt`/`endedAt` cover the date range of the
+ * games in the row, and are what separates the same annual event in two
+ * different years.
+ *
+ * There is deliberately no unique index on the grouping key. The identity rule
+ * joins two games when their dates are within 30 days, so two tournaments can
+ * legitimately share a (player, event, site) when they are a year apart, and a
+ * static unique index cannot express a relative window. Uniqueness is enforced
+ * by the single attach function both the importer and the backfill call, which
+ * always filters on `player_id`, so two players' games can never resolve to one
+ * tournament even when their tags are identical.
+ */
+export const tournament = pgTable(
+  'tournament',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    playerId: uuid('player_id')
+      .notNull()
+      .references(() => player.id, { onDelete: 'cascade' }),
+    /** Display name, the event as the player's file wrote it. */
+    name: text('name').notNull(),
+    /** The normalised event name the grouping matches on. */
+    key: text('key').notNull(),
+    site: text('site'),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    endedAt: timestamp('ended_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('tournament_player_key_idx').on(t.playerId, t.key),
+    index('tournament_player_idx').on(t.playerId),
+  ],
+);
+
+/**
  * F1, F2. One row per game the player played, tagged with its stream at import.
  *
  * PGN is stored whole (ADR-0010) because it is the only lossless record of what
@@ -230,6 +279,15 @@ export const game = pgTable(
       .notNull()
       .references(() => player.id, { onDelete: 'cascade' }),
     importJobId: uuid('import_job_id').references(() => importJob.id, { onDelete: 'set null' }),
+    /**
+     * The tournament this game belongs to, set at import and by the backfill.
+     * Nullable is the correct shape rather than a compromise: an online game
+     * has no tournament, and a tournament-stream game with no `[Event]` tag
+     * has none we can name.
+     */
+    tournamentId: uuid('tournament_id').references(() => tournament.id, {
+      onDelete: 'set null',
+    }),
 
     stream: streamEnum('stream').notNull(),
     source: gameSourceEnum('source').notNull(),
@@ -577,6 +635,7 @@ export const proofSheet = pgTable(
 
 export const playerRelations = relations(player, ({ many }) => ({
   games: many(game),
+  tournaments: many(tournament),
   reports: many(report),
   focuses: many(playerFocus),
   guardians: many(guardianLink),
@@ -586,8 +645,17 @@ export const playerRelations = relations(player, ({ many }) => ({
 export const gameRelations = relations(game, ({ one, many }) => ({
   player: one(player, { fields: [game.playerId], references: [player.id] }),
   importJob: one(importJob, { fields: [game.importJobId], references: [importJob.id] }),
+  tournament: one(tournament, {
+    fields: [game.tournamentId],
+    references: [tournament.id],
+  }),
   plies: many(movePly),
   mistakes: many(mistake),
+}));
+
+export const tournamentRelations = relations(tournament, ({ one, many }) => ({
+  player: one(player, { fields: [tournament.playerId], references: [player.id] }),
+  games: many(game),
 }));
 
 export const movePlyRelations = relations(movePly, ({ one }) => ({

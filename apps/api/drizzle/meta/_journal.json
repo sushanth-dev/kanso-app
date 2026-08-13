@@ -22,6 +22,13 @@
       "when": 1786088263702,
       "tag": "0002_minor_garia",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1786585967492,
+      "tag": "0003_shocking_nebula",
+      "breakpoints": true
     }
   ]
 }

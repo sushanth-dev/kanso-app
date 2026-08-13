@@ -118,10 +118,30 @@ function playedAt(h: Record<string, string | null>): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+/**
+ * Strip brace comments and NAGs from movetext before chess.js parses it.
+ *
+ * chess.js's PEG rejects some combinations real exports produce, most
+ * commonly a comment directly after a NAG inside a variation (`$17 { [%cal
+ * Gd8g5] }`). Comments and NAGs carry no move information and no tag we
+ * store, so stripping them loses nothing. Clock data is detected from the raw
+ * movetext before stripping, so `hasClockData` is unaffected.
+ */
+function stripAnnotations(movetext: string): string {
+  return movetext.replace(/\{[^}]*\}/g, ' ').replace(/\$[0-9]+/g, ' ');
+}
+
 function parseOne(text: string, index: number): ParsedGame | ParseFault {
+  const lines = text.split('\n');
+  const tags = lines.filter((line) => line.startsWith('[')).join('\n');
+  const movetext = lines.filter((line) => !line.startsWith('[')).join(' ');
+  const hasClockData = /%clk|%emt/.test(movetext);
+
   const chess = new Chess();
   try {
-    chess.loadPgn(text);
+    // Keep the tags intact and only clean the movetext, so a stripped game
+    // still hashes to the same game as the raw upload.
+    chess.loadPgn(`${tags}\n\n${stripAnnotations(movetext)}`, { strict: false });
   } catch (error) {
     return {
       index,
@@ -131,9 +151,6 @@ function parseOne(text: string, index: number): ParsedGame | ParseFault {
   const h = chess.getHeaders();
   const result = (str(h.Result) ?? '*') as GameResult;
   const { round, board } = roundAndBoard(h.Round, h.Board);
-  const hasClockData = chess
-    .getComments()
-    .some((c) => c.comment.includes('%clk') || c.comment.includes('%emt'));
 
   return {
     pgn: text,

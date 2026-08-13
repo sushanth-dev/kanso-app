@@ -1,0 +1,19 @@
+[Event "Biel Chess Festival 2025 MTO"]
+[Site "Biel, Switzerland"]
+[Date "2025.07.17"]
+[Round "4.15"]
+[White "Alex Doe"]
+[Black "Player, 24"]
+[Result "1-0"]
+[WhiteElo "2188"]
+[BlackElo "2304"]
+[Annotator "Alex Doe"]
+[Variant "Standard"]
+[ECO "A17"]
+[Opening "English Opening: Anglo-Indian Defense"]
+[StudyName "Imported games"]
+[ChapterName "Alex Doe - Player, 24"]
+[ChapterURL "https://lichess.org/study/STUDYONE/ch74"]
+
+1. c4 { 0.12/0 } 1... e6 { 0.25/0 } 2. Nc3 { 0.18/0 } 2... d5 { 0.29/0 } 3. e3 { 0.00/0 } 3... Nf6 { 0.07/0 } 4. Nf3 { 0.00/0 } 4... c5 { 0.13/0 } 5. cxd5 { 0.12/0 } 5... Nxd5 { 0.01/0 } 6. Bc4 { 0.14/0 } 6... Nc6 { 0.16/0 } 7. O-O { 0.12/0 } 7... Be7 { 0.15/0 } 8. Qe2 { 0.12/0 } 8... O-O { 0.05/0 } 9. Rd1 { 0.12/0 } 9... a6 { 0.01/0 This move is not given in Colovic's 1.c4. } 10. d4 { 0.11/0 } 10... Nxc3 { 0.32/0 } 11. bxc3 { 0.27/0 } 11... Qa5 { 0.31/0 } 12. Bd2 { 0.28/0 Wanted to keep the bishop on the c1-h6 diagonal and not the a1-h8 diagonal as I felt that the bishop would be more useful after e4, after which I could get a kingside attack. } 12... Bf6 { 1.36/0 } 13. e4 { 1.02/0 } 13... e5 { 1.27/0 } 14. d5 { 1.39/0 } 14... Na7 { 1.75/0 } (14... Ne7 15. Bg5 Bxg5 16. Nxg5) 15. a4 { 1.72/0 Stopping the idea of b5. } (15. Bg5 Bxg5 16. Nxg5 b5 17. Bb3 c4 18. Bc2 Qxc3 { Black is just better here. }) 15... Bg4 { 1.75/0 } 16. h3 { 1.65/0 } 16... Bxf3 { 1.64/0 } 17. Qxf3 { 1.83/0 } 17... Nc8 { 1.74/0 } 18. Qg3?! { 0.95/0 Inaccuracy. Bd3 was best. } 18... Nd6 { 0.88/0 } 19. Bd3 { 0.93/0 } 19... Qc7 { 1.23/0 } 20. f4 { 0.03/0 Wanted to create play on the kingside. } 20... Qe7 { 0.05/0 } 21. f5 { 0.06/0 } 21... b5 { 0.07/0 } 22. Be3 { 0.01/0 } 22... Qc7 { 0.25/0 } 23. Qf2 { 0.13/0 Sets up g4-g5 and also Bc5 after which the d6 knight is removed. } 23... c4 { 0.00/0 } 24. Bc2 { 0.04/0 } 24... h6 { 0.26/0 } 25. h4 { 0.11/0 Stopping Bg5 ideas and preparing g4. } 25... Rfc8 { 0.00/0 } 26. Kh2 { 0.00/0 Getting the king to support h4. } 26... Rab8 { 0.00/0 } 27. g4 { 0.00/0 } 27... Qd8 { 0.00/0 } 28. Kh3 { 0.00/0 } 28... Be7?! { 0.56/0 Inaccuracy. bxa4 was best. } 29. axb5 { 0.06/0 Opened the a-file to in case I needed to get the rook to the 7th rank. } 29... axb5 { 0.62/0 } 30. Rg1 { 0.07/0 } 30... f6 { 0.05/0 } 31. Qd2 { 0.42/0 The main idea was to move the knight from d6 to prepare some d6 ideas. } 31... Nf7 { 0.33/0 } 32. Ra6 { 0.71/0 } 32... Bc5 { 0.00/0 } 33. Bxc5 { 0.00/0 } 33... Rxc5 { 0.02/0 } 34. Rga1 { 0.03/0 } 34... Rcc8 { 0.36/0 } 35. Rb1 { 0.59/0 } 35... Rb6 { 0.68/0 } 36. Ra7 { 0.68/0 } 36... Ra8 { 0.67/0 } 37. Rba1 { 0.62/0 } 37... Rxa7 { 0.78/0 } 38. Rxa7 { 0.66/0 } 38... Rb8 { 0.82/0 } 39. Ra6 { -0.31/0 Preparing d6. } 39... Ra8 { -0.21/0 } 40. Re6 { -0.09/0 } 40... Ra7 { 0.59/0 } 41. d6 { -0.22/0 } 41... Rd7 { 0.54/0 } 42. Qd5 { 0.62/0 } 42... Kh7 { 0.91/0 } 43. Qxb5?? { -1.19/0 Engine says that this move is a blunder because it gives black activity. } (43. Re7 Rxe7 44. dxe7 Qxe7 45. Qxb5 Nd6) 43... Nxd6 { -1.06/0 } 44. Qc5 { -1.93/0 } 44... Nb7?? { 0.17/0 } (44... Nf7 { This move defends the king and also opens the d-file. }) 45. Qxc4?? { -3.96/0 } (45. Qb6 { This was the only move to save white's position. }) 45... Rc7 { -2.01/0 } 46. Qe2 { -3.91/0 } 46... Rxc3+ { -2.12/0 } 47. Kg2 { -3.77/0 } 47... Qc8?? { 0.00/0 Allows for Ba4 idea. } 48. Ba4 { 0.00/0 } 48... Ra3?? { 4.45/0 } 49. Be8 { 4.27/0 } 49... Ra8 { 4.07/0 } 50. Bg6+ { 4.47/0 } 50... Kh8 { 4.68/0 } 51. Re8+ { 4.99/0 } 51... Qxe8 { 4.55/0 } 52. Bxe8 { 4.66/0 } 52... Rxe8 { 4.69/0 } 53. Qb5 { 4.68/0 } 53... Nd6 { 5.39/0 } 54. Qd7 { 4.93/0 } 1-0
+

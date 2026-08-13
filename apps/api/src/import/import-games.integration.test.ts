@@ -283,4 +283,89 @@ describe('POST /players/{playerId}/imports (pgn_upload)', () => {
     expect(rows.length).toBeGreaterThan(0);
     for (const row of rows) expect(row.analysis_status).toBe('pending');
   });
+
+  test('creates one tournament per event and attaches its games', async () => {
+    const playerId = await seedPlayer('Test Player');
+    await upload(OWNER, playerId, {
+      source: 'pgn_upload',
+      stream: 'tournament',
+      pgn: fixture('multi-game.pgn'),
+    });
+    const tournaments = await harness.sql`
+      SELECT id, name, key FROM tournament WHERE player_id = ${playerId}`;
+    expect(tournaments).toHaveLength(1);
+    expect(tournaments[0].name).toBe('Club Night');
+    expect(tournaments[0].key).toBe('club night');
+
+    const rows = await harness.sql`
+      SELECT tournament_id FROM game WHERE player_id = ${playerId}`;
+    expect(rows).toHaveLength(3);
+    for (const row of rows) expect(row.tournament_id).toBe(tournaments[0].id);
+  });
+
+  test('leaves an online game unattached even when its event matches a tournament', async () => {
+    const playerId = await seedPlayer('Test Player');
+    // A tournament first, so a tournament with the matching key exists.
+    await upload(OWNER, playerId, {
+      source: 'pgn_upload',
+      stream: 'tournament',
+      pgn: fixture('clean-tournament.pgn'),
+    });
+    // Then an online game whose event matches exactly.
+    await upload(OWNER, playerId, {
+      source: 'pgn_upload',
+      stream: 'online',
+      pgn: fixture('online-same-event.pgn'),
+    });
+
+    const tournaments = await harness.sql`
+      SELECT id FROM tournament WHERE player_id = ${playerId}`;
+    expect(tournaments).toHaveLength(1);
+
+    const rows = await harness.sql`
+      SELECT stream, tournament_id FROM game WHERE player_id = ${playerId} ORDER BY stream`;
+    const online = rows.find((r) => r.stream === 'online');
+    expect(online).toBeDefined();
+    expect(online?.tournament_id).toBeNull();
+  });
+
+  test('re-importing the same PGN creates no second tournament', async () => {
+    const playerId = await seedPlayer('Test Player');
+    const body = {
+      source: 'pgn_upload',
+      stream: 'tournament',
+      pgn: fixture('multi-game.pgn'),
+    };
+    await upload(OWNER, playerId, body);
+    const res = await upload(OWNER, playerId, body);
+    expect(res.status).toBe(202);
+
+    const tournaments = await harness.sql`
+      SELECT id FROM tournament WHERE player_id = ${playerId}`;
+    expect(tournaments).toHaveLength(1);
+  });
+
+  test('puts two games at the same event a year apart in two tournaments', async () => {
+    const playerId = await seedPlayer('Test Player');
+    await upload(OWNER, playerId, {
+      source: 'pgn_upload',
+      stream: 'tournament',
+      pgn: fixture('same-event-year-apart.pgn'),
+    });
+    const tournaments = await harness.sql`
+      SELECT id FROM tournament WHERE player_id = ${playerId}`;
+    expect(tournaments).toHaveLength(2);
+  });
+
+  test('leaves a tournament-stream game with no event unattached', async () => {
+    const playerId = await seedPlayer('Test Player');
+    await upload(OWNER, playerId, {
+      source: 'pgn_upload',
+      stream: 'tournament',
+      pgn: fixture('sparse-tags.pgn'),
+    });
+    const [row] = await harness.sql`
+      SELECT tournament_id FROM game WHERE player_id = ${playerId}`;
+    expect(row.tournament_id).toBeNull();
+  });
 });
