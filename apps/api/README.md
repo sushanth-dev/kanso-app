@@ -68,7 +68,9 @@ implementation (ADR-0013). The frontend consumes it through a generated client.
 Authentication is not in the contract. better-auth mounts its own routes under
 `/api/auth/*` and owns their shape (ADR-0011). Everything here assumes a
 session cookie and answers 401 without one, except the shared proof sheet,
-which is the one route designed to be read by someone with no account.
+which is the one route designed to be read by someone with no account. The
+session comes from better-auth: `createApp` mounts its handler and reads a real
+session from it, and `BETTER_AUTH_SECRET` in the environment signs the cookies.
 
 ## The carried-over chess code
 
