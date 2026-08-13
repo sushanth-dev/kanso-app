@@ -33,6 +33,24 @@ npm workspaces tie `apps/*` together. `npm install` at the root installs
 everything and wires the pre-commit hook via `git config core.hooksPath
 .githooks`.
 
+## Before writing code
+
+Work here starts from an approved plan, never from the story alone. The story
+in `delivery` carries an `## Implementation plan` section, written when the
+story is picked up and approved by Sushanth before the first edit. Approval
+shows as the story's `status` reading `in progress`. If the story has no plan
+section, write the plan first and wait; do not open an editor in this
+repository. The rule is in `project` under
+`docs/process/delivery-tracking.md`.
+
+## Sample data
+
+`test-data/` in the container folder, beside `app/`, holds sample PGN files
+(`test.pgn` through `test9.pgn`) for exercising the app by hand. It is outside
+every worktree and committed to no repository. Use it when a change needs real
+game input, rather than inventing PGN inline. It is not a substitute for the
+test fixtures that ship with the code.
+
 ## Stack
 
 - Node.js 24 LTS, TypeScript (strict), PostgreSQL
