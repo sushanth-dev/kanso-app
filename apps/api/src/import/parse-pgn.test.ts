@@ -93,6 +93,25 @@ describe('parsePgn', () => {
     expect(result.games[1].moveCount).toBe(0);
     expect(result.games[1].result).toBe('1-0');
   });
+
+  test('parses real lichess exports with eval comments and NAGs in variations', () => {
+    // A comment directly after a NAG inside a variation is what chess.js's
+    // PEG rejects; this is the pattern real exports produce.
+    const pgn = `[Event "Test"]
+[Site "Riga LAT"]
+[Date "2025.10.11"]
+[White "A, B"]
+[Black "C, D"]
+[Result "1-0"]
+
+1. d4 { 0.17/0 } 1... Nf6 { 0.19/0 } 2. c4 (2. Nf3 { 0.20/0 } 2... e6 $17 { [%cal Gd8g5] }) 2... g6 1-0`;
+    const result = parsePgn(pgn);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.games).toHaveLength(1);
+    expect(result.games[0].moveCount).toBeGreaterThan(0);
+    expect(result.games[0].event).toBe('Test');
+  });
 });
 
 describe('pgnHash', () => {

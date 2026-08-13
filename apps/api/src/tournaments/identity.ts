@@ -23,7 +23,8 @@
 /** The window that separates the same annual event in two different years. */
 export const TOURNAMENT_WINDOW_DAYS = 30;
 
-const WINDOW_MS = TOURNAMENT_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+/** The window in milliseconds, shared by the identity rule and the clustering. */
+export const WINDOW_MS = TOURNAMENT_WINDOW_DAYS * 24 * 60 * 60 * 1000;
 
 /**
  * Lowercase, trim, and collapse runs of whitespace to one space. A value that
