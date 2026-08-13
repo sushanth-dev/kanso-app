@@ -17,12 +17,117 @@ import { startImport } from '../contract/routes.ts';
 import * as schema from '../db/schema.ts';
 import { game, importJob, player } from '../db/schema.ts';
 import { enqueueAnalysis } from '../analysis/queue.ts';
-import { parsePgn } from './parse-pgn.ts';
+import { parsePgn, type ParsedGame } from './parse-pgn.ts';
 import { decidePlayerColor } from './player-color.ts';
 import { attachGames } from '../tournaments/attach.ts';
 import { readSession } from '../session.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
+
+export interface ImportGamesInput {
+  playerId: string;
+  stream: 'tournament' | 'online';
+  displayName: string;
+  games: ParsedGame[];
+}
+
+export interface ImportGamesResult {
+  /** The finished import job row, as the route returns it. */
+  job: typeof importJob.$inferSelect;
+  /** Game ids the route enqueues for analysis after commit. */
+  queued: string[];
+}
+
+/**
+ * The importer's write path (ST-011): store a parsed PGN's games and attach
+ * them to tournaments, in one transaction. The HTTP route calls this after
+ * authorization, and it parses before the call; the dev-only seed calls it
+ * directly, which is what lets the seed exercise the same `attachGames` as the
+ * route rather than a copy of it.
+ */
+export async function importGames(db: Db, input: ImportGamesInput): Promise<ImportGamesResult> {
+  const { playerId, stream, displayName, games } = input;
+  const queued: string[] = [];
+  const { job } = await db.transaction(async (tx) => {
+    const [created] = await tx
+      .insert(importJob)
+      .values({
+        playerId,
+        source: 'pgn_upload',
+        kind: 'backfill',
+        stream,
+        status: 'complete',
+        gamesFound: games.length,
+        startedAt: new Date(),
+        finishedAt: new Date(),
+      })
+      .returning({ id: importJob.id });
+
+    const inserted = await tx
+      .insert(game)
+      .values(
+        games.map((g) => ({
+          playerId,
+          importJobId: created.id,
+          stream,
+          source: 'pgn_upload' as const,
+          pgnHash: g.pgnHash,
+          pgn: g.pgn,
+          playerColor: decidePlayerColor(displayName, g.whiteName, g.blackName),
+          result: g.result,
+          playedAt: g.playedAt,
+          moveCount: g.moveCount,
+          event: g.event,
+          site: g.site,
+          round: g.round,
+          board: g.board,
+          whiteName: g.whiteName,
+          blackName: g.blackName,
+          whiteElo: g.whiteElo,
+          blackElo: g.blackElo,
+          eco: g.eco,
+          opening: g.opening,
+          timeControl: g.timeControl,
+          hasClockData: g.hasClockData,
+        })),
+      )
+      .onConflictDoNothing({ target: [game.playerId, game.pgnHash] })
+      .returning({
+        id: game.id,
+        playerColor: game.playerColor,
+        stream: game.stream,
+        event: game.event,
+        site: game.site,
+        playedAt: game.playedAt,
+      });
+
+    const undetermined = inserted.filter((row) => row.playerColor === null).length;
+
+    queued.push(...inserted.filter((row) => row.playerColor !== null).map((row) => row.id));
+
+    await attachGames(
+      tx,
+      playerId,
+      inserted.map((row) => ({
+        id: row.id,
+        stream: row.stream,
+        event: row.event,
+        site: row.site,
+        playedAt: row.playedAt,
+      })),
+    );
+
+    const [updated] = await tx
+      .update(importJob)
+      .set({ gamesImported: inserted.length, gamesUndetermined: undetermined })
+      .where(eq(importJob.id, created.id))
+      .returning();
+
+    return { job: updated };
+  });
+
+  return { job, queued };
+}
 
 export function mountImport(
   app: OpenAPIHono,
@@ -80,97 +185,11 @@ export function mountImport(
       );
     }
 
-    const displayName = owner[0].displayName;
-    const queued: string[] = [];
-    const job = await deps.db.transaction(async (tx) => {
-      const [created] = await tx
-        .insert(importJob)
-        .values({
-          playerId,
-          source: 'pgn_upload',
-          kind: 'backfill',
-          stream: body.stream,
-          status: 'complete',
-          gamesFound: parsed.games.length,
-          startedAt: new Date(),
-          finishedAt: new Date(),
-        })
-        .returning({ id: importJob.id });
-
-      const inserted = await tx
-        .insert(game)
-        .values(
-          parsed.games.map((g) => ({
-            playerId,
-            importJobId: created.id,
-            stream: body.stream,
-            source: 'pgn_upload' as const,
-            pgnHash: g.pgnHash,
-            pgn: g.pgn,
-            playerColor: decidePlayerColor(displayName, g.whiteName, g.blackName),
-            result: g.result,
-            playedAt: g.playedAt,
-            moveCount: g.moveCount,
-            event: g.event,
-            site: g.site,
-            round: g.round,
-            board: g.board,
-            whiteName: g.whiteName,
-            blackName: g.blackName,
-            whiteElo: g.whiteElo,
-            blackElo: g.blackElo,
-            eco: g.eco,
-            opening: g.opening,
-            timeControl: g.timeControl,
-            hasClockData: g.hasClockData,
-          })),
-        )
-        // A re-upload is idempotent on (player_id, pgn_hash). The conflicting
-        // rows are skipped, and the count of returned ids is what was new.
-        .onConflictDoNothing({ target: [game.playerId, game.pgnHash] })
-        .returning({
-          id: game.id,
-          playerColor: game.playerColor,
-          stream: game.stream,
-          event: game.event,
-          site: game.site,
-          playedAt: game.playedAt,
-        });
-
-      // Only the rows this upload actually inserted. A re-upload that conflicts
-      // on every game imported nothing, so it leaves nothing undetermined
-      // either, and the first upload's count stands.
-      const undetermined = inserted.filter((row) => row.playerColor === null).length;
-
-      // A game whose colour could not be decided has nobody to diagnose, so it
-      // is not queued. `analyseGame` refuses one anyway; this is why it never
-      // sees one.
-      queued.push(...inserted.filter((row) => row.playerColor !== null).map((row) => row.id));
-
-      // Attach the games this upload inserted to their tournaments, creating a
-      // tournament when this is the first game we have seen from it. Only the
-      // rows this upload actually inserted are attached; a re-upload that
-      // conflicts on every game attaches nothing, so a second import creates no
-      // second tournament and moves no game.
-      await attachGames(
-        tx,
-        playerId,
-        inserted.map((row) => ({
-          id: row.id,
-          stream: row.stream,
-          event: row.event,
-          site: row.site,
-          playedAt: row.playedAt,
-        })),
-      );
-
-      const [updated] = await tx
-        .update(importJob)
-        .set({ gamesImported: inserted.length, gamesUndetermined: undetermined })
-        .where(eq(importJob.id, created.id))
-        .returning();
-
-      return updated;
+    const { job, queued } = await importGames(deps.db, {
+      playerId,
+      stream: body.stream,
+      displayName: owner[0].displayName,
+      games: parsed.games,
     });
 
     // After the commit, never inside it. A message pointing at a game the

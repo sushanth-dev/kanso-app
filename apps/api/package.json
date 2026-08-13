@@ -7,7 +7,9 @@
     "typecheck": "tsc --noEmit",
     "openapi": "node src/contract/emit-openapi.ts",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "node src/db/migrate.ts"
+    "db:migrate": "node src/db/migrate.ts",
+    "seed": "node src/scripts/seed.ts",
+    "backfill": "node src/scripts/backfill.ts"
   },
   "dependencies": {
     "@aws-sdk/client-sqs": "^3.1106.0",
