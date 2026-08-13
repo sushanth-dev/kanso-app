@@ -12,6 +12,7 @@ import { serve } from '@hono/node-server';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { createApp } from './app.ts';
+import { createAuth } from './auth.ts';
 import * as schema from './db/schema.ts';
 
 const databaseUrl = process.env.DATABASE_URL;
@@ -29,9 +30,17 @@ const port = Number(process.env.PORT ?? 3000);
 const sql = postgres(databaseUrl, { max: 10 });
 const db = drizzle(sql, { schema });
 
-const server = serve({ fetch: createApp({ db }).fetch, port, hostname: '0.0.0.0' }, (info) => {
-  console.log(`API listening on ${info.address}:${info.port}`);
-});
+// The real session provider (ADR-0011). `createAuth` throws on a missing
+// `BETTER_AUTH_SECRET`, so a server that cannot authenticate refuses to start
+// rather than answering 401 forever.
+const auth = createAuth(db);
+
+const server = serve(
+  { fetch: createApp({ db, auth }).fetch, port, hostname: '0.0.0.0' },
+  (info) => {
+    console.log(`API listening on ${info.address}:${info.port}`);
+  },
+);
 
 // Fargate sends SIGTERM and waits before it sends SIGKILL. Closing the pool in
 // that window is what stops a deploy from cutting live queries.

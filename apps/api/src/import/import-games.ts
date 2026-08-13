@@ -46,7 +46,7 @@ export function mountImport(
 
     // Authorization before parsing. The session is present (the guard proved
     // it); ownership is this handler's to check.
-    const session = readSession(deps.getSession, c);
+    const session = await readSession(deps.getSession, c);
     if (session == null) {
       return c.json({ code: 'no_session', message: 'Sign in to use this endpoint.' }, 401);
     }

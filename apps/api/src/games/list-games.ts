@@ -34,7 +34,7 @@ export function mountListGames(
     const { playerId } = c.req.valid('param');
     const { stream, limit, page, tournament: tournamentId } = c.req.valid('query');
 
-    const session = readSession(deps.getSession, c);
+    const session = await readSession(deps.getSession, c);
     if (session === null) {
       return c.json({ code: 'no_session', message: 'Sign in to use this endpoint.' }, 401);
     }
