@@ -21,6 +21,7 @@ import { mountListGames } from './games/list-games.ts';
 import { mountSetGameColor } from './games/set-game-color.ts';
 import { mountListTournaments } from './tournaments/list-tournaments.ts';
 import { mountGetTournament } from './tournaments/get-tournament.ts';
+import { realSessionReader } from './session.ts';
 import type * as schema from './db/schema.ts';
 
 /** The shape of every error the API emits, from `ApiError` in the contract. */
@@ -61,7 +62,7 @@ export function publicPaths(): string[] {
  */
 export function requireSession(getSession: (c: Context) => unknown): MiddlewareHandler {
   return async (c, next) => {
-    if (getSession(c) == null) {
+    if ((await getSession(c)) == null) {
       return c.json<ErrorBody>(
         { code: 'no_session', message: 'Sign in to use this endpoint.' },
         401,
@@ -75,9 +76,23 @@ export interface AppOptions {
   /**
    * Reads the session off the request. Returns null or undefined when there is
    * none. Defaults to "nobody is signed in", which is the correct behaviour for
-   * an app with no auth provider mounted: fail closed, never open.
+   * an app with no auth provider mounted: fail closed, never open. When `auth`
+   * is supplied and `getSession` is not, this defaults to the real
+   * better-auth reader.
    */
   getSession?: (c: Context) => unknown;
+  /**
+   * The better-auth instance (ADR-0011). When supplied, its routes are mounted
+   * under `/api/auth/*` outside the OpenAPI contract, and `getSession` defaults
+   * to reading a real session from it. Optional because the cross-cutting tests
+   * assemble an app with a stubbed session and no auth provider.
+   */
+  auth?: {
+    handler: (request: Request) => Promise<Response>;
+    api: {
+      getSession: (args: { headers: Headers }) => Promise<{ session: { userId: string } } | null>;
+    };
+  };
   /**
    * The database handlers read and write. Optional because the cross-cutting
    * tests assemble an app that never reaches a handler; a handler that needs it
@@ -86,7 +101,7 @@ export interface AppOptions {
   db?: PostgresJsDatabase<typeof schema>;
 }
 
-export function createApp({ getSession = () => null, db }: AppOptions = {}) {
+export function createApp({ getSession, auth, db }: AppOptions = {}) {
   const app = new OpenAPIHono({
     /**
      * A validation failure is a 400 in the contract, so it is answered in the
@@ -112,21 +127,32 @@ export function createApp({ getSession = () => null, db }: AppOptions = {}) {
     },
   });
 
+  // The session reader: the caller's stub wins, otherwise the real reader when
+  // an auth instance is mounted, otherwise nobody is signed in.
+  const effectiveGetSession = getSession ?? (auth ? realSessionReader(auth) : () => null);
+
+  // better-auth owns its routes and their shape (ADR-0011). They are mounted
+  // outside the OpenAPI contract, as `contract/routes.ts` already states they
+  // will be, so `publicPaths()` is unaffected.
+  if (auth) {
+    app.all('/api/auth/*', (c) => auth.handler(c.req.raw));
+  }
+
   const open = new Set(publicPaths());
   const guarded = new Set<string>();
   for (const route of routes) {
     if (open.has(route.path) || guarded.has(route.path)) continue;
     guarded.add(route.path);
-    app.use(toHonoPath(route.path), requireSession(getSession));
+    app.use(toHonoPath(route.path), requireSession(effectiveGetSession));
   }
 
   if (db) {
     mountHealth(app, { db });
-    mountImport(app, { db, getSession });
-    mountListGames(app, { db, getSession });
-    mountSetGameColor(app, { db, getSession });
-    mountListTournaments(app, { db, getSession });
-    mountGetTournament(app, { db, getSession });
+    mountImport(app, { db, getSession: effectiveGetSession });
+    mountListGames(app, { db, getSession: effectiveGetSession });
+    mountSetGameColor(app, { db, getSession: effectiveGetSession });
+    mountListTournaments(app, { db, getSession: effectiveGetSession });
+    mountGetTournament(app, { db, getSession: effectiveGetSession });
   }
 
   app.notFound((c) => c.json<ErrorBody>({ code: 'not_found', message: 'No such endpoint.' }, 404));
