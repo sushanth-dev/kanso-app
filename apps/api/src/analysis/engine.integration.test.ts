@@ -36,12 +36,12 @@ describe('evaluatePositions', () => {
   test('evaluates the starting position as roughly equal, with a move to play', async () => {
     const [result] = await evaluatePositions([START], { ...options, engines: 1 });
 
-    expect(result.fen).toBe(START);
-    expect(result.score.mate).toBeUndefined();
-    expect(Math.abs(result.score.cp ?? 0)).toBeLessThan(150);
-    expect(result.bestMoveUci).toMatch(/^[a-h][1-8][a-h][1-8]/);
-    expect(result.depth).toBeGreaterThanOrEqual(options.depth);
-    expect(result.nodes).toBeGreaterThan(0);
+    expect(result!.fen).toBe(START);
+    expect(result!.score.mate).toBeUndefined();
+    expect(Math.abs(result!.score.cp ?? 0)).toBeLessThan(150);
+    expect(result!.bestMoveUci).toMatch(/^[a-h][1-8][a-h][1-8]/);
+    expect(result!.depth).toBeGreaterThanOrEqual(options.depth);
+    expect(result!.nodes).toBeGreaterThan(0);
   });
 
   test('scores are white-absolute, so the same material reads opposite from each side', async () => {
@@ -51,16 +51,16 @@ describe('evaluatePositions', () => {
     // with Black to move and Black a queen up, is a large negative one. The
     // engine reports both from the side to move, so this pair is what proves
     // the normalisation rather than an accidental double negative.
-    expect(white.score.cp ?? 0).toBeGreaterThan(500);
-    expect(black.score.cp ?? 0).toBeLessThan(-500);
+    expect(white!.score.cp ?? 0).toBeGreaterThan(500);
+    expect(black!.score.cp ?? 0).toBeLessThan(-500);
   });
 
   test('reports a mate score rather than centipawns when there is a mate', async () => {
     const [result] = await evaluatePositions([MATE_IN_ONE], { ...options, engines: 1 });
 
-    expect(result.score.mate).toBe(1);
-    expect(result.score.cp).toBeUndefined();
-    expect(result.bestMoveUci).toBe('a1a8');
+    expect(result!.score.mate).toBe(1);
+    expect(result!.score.cp).toBeUndefined();
+    expect(result!.bestMoveUci).toBe('a1a8');
   });
 
   test('returns results in input order however they are dealt across engines', async () => {

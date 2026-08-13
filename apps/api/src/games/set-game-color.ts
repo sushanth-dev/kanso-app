@@ -49,13 +49,13 @@ export function mountSetGameColor(
         .where(eq(game.id, gameId))
         .for('update');
       if (owner.length === 0) return { kind: 'not_found' as const };
-      if (owner[0].ownerUserId !== session.userId) return { kind: 'forbidden' as const };
+      if (owner[0]!.ownerUserId !== session.userId) return { kind: 'forbidden' as const };
       const [updated] = await tx
         .update(game)
         .set({ playerColor })
         .where(eq(game.id, gameId))
         .returning();
-      return { kind: 'updated' as const, row: updated };
+      return { kind: 'updated' as const, row: updated! };
     });
 
     if (outcome.kind === 'not_found') {

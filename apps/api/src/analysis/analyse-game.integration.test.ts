@@ -72,7 +72,7 @@ async function seedGame(pgn: string, playerColor: 'white' | 'black' | null): Pro
   const [row] = await harness.db
     .insert(game)
     .values({
-      playerId: seeded.id,
+      playerId: seeded!.id,
       stream: 'tournament',
       source: 'pgn_upload',
       pgnHash: `hash-${crypto.randomUUID()}`,
@@ -81,7 +81,7 @@ async function seedGame(pgn: string, playerColor: 'white' | 'black' | null): Pro
       result: '1-0',
     })
     .returning({ id: game.id });
-  return row.id;
+  return row!.id;
 }
 
 const plies = (gameId: string) =>
@@ -101,13 +101,13 @@ describe('analyseGame', () => {
     expect(outcome.mistakes).toBeGreaterThan(0);
 
     const [row] = await harness.db.select().from(game).where(eq(game.id, gameId));
-    expect(row.analysisStatus).toBe('complete');
-    expect(row.analyzedAt).not.toBeNull();
-    expect(row.analysisError).toBeNull();
+    expect(row!.analysisStatus).toBe('complete');
+    expect(row!.analyzedAt).not.toBeNull();
+    expect(row!.analysisError).toBeNull();
     // B3: cost per analysed game is an objective with no number behind it yet.
     // These columns are what turn it from an estimate into a measurement.
-    expect(row.analysisNodes).toBeGreaterThan(0);
-    expect(row.analysisDurationMs).toBeGreaterThan(0);
+    expect(row!.analysisNodes).toBeGreaterThan(0);
+    expect(row!.analysisDurationMs).toBeGreaterThan(0);
 
     const plyRows = await plies(gameId);
     expect(plyRows).toHaveLength(7);
@@ -156,10 +156,10 @@ describe('analyseGame', () => {
     await expect(analyseGame(harness.db, gameId, options)).rejects.toThrow();
 
     const [row] = await harness.db.select().from(game).where(eq(game.id, gameId));
-    expect(row.analysisStatus).toBe('failed');
-    expect(row.analysisError).toBeTruthy();
+    expect(row!.analysisStatus).toBe('failed');
+    expect(row!.analysisError).toBeTruthy();
     // A stack trace in a column people read is our internals on their screen.
-    expect(row.analysisError).not.toContain('at ');
+    expect(row!.analysisError).not.toContain('at ');
     expect(await plies(gameId)).toHaveLength(0);
     expect(await mistakes(gameId)).toHaveLength(0);
   });
@@ -171,11 +171,11 @@ describe('analyseGame', () => {
 
     const rows = await plies(gameId);
     const [before, forced] = rows;
-    expect(forced.san).toBe('Kg8');
-    expect(forced.evalCp).toBe(before.evalCp);
-    expect(forced.evalMate).toBe(before.evalMate);
+    expect(forced!.san).toBe('Kg8');
+    expect(forced!.evalCp).toBe(before!.evalCp);
+    expect(forced!.evalMate).toBe(before!.evalMate);
     // The only legal move is also the best one there was.
-    expect(forced.bestMoveSan).toBe('Kg8');
+    expect(forced!.bestMoveSan).toBe('Kg8');
   });
 
   test('refuses a game with no player colour instead of analysing nobody', async () => {

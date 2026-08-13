@@ -9,7 +9,7 @@ type BoardType = ReturnType<Chess['board']>;
  * Sliding pieces stop AT the first blocker (they attack it but not beyond).
  */
 function pieceAttacks(board: BoardType, row: number, col: number): [number, number][] {
-  const piece = board[row][col];
+  const piece = board[row]![col];
   if (!piece) return [];
 
   const hits: [number, number][] = [];
@@ -23,7 +23,7 @@ function pieceAttacks(board: BoardType, row: number, col: number): [number, numb
       c = col + dc;
     while (ok(r, c)) {
       hits.push([r, c]);
-      if (board[r][c]) break;
+      if (board[r]![c]) break;
       r += dr;
       c += dc;
     }
@@ -117,7 +117,7 @@ export function calculateTension(chess: Chess): number {
   const attacks: Record<'w' | 'b', Set<number>> = { w: new Set(), b: new Set() };
   for (let r = 0; r < 8; r++) {
     for (let c = 0; c < 8; c++) {
-      const p = board[r][c];
+      const p = board[r]![c];
       if (!p) continue;
       for (const [ar, ac] of pieceAttacks(board, r, c)) {
         attacks[p.color].add(ar * 8 + ac);
@@ -132,7 +132,7 @@ export function calculateTension(chess: Chess): number {
   // Sum value of every piece attacked by an enemy piece
   for (let r = 0; r < 8; r++) {
     for (let c = 0; c < 8; c++) {
-      const p = board[r][c];
+      const p = board[r]![c];
       if (!p || p.type === 'k') continue;
       const enemy: 'w' | 'b' = p.color === 'w' ? 'b' : 'w';
       if (attacks[enemy].has(r * 8 + c)) total += PIECE_V[p.type] ?? 0;
@@ -172,7 +172,7 @@ export function calculateKingSafety(chess: Chess, color: 'w' | 'b'): number {
     kingCol = -1;
   outer: for (let r = 0; r < 8; r++) {
     for (let c = 0; c < 8; c++) {
-      const p = board[r][c];
+      const p = board[r]![c];
       if (p && p.type === 'k' && p.color === color) {
         kingRow = r;
         kingCol = c;
@@ -197,7 +197,7 @@ export function calculateKingSafety(chess: Chess, color: 'w' | 'b'): number {
   let rawPenalty = 0;
   for (let r = 0; r < 8; r++) {
     for (let c = 0; c < 8; c++) {
-      const p = board[r][c];
+      const p = board[r]![c];
       if (!p || p.color !== enemyColor) continue;
       const attacksZone = pieceAttacks(board, r, c).some(([ar, ac]) => kingZone.has(ar * 8 + ac));
       if (attacksZone) rawPenalty += ATTACKER_W[p.type] ?? 0;
@@ -208,7 +208,7 @@ export function calculateKingSafety(chess: Chess, color: 'w' | 'b'): number {
   let defenderCount = 0;
   for (let r = 0; r < 8; r++) {
     for (let c = 0; c < 8; c++) {
-      const p = board[r][c];
+      const p = board[r]![c];
       if (!p || p.color !== color || p.type === 'k') continue;
       if (kingZone.has(r * 8 + c)) {
         defenderCount++;
@@ -258,7 +258,7 @@ export function calculateActivity(chess: Chess, color: 'w' | 'b'): number {
 
   for (let r = 0; r < 8; r++) {
     for (let c = 0; c < 8; c++) {
-      const p = board[r][c];
+      const p = board[r]![c];
       if (!p || p.color !== color) continue;
       friendlyPieceSquares.push(r * 8 + c);
       for (const [ar, ac] of pieceAttacks(board, r, c)) {
@@ -304,7 +304,7 @@ export function calculateGameSignature(pgn: string): SignatureData {
   const samples: SignatureData[] = [];
 
   for (let i = 0; i < history.length; i++) {
-    chess.move(history[i]);
+    chess.move(history[i]!);
 
     if (i % sampleInterval === 0 || i === history.length - 1) {
       const currentTurn = chess.turn();
@@ -352,8 +352,8 @@ export function analyzeFullGame(fens: string[], userSide: 'white' | 'black'): Mo
     // Only process positions where it is the user's turn
     if (chess.turn() !== userColor) continue;
 
-    const fenParts = fens[i].split(' ');
-    const moveNumber = parseInt(fenParts[5]) || Math.ceil((i + 1) / 2);
+    const fenParts = fens[i]!.split(' ');
+    const moveNumber = parseInt(fenParts[5]!) || Math.ceil((i + 1) / 2);
 
     results.push({
       moveNumber,

@@ -45,7 +45,7 @@ async function seedPlayer(displayName = 'Sushanth Kamabathula'): Promise<string>
     .insert(player)
     .values({ ownerUserId: OWNER, displayName })
     .returning({ id: player.id });
-  return row.id;
+  return row!.id;
 }
 
 function app(userId: string | null) {

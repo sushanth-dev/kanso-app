@@ -70,7 +70,7 @@ async function makePlayer(ownerUserId: string): Promise<string> {
     .insert(player)
     .values({ ownerUserId, displayName: 'Sushanth Kamabathula' })
     .returning({ id: player.id });
-  return row.id;
+  return row!.id;
 }
 
 async function seedTournament(playerId: string): Promise<string> {
@@ -80,9 +80,9 @@ async function seedTournament(playerId: string): Promise<string> {
     .returning({ id: tournament.id });
   await harness.sql`
     INSERT INTO game (player_id, tournament_id, stream, source, pgn_hash, pgn, result, analysis_status)
-    VALUES (${playerId}, ${t.id}, 'tournament', 'pgn_upload', ${`hash_${playerId}`}, 'pgn', '1-0', 'pending')
+    VALUES (${playerId}, ${t!.id}, 'tournament', 'pgn_upload', ${`hash_${playerId}`}, 'pgn', '1-0', 'pending')
   `;
-  return t.id;
+  return t!.id;
 }
 
 describe('a real session', () => {
