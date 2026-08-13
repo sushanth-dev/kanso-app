@@ -136,6 +136,51 @@ answer is "no new risk." The four questions are in the `project` repository
 under `docs/process/security.md`. Never commit secrets. Parameterized
 queries only. Validate all input at the boundary.
 
+## Architecture
+
+Architecture decisions are ADRs under `docs/adrs/` (`backend/` and
+`frontend/`), indexed at `docs/adrs/index.md`. Read the index before
+introducing a new pattern; a decision that contradicts an ADR without
+updating it is a bug.
+
+The API request path: `contract/routes.ts` (the route and OpenAPI, ADR-0013)
+to `contract/schemas.ts` (Zod validation) to a per-domain handler
+(`account/`, `games/`, `import/`, `analysis/`, `tournaments/`, `openings/`)
+mounted in `app.ts` via `app.openapi(route, handler)` to `db/schema.ts`
+(Drizzle). Cross-cutting concerns (error shape, session, 404) live in
+`app.ts`, not in every handler.
+
+## TypeScript strictness
+
+`strict: true` and `noUncheckedIndexedAccess: true` are enforced and gate
+every change. No `any`, no `@ts-ignore`, no cast that silences a real error,
+without explicit approval.
+
+## Error handling
+
+Every error the API emits uses the `ApiError` envelope in
+`contract/schemas.ts`: `code` (a machine-readable string such as
+`no_session`, `forbidden`, or `validation_failed`), `message` (user-facing),
+and `issues` (field paths, validation errors only). Handlers return it with
+`c.json({ code, message }, status)`. Do not invent a second error shape.
+
+Fail early and fail loud. No empty `catch` blocks, no swallowed errors, no
+`console.log` standing in for error handling. A handler that cannot name the
+failure lets it surface rather than hiding it.
+
+## Performance
+
+Filter, sort, and paginate in the database, never in the application layer.
+`games/list-games.ts` is the reference: the `where()` narrows on `player_id`
+and the optional filters before any row is read, `orderBy()` sorts in SQL, and
+`limit()/offset()` page in SQL with a separate `count(*)` for the total.
+Loading broad and filtering in JavaScript is a bug, not a style choice.
+
+For any query over a table expected to grow (games, tournaments, analysis),
+verify the filter columns are indexed and check the plan with `EXPLAIN
+ANALYZE` before merging. No response-time budget is set yet; the p95 target is
+a decision for Sushanth, not a number the agent invents.
+
 ## Git layout
 
 Work in a worktree, never in `.bare/`. Add a branch from inside `app/`:
