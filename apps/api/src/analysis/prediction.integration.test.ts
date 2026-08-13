@@ -124,7 +124,7 @@ beforeEach(async () => {
     .insert(player)
     .values({ ownerUserId: 'user_owner', displayName: 'Test Player' })
     .returning({ id: player.id });
-  playerId = seeded.id;
+  playerId = seeded!.id;
 });
 
 async function seedAndAnalyse(): Promise<string[]> {
@@ -144,8 +144,8 @@ async function seedAndAnalyse(): Promise<string[]> {
         result: '1-0',
       })
       .returning({ id: game.id });
-    await analyseGame(harness.db, row.id, options);
-    ids.push(row.id);
+    await analyseGame(harness.db, row!.id, options);
+    ids.push(row!.id);
   }
   return ids;
 }
@@ -173,8 +173,8 @@ describe('the opening report over engine-analysed games', () => {
     expect(result.withheld).toBe(1);
 
     const [worst, rest] = result.leaks;
-    expect(worst.leakScore).toBeGreaterThan(rest.leakScore);
-    expect(worst.openingName).toBe('Philidor Defense');
+    expect(worst!.leakScore).toBeGreaterThan(rest!.leakScore);
+    expect(worst!.openingName).toBe('Philidor Defense');
 
     // The arithmetic, against the rows rather than against a number written
     // here: `leakScore` is mistakes over games, and both counts are the ones

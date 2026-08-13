@@ -77,7 +77,7 @@ function walkGame(pgn: string): Walk {
     };
   });
 
-  const final = history[history.length - 1].after;
+  const final = history[history.length - 1]!.after;
   return { plies, positions: [...plies.map((p) => p.fenBefore), final] };
 }
 
@@ -116,7 +116,7 @@ async function evaluateWalk(
   const byIndex = new Map<number, EvaluatedPosition>();
   let next = 0;
   positions.forEach((_, index) => {
-    if (!forced[index]) byIndex.set(index, results[next++]);
+    if (!forced[index]) byIndex.set(index, results[next++]!);
   });
 
   const scores: EvalScore[] = [];
@@ -126,8 +126,8 @@ async function evaluateWalk(
     if (evaluated === undefined) {
       // Forced: the evaluation is the previous position's, and the best move is
       // the only move.
-      scores.push(scores[index - 1]);
-      bestMoveUci.push(new Chess(fen).moves({ verbose: true })[0].lan);
+      scores.push(scores[index - 1]!);
+      bestMoveUci.push(new Chess(fen).moves({ verbose: true })[0]!.lan);
       return;
     }
     scores.push(evaluated.score);
@@ -164,7 +164,7 @@ async function analyse(db: Db, gameId: string, options: EngineOptions): Promise<
   const mistakeRows: MistakeInsert[] = [];
   for (const ply of plies) {
     const index = ply.ply - 1;
-    const bestUci = bestMoveUci[index];
+    const bestUci = bestMoveUci[index]!;
     const bestSan = sanFor(ply.fenBefore, bestUci);
 
     plyRows.push({
@@ -173,8 +173,8 @@ async function analyse(db: Db, gameId: string, options: EngineOptions): Promise<
       san: ply.san,
       uci: ply.uci,
       fenBefore: ply.fenBefore,
-      evalCp: scores[index].cp ?? null,
-      evalMate: scores[index].mate ?? null,
+      evalCp: scores[index]!.cp ?? null,
+      evalMate: scores[index]!.mate ?? null,
       bestMoveSan: bestSan,
       bestMoveUci: bestUci,
     });
@@ -186,10 +186,10 @@ async function analyse(db: Db, gameId: string, options: EngineOptions): Promise<
       san: ply.san,
       fenBefore: ply.fenBefore,
       movingColor: ply.movingColor,
-      evalBefore: scores[index],
+      evalBefore: scores[index]!,
       // The last ply's "after" is the position the game ended in, which is why
       // the walk collects one more position than there are plies.
-      evalAfter: scores[index + 1],
+      evalAfter: scores[index + 1]!,
       bestMoveSan: bestSan,
     });
     if (mistakeRow !== null) mistakeRows.push(mistakeRow);

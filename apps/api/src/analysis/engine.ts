@@ -219,7 +219,7 @@ export async function evaluatePositions(
     await Promise.all(
       engines.map(async (engine, offset) => {
         for (let i = offset; i < fens.length; i += count) {
-          results[i] = await engine.evaluate(fens[i], options);
+          results[i] = await engine.evaluate(fens[i]!, options);
         }
       }),
     );

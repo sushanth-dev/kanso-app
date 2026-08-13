@@ -155,7 +155,7 @@ export async function attachGames(
   // reconciliation. This is all of `byIdentity`'s keys, not just the batch's:
   // a held game from a previous upload can cluster under a key the current
   // batch does not carry, and its tournament must still be found.
-  const identityKeys = [...byIdentity.keys()].map((slot) => slot.split('\u0000')[0]);
+  const identityKeys = [...byIdentity.keys()].map((slot) => slot.split('\u0000')[0]!);
   const existingTournaments: TournamentRow[] =
     identityKeys.length === 0
       ? []
@@ -176,7 +176,7 @@ export async function attachGames(
           );
 
   for (const group of byIdentity.values()) {
-    const identity = identityOf(group[0].event, group[0].site);
+    const identity = identityOf(group[0]!.event, group[0]!.site);
     const key = identity.key!;
     const site = identity.site;
 
@@ -224,15 +224,15 @@ export async function attachGames(
           .insert(tournament)
           .values({
             playerId,
-            name: cluster[0].event ?? key,
+            name: cluster[0]!.event ?? key,
             key,
             site,
             startedAt: dates.length ? new Date(Math.min(...dates.map((d) => d.getTime()))) : null,
             endedAt: dates.length ? new Date(Math.max(...dates.map((d) => d.getTime()))) : null,
           })
           .returning({ id: tournament.id });
-        createdIds.push(row.id);
-        target = { id: row.id, key, site, startedAt: null, endedAt: null };
+        createdIds.push(row!.id);
+        target = { id: row!.id, key, site, startedAt: null, endedAt: null };
       }
 
       // Extend the target's range to cover the cluster, then attach every game

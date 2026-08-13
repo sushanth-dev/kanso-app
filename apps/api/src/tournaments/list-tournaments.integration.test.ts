@@ -45,7 +45,7 @@ async function makePlayer(ownerId: string): Promise<string> {
     .insert(player)
     .values({ ownerUserId: ownerId, displayName: 'Sushanth Kamabathula' })
     .returning({ id: player.id });
-  return row.id;
+  return row!.id;
 }
 
 interface TournamentRow {
@@ -80,9 +80,9 @@ async function seedTournament(
 
   await harness.sql`
     INSERT INTO game (player_id, tournament_id, stream, source, pgn_hash, pgn, result, analysis_status)
-    VALUES (${playerId}, ${t.id}, 'tournament', 'pgn_upload', ${`hash_${playerId}_${seq++}`}, 'pgn', '1-0', 'pending')
+    VALUES (${playerId}, ${t!.id}, 'tournament', 'pgn_upload', ${`hash_${playerId}_${seq++}`}, 'pgn', '1-0', 'pending')
   `;
-  return t.id;
+  return t!.id;
 }
 
 describe('GET /players/{playerId}/tournaments', () => {
@@ -108,12 +108,12 @@ describe('GET /players/{playerId}/tournaments', () => {
     const body = (await (await list(OWNER, mine)).json()) as TournamentListBody;
     expect(body.tournaments.map((t) => t.id)).toEqual([newer, older]);
 
-    const newest = body.tournaments[0];
+    const newest = body.tournaments[0]!;
     expect(newest.name).toBe('New Open');
     expect(newest.gameCount).toBe(1);
     expect(newest.analysedCount).toBe(1);
 
-    const oldest = body.tournaments[1];
+    const oldest = body.tournaments[1]!;
     expect(oldest.name).toBe('Old Open');
     expect(oldest.gameCount).toBe(1);
     expect(oldest.analysedCount).toBe(0);

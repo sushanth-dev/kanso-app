@@ -54,6 +54,6 @@ export function mountUpdatePlayer(
       .where(eq(player.id, playerId))
       .returning();
 
-    return c.json(toPlayer(row), 200);
+    return c.json(toPlayer(row!), 200);
   });
 }

@@ -44,6 +44,6 @@ export function mountCreatePlayer(
       })
       .returning();
 
-    return c.json(toPlayer(row), 201);
+    return c.json(toPlayer(row!), 201);
   });
 }

@@ -82,11 +82,11 @@ export function mountGetTournament(
 
     return c.json(
       {
-        id: meta.id,
-        name: meta.name,
-        site: meta.site,
-        startedAt: meta.startedAt?.toISOString() ?? null,
-        endedAt: meta.endedAt?.toISOString() ?? null,
+        id: meta!.id,
+        name: meta!.name,
+        site: meta!.site,
+        startedAt: meta!.startedAt?.toISOString() ?? null,
+        endedAt: meta!.endedAt?.toISOString() ?? null,
         games: views,
         score,
         scoreGames,
