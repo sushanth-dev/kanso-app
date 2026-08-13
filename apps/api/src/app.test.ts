@@ -33,14 +33,19 @@ describe('toHonoPath', () => {
 
 describe('publicPaths', () => {
   test('is derived from the contract rather than restated', () => {
-    // Two routes are public, and both are deliberate. The shared proof sheet is
-    // designed to be read by someone with no account (F14, S6). `/health` is
-    // called by a load balancer, which has no session, and it exposes nothing
-    // but whether the process can reach its database (E3). A third public route
-    // declares itself with `security: []` and appears here without this file
-    // being touched. If this assertion fails, read the new route before
-    // changing the list.
-    expect(publicPaths()).toEqual(['/health', '/shared/proof-sheets/{token}']);
+    // Three routes are public, and each is deliberate. The shared proof sheet
+    // is designed to be read by someone with no account (F14, S6). The guardian
+    // consent confirm route is reached from an email link, so it has no session
+    // (N7). `/health` is called by a load balancer, which has no session, and
+    // it exposes nothing but whether the process can reach its database (E3). A
+    // fourth public route declares itself with `security: []` and appears here
+    // without this file being touched. If this assertion fails, read the new
+    // route before changing the list.
+    expect(publicPaths()).toEqual([
+      '/health',
+      '/guardians/confirm/{token}',
+      '/shared/proof-sheets/{token}',
+    ]);
   });
 });
 
@@ -68,7 +73,16 @@ describe('the session guard', () => {
     const response = await app.request(`/shared/proof-sheets/${'x'.repeat(32)}`);
 
     // No handler is mounted yet, so this falls through to the 404. What matters
-    // is that it is not a 401: the one public route stayed public.
+    // is that it is not a 401: the route stayed public.
+    expect(response.status).not.toBe(401);
+  });
+
+  test('lets the guardian consent confirm route through without a session', async () => {
+    const app = createApp();
+    const response = await app.request(`/guardians/confirm/${'x'.repeat(32)}`);
+
+    // No handler is mounted without a database, so this falls through to the
+    // 404. What matters is that it is not a 401: the consent link stays public.
     expect(response.status).not.toBe(401);
   });
 

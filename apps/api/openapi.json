@@ -1892,6 +1892,42 @@
         }
       }
     },
+    "/guardians/confirm/{token}": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Confirm guardian consent from the emailed link",
+        "security": [],
+        "description": "N7. The unauthenticated route the notice email points at. It records consent exactly once: a valid token for an unconsented link records it, a valid token for an already-consented link is a no-op, and a tampered or expired token answers 404 rather than confirming that a consent request exists.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 32
+            },
+            "required": true,
+            "name": "token",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Consent recorded, or already recorded."
+          },
+          "404": {
+            "description": "No such consent request, or the link was tampered with or has expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/players/{playerId}/imports": {
       "post": {
         "tags": [
@@ -3137,7 +3173,7 @@
         ],
         "summary": "Read a shared page by its token",
         "security": [],
-        "description": "F14, S6. The one unauthenticated route in the API, and the only screen designed to leave the account that created it. A revoked or expired token answers 404 rather than 403, so a link cannot be used to confirm a player exists.",
+        "description": "F14, S6. An unauthenticated route, and the only screen designed to leave the account that created it. A revoked or expired token answers 404 rather than 403, so a link cannot be used to confirm a player exists.",
         "parameters": [
           {
             "schema": {
