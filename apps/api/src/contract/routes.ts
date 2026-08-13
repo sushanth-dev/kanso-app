@@ -33,6 +33,8 @@ import {
   SocraticQuestion,
   StartImport,
   Stream,
+  TournamentDetail,
+  TournamentList,
   UpdatePlayer,
   Uuid,
 } from './schemas.ts';
@@ -290,6 +292,42 @@ export const analysisEvents = createRoute({
   },
 });
 
+// ─── Tournaments ─────────────────────────────────────────────────────────────
+
+export const listTournaments = createRoute({
+  method: 'get',
+  path: '/players/{playerId}/tournaments',
+  tags: ['Tournaments'],
+  summary: 'The tournaments a player has games in, most recent first',
+  description:
+    'S5. Each tournament carries its game and analysed counts. A player with no tournaments gets an empty list and a 200, not a 404.',
+  request: { params: playerParams },
+  responses: {
+    200: json(TournamentList, 'The tournaments.'),
+    ...authErrors,
+    404: error('No such player.'),
+  },
+});
+
+export const getTournament = createRoute({
+  method: 'get',
+  path: '/tournaments/{tournamentId}',
+  tags: ['Tournaments'],
+  summary: 'One tournament with its games in round and board order',
+  description:
+    'S5. The first endpoint in the API that takes an id which is not a player id, so it resolves the owning player from the tournament id and gates on the same claim rule as every other endpoint. Absence and refusal both answer 403, so naming a tournament id cannot be used to discover which ids are real.',
+  request: {
+    params: z.object({
+      tournamentId: Uuid.openapi({ param: { name: 'tournamentId', in: 'path' } }),
+    }),
+  },
+  responses: {
+    200: json(TournamentDetail, 'The tournament, with its games in round order.'),
+    401: error('No session.'),
+    403: error('Not your tournament.'),
+  },
+});
+
 // ─── Report ──────────────────────────────────────────────────────────────────
 
 export const getReport = createRoute({
@@ -477,6 +515,8 @@ export const routes = [
   setGameColor,
   queueAnalysis,
   analysisEvents,
+  listTournaments,
+  getTournament,
   getReport,
   getExplanation,
   getSocraticQuestion,
