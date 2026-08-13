@@ -25,6 +25,7 @@ number sequence is shared with the frontend records.
 * [0022. Run PostgreSQL 18](0022-postgresql-18.md)
 * [0023. Analyse with four native Stockfish processes per Lambda, to a minimum depth of 21](0023-stockfish-native-lambda-depth-21.md)
 * [0029. Use ChessOps for attack and threat detection](0029-chessops-attack-detection.md)
+* [0030. Record COPPA consent through guardian email-plus](0030-coppa-guardian-consent.md)
 
 Still open, to be recorded when the work starts: frontend routing and data
 fetching (once the app shell exists), and observability (once there is
