@@ -46,7 +46,7 @@ async function seedPlayer(displayName = 'Test Player'): Promise<string> {
     .insert(player)
     .values({ ownerUserId: OWNER, displayName })
     .returning({ id: player.id });
-  return row.id;
+  return row!.id;
 }
 
 function app(userId: string | null) {
@@ -100,10 +100,10 @@ describe('POST /players/{playerId}/imports (pgn_upload)', () => {
     });
     const [row] = await harness.sql`
       SELECT round, board, event, eco FROM game WHERE player_id = ${playerId}`;
-    expect(row.round).toBe(3);
-    expect(row.board).toBe(32);
-    expect(row.event).toBe('Team Championship');
-    expect(row.eco).toBeNull();
+    expect(row!.round).toBe(3);
+    expect(row!.board).toBe(32);
+    expect(row!.event).toBe('Team Championship');
+    expect(row!.eco).toBeNull();
   });
 
   test('sets has_clock_data truthfully', async () => {
@@ -114,7 +114,7 @@ describe('POST /players/{playerId}/imports (pgn_upload)', () => {
       pgn: fixture('with-clock.pgn'),
     });
     const [row] = await harness.sql`SELECT has_clock_data FROM game WHERE player_id = ${playerId}`;
-    expect(row.has_clock_data).toBe(true);
+    expect(row!.has_clock_data).toBe(true);
   });
 
   test('decides player_color by exact name match, null when it cannot', async () => {
@@ -125,7 +125,7 @@ describe('POST /players/{playerId}/imports (pgn_upload)', () => {
       pgn: fixture('clean-tournament.pgn'),
     });
     const [row] = await harness.sql`SELECT player_color FROM game WHERE player_id = ${playerId}`;
-    expect(row.player_color).toBe('white');
+    expect(row!.player_color).toBe('white');
 
     const otherId = await seedPlayer('Nobody Here');
     await upload(OWNER, otherId, {
@@ -134,7 +134,7 @@ describe('POST /players/{playerId}/imports (pgn_upload)', () => {
       pgn: fixture('clean-tournament.pgn'),
     });
     const [row2] = await harness.sql`SELECT player_color FROM game WHERE player_id = ${otherId}`;
-    expect(row2.player_color).toBeNull();
+    expect(row2!.player_color).toBeNull();
   });
 
   test('rejects the whole upload when one game is malformed, storing nothing', async () => {
@@ -251,7 +251,7 @@ describe('POST /players/{playerId}/imports (pgn_upload)', () => {
       pgn: fixture('abbreviated-name.pgn'),
     });
     const [row] = await harness.sql`SELECT player_color FROM game WHERE player_id = ${playerId}`;
-    expect(row.player_color).toBe('black');
+    expect(row!.player_color).toBe('black');
   });
 
   test('decides the side through a title, a federation code, and a FIDE id', async () => {
@@ -262,7 +262,7 @@ describe('POST /players/{playerId}/imports (pgn_upload)', () => {
       pgn: fixture('titled-name.pgn'),
     });
     const [row] = await harness.sql`SELECT player_color FROM game WHERE player_id = ${playerId}`;
-    expect(row.player_color).toBe('white');
+    expect(row!.player_color).toBe('white');
   });
 
   test('imports and answers without a queue, leaving the games pending analysis', async () => {
@@ -294,13 +294,13 @@ describe('POST /players/{playerId}/imports (pgn_upload)', () => {
     const tournaments = await harness.sql`
       SELECT id, name, key FROM tournament WHERE player_id = ${playerId}`;
     expect(tournaments).toHaveLength(1);
-    expect(tournaments[0].name).toBe('Club Night');
-    expect(tournaments[0].key).toBe('club night');
+    expect(tournaments[0]!.name).toBe('Club Night');
+    expect(tournaments[0]!.key).toBe('club night');
 
     const rows = await harness.sql`
       SELECT tournament_id FROM game WHERE player_id = ${playerId}`;
     expect(rows).toHaveLength(3);
-    for (const row of rows) expect(row.tournament_id).toBe(tournaments[0].id);
+    for (const row of rows) expect(row.tournament_id).toBe(tournaments[0]!.id);
   });
 
   test('leaves an online game unattached even when its event matches a tournament', async () => {
@@ -366,6 +366,6 @@ describe('POST /players/{playerId}/imports (pgn_upload)', () => {
     });
     const [row] = await harness.sql`
       SELECT tournament_id FROM game WHERE player_id = ${playerId}`;
-    expect(row.tournament_id).toBeNull();
+    expect(row!.tournament_id).toBeNull();
   });
 });

@@ -36,7 +36,7 @@ async function makePlayer(ownerId: string): Promise<string> {
     .insert(player)
     .values({ ownerUserId: ownerId, displayName: 'Test Player' })
     .returning({ id: player.id });
-  return row.id;
+  return row!.id;
 }
 
 /** Insert a tournament row and return its id. */
@@ -48,7 +48,7 @@ async function seedTournament(
     .insert(tournament)
     .values({ playerId, name: 'Autumn Open', key: 'autumn open', ...fields })
     .returning({ id: tournament.id });
-  return t.id;
+  return t!.id;
 }
 
 let seq = 0;
@@ -70,7 +70,7 @@ async function insertGame(
       ...fields,
     })
     .returning({ id: game.id });
-  return row.id;
+  return row!.id;
 }
 
 /** Attach `n` mistakes to a game. Only the count matters to the aggregation. */
@@ -149,7 +149,7 @@ describe('openingLeaks', () => {
     });
 
     const { leaks } = await openingLeaks(harness.db, p, 'tournament');
-    expect(leaks[0].openingName).toBe('Caro-Kann: Advance');
+    expect(leaks[0]!.openingName).toBe('Caro-Kann: Advance');
   });
 
   test('never blends streams: each returns its own games and its own scores', async () => {
@@ -163,12 +163,12 @@ describe('openingLeaks', () => {
 
     const tournament = await openingLeaks(harness.db, p, 'tournament');
     const online = await openingLeaks(harness.db, p, 'online');
-    expect(tournament.leaks[0].leakScore).toBe(2);
-    expect(online.leaks[0].leakScore).toBe(0);
+    expect(tournament.leaks[0]!.leakScore).toBe(2);
+    expect(online.leaks[0]!.leakScore).toBe(0);
     // Same ECO, same player, opposite streams: the scores can only differ if
     // neither result counted the other stream's games.
-    expect(tournament.leaks[0].games).toBe(2);
-    expect(online.leaks[0].games).toBe(2);
+    expect(tournament.leaks[0]!.games).toBe(2);
+    expect(online.leaks[0]!.games).toBe(2);
   });
 
   test('a player with no games in the stream gets an empty result, not an error', async () => {
@@ -190,7 +190,7 @@ describe('openingLeaks', () => {
     await addMistakes(await insertGame(theirs, { eco: 'B10' }), 10);
 
     const { leaks } = await openingLeaks(harness.db, mine, 'tournament');
-    expect(leaks[0].leakScore).toBe(1);
+    expect(leaks[0]!.leakScore).toBe(1);
   });
 
   test('scopes to one tournament: neither result contains the other’s games', async () => {
@@ -207,16 +207,16 @@ describe('openingLeaks', () => {
 
     const inT1 = await openingLeaks(harness.db, p, 'tournament', t1);
     expect(inT1.leaks).toHaveLength(1);
-    expect(inT1.leaks[0].leakScore).toBe(2);
-    expect(inT1.leaks[0].games).toBe(2);
+    expect(inT1.leaks[0]!.leakScore).toBe(2);
+    expect(inT1.leaks[0]!.games).toBe(2);
 
     const inT2 = await openingLeaks(harness.db, p, 'tournament', t2);
     expect(inT2.leaks).toHaveLength(1);
-    expect(inT2.leaks[0].leakScore).toBe(0);
-    expect(inT2.leaks[0].games).toBe(2);
+    expect(inT2.leaks[0]!.leakScore).toBe(0);
+    expect(inT2.leaks[0]!.games).toBe(2);
 
     // The scoped scores differ, which is only possible if neither query
     // counted the other tournament's games.
-    expect(inT1.leaks[0].leakScore).not.toBe(inT2.leaks[0].leakScore);
+    expect(inT1.leaks[0]!.leakScore).not.toBe(inT2.leaks[0]!.leakScore);
   });
 });

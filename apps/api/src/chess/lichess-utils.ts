@@ -263,11 +263,11 @@ export function gameAccuracy(
   const moves: Array<{ accuracy: number; weight: number; color: Color }> = [];
   for (let i = 0; i + 1 < allWP.length; i++) {
     const color: Color = (i % 2 === 0) === (startColor === 'white') ? 'white' : 'black';
-    const prev = allWP[i];
-    const next = allWP[i + 1];
+    const prev = allWP[i]!;
+    const next = allWP[i + 1]!;
     const accuracy =
       color === 'white' ? moveAccuracy(prev, next) : moveAccuracy(100 - prev, 100 - next);
-    moves.push({ accuracy, weight: weights[i], color });
+    moves.push({ accuracy, weight: weights[i]!, color });
   }
 
   const colorScore = (c: Color): number | null => {

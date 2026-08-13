@@ -76,11 +76,11 @@ export function mountListGames(
       .limit(limit)
       .offset((page - 1) * limit);
 
-    const [{ total }] = await deps.db
+    const [row] = await deps.db
       .select({ total: sql<number>`count(*)::int` })
       .from(game)
       .where(where);
 
-    return c.json({ games: rows.map(toGameSummary), total, page, limit }, 200);
+    return c.json({ games: rows.map(toGameSummary), total: row!.total, page, limit }, 200);
   });
 }

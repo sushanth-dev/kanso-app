@@ -45,7 +45,7 @@ async function makePlayer(ownerId: string): Promise<string> {
     .insert(player)
     .values({ ownerUserId: ownerId, displayName: 'Test Player' })
     .returning({ id: player.id });
-  return row.id;
+  return row!.id;
 }
 
 /** Insert a tournament row and return its id. */
@@ -57,7 +57,7 @@ async function seedTournament(
     .insert(tournament)
     .values({ playerId, name: 'Autumn Open', key: 'autumn open', ...fields })
     .returning({ id: tournament.id });
-  return t.id;
+  return t!.id;
 }
 
 let seq = 0;
@@ -77,7 +77,7 @@ async function insertGame(
       ...fields,
     })
     .returning({ id: game.id });
-  return row.id;
+  return row!.id;
 }
 
 interface GameListBody {

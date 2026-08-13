@@ -15,7 +15,7 @@ const count = (over: Partial<OpeningCount> & { eco: string }): OpeningCount => (
 describe('scoreOpenings', () => {
   test('leak score is mistakes per game', () => {
     const { leaks } = scoreOpenings([count({ eco: 'B10', games: 4, mistakes: 6 })]);
-    expect(leaks[0].leakScore).toBe(1.5);
+    expect(leaks[0]!.leakScore).toBe(1.5);
   });
 
   test('ranks openings by leak score, worst first', () => {
@@ -52,7 +52,7 @@ describe('scoreOpenings', () => {
 
   describe('bands', () => {
     const bandOf = (games: number, mistakes: number) =>
-      scoreOpenings([count({ eco: 'B10', games, mistakes })]).leaks[0].band;
+      scoreOpenings([count({ eco: 'B10', games, mistakes })]).leaks[0]!.band;
 
     test('above 1.5 is high', () => expect(bandOf(2, 4)).toBe('high')); // 2.0
     test('below 0.5 is low', () => expect(bandOf(4, 1)).toBe('low')); // 0.25

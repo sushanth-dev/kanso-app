@@ -57,10 +57,12 @@ try {
     })
     .onConflictDoNothing();
 
-  const [createdPlayer] = await db
-    .insert(player)
-    .values({ ownerUserId: OWNER_USER_ID, displayName: DISPLAY_NAME })
-    .returning({ id: player.id });
+  const createdPlayer = (
+    await db
+      .insert(player)
+      .values({ ownerUserId: OWNER_USER_ID, displayName: DISPLAY_NAME })
+      .returning({ id: player.id })
+  )[0]!;
 
   const fixturesDir = new URL('../import/fixtures/real/', import.meta.url);
 
@@ -95,14 +97,19 @@ try {
   // The importer's tournament counts, read from the database it just wrote.
   // They come from the final state rather than from summing `attachGames`
   // outcomes, which recount the games a later file shares with an earlier one.
-  const [{ count: tournamentsCreated }] = await sql<{ count: number }[]>`
-    SELECT count(*)::int AS count FROM tournament WHERE player_id = ${createdPlayer.id}`;
-  const [{ count: gamesAttached }] = await sql<{ count: number }[]>`
-    SELECT count(*)::int AS count FROM game
-    WHERE player_id = ${createdPlayer.id} AND stream = 'tournament' AND tournament_id IS NOT NULL`;
-  const [{ count: gamesUnattached }] = await sql<{ count: number }[]>`
-    SELECT count(*)::int AS count FROM game
-    WHERE player_id = ${createdPlayer.id} AND stream = 'tournament' AND tournament_id IS NULL`;
+  const tournamentsCreated = (
+    await sql<
+      { count: number }[]
+    >`SELECT count(*)::int AS count FROM tournament WHERE player_id = ${createdPlayer.id}`
+  )[0]!.count;
+  const gamesAttached = (
+    await sql<{ count: number }[]>`SELECT count(*)::int AS count FROM game
+    WHERE player_id = ${createdPlayer.id} AND stream = 'tournament' AND tournament_id IS NOT NULL`
+  )[0]!.count;
+  const gamesUnattached = (
+    await sql<{ count: number }[]>`SELECT count(*)::int AS count FROM game
+    WHERE player_id = ${createdPlayer.id} AND stream = 'tournament' AND tournament_id IS NULL`
+  )[0]!.count;
 
   console.log(`Seeded player ${createdPlayer.id} (${DISPLAY_NAME})`);
   console.log(`Games found: ${gamesFound}`);

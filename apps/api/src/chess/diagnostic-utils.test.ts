@@ -82,7 +82,7 @@ describe('findCCT', () => {
     expect(result.checks.map((m) => m.san)).toEqual(['Qa4+', 'Qa8+', 'Qe7+', 'Qf8+']);
     expect(result.captures.map((m) => m.san)).toEqual(['dxe5']);
     // Every check and capture is also in the combined list, in that order.
-    expect(result.all[0].type).toBe('Check');
+    expect(result.all[0]!.type).toBe('Check');
     expect(result.all.some((m) => m.san === 'dxe5' && m.type === 'Capture')).toBe(true);
   });
 

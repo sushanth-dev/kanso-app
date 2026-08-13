@@ -68,7 +68,7 @@ export async function importGames(db: Db, input: ImportGamesInput): Promise<Impo
       .values(
         games.map((g) => ({
           playerId,
-          importJobId: created.id,
+          importJobId: created!.id,
           stream,
           source: 'pgn_upload' as const,
           pgnHash: g.pgnHash,
@@ -120,10 +120,10 @@ export async function importGames(db: Db, input: ImportGamesInput): Promise<Impo
     const [updated] = await tx
       .update(importJob)
       .set({ gamesImported: inserted.length, gamesUndetermined: undetermined })
-      .where(eq(importJob.id, created.id))
+      .where(eq(importJob.id, created!.id))
       .returning();
 
-    return { job: updated };
+    return { job: updated! };
   });
 
   return { job, queued };
@@ -165,7 +165,7 @@ export function mountImport(
     if (owner.length === 0) {
       return c.json({ code: 'not_found', message: 'No such player.' }, 404);
     }
-    if (owner[0].ownerUserId !== session.userId) {
+    if (owner[0]!.ownerUserId !== session.userId) {
       return c.json({ code: 'forbidden', message: 'Not your player.' }, 403);
     }
 
@@ -188,7 +188,7 @@ export function mountImport(
     const { job, queued } = await importGames(deps.db, {
       playerId,
       stream: body.stream,
-      displayName: owner[0].displayName,
+      displayName: owner[0]!.displayName,
       games: parsed.games,
     });
 

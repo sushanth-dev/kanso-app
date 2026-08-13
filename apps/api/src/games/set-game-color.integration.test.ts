@@ -54,7 +54,7 @@ async function seedUndecidedGame(ownerId: string): Promise<string> {
   const [created] = await harness.db
     .insert(game)
     .values({
-      playerId: row.id,
+      playerId: row!.id,
       stream: 'tournament',
       source: 'pgn_upload',
       pgnHash: `hash_${ownerId}`,
@@ -62,7 +62,7 @@ async function seedUndecidedGame(ownerId: string): Promise<string> {
       result: '1-0',
     })
     .returning({ id: game.id });
-  return created.id;
+  return created!.id;
 }
 
 describe('PATCH /games/{gameId}', () => {
@@ -75,7 +75,7 @@ describe('PATCH /games/{gameId}', () => {
     expect(body.playerColor).toBe('black');
 
     const [row] = await harness.sql`SELECT player_color FROM game WHERE id = ${gameId}`;
-    expect(row.player_color).toBe('black');
+    expect(row!.player_color).toBe('black');
   });
 
   test('rejects a colour the contract does not define', async () => {
@@ -83,7 +83,7 @@ describe('PATCH /games/{gameId}', () => {
     const res = await patch(OWNER, gameId, { playerColor: 'green' });
     expect(res.status).toBe(400);
     const [row] = await harness.sql`SELECT player_color FROM game WHERE id = ${gameId}`;
-    expect(row.player_color).toBeNull();
+    expect(row!.player_color).toBeNull();
   });
 
   test('answers 401 with no session', async () => {
@@ -91,7 +91,7 @@ describe('PATCH /games/{gameId}', () => {
     const res = await patch(null, gameId, { playerColor: 'white' });
     expect(res.status).toBe(401);
     const [row] = await harness.sql`SELECT player_color FROM game WHERE id = ${gameId}`;
-    expect(row.player_color).toBeNull();
+    expect(row!.player_color).toBeNull();
   });
 
   test('answers 403 for a game belonging to another account’s player', async () => {
@@ -99,7 +99,7 @@ describe('PATCH /games/{gameId}', () => {
     const res = await patch(OTHER, gameId, { playerColor: 'white' });
     expect(res.status).toBe(403);
     const [row] = await harness.sql`SELECT player_color FROM game WHERE id = ${gameId}`;
-    expect(row.player_color).toBeNull();
+    expect(row!.player_color).toBeNull();
   });
 
   test('answers 404 for a game that does not exist', async () => {
@@ -116,6 +116,6 @@ describe('PATCH /games/{gameId}', () => {
     const res = await patch(OWNER, gameId, { playerColor: 'black' });
     expect(res.status).toBe(200);
     const [row] = await harness.sql`SELECT player_color FROM game WHERE id = ${gameId}`;
-    expect(row.player_color).toBe('black');
+    expect(row!.player_color).toBe('black');
   });
 });

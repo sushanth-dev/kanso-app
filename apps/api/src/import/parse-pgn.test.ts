@@ -11,7 +11,7 @@ describe('parsePgn', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.games).toHaveLength(1);
-    const g = result.games[0];
+    const g = result.games[0]!;
     expect(g.event).toBe('Autumn Open 2025');
     expect(g.site).toBe('Riga LAT');
     expect(g.whiteName).toBe('Player, Test');
@@ -41,22 +41,22 @@ describe('parsePgn', () => {
     const result = parsePgn(fixture('round-board.pgn'));
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.games[0].round).toBe(3);
-    expect(result.games[0].board).toBe(32);
+    expect(result.games[0]!.round).toBe(3);
+    expect(result.games[0]!.board).toBe(32);
   });
 
   test('sets hasClockData true only when the game carries move times', () => {
     const clocked = parsePgn(fixture('with-clock.pgn'));
     const plain = parsePgn(fixture('clean-tournament.pgn'));
-    expect(clocked.ok && clocked.games[0].hasClockData).toBe(true);
-    expect(plain.ok && plain.games[0].hasClockData).toBe(false);
+    expect(clocked.ok && clocked.games[0]!.hasClockData).toBe(true);
+    expect(plain.ok && plain.games[0]!.hasClockData).toBe(false);
   });
 
   test('stores absent tags as null rather than empty string', () => {
     const result = parsePgn(fixture('sparse-tags.pgn'));
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    const g = result.games[0];
+    const g = result.games[0]!;
     expect(g.event).toBeNull();
     expect(g.whiteName).toBeNull();
     expect(g.whiteElo).toBeNull();
@@ -70,8 +70,8 @@ describe('parsePgn', () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.faults).toHaveLength(1);
-    expect(result.faults[0].index).toBe(1);
-    expect(result.faults[0].reason).toMatch(/./);
+    expect(result.faults[0]!.index).toBe(1);
+    expect(result.faults[0]!.reason).toMatch(/./);
   });
 
   test('rejects a file that claims more games than the cap', () => {
@@ -82,7 +82,7 @@ describe('parsePgn', () => {
     const result = parsePgn(many, { maxGames: 3 });
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.faults[0].reason).toMatch(/too many games/i);
+    expect(result.faults[0]!.reason).toMatch(/too many games/i);
   });
 
   test('splits and imports a moveless forfeit game as its own entry', () => {
@@ -90,8 +90,8 @@ describe('parsePgn', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.games).toHaveLength(3);
-    expect(result.games[1].moveCount).toBe(0);
-    expect(result.games[1].result).toBe('1-0');
+    expect(result.games[1]!.moveCount).toBe(0);
+    expect(result.games[1]!.result).toBe('1-0');
   });
 
   test('parses real lichess exports with eval comments and NAGs in variations', () => {
@@ -109,8 +109,8 @@ describe('parsePgn', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.games).toHaveLength(1);
-    expect(result.games[0].moveCount).toBeGreaterThan(0);
-    expect(result.games[0].event).toBe('Test');
+    expect(result.games[0]!.moveCount).toBeGreaterThan(0);
+    expect(result.games[0]!.event).toBe('Test');
   });
 });
 
@@ -124,6 +124,6 @@ describe('pgnHash', () => {
     const a = parsePgn(fixture('multi-game.pgn'));
     expect(a.ok).toBe(true);
     if (!a.ok) return;
-    expect(a.games[0].pgnHash).not.toBe(a.games[1].pgnHash);
+    expect(a.games[0]!.pgnHash).not.toBe(a.games[1]!.pgnHash);
   });
 });

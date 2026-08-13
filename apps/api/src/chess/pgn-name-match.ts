@@ -54,7 +54,7 @@ function cleanTokens(part: string): string[] {
   const rest = tokens.slice(1).join('');
   const titleIsMarked =
     tokens.length > 1 &&
-    tokens[0] === tokens[0].toUpperCase() &&
+    tokens[0] === tokens[0]!.toUpperCase() &&
     TITLES.has(tokens[0].toLowerCase()) &&
     rest !== rest.toUpperCase();
   if (titleIsMarked) {
@@ -120,7 +120,7 @@ function givenMatches(a: string[], b: string[]): boolean {
   const shared = Math.min(a.length, b.length);
   if (shared === 0) return false;
   for (let i = 0; i < shared; i++) {
-    if (!tokenMatches(a[i], b[i])) return false;
+    if (!tokenMatches(a[i]!, b[i]!)) return false;
   }
   return true;
 }
@@ -136,7 +136,7 @@ function surnameAppearsContiguously(surname: string | null, tokens: string[]): b
   if (surname === null) return false;
   const seq = surname.split(' ');
   let start = 0;
-  while (start < seq.length - 1 && TITLES.has(seq[start])) start++;
+  while (start < seq.length - 1 && TITLES.has(seq[start]!)) start++;
   const trimmed = seq.slice(start);
   if (trimmed.length === 0) return false;
   outer: for (let i = 0; i <= tokens.length - trimmed.length; i++) {

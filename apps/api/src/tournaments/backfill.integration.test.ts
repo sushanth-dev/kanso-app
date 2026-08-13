@@ -29,7 +29,7 @@ async function seedPlayer(displayName = 'Test Player'): Promise<string> {
     .insert(player)
     .values({ ownerUserId: OWNER, displayName })
     .returning({ id: player.id });
-  return row.id;
+  return row!.id;
 }
 
 /** Insert a game row directly, with no tournament attached, and return its id. */
@@ -56,7 +56,7 @@ async function seedGame(
       ${overrides.playedAt ? overrides.playedAt.toISOString() : null}
     )
     RETURNING id`;
-  return g.id;
+  return g!.id;
 }
 
 describe('runBackfill', () => {
@@ -76,7 +76,7 @@ describe('runBackfill', () => {
     expect(tournaments).toHaveLength(1);
     const rows = await harness.sql`
       SELECT tournament_id FROM game WHERE player_id = ${playerId}`;
-    for (const row of rows) expect(row.tournament_id).toBe(tournaments[0].id);
+    for (const row of rows) expect(row.tournament_id).toBe(tournaments[0]!.id);
   });
 
   test('is re-runnable: a second run creates nothing and attaches nothing', async () => {
@@ -107,7 +107,7 @@ describe('runBackfill', () => {
 
     const [row] = await harness.sql`
       SELECT tournament_id FROM game WHERE player_id = ${playerId}`;
-    expect(row.tournament_id).toBeNull();
+    expect(row!.tournament_id).toBeNull();
   });
 
   test('leaves an online game unattached even when its event matches', async () => {
