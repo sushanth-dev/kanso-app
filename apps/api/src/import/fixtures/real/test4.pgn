@@ -1,0 +1,19 @@
+[Event "Biel Chess Festival 2025 MTO"]
+[Site "Biel, Switzerland"]
+[Date "2025.07.14"]
+[Round "1.44"]
+[White "Kumbharathi, Vedansh"]
+[Black "Sushanth Kamabathula"]
+[Result "0-1"]
+[WhiteElo "1931"]
+[BlackElo "2188"]
+[Annotator "Sushanth"]
+[Variant "Standard"]
+[ECO "B22"]
+[Opening "Sicilian Defense: Alapin Variation, Stoltz Attack"]
+[StudyName "Sushanth's games"]
+[ChapterName "Kumbharathi, Vedansh - Sushanth Kamabathula"]
+[ChapterURL "https://lichess.org/study/VvtZ2fY5/RjwrT83v"]
+
+1. e4 c5 2. c3 Nf6 3. e5 Nd5 4. Nf3 Nc6 (4... d6 { This is the move given in Anish Giri's course. }) 5. Bc4 Nb6 6. Bb3 c4 7. Bc2 d6 8. exd6 Qxd6 { Knew this line from Ramaraju sir's repertoire. } 9. O-O Bg4 10. Re1 O-O-O 11. b3 Qf6 { Had this idea to weaken the opponent's structure. Also thought of e5, but did not like Ba3 from white. } 12. Qe2 Bxf3 { Decided to go to an endgame where white has a weak pawn structure and it takes white a lot of time to develop his pieces. } 13. Qxf3 Qxf3 14. gxf3 e6 15. bxc4 Nxc4 16. d4 Bd6 17. f4 g6 { Stopping white's f5 ideas and closing in white's dark square bishop. } 18. Nd2 Nxd2 19. Bxd2 Bc7 20. Rab1 Ne7 { Planning to reroute the knight to d5. } 21. Kg2 { Missed this idea for white. } 21... Rhg8 { Moving the rook away from the long diagonal and preventing any c4 ideas after which white's dark square bishop becomes active. } 22. Kf3 Rd6 23. Be4 Nc6 24. Bc1 Nd8 { Taking the knight back to support the b7 pawn and also provide support to the e6 pawn in case of a later f5. } 25. Re2 h6 { Creating play on the kingside as that is the only area I have any chances. } 26. Ba3 Rd7 27. Bd3 g5 28. fxg5 hxg5 29. h3 Rh8 30. Kg2 Bf4 31. Bb5 Rc7 32. Bb2 Rh6 { The idea is to play f5 and later take the c-rook to the h-file. } 33. Bd3 Nc6 34. Ba3 Na5 35. Bb4 Nc4 36. Bf8 (36. Bxc4 Rxc4 { Here I think black has good chances because of the weak c3 pawn. }) 36... Rh8 37. Bg7 Rg8 38. Bf6 Nb6 39. Be4 Nd7 40. Be7 b6 41. Rb3 Re8 42. Ba3 Nf6 43. Bf3 Kd7 44. Bb2 Nd5 45. Rc2 (45. Bxd5 exd5 46. Rxe8 Kxe8 47. Rb5 Rd7 { I thought that this was better for black because of the weak c3 pawn. }) 45... Rec8 46. Be2 Ne7 47. Ba6 Rh8 48. c4 Ng6 49. Bb5+ Ke7 50. d5 Be5 { Now, the c4 pawn is weak and white's dark square bishop is the more active bishop, so exchanging it makes sense. } 51. Ba3+ Bd6 52. Bc1 f6 53. Re2 e5 54. a4 Bc5 55. Rd3 Nh4+ 56. Kf1 Kd6 57. f4? { This move only helps activate Black's pieces. White should have instead just played a waiting move. } 57... gxf4 58. Bxf4 Rg7 59. Rg3 Rxg3 60. Bxg3 Nf5 61. Bf2 Rxh3 62. Kg2 Rh5 63. Be1 Rg5+ 64. Kh3 Nd4 65. Rf2 f5 66. Rf1 Rh5+ 67. Kg2 f4 68. Ba6 Nf5 69. Kf3 Rh2 70. Ke4 Nd4 71. Bf2 Nb3 72. Be1 Re2+ 73. Kf5 Nd4+ 74. Kf6 e4 75. Bh4 Nf3 76. Rh1 Rh2 77. Rxh2 Nxh2 78. Kf5 Nf3 79. Kxf4 Nxh4 80. Kxe4 Ng6 81. Bb5 Ne7 82. Be8 Nc8 83. Bc6 Ke7 84. Ke5 Nd6 85. Bb5 a5 86. Ba6 Bg1 87. Bb5 Nxb5 88. cxb5 Bh2+ { 0-1 Black wins. } 0-1
+

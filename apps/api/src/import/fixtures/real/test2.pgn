@@ -1,0 +1,566 @@
+[Event "Biel Chess Festival 2025 MTO"]
+[Site "Biel, Switzerland"]
+[Date "2025.07.14"]
+[Round "1.44"]
+[White "Kumbharathi, Vedansh"]
+[Black "Sushanth Kamabathula"]
+[Result "0-1"]
+[WhiteElo "1931"]
+[BlackElo "2188"]
+[Annotator "Sushanth"]
+[Variant "Standard"]
+[ECO "B22"]
+[Opening "Sicilian Defense: Alapin Variation, Stoltz Attack"]
+[StudyName "Sushanth's games"]
+[ChapterName "Kumbharathi, Vedansh - Sushanth Kamabathula"]
+[ChapterURL "https://lichess.org/study/VvtZ2fY5/RjwrT83v"]
+
+1. e4 c5 2. c3 Nf6 3. e5 Nd5 4. Nf3 Nc6 (4... d6 { This is the move given in Anish Giri's course. }) 5. Bc4 Nb6 6. Bb3 c4 7. Bc2 d6 8. exd6 Qxd6 { Knew this line from Ramaraju sir's repertoire. } 9. O-O Bg4 10. Re1 O-O-O 11. b3 Qf6 { Had this idea to weaken the opponent's structure. Also thought of e5, but did not like Ba3 from white. } 12. Qe2 Bxf3 { Decided to go to an endgame where white has a weak pawn structure and it takes white a lot of time to develop his pieces. } 13. Qxf3 Qxf3 14. gxf3 e6 15. bxc4 Nxc4 16. d4 Bd6 17. f4 g6 { Stopping white's f5 ideas and closing in white's dark square bishop. } 18. Nd2 Nxd2 19. Bxd2 Bc7 20. Rab1 Ne7 { Planning to reroute the knight to d5. } 21. Kg2 { Missed this idea for white. } 21... Rhg8 { Moving the rook away from the long diagonal and preventing any c4 ideas after which white's dark square bishop becomes active. } 22. Kf3 Rd6 23. Be4 Nc6 24. Bc1 Nd8 { Taking the knight back to support the b7 pawn and also provide support to the e6 pawn in case of a later f5. } 25. Re2 h6 { Creating play on the kingside as that is the only area I have any chances. } 26. Ba3 Rd7 27. Bd3 g5 28. fxg5 hxg5 29. h3 Rh8 30. Kg2 Bf4 31. Bb5 Rc7 32. Bb2 Rh6 { The idea is to play f5 and later take the c-rook to the h-file. } 33. Bd3 Nc6 34. Ba3 Na5 35. Bb4 Nc4 36. Bf8 (36. Bxc4 Rxc4 { Here I think black has good chances because of the weak c3 pawn. }) 36... Rh8 37. Bg7 Rg8 38. Bf6 Nb6 39. Be4 Nd7 40. Be7 b6 41. Rb3 Re8 42. Ba3 Nf6 43. Bf3 Kd7 44. Bb2 Nd5 45. Rc2 (45. Bxd5 exd5 46. Rxe8 Kxe8 47. Rb5 Rd7 { I thought that this was better for black because of the weak c3 pawn. }) 45... Rec8 46. Be2 Ne7 47. Ba6 Rh8 48. c4 Ng6 49. Bb5+ Ke7 50. d5 Be5 { Now, the c4 pawn is weak and white's dark square bishop is the more active bishop, so exchanging it makes sense. } 51. Ba3+ Bd6 52. Bc1 f6 53. Re2 e5 54. a4 Bc5 55. Rd3 Nh4+ 56. Kf1 Kd6 57. f4? { This move only helps activate Black's pieces. White should have instead just played a waiting move. } 57... gxf4 58. Bxf4 Rg7 59. Rg3 Rxg3 60. Bxg3 Nf5 61. Bf2 Rxh3 62. Kg2 Rh5 63. Be1 Rg5+ 64. Kh3 Nd4 65. Rf2 f5 66. Rf1 Rh5+ 67. Kg2 f4 68. Ba6 Nf5 69. Kf3 Rh2 70. Ke4 Nd4 71. Bf2 Nb3 72. Be1 Re2+ 73. Kf5 Nd4+ 74. Kf6 e4 75. Bh4 Nf3 76. Rh1 Rh2 77. Rxh2 Nxh2 78. Kf5 Nf3 79. Kxf4 Nxh4 80. Kxe4 Ng6 81. Bb5 Ne7 82. Be8 Nc8 83. Bc6 Ke7 84. Ke5 Nd6 85. Bb5 a5 86. Ba6 Bg1 87. Bb5 Nxb5 88. cxb5 Bh2+ { 0-1 Black wins. } 0-1
+
+
+[Event "Biel Chess Festival 2025 MTO"]
+[Site "Biel, Switzerland"]
+[Date "2025.07.15"]
+[Round "2.12"]
+[White "Sushanth Kamabathula"]
+[Black "Arfan, Aditya Bagus"]
+[Result "0-1"]
+[WhiteElo "2188"]
+[BlackElo "2385"]
+[Annotator "Sushanth"]
+[Variant "Standard"]
+[ECO "A28"]
+[Opening "English Opening: Four Knights System, Nimzowitsch Variation"]
+[StudyName "Sushanth's games"]
+[ChapterName "Sushanth Kamabathula - Arfan, Aditya Bagus"]
+[ChapterURL "https://lichess.org/study/VvtZ2fY5/fGbKacGe"]
+
+1. c4 { 0.12/0 } 1... e5 { 0.01/0 } 2. Nc3 { 0.04/0 } 2... Nf6 { 0.18/0 } 3. Nf3 { 0.15/0 } 3... Nc6 { 0.14/0 } 4. e4 { 0.01/0 } 4... d6 { 0.43/0 } 5. d4 { 0.25/0 } 5... Bg4 { 0.37/0 } 6. d5 { 0.33/0 } 6... Nd4 { 0.38/0 } 7. Be2 { 0.31/0 } 7... Bxf3 { 0.49/0 } 8. Bxf3 { 0.58/0 } 8... c5 { 0.51/0 } 9. Be3 { 0.16/0 } (9. dxc6 bxc6 10. Be3 c5 11. a3 { This is the variation given by Alex Colovic. }) 9... Be7 { 0.25/0 } 10. a3 { 0.02/0 } 10... O-O { 0.21/0 } 11. O-O { 0.22/0 } 11... a6 { 0.24/0 } 12. Bxd4? { 0.86/0 This move gives black a strong central pawn. } (12. Be2 { I also thought of this move to stop Black's queenside advance. } 12... b5 13. cxb5 axb5 14. Nxb5 Nxe4 { Did not like this position for white because of the week d5 pawn. }) 12... cxd4 { 0.89/0 } 13. Na2 { -0.99/0 } 13... a5 { -0.89/0 Missed this move from black. } 14. a4 { -0.97/0 } (14. Nc1 Rc8 15. b3 a4 16. Nd3 axb3 17. Qxb3 { This would have been better for white due to the activity on the queenside. }) 14... Qb6 { 0.08/0 } 15. b3 { 0.73/0 } 15... Nd7 { 0.76/0 } 16. Nc1 { 0.77/0 } 16... g6 { 0.78/0 } (16... Nc5 17. Nd3 Qxb3 18. Nxc5 Qxd1 19. Rfxd1 dxc5 20. Rab1 Rab8 21. Rb5 b6 22. Be2 f5 23. Bd3 fxe4 24. Bxe4 Rf4 25. f3) 17. Nd3 { 0.81/0 } 17... f5 { 0.73/0 } 18. Ra2 { 0.89/0 } (18. g4 fxe4 19. Bxe4 Nf6 20. f3) 18... Rf7 { 0.71/0 } 19. Re2 { 0.84/0 } 19... Raf8 { 0.77/0 } 20. g3 { 0.83/0 } 20... Nc5 { 0.73/0 } 21. Bg2 { -0.89/0 Wanted to play f4 as white. } 21... f4 { -0.69/0 } (21... Qxb3 22. Nxc5 Qxd1 23. Rxd1 dxc5 24. exf5 Rxf5 25. Be4 R5f6 26. Bg2) 22. Bh3 { -1.99/0 } (22. f3 { Thought of this but this is too passive for white. }) (22. gxf4 exf4 (22... Nxd3 23. Qxd3 Rxf4) 23. Bf3) 22... fxg3 { -0.04/0 } 23. fxg3 { -1.94/0 } 23... Rxf1+ { -1.71/0 } 24. Bxf1 { -1.81/0 } 24... Bg5 { -1.51/0 } 25. Nxc5 { -1.91/0 } 25... Qxc5 { -0.07/0 } 26. Qd3 { -1.06/0 } 26... Be3+ { -1.32/0 } 27. Kg2 { -1.34/0 } 27... Qa3? { -0.03/0 This move gives white time to regroup his pieces. } 28. Qb1 { -1.76/0 } 28... Qb4 { -1.87/0 } 29. Ra2 { -1.82/0 } 29... Kf7 { -0.33/0 } 30. Bd3 { -0.34/0 } 30... Ke7 { -0.36/0 } 31. Qd1 { -0.33/0 } 31... h5 { -0.12/0 } 32. Re2 { -1.95/0 } 32... g5 { -0.16/0 } 33. h3 { -1.56/0 } 33... Kd8 { -1.67/0 } 34. Ra2 { -1.64/0 } 34... g4 { -0.67/0 } 35. hxg4 { -0.99/0 } 35... hxg4 { -0.81/0 } 36. c5! { 0.51/0 This move gives space for the white bishop. } 36... dxc5 { 0.58/0 } 37. Bc4 { -0.22/0 } 37... Rh8 { 0.00/0 } 38. d6 { 0.00/0 } 38... Qb6 { 0.00/0 } 39. Qxg4 { 0.00/0 } 39... Qxd6 { 0.00/0 } 40. Qg7 { 0.00/0 } 40... Qh6 { 0.00/0 } 41. Qxh6 { 0.00/0 } 41... Rxh6 { 0.00/0 } 42. Ra1 { 0.00/0 } 42... Rb6 { 0.00/0 } 43. Rd1 { 0.00/0 } 43... Rb4 { 0.00/0 } 44. Bd5 { -0.26/0 } 44... b5 { -0.98/0 } 45. axb5 { 0.82/0 } 45... a4 { -0.75/0 } 46. bxa4?? { -3.84/0 } (46. Ra1 axb3 47. Ra8+ Kc7 48. Ra7+ Kb6 49. Rb7+ Ka5 50. Ra7+ Kxb5 51. Rb7+) 46... c4 { -3.87/0 } 47. Ra1 { -4.53/0 } 47... c3 { -4.62/0 } 48. a5 { -5.79/0 } 48... c2 { -5.82/0 } 49. a6 { -5.33/0 } 49... d3 { -4.05/0 Missed this move. } (49... Rb1 50. Rxb1 cxb1=Q 51. a7 Qg1+ (51... Qa1 52. a8=Q+ Qxa8 53. Bxa8 d3 54. Kf3 Bh6 55. Bd5 Kc7 56. Bc4 d2 57. Be2) 52. Kh3 Qh1+ 53. Kg4 Qd1+ 54. Kh3 Qh5+ 55. Kg2 Qe2+ 56. Kh3 Qh5+ 57. Kg2) (49... c1=Q 50. Rxc1 Bxc1 51. a7 Ra4 52. a8=Q+ Rxa8 53. Bxa8 d3 54. Kf3 Kc7 55. Bd5 Kb6 56. Bc4 d2 57. Ke2) 50. Kf3 { -#11/0 } 50... d2 { -24.97/0 } 51. Kxe3 c1=Q { 0-1 Black wins. } 0-1
+
+
+[Event "Biel Chess Festival 2025 MTO"]
+[Site "Biel, Switzerland"]
+[Date "2025.07.16"]
+[Round "3.32"]
+[White "Cordes, Jule"]
+[Black "Sushanth Kamabathula"]
+[Result "0-1"]
+[WhiteElo "1946"]
+[BlackElo "2188"]
+[Annotator "Sushanth"]
+[Variant "Standard"]
+[ECO "E81"]
+[Opening "King's Indian Defense: Sämisch Variation, Bobotsov-Korchnoi-Petrosian Variation"]
+[StudyName "Sushanth's games"]
+[ChapterName "Cordes, Jule - Sushanth Kamabathula"]
+[ChapterURL "https://lichess.org/study/VvtZ2fY5/UQm4CBbR"]
+
+1. d4 { 0.17/0 } 1... Nf6 { 0.19/0 } 2. c4 { 0.18/0 } 2... g6 { 0.28/0 } 3. f3 { 0.22/0 } 3... Bg7 { 0.32/0 } 4. e4 { 0.03/0 } 4... d6 { 0.37/0 } 5. Nc3 { 0.26/0 } 5... O-O { 0.29/0 } 6. Nge2 { 0.19/0 } 6... a6 { 0.32/0 } 7. Be3 { 0.19/0 } 7... b5 { 0.32/0 } 8. g4 { 0.27/0 This move is not given in Gawain Jones's course. } 8... b4 { 0.16/0 } 9. Nb1 { -0.85/0 } (9. Nd5 Nxd5 10. cxd5 e6 { Opening the f-file to attack the weak f3 pawn. }) 9... Nc6 { 0.58/0 } 10. h4 { 0.73/0 } 10... e5 { 0.49/0 } (10... Nxg4 11. fxg4) (10... Bxg4 11. fxg4 Nxg4 12. Bg1 e5 13. d5 Na5 14. Nd2 f5 (14... Bf6)) 11. d5 { 0.58/0 } 11... Nd4 { 0.22/0 I thought that this was the only way to get play for Black to open the e-file. } 12. Nxd4 { 0.28/0 } 12... exd4 { 0.43/0 } 13. Bxd4 { 0.48/0 } 13... Re8 { 0.48/0 } 14. Nd2 { 0.38/0 } (14. g5?? Nxe4 15. fxe4 Rxe4+ { Black is simply winning. }) 14... Bxg4 { 0.35/0 } 15. Bxf6 { 0.43/0 } 15... Bxf6?? { 1.51/0 The engine says that this move was a blunder. } (15... Qxf6 16. fxg4 Qxb2 17. Rb1 Qxa2) 16. fxg4 { 1.51/0 } 16... Bxh4+ { 1.56/0 } 17. Ke2 { 1.62/0 } 17... Qf6 { 1.65/0 } 18. Qb3?? { -1.73/0 } (18. Kd3 { This was the only move to save the game and win for white. } 18... Bg5 19. Kc2 Bxd2 20. Qxd2 Rxe4 { I thought that I could manage this position for black. }) 18... Qf2+ { -1.44/0 } 19. Kd1 { -1.37/0 } 19... Bg5 { -1.63/0 } (19... Rxe4 20. Kc2 Rd4 21. Rd1 Bg5 22. Bd3 { I calculated this line but this is equal so I did not play it. }) 20. Be2 { -1.47/0 } 20... Bxd2 { -1.94/0 } 21. Kxd2 { -1.54/0 } 21... Rxe4 { -1.38/0 } 22. Qf3 { -1.09/0 } 22... Qd4+ { -1.41/0 } 23. Kc2 { -1.15/0 } 23... Re3 { -1.74/0 } 24. Qg2 { -4.78/0 } 24... Rae8 { -4.82/0 } 25. Rhe1 { -#27/0 } 25... Rc3+ { -17.34/0 } 26. Kb1 { -#2/0 } 26... Qd3+ { 0-1 Black wins. } 0-1
+
+
+[Event "Biel Chess Festival 2025 MTO"]
+[Site "Biel, Switzerland"]
+[Date "2025.07.17"]
+[Round "4.15"]
+[White "Sushanth Kamabathula"]
+[Black "Poeck, Ole"]
+[Result "1-0"]
+[WhiteElo "2188"]
+[BlackElo "2304"]
+[Annotator "Sushanth"]
+[Variant "Standard"]
+[ECO "A17"]
+[Opening "English Opening: Anglo-Indian Defense"]
+[StudyName "Sushanth's games"]
+[ChapterName "Sushanth Kamabathula - Poeck, Ole"]
+[ChapterURL "https://lichess.org/study/VvtZ2fY5/qNMLX9Yl"]
+
+1. c4 { 0.12/0 } 1... e6 { 0.25/0 } 2. Nc3 { 0.18/0 } 2... d5 { 0.29/0 } 3. e3 { 0.00/0 } 3... Nf6 { 0.07/0 } 4. Nf3 { 0.00/0 } 4... c5 { 0.13/0 } 5. cxd5 { 0.12/0 } 5... Nxd5 { 0.01/0 } 6. Bc4 { 0.14/0 } 6... Nc6 { 0.16/0 } 7. O-O { 0.12/0 } 7... Be7 { 0.15/0 } 8. Qe2 { 0.12/0 } 8... O-O { 0.05/0 } 9. Rd1 { 0.12/0 } 9... a6 { 0.01/0 This move is not given in Colovic's 1.c4. } 10. d4 { 0.11/0 } 10... Nxc3 { 0.32/0 } 11. bxc3 { 0.27/0 } 11... Qa5 { 0.31/0 } 12. Bd2 { 0.28/0 Wanted to keep the bishop on the c1-h6 diagonal and not the a1-h8 diagonal as I felt that the bishop would be more useful after e4, after which I could get a kingside attack. } 12... Bf6 { 1.36/0 } 13. e4 { 1.02/0 } 13... e5 { 1.27/0 } 14. d5 { 1.39/0 } 14... Na7 { 1.75/0 } (14... Ne7 15. Bg5 Bxg5 16. Nxg5) 15. a4 { 1.72/0 Stopping the idea of b5. } (15. Bg5 Bxg5 16. Nxg5 b5 17. Bb3 c4 18. Bc2 Qxc3 { Black is just better here. }) 15... Bg4 { 1.75/0 } 16. h3 { 1.65/0 } 16... Bxf3 { 1.64/0 } 17. Qxf3 { 1.83/0 } 17... Nc8 { 1.74/0 } 18. Qg3?! { 0.95/0 Inaccuracy. Bd3 was best. } 18... Nd6 { 0.88/0 } 19. Bd3 { 0.93/0 } 19... Qc7 { 1.23/0 } 20. f4 { 0.03/0 Wanted to create play on the kingside. } 20... Qe7 { 0.05/0 } 21. f5 { 0.06/0 } 21... b5 { 0.07/0 } 22. Be3 { 0.01/0 } 22... Qc7 { 0.25/0 } 23. Qf2 { 0.13/0 Sets up g4-g5 and also Bc5 after which the d6 knight is removed. } 23... c4 { 0.00/0 } 24. Bc2 { 0.04/0 } 24... h6 { 0.26/0 } 25. h4 { 0.11/0 Stopping Bg5 ideas and preparing g4. } 25... Rfc8 { 0.00/0 } 26. Kh2 { 0.00/0 Getting the king to support h4. } 26... Rab8 { 0.00/0 } 27. g4 { 0.00/0 } 27... Qd8 { 0.00/0 } 28. Kh3 { 0.00/0 } 28... Be7?! { 0.56/0 Inaccuracy. bxa4 was best. } 29. axb5 { 0.06/0 Opened the a-file to in case I needed to get the rook to the 7th rank. } 29... axb5 { 0.62/0 } 30. Rg1 { 0.07/0 } 30... f6 { 0.05/0 } 31. Qd2 { 0.42/0 The main idea was to move the knight from d6 to prepare some d6 ideas. } 31... Nf7 { 0.33/0 } 32. Ra6 { 0.71/0 } 32... Bc5 { 0.00/0 } 33. Bxc5 { 0.00/0 } 33... Rxc5 { 0.02/0 } 34. Rga1 { 0.03/0 } 34... Rcc8 { 0.36/0 } 35. Rb1 { 0.59/0 } 35... Rb6 { 0.68/0 } 36. Ra7 { 0.68/0 } 36... Ra8 { 0.67/0 } 37. Rba1 { 0.62/0 } 37... Rxa7 { 0.78/0 } 38. Rxa7 { 0.66/0 } 38... Rb8 { 0.82/0 } 39. Ra6 { -0.31/0 Preparing d6. } 39... Ra8 { -0.21/0 } 40. Re6 { -0.09/0 } 40... Ra7 { 0.59/0 } 41. d6 { -0.22/0 } 41... Rd7 { 0.54/0 } 42. Qd5 { 0.62/0 } 42... Kh7 { 0.91/0 } 43. Qxb5?? { -1.19/0 Engine says that this move is a blunder because it gives black activity. } (43. Re7 Rxe7 44. dxe7 Qxe7 45. Qxb5 Nd6) 43... Nxd6 { -1.06/0 } 44. Qc5 { -1.93/0 } 44... Nb7?? { 0.17/0 } (44... Nf7 { This move defends the king and also opens the d-file. }) 45. Qxc4?? { -3.96/0 } (45. Qb6 { This was the only move to save white's position. }) 45... Rc7 { -2.01/0 } 46. Qe2 { -3.91/0 } 46... Rxc3+ { -2.12/0 } 47. Kg2 { -3.77/0 } 47... Qc8?? { 0.00/0 Allows for Ba4 idea. } 48. Ba4 { 0.00/0 } 48... Ra3?? { 4.45/0 } 49. Be8 { 4.27/0 } 49... Ra8 { 4.07/0 } 50. Bg6+ { 4.47/0 } 50... Kh8 { 4.68/0 } 51. Re8+ { 4.99/0 } 51... Qxe8 { 4.55/0 } 52. Bxe8 { 4.66/0 } 52... Rxe8 { 4.69/0 } 53. Qb5 { 4.68/0 } 53... Nd6 { 5.39/0 } 54. Qd7 { 4.93/0 } 1-0
+
+
+[Event "Biel Chess Festival 2025 MTO"]
+[Site "Biel, Switzerland"]
+[Date "2025.07.18"]
+[Round "5.7"]
+[White "Baenziger, Fabian"]
+[Black "Sushanth Kamabathula"]
+[Result "1/2-1/2"]
+[WhiteElo "2450"]
+[BlackElo "2188"]
+[Annotator "Sushanth"]
+[Variant "Standard"]
+[ECO "E66"]
+[Opening "King's Indian Defense: Fianchetto Variation, Yugoslav Variation, Advance Line"]
+[StudyName "Sushanth's games"]
+[ChapterName "Baenziger, Fabian - Sushanth Kamabathula"]
+[ChapterURL "https://lichess.org/study/VvtZ2fY5/A0giS0kH"]
+
+1. d4 { 0.17/0 } 1... Nf6 { 0.19/0 } 2. c4 { 0.18/0 } 2... g6 { 0.28/0 } 3. Nf3 { 0.22/0 } 3... Bg7 { 0.27/0 } 4. g3 { 0.15/0 } 4... O-O { 0.21/0 } 5. Bg2 { 0.01/0 } 5... d6 { 0.34/0 } 6. Nc3 { 0.25/0 } 6... c5 { 0.36/0 } 7. O-O { 0.26/0 } 7... Nc6 { 0.21/0 } 8. d5 { 0.28/0 } 8... Na5 { 0.02/0 } 9. Nd2 { 0.24/0 } 9... e6 { 0.26/0 } 10. Rb1 { 0.24/0 } 10... exd5 { 0.23/0 } 11. cxd5 { 0.32/0 } 11... a6 { 0.45/0 } (11... Bd7 { This is the move given by Gawain Jones in his course. }) 12. b3 { 0.46/0 } 12... b5 { 0.51/0 } 13. Qc2 { 0.44/0 } 13... Bd7 { 0.38/0 } 14. Bb2 { 0.06/0 } 14... Nb7 { 0.68/0 Removed the knight from a5 as it is too weak and could be lost if there is any tactic. The knight also defends the d6 pawn. } 15. Rfe1 { 0.58/0 } 15... Re8 { 0.74/0 } 16. e4 { 0.45/0 } 16... Ng4 { 1.17/0 Rerouting the knight to h6 to prepare f5 in the future. } 17. Re2 { 0.28/0 } 17... Rc8 { 1.12/0 Threatening c4 ideas. But direct c4 might have been better to open lines. } 18. h3 { 1.03/0 } 18... Nh6 { 1.31/0 } 19. Rbe1 { 1.36/0 } 19... Qb6 { 1.62/0 } 20. Nd1 { 1.45/0 } 20... Qc7 { 1.65/0 Stopping e5 and preparing c4. } 21. Ne3 { 1.47/0 } 21... Re7 { 2.36/0 } 22. f4 { 1.97/0 } 22... f6 { 1.96/0 } 23. Kh2 { 1.94/0 } 23... Rce8 { 2.03/0 } 24. Bc3 { 2.15/0 } 24... c4 { 2.55/0 Trying to open the queenside to create counterplay. } 25. b4 { 2.72/0 } (25. bxc4 bxc4 26. Ndxc4 Bb5) 25... Qc8 { 2.72/0 } 26. Qb2 { 2.81/0 } 26... a5 { 2.77/0 Closing down the queenside. } 27. a3 { 2.65/0 } (27. bxa5 Nc5) 27... a4 { 2.08/0 } 28. Bd4 { 2.47/0 } (28. Bxf6?? c3) 28... Rf8 { 2.33/0 Supporting the kingside and planning to shift the queen too. } 29. Nd1 { 2.29/0 } 29... Qe8 { 2.29/0 } 30. Nc3 { 1.79/0 } 30... g5 { 1.73/0 The only way to create some counterplay on the kingside. } 31. fxg5 { 1.72/0 } 31... fxg5 { 1.78/0 } 32. Bxg7 { 1.83/0 } 32... Rxg7 { 1.69/0 } 33. e5 { 1.52/0 } 33... Bxh3 { 3.31/0 } 34. Bxh3 { 3.21/0 } 34... Qh5 { 3.13/0 } 35. Nce4 { 1.44/0 } (35. Kg2 g4) (35. Kg1 Qxh3 36. Nce4 { This is the best variation according to the engine. }) 35... g4 { 1.32/0 } 36. Nf6+ { 0.00/0 } (36. e6 Qxh3+ 37. Kg1 { The only way to win for white. }) 36... Rxf6 { 0.00/0 } 37. exf6 { 0.00/0 } 37... Qxh3+ { 0.00/0 } 38. Kg1 { 0.00/0 } 38... Qxg3+ { 0.00/0 } 39. Kh1 { 0.00/0 } (39. Kf1 Qh3+ 40. Kf2 (40. Kg1 Qg3+) 40... Qh2+ 41. Ke3 (41. Kf1 Qh1+ 42. Kf2 g3+ 43. Ke3 Nf5+ 44. Kf4 Qh4+ 45. Kxf5 (45. Kf3 Nd4+ 46. Kg2 Qh2+ 47. Kf1 Qh1#) 45... Qg4#) 41... Nf5+ 42. Ke4 Ng3+ 43. Ke3) 39... Qh4+ { 0.00/0 } 40. Kg1 { 0.00/0 } 40... Qg3+ { 0.00/0 } 41. Kh1 Qh4+ 42. Kg1 { 1/2-1/2  wins. } 1/2-1/2
+
+
+[Event "Biel Chess Festival 2025 MTO"]
+[Site "Biel, Switzerland"]
+[Date "2025.07.19"]
+[Round "6.11"]
+[White "Sushanth Kamabathula"]
+[Black "Kueppers, Timo"]
+[Result "0-1"]
+[WhiteElo "2188"]
+[BlackElo "2292"]
+[Annotator "Sushanth"]
+[Variant "Standard"]
+[ECO "B41"]
+[Opening "Sicilian Defense: Kan Variation, Maróczy Bind, Réti Variation"]
+[StudyName "Sushanth's games"]
+[ChapterName "Sushanth Kamabathula - Kueppers, Timo"]
+[ChapterURL "https://lichess.org/study/VvtZ2fY5/iGt5z3at"]
+
+1. e4 { 0.18/0 } 1... c5 { 0.25/0 } 2. Nf3 { 0.02/0 } 2... e6 { 0.28/0 } 3. d4 { 0.04/0 } 3... cxd4 { 0.29/0 } 4. Nxd4 { 0.23/0 } 4... a6 { 0.42/0 } 5. c4 { 0.21/0 } 5... Nf6 { 0.23/0 } 6. Nc3 { 0.19/0 } 6... Bb4 { 0.28/0 } 7. e5 { 0.25/0 } (7. Qd3 { This is the move given in Anish Giri's course. }) 7... Ne4 { 0.12/0 } 8. Qf3 { 0.19/0 } 8... Qa5 { 0.15/0 } 9. Ne2 { 0.42/0 } 9... Nxc3 { 0.49/0 } 10. bxc3 { 0.54/0 } 10... Be7 { 0.33/0 } 11. Bf4? { -0.46/0 Mistake. Qg3 was best. } (11. Qg3 Nc6 12. Qxg7 Qxe5 13. Qxe5 Nxe5 14. Nd4 Rg8 15. Be2 b6 16. f4 Ng4) 11... Nc6 { -0.29/0 } 12. Qe3 { -0.47/0 } 12... O-O?! { 0.87/0 Inaccuracy. b5 was best. } (12... b5) 13. g3?! { -0.24/0 Inaccuracy. Rd1 was best. } (13. Rd1) 13... Bc5 { -0.17/0 } 14. Qe4 { -1.99/0 } 14... Qb6 { -0.17/0 } 15. f3?! { -2.89/0 Inaccuracy. Nd4 was best. } (15. Nd4 d5 16. exd6 Nxd4 17. cxd4 Bxd4 18. Rb1 Qa5+ 19. Bd2 Bxf2+ 20. Ke2 Qxa2) 15... d5 { -2.97/0 } 16. exd6 { -1.24/0 } 16... e5 { -1.32/0 } 17. Bd2 { -2.61/0 } 17... Bf2+ { -1.01/0 } 18. Kd1 { -2.93/0 } 18... Be6 { -1.19/0 } 19. Nc1 { -2.74/0 } 19... f5 { -2.84/0 } 20. Qe2 { -2.47/0 } 20... Bc5 { -2.81/0 } 21. Nb3 { -2.45/0 } 21... Rad8 { -2.24/0 } 22. Kc2 { -2.17/0 } 22... Rxd6 { -2.51/0 } 23. f4?! { -3.93/0 Inaccuracy. h4 was best. } (23. h4 h6 24. Rb1 Rfd8 25. Rh2 Kh8 26. Bg5 hxg5 27. hxg5+ Kg8 28. f4 Bg1) 23... e4 { -3.36/0 } 24. a4?! { -5.78/0 Inaccuracy. Rb1 was best. } (24. Rb1 Rfd8 25. Rb2 Na5 26. Nd4 Qc7 27. Nxe6 Rxd2+ 28. Kc1 Rxe2 29. Bxe2 Qe7) 24... Rfd8 { -5.91/0 } 25. a5 { -7.98/0 } 25... Nxa5 { -6.05/0 } 26. Rxa5 { -7.67/0 } 26... Rxd2+ { -7.98/0 } 27. Nxd2? { -#9/0 Checkmate is now unavoidable. Qxd2 was best. } (27. Qxd2 Rxd2+ 28. Kxd2 Qxb3 29. Rxc5 Qb2+ 30. Ke3 Qxc3+ 31. Ke2 Qd3+ 32. Ke1 Qe3+) 27... Qxa5 { -#8/0 } 28. Kb2 { -#7/0 } 28... Qa3+ { -#6/0 } 0-1
+
+
+[Event "Biel Chess Festival 2025 MTO"]
+[Site "Biel, Switzerland"]
+[Date "2025.07.21"]
+[Round "7.8"]
+[White "Sushanth Kamabathula"]
+[Black "Banh Gia Huy"]
+[Result "0-1"]
+[WhiteElo "2188"]
+[BlackElo "2445"]
+[Annotator "Sushanth"]
+[Variant "Standard"]
+[ECO "C03"]
+[Opening "French Defense: Tarrasch Variation, Morozevich Variation"]
+[StudyName "Sushanth's games"]
+[ChapterName "Sushanth Kamabathula - Banh Gia Huy"]
+[ChapterURL "https://lichess.org/study/VvtZ2fY5/QlpbyqZG"]
+
+1. e4 { 0.18/0 } 1... e6 { 0.28/0 } 2. d4 { 0.29/0 } 2... d5 { 0.29/0 } 3. Nd2 { 0.17/0 } 3... Be7 { 0.37/0 } 4. Ngf3 { 0.31/0 } (4. c3) 4... Nf6 { 0.33/0 } 5. e5 { 0.48/0 } 5... Nfd7 { 0.34/0 } 6. Bd3 { 0.03/0 } 6... c5 { 0.35/0 } 7. c3 { 0.33/0 } 7... Nc6 { 0.33/0 } 8. O-O { 0.55/0 } 8... a5 { 0.54/0 } 9. Re1 { 0.32/0 } (9. a4 { This is the Wesley So line. }) 9... cxd4 { 0.36/0 } 10. cxd4 { 0.42/0 } 10... Qb6 { 0.43/0 } 11. Qa4? { 0.79/0 Mistake. h3 was best. } (11. h3 a4) 11... g5 { 0.83/0 } 12. h3 { 0.83/0 } 12... h5 { 0.76/0 } 13. g4 { 0.88/0 } 13... hxg4 { 0.75/0 } 14. hxg4 { 0.73/0 } 14... Nf8?! { 0.21/0 Inaccuracy. f5 was best. } (14... f5) 15. Nf1 { 0.23/0 } 15... Bd7 { 0.05/0 } 16. Qd1?? { -0.34/0 Blunder. Be3 was best. } (16. Be3 Nb4) 16... Nxd4 { -0.12/0 } 17. Nxg5 { -0.14/0 } 17... Rg8 { -0.23/0 } 18. Nh3 { -0.17/0 } 18... Nc6 { -0.44/0 } 19. Nh2 { -0.17/0 } 19... Ng6 { -0.55/0 } 20. Bxg6 { -0.32/0 } 20... Rxg6 { -0.59/0 } 21. Nf4 { -0.38/0 } 21... Rg5 { -0.75/0 } 22. Nd3 { -0.21/0 } 22... Rg7 { -0.52/0 } 23. Be3 { -0.08/0 } 23... d4 { -0.11/0 } 24. Bd2 { -1.96/0 } 24... Nb4 { -0.12/0 } 25. Bxb4 { -1.91/0 } 25... axb4 { -1.73/0 } 26. Nf1 { -1.45/0 } 26... b3 { -1.57/0 } 27. a3 { -1.21/0 } 27... Bc6 { -1.69/0 } 28. Nd2?! { -2.66/0 Inaccuracy. Rc1 was best. } (28. Rc1 Rh7 29. f3 Rh3 30. Rxc6 Qxc6 31. Kg2 Rh4 32. Nf2 Qc2 33. Qxc2 bxc2) 28... O-O-O { -2.81/0 } 29. Ne4 { -2.09/0 } 29... Rh8 { -2.11/0 } 30. Rc1 { -3.79/0 } 30... Rgh7 { -3.75/0 } 31. Qf3 { -3.18/0 } 31... Kb8 { -3.19/0 } 32. Qg2 { -4.92/0 } 32... Qb5 { -3.91/0 } 33. Rcd1 { -4.53/0 } 33... Bd5?! { -2.13/0 Inaccuracy. Qc4 was best. } (33... Qc4 34. g5 Qc2 35. Rc1 Rh1+ 36. Qxh1 Rxh1+ 37. Kxh1 Qxd3 38. Rxc6 Qf3+ 39. Kg1) 34. f3 { -3.91/0 } 34... Bc4 { -4.00/0 } 35. Nef2?! { -4.68/0 Inaccuracy. Ndf2 was best. } (35. Ndf2 Qxe5 36. Qg3 Qxg3+ 37. Nxg3 Bd5 38. Rd3 f5 39. Re5 Bc4 40. Rxd4 Bf6) 35... Bg5 { -4.96/0 } 36. f4 { -4.95/0 } 36... Bh4 { -4.99/0 } 37. Re4 { -4.58/0 } 37... Bxf2+ { -4.92/0 } 38. Nxf2 { -4.42/0 } 38... Bd5 { -4.94/0 } 39. Rdxd4 { -4.48/0 } 39... Qc6 { -4.51/0 } 40. Rxd5 { -5.99/0 } 40... Qxd5?! { -3.96/0 Inaccuracy. exd5 was best. } (40... exd5 41. Rb4 Qc1+ 42. Qf1 Rh1+ 43. Nxh1 Rxh1+ 44. Kxh1 Qxf1+ 45. Kh2 Qf2+ 46. Kh3) 41. Rb4 { -3.78/0 } 41... Qd7 { -3.99/0 } 42. Rxb3 { -3.68/0 } 42... Rc8?? { 0.39/0 Blunder. Rh1+ was best. } (42... Rh1+ 43. Nxh1 Qd1+ 44. Kf2 Qxb3 45. Ng3 Qxb2+ 46. Kg1 Qd4+ 47. Qf2 Qd1+ 48. Kg2) 43. Qe4 { 0.27/0 } 43... Rhh8 { 0.02/0 } 44. Kg2 { 0.24/0 } 44... Rc5 { 0.29/0 } 45. Rd3 { 0.34/0 } 45... Qc7 { 0.05/0 } 46. Qd4?! { -0.44/0 Inaccuracy. Qe3 was best. } (46. Qe3) 46... Rc4 { -0.67/0 } 47. Qe3 { -0.56/0 } 47... Qc6+ { -0.68/0 } 48. Kg3? { -1.29/0 Mistake. Qf3 was best. } (48. Qf3) 48... Rc1 { -1.42/0 } 49. Rd1 { -1.95/0 } 49... Rxd1 { -1.41/0 } 50. Nxd1 { -1.73/0 } 50... Qh1 { -1.98/0 } 51. Nf2 { -0.06/0 } 51... Qg1+ { -0.09/0 } 52. Kf3 { -0.27/0 } 52... Rh2 { -0.35/0 } 53. Qd2 { -0.12/0 } 53... Qg2+ { -0.54/0 } 54. Ke3 { -0.96/0 } 54... Qg3+ { -0.39/0 } 55. Ke4 { -0.96/0 } 55... Qg2+ { -0.49/0 } 56. Ke3 { -0.48/0 } 56... Kc8 { -0.57/0 } 57. Qc2+? { -2.88/0 Mistake. Qe2 was best. } (57. Qe2) 57... Kd8 { -1.23/0 } 58. Qd1+ { -2.51/0 } 58... Ke8 { -2.78/0 } 59. Ne4?? { -#22/0 Checkmate is now unavoidable. Qf3 was best. } (59. Qf3 Qf1 60. Qg3 Rg2 61. Qh4 Rg1 62. f5 Qe1+ 63. Kf3 Qxe5 64. fxe6 Qxe6) 59... Rh3+ { -#23/0 } 60. Kd4 { -13.74/0 } 60... Qxb2+ { -#19/0 } 61. Kc4 { -#19/0 } 61... Qa2+ { -#21/0 } 62. Kc5 { -61.94/0 } 62... Qxa3+ { -10.56/0 } 63. Kc4?! { -#17/0 Checkmate is now unavoidable. Kb6 was best. } (63. Kb6 Qb4+ 64. Kc7 Qc4+ 65. Kb6 Qxe4 66. Qd6 Rb3+ 67. Ka7 Qa4+ 68. Kb8 Ra3) 63... Qa6+? { -6.43/0 Lost forced checkmate sequence. b5+ was best. } (63... b5+ 64. Kxb5 Rb3+ 65. Qxb3 Qxb3+ 66. Kc5 Qd5+ 67. Kb4 Qxe4+ 68. Kc3 Qxf4 69. Kd3) 64. Kb4? { -#19/0 Checkmate is now unavoidable. Kd4 was best. } (64. Kd4 Qb6+ 65. Kc4 Qc6+ 66. Nc5 Rf3 67. Qxf3 Qxf3 68. Kb5 Qe2+ 69. Kb4 Qxg4) 64... Qb6+? { -6.45/0 Lost forced checkmate sequence. Qa3+ was best. } (64... Qa3+ 65. Kc4 b5+ 66. Kxb5 Rb3+ 67. Qxb3 Qxb3+ 68. Kc5 Qd5+ 69. Kb4 Qxe4+ 70. Kc3) 65. Kc4 { -6.97/0 } 65... Qc6+ { -6.75/0 } 66. Nc5 { -5.25/0 } 66... Rf3 { -4.13/0 } 67. Qd2?? { -#21/0 Checkmate is now unavoidable. Qd6 was best. } (67. Qd6 Rxf4+ 68. Kc3 Qxd6 69. exd6 Rxg4 70. Nxb7 Kd7 71. Kb3 e5 72. Kc3 Rd4) 67... b6 { -9.74/0 } 68. Kd4 { 0-1 Black wins. } 0-1
+
+
+[Event "Biel Chess Festival 2025 MTO"]
+[Site "Biel, Switzerland"]
+[Date "2025.07.22"]
+[Round "8.26"]
+[White "Saxena, Vihaan"]
+[Black "Sushanth Kamabathula"]
+[Result "1/2-1/2"]
+[WhiteElo "2031"]
+[BlackElo "2188"]
+[Annotator "Sushanth"]
+[Variant "Standard"]
+[ECO "E64"]
+[Opening "King's Indian Defense: Fianchetto Variation, Yugoslav Variation, Rare Line"]
+[StudyName "Sushanth's games"]
+[ChapterName "Saxena, Vihaan - Sushanth Kamabathula"]
+[ChapterURL "https://lichess.org/study/VvtZ2fY5/KMOtX1Av"]
+
+1. d4 { 0.17/0 } 1... Nf6 { 0.19/0 } 2. c4 { 0.18/0 } 2... g6 { 0.28/0 } 3. g3 { 0.01/0 } 3... Bg7 { 0.33/0 } 4. Bg2 { 0.28/0 } 4... O-O { 0.35/0 } 5. Nc3 { 0.24/0 } 5... d6 { 0.27/0 } 6. Nf3 { 0.25/0 } 6... c5 { 0.36/0 } 7. dxc5 { 0.21/0 } 7... dxc5 { 0.19/0 } 8. Qxd8 { 0.14/0 } (8. Qd3 Qd7 9. Qxd7 Rd8) 8... Rxd8 { 0.18/0 } 9. Be3 { 0.19/0 } 9... Nc6 { 0.07/0 } 10. Bxc5 { 0.05/0 } 10... Nd7 { 0.06/0 } 11. Be3 { 0.07/0 } 11... Nb6 { 0.13/0 } 12. Nd2 { 0.06/0 } 12... Bxc3 { 0.18/0 } 13. bxc3 { 0.15/0 } 13... Be6 { 0.15/0 } 14. Rb1 { 0.01/0 } 14... Rd7 { 0.23/0 } 15. O-O { 0.07/0 } 15... Rc8 { 0.11/0 } 16. Bxb6 { 0.00/0 } 16... axb6 { 0.00/0 } 17. Bd5 { 0.00/0 } 17... Bxd5 { 0.00/0 } 18. cxd5 { 0.00/0 } 18... Rxd5 { 0.03/0 } 19. Nc4 { 0.08/0 } 19... Rc7 { 0.00/0 } 20. Nxb6 { 0.00/0 } 20... Rd2 { 0.00/0 } 21. Rfd1 { 0.00/0 } 21... Rxa2 { 0.00/0 } 22. Nd5 { 0.00/0 } 22... Rc8 { 0.00/0 } 23. Rxb7 { 0.00/0 } 23... Rxe2 { 0.00/0 } 24. Kf1 { 0.00/0 } 1/2-1/2
+
+
+[Event "Biel Chess Festival 2025 MTO"]
+[Site "Biel, Switzerland"]
+[Date "2025.07.23"]
+[Round "9.26"]
+[White "Kwiatkowski, Jakub"]
+[Black "Sushanth Kamabathula"]
+[Result "1/2-1/2"]
+[WhiteElo "2034"]
+[BlackElo "2188"]
+[Annotator "Sushanth"]
+[Variant "Standard"]
+[ECO "B51"]
+[Opening "Sicilian Defense: Moscow Variation"]
+[StudyName "Sushanth's games"]
+[ChapterName "Kwiatkowski, Jakub - Sushanth Kamabathula"]
+[ChapterURL "https://lichess.org/study/VvtZ2fY5/Tzg2nG1g"]
+
+1. e4 { 0.18/0 } 1... c5 { 0.25/0 } 2. Nf3 { 0.02/0 } 2... d6 { 0.31/0 } 3. Bb5+ { 0.14/0 } 3... Nd7 { 0.12/0 } 4. Ba4 { 0.18/0 } 4... Nf6 { 0.04/0 } 5. O-O { 0.11/0 } 5... a6 { 0.12/0 } 6. c4 { 0.12/0 } 6... g6 { 0.13/0 } 7. Nc3 { 0.27/0 } 7... Bg7 { 0.03/0 } 8. d3 { 0.26/0 } 8... O-O { 0.39/0 } 9. h3 { 0.29/0 } 9... Ne8 { 0.44/0 } 10. Be3 { 0.42/0 } 10... Nc7 { 0.46/0 } 11. d4 { 0.64/0 } 11... cxd4 { 0.66/0 } 12. Bxd4 { 0.49/0 } 12... Ne6 { 0.64/0 } 13. Bxg7 { 0.64/0 } 13... Kxg7 { 0.69/0 } 14. Bxd7 { 0.73/0 } 14... Bxd7 { 0.53/0 } 15. Nd4 { 0.27/0 } 15... Bc6 { 0.59/0 } 16. Nd5?! { 0.01/0 Inaccuracy. b4 was best. } (16. b4 Rc8 17. Rc1 Nf4 18. Nde2 Nxe2+ 19. Qxe2 Qb6 20. a3 Qd4 21. Rfd1 Qe5) 16... Nc5 { 0.04/0 } 17. Re1 { 0.00/0 } 17... e5 { 0.00/0 } 18. b4 { 0.00/0 } 18... Bxd5 { 0.00/0 } 19. exd5 { 0.00/0 } 19... Nd7 { 0.00/0 } 20. Nb3 { 0.00/0 } 20... b6 { 0.00/0 } 21. Rc1 { 0.00/0 } 21... a5 { 0.07/0 } 22. a3 { 0.19/0 } 22... f5 { 0.05/0 } 23. Rc3 { 0.14/0 } 23... a4 { 0.00/0 } 24. Nc1 { 0.00/0 } 24... Qh4 { 0.36/0 } 25. Qd2?! { 0.03/0 Inaccuracy. Nd3 was best. } (25. Nd3 e4 26. Nc1 Rae8 27. Ne2 Ne5 28. Nd4 Nd3 29. Rf1 Nf4 30. Kh2 Kg8) 25... Nf6 { 0.28/0 } 26. f3 { 0.29/0 } 26... Rac8 { 0.02/0 } 27. Ne2 { 0.12/0 } 27... Rxc4?? { 2.09/0 Blunder. g5 was best. } (27... g5 28. Rf1 g4 29. c5 dxc5 30. bxc5 Rxc5 31. Rxc5 bxc5 32. hxg4 fxg4 33. g3) 28. g3 { 1.99/0 } 28... Rxc3 { 1.95/0 } 29. gxh4 { 2.00/0 } 29... Rxf3 { 1.85/0 } 30. Nc3?! { 1.23/0 Inaccuracy. Rc1 was best. } (30. Rc1) 30... Rxh3 { 0.85/0 } 31. Nb5?! { 0.00/0 Inaccuracy. Kg2 was best. } (31. Kg2) 31... f4 { 0.00/0 } 32. Nxd6 { 0.00/0 } 32... f3 { 0.00/0 } 33. Rxe5 { 0.00/0 } 33... Ng4 { 0.00/0 } 34. Re7+ { 0.00/0 } 34... Kg8 { 0.00/0 } 35. Ne4 { 0.00/0 } 35... f2+ { 0.00/0 } 36. Nxf2 { 0.00/0 } 36... Rg3+ { 0.00/0 } 37. Kf1 { 0.00/0 } 37... Rxf2+ { 0.00/0 } 38. Qxf2 { 0.00/0 } 38... Nxf2 { 0.00/0 } 39. d6 { 0.00/0 } 39... Kf8 { 0.00/0 } 40. Kxf2 { 0.00/0 } 40... Rd3 { 0.00/0 } (40... Rxa3 41. Ke2) 41. Rxh7 { 0.00/0 } 1/2-1/2
+
+
+[Event "Biel Chess Festival 2025 MTO"]
+[Site "Biel, Switzerland"]
+[Date "2025.07.24"]
+[Round "10.27"]
+[White "Sushanth Kamabathula"]
+[Black "He, Junchen"]
+[Result "1/2-1/2"]
+[WhiteElo "2188"]
+[BlackElo "2007"]
+[Annotator "Sushanth"]
+[Variant "Standard"]
+[ECO "C02"]
+[Opening "French Defense: Advance Variation, Euwe Variation"]
+[StudyName "Sushanth's games"]
+[ChapterName "Sushanth Kamabathula - He, Junchen"]
+[ChapterURL "https://lichess.org/study/VvtZ2fY5/9iPn3xBf"]
+
+1. e4 { 0.18/0 } 1... e6 { 0.28/0 } 2. d4 { 0.29/0 } 2... d5 { 0.29/0 } 3. e5 { 0.25/0 } 3... c5 { 0.23/0 } 4. c3 { 0.18/0 } 4... Nc6 { 0.19/0 } 5. Nf3 { 0.22/0 } 5... Bd7 { 0.25/0 } 6. Be2 { 0.16/0 } 6... Nge7 { 0.18/0 } 7. O-O { 0.19/0 } 7... Ng6 { 0.34/0 } 8. Be3 { 0.03/0 } 8... Be7 { 0.34/0 } 9. Nbd2 { 0.27/0 } 9... O-O { 0.35/0 } 10. a3 { 0.43/0 } 10... cxd4 { 0.04/0 } 11. cxd4 { 0.36/0 } 11... f6 { 0.35/0 } 12. exf6 { 0.36/0 } 12... Bxf6 { 0.38/0 } 13. Re1 { 0.35/0 } 13... Qe7 { 0.66/0 } 14. Nb3 { 0.41/0 } 14... b6 { 0.39/0 } 15. Rc1 { 0.35/0 } 15... Qd6 { 0.05/0 } 16. Qd2 { 0.29/0 } 16... a5 { 0.42/0 } 17. Rc3 { 0.04/0 } 17... Nce7?! { 0.53/0 Inaccuracy. Rae8 was best. } (17... Rae8) 18. Bg5 { 0.51/0 } 18... Rac8 { 0.61/0 } 19. Rec1 { 0.02/0 } 19... Rxc3 { 0.35/0 } 20. Rxc3 { 0.34/0 } 20... Rc8 { 0.46/0 } 21. Rxc8+ { 0.53/0 } 21... Nxc8 { 0.68/0 } 22. Nc1 { 1/2-1/2  wins. } 1/2-1/2
+
+
+[Event "White Horse 2025 IM"]
+[Date "2025.09.25"]
+[Round "1"]
+[White "Sushanth Kamabathula"]
+[Black "Anishka Vikram"]
+[Result "1-0"]
+[WhiteElo "2184"]
+[BlackElo "1904"]
+[Annotator "Sushanth"]
+[Variant "Standard"]
+[ECO "A13"]
+[Opening "English Opening: Agincourt Defense"]
+[StudyName "Sushanth's games"]
+[ChapterName "Sushanth Kamabathula - Anishka Vikram"]
+[ChapterURL "https://lichess.org/study/VvtZ2fY5/dzNX6iUi"]
+
+1. c4 { 0.12/0 } 1... e6 { 0.25/0 } 2. Nc3 { 0.18/0 } 2... d5 { 0.29/0 } 3. e3 { 0.00/0 } 3... Nf6 { 0.07/0 } 4. Nf3 { 0.01/0 } 4... b6 { 0.09/0 } 5. b4 { 0.00/0 } { [%cal Gb4b5] } 5... Nbd7 { 0.34/0 } 6. b5 { 0.02/0 } 6... Bb7 { 0.07/0 } 7. Bb2 { 0.12/0 } 7... c5?! { 0.31/0 This move opens the position, when white's pieces are more active. } 8. bxc6 { 0.44/0 } 8... Bxc6 { 0.53/0 } 9. Rc1 { 0.13/0 } 9... a6 { 0.42/0 } 10. Nd4 { 0.01/0 } 10... Bb7 { 0.27/0 } 11. cxd5 { 0.25/0 } 11... exd5 { 0.92/0 } 12. Be2 { 0.68/0 } 12... Bc5 { 0.59/0 } 13. Na4 { 0.62/0 } 13... O-O { 1.02/0 } 14. O-O { 0.09/0 } 14... Be7 { 1.27/0 } 15. Nf5 { 1.33/0 } 15... Rc8 { 2.04/0 } 16. Qb3 { 1.96/0 } (16. Rxc8 Bxc8) 16... b5?? { 3.44/0 } 17. Nc3?? { 0.54/0 } (17. Nxe7+ Qxe7 18. Ba3 bxa4 19. Qb2 Qe6 20. Bxf8 Rxf8 21. Qxb7) 17... Nc5?? { 2.04/0 } 18. Nxe7+ { 2.12/0 } 18... Qxe7 { 1.76/0 } 19. Qb4 { 1.93/0 } 19... Nfe4? { 3.97/0 } 20. d4? { 2.63/0 } (20. Nxe4 Qxe4 21. Ba3) 20... a5 { 3.24/0 } 21. Qxa5 { 3.23/0 } 21... Ne6 { 3.77/0 } 22. Ba3 { 3.89/0 } 22... Qd8 { 3.85/0 } 23. Qxd8 { 3.76/0 } 23... Rfxd8 { 3.77/0 } 24. Nxe4 { 3.53/0 } 24... dxe4 { 3.62/0 } 25. Bxb5 { 3.61/0 } 25... Ra8 { 4.14/0 } 26. Be7 { 4.09/0 } 26... Rdb8 { 4.02/0 } 27. a4 { 3.98/0 } 27... Ba6 { 4.46/0 } 28. Rb1 { 4.37/0 } 28... Bxb5 { 4.29/0 } 29. axb5 { 4.33/0 } 29... Nc7 { 4.76/0 } 30. b6 { 4.09/0 } 30... Nd5 { 4.64/0 } 31. Bc5 { 4.03/0 } 31... Rb7 { 4.91/0 } 32. Ra1 { 4.89/0 } 32... Rab8 { 4.08/0 } 33. Ra7 { 4.89/0 } 33... f5 { 5.05/0 } 34. Rfa1 { 5.33/0 } 34... Rxb6 { 5.53/0 } 35. Bxb6 { 5.69/0 } 35... Rxb6 { 6.07/0 } 36. Rd7 { 6.38/0 } 1-0
+
+
+[Event "White Horse 2025 IM"]
+[Date "2025.09.26"]
+[Round "2"]
+[White "Aashman Gupta"]
+[Black "Sushanth Kamabathula"]
+[Result "1-0"]
+[WhiteElo "2198"]
+[BlackElo "2184"]
+[Annotator "Sushanth"]
+[Variant "Standard"]
+[ECO "D25"]
+[Opening "Queen's Gambit Accepted: Janowski-Larsen Variation"]
+[StudyName "Sushanth's games"]
+[ChapterName "Aashman Gupta - Sushanth Kamabathula"]
+[ChapterURL "https://lichess.org/study/VvtZ2fY5/OQ30uIoz"]
+
+1. d4 { 0.17/0 } 1... d5 { 0.18/0 } (1... Nf6) 2. c4 { 0.18/0 } 2... dxc4 { 0.28/0 } 3. Nf3 { 0.19/0 } 3... Nf6 { 0.28/0 } 4. e3 { 0.18/0 } 4... Bg4 { 0.41/0 } 5. Bxc4 { 0.39/0 } 5... e6 { 0.55/0 } 6. Nc3 { 0.39/0 } 6... Nc6 { 0.55/0 } 7. O-O { 0.59/0 } 7... Bd6 { 0.53/0 } 8. h3 { 0.63/0 } 8... Bh5 { 0.67/0 } 9. Nb5 { 0.02/0 } 9... O-O { 0.14/0 } 10. Nxd6 { 0.13/0 } 10... cxd6 { 0.01/0 } 11. b3 { 0.17/0 } 11... d5 { 0.00/0 } 12. Be2 { 0.03/0 } 12... Ne4 { 0.04/0 } 13. Bb2 { 0.01/0 } 13... f5 { 0.49/0 } 14. Ne1 { 0.23/0 } 14... Bxe2 { 0.27/0 } 15. Qxe2 { 0.31/0 } 15... Rf6 { 0.38/0 } { [%csl Gg5][%cal Gg7g5,Gf6g6] } 16. Nd3 { 0.41/0 } 16... Rh6 { 0.85/0 } (16... g5 { [%cal Gf6g6] } 17. Ne5 Nxe5 18. dxe5 Rh6 { [%csl Gb2,Ge4][%cal Gg5g4,Ge4g5] } 19. Kh2 g4 20. f3 Ng3 21. Kxg3 gxh3 22. gxh3 (22. Rg1 h2 { [%csl Gh4,Gg1][%cal Gd8h4] }) 22... Qh4+ 23. Kg2 Qxh3+ { [%cal Gh6g6] } 24. Kf2 Qh4+ { [%csl Ge1][%cal Gh4e1] }) 17. Rfc1 { 0.78/0 } 17... Qh4 { 0.92/0 } (17... Qg5 18. Kh2) 18. f3 { 1.01/0 } 18... Ng3 { 1.54/0 } 19. Qf2 { 1.38/0 } 19... Qg5 { 1.64/0 } 20. Ba3 { 1.78/0 } 20... Rd8?? { 3.88/0 Allows for Rxc6 tactics. } (20... Nh5 21. Bd6 { [%csl Ge5,Gc5] }) 21. Rxc6 { 3.66/0 } 21... bxc6 { 4.01/0 } 22. f4 { 3.75/0 } 22... Qh5 { 4.23/0 } (22... Qh4 23. Ne5 (23. Kh2 Rg6 24. Ne5)) (22... Qg6 23. Ne5 Ne4 24. Nxg6 Nxf2 25. Ne7+ Kf7) 23. Qxg3 { 4.16/0 } 23... Rg6 { 4.29/0 } 24. Qf2 { 4.47/0 } 24... Re8 { 5.09/0 } (24... Qxh3 25. Be7 Re8 26. Bg5 Qh5 27. Ne5) 25. Ne5 { 5.06/0 } 25... Rf6 { 4.95/0 } 26. Rc1 { 4.92/0 } 26... Rc8 27. Be7 1-0
+
+
+[Event "White Horse 2025 IM"]
+[Date "2025.09.27"]
+[Round "3"]
+[White "Sushanth Kamabathula"]
+[Black "Stevik, Patrik"]
+[Result "1/2-1/2"]
+[WhiteElo "2184"]
+[BlackElo "2302"]
+[Annotator "Sushanth"]
+[Variant "Standard"]
+[ECO "A28"]
+[Opening "English Opening: Four Knights System, Nimzowitsch Variation"]
+[StudyName "Sushanth's games"]
+[ChapterName "Sushanth Kamabathula - Stevik, Patrik"]
+[ChapterURL "https://lichess.org/study/VvtZ2fY5/SgLtuuRp"]
+
+1. c4 { 0.12/0 } 1... Nf6 { 0.14/0 } 2. Nc3 { 0.12/0 } 2... e5 { 0.18/0 } 3. Nf3 { 0.15/0 } 3... Nc6 { 0.14/0 } 4. e4 { 0.01/0 } 4... Bb4 { 0.07/0 } 5. Be2 { 0.06/0 } 5... a5 { 0.02/0 } 6. d3 { 0.07/0 } 6... d6 { 0.06/0 } 7. O-O { 0.00/0 } 7... Bg4 { 0.02/0 } 8. Ne1 { 0.25/0 } { [%cal Ge1c2,Gc2e3,Gf2f4] } 8... Bxe2 { 0.34/0 } 9. Nxe2 { 0.31/0 } { [%cal Gf2f4,Gd3d4] } 9... Bc5 { 0.33/0 } 10. Ng3 { 0.18/0 } (10. Nc2 O-O 11. Ng3 Nd4 { [%csl Ge6,Gc2] } 12. Nxd4 Bxd4 13. Nf5 $14 { [%cal Gc1g5] }) 10... Nd4 { 0.22/0 } 11. Nc2 { 0.04/0 } 11... Ne6 { 0.05/0 } 12. Be3 { 0.11/0 } 12... h5 { 0.01/0 } 13. h3 { 0.15/0 } 13... h4 { 0.18/0 } 14. Ne2 { 0.01/0 } 14... Bxe3 { 0.08/0 } 15. Nxe3 { 0.04/0 } 15... Nh5 { 0.11/0 } 16. d4 { 0.12/0 } 16... Qg5 { 0.04/0 } { [%csl Ge8] } 17. dxe5 { 0.67/0 } (17. Qa4+ c6 18. d5 Nc5 19. Qc2 O-O { [%csl Gd6] } 20. Nc3 Nf4 21. Kh1 g6 22. Rad1 Rad8 23. a3 f5 (23... cxd5 24. Ncxd5 Nce6 25. Nxf4 Nxf4 { [%csl Gd6] }) 24. b4) 17... dxe5 { 0.69/0 } { [%csl Gd4] } 18. Qb3 { 0.63/0 } 18... O-O { 0.62/0 } 19. Ng4 { 0.63/0 } 19... Nf6 { 0.65/0 } 20. Nxf6+ { 0.65/0 } 20... Qxf6 { 0.72/0 } 21. Rad1 { 0.63/0 } 21... b6 { 0.55/0 } 22. Qc3 { 0.07/0 } (22. Nc3 Nd4 23. Nd5 (23. Qb4) 23... Qd6 24. Qe3) 22... Rad8 { 0.73/0 } { [%csl Ge2,Ge6] } 23. Rd5 { -1.00/0 } 23... Nc5 { 0.89/0 } 24. Rfd1 { -0.23/0 } 24... Nxe4 { 0.91/0 } (24... c6 25. Rxd8 Rxd8 26. Rxd8+ Qxd8 27. Qc2) 25. Qe3 { -1.00/0 } 25... Nd6 { 0.64/0 } 26. b3 { 0.76/0 } 26... Nf5 { 0.89/0 } 27. Qe4 { 0.73/0 } 27... Rxd5 { 0.72/0 } 28. Rxd5 { 0.71/0 } 28... Re8 { 0.73/0 } 29. c5 { -0.56/0 } 29... c6 { -0.96/0 } 30. Rd3 { -0.69/0 } 30... bxc5 { -0.68/0 } 31. Rc3 { -0.84/0 } 31... c4 { 0.09/0 } 32. Rxc4 { 0.01/0 } 32... Nd6 { 0.00/0 } 33. Qxc6 { 0.00/0 } 33... Re6 { 0.00/0 } 34. Qa8+ { 0.00/0 } 34... Kh7 { 0.25/0 } 35. Rg4 { 0.00/0 } 35... Qh6 { 0.67/0 } 36. Qd5 { 0.83/0 } 36... Kg8 { 1.57/0 } 37. Qxa5 { 1.55/0 } 37... f5 { 1.62/0 } 38. Rb4 { 1.25/0 } 38... Kh7 { 1.85/0 } 39. Rb8 { 1.29/0 } 39... Ne4 { 1.86/0 } 40. Qd8 { 1.17/0 } 40... Rd6 { 1.91/0 } 41. Qg8+ { 2.18/0 } 41... Kg6 { 1.83/0 } 42. Qe8+ { 2.05/0 } 42... Kh7 { 2.14/0 } 43. Rd8 { 1.09/0 } 43... Rxd8 { 2.27/0 } 44. Qxd8 { 2.15/0 } 44... Qh5 { 2.09/0 } 45. Qd3 { 1.94/0 } 45... Qg6 { 2.35/0 } 46. Nc3 { 2.87/0 } 46... Ng5 { 2.66/0 } 47. Nd5 { 2.56/0 } 47... e4 { 2.28/0 } 48. Qe3 { 2.02/0 } 48... Qh5 { 3.75/0 } 49. Nc3 { 2.32/0 } 49... Qh6 { 3.63/0 } 50. Nd5 { 3.31/0 } 50... Qh5 { 3.59/0 } 51. Kh2 { 3.47/0 } 51... Nf7 { 3.71/0 } 52. Qf4 { 3.53/0 } 52... Nh6 { 3.44/0 } 53. Ne3 { 3.58/0 } 53... Qf7 { 4.29/0 } 54. Qxh4 { 4.26/0 } 54... f4 { 4.22/0 } 55. Ng4?? { 0.26/0 } (55. Nc4 Qc7 56. g3 { [%cal Gc7c2] } 56... fxg3+ 57. Qxg3) 55... Qc7 { 0.46/0 } 56. Nxh6 { 0.00/0 } 56... gxh6 { 0.00/0 } 57. Qg4 { 0.00/0 } 57... e3 { 0.00/0 } { [%cal Gc7c2] } 58. Qf5+ { 0.00/0 } 58... Kg7 { 0.00/0 } 59. f3 { 0.00/0 } 59... Qd6 { 0.00/0 } 60. Qe4 { 0.00/0 } 60... Qf6 { 0.00/0 } 61. a4 Qh4 62. Qe5+ Kf7 { 1/2-1/2  wins. } 1/2-1/2
+
+
+[Event "White Horse 2025 IM"]
+[Date "2025.09.27"]
+[Round "4"]
+[White "Jablonicky, Martin"]
+[Black "Sushanth Kamabathula"]
+[Result "1-0"]
+[WhiteElo "2332"]
+[BlackElo "2184"]
+[Annotator "Sushanth"]
+[Variant "Standard"]
+[ECO "B50"]
+[Opening "Sicilian Defense: Delayed Alapin Variation, with d6"]
+[StudyName "Sushanth's games"]
+[ChapterName "Jablonicky, Martin - Sushanth Kamabathula"]
+[ChapterURL "https://lichess.org/study/VvtZ2fY5/xGF7vfpe"]
+
+1. e4 { 0.18/0 } 1... c5 { 0.24/0 } 2. Nf3 { 0.02/0 } 2... d6 { 0.31/0 } 3. c3 { 0.00/0 } 3... Nf6 { 0.00/0 } 4. Be2 { 0.00/0 } 4... Nc6 { 0.04/0 } (4... g6 { [%csl Gc6][%cal Gd2d4,Gd4d5] } 5. O-O Bg7) 5. d4 { 0.36/0 } 5... g6 { 0.84/0 } 6. d5 { 0.81/0 } 6... Nb8 { 0.85/0 } 7. O-O { 0.84/0 } 7... Bg7 { 0.83/0 } 8. Re1 { 0.76/0 } 8... O-O { 0.72/0 } 9. Bf1 { 0.72/0 } 9... e5 { 1.02/0 } (9... e6 { [%csl Gc3] } 10. dxe6 (10. h3 exd5 11. exd5 Re8 $14) 10... Bxe6 11. Bf4 d5) 10. a4 { 1.08/0 } 10... h6 { 1.25/0 } 11. Na3 { 1.34/0 } 11... Nbd7 { 1.37/0 } 12. Nc4 { 1.18/0 } 12... Ne8 { 1.03/0 } 13. b4 { 0.97/0 } 13... f5 { 0.97/0 } 14. Nfd2 { 0.55/0 } 14... cxb4 { 0.93/0 } (14... b6 15. a5 b5 16. Na3) 15. cxb4 { 1.01/0 } 15... Ndf6 { 1.04/0 } 16. f3 { 0.71/0 } 16... fxe4 { 0.95/0 } (16... h5 { [%cal Gg7h6] }) (16... f4 17. b5 g5 18. Ba3 h5 19. a5 g4 20. Qb3 g3 21. h3 Nh7 22. Qb4 Rf6 { [%cal Gf6g6,Gc8h3,Gd8h4] }) 17. fxe4 { 0.91/0 } 17... Ng4 { 1.09/0 } (17... Nh7) (17... Bg4 18. Qb3 Nh5 19. g3 { [%csl Gf3,Gh3] } 19... Nhf6 { [%cal Gb4b5,Gc1a3,Ga3d6] }) 18. Nf3 { 1.24/0 } 18... Bd7 { 1.46/0 } 19. b5 { 1.52/0 } 19... Rc8 { 1.47/0 } 20. Qb3 { 1.47/0 } { [%cal Gc8c4,Gd8b6] } 20... g5 { 1.47/0 } { [%csl Gg4][%cal Gg4f6,Gf6h5] } (20... Rxf3 21. gxf3 (21. Qxf3 Nxh2 { [%csl Ge1,Gh4] } 22. Qg3 Nxf1 23. Rxf1) 21... Nxh2 22. Bg2 { [%csl Gh2] } 22... Qh4 23. Be3 g5 24. Bf2 Qh5 25. Bg3 Rxc4 26. Bxh2 Rd4 27. Rad1 { [%cal Gh5h4,Gg7f6,Ge8g7,Gg7h5,Gh5f4] } 27... Qh4) 21. Bd2 { 1.04/0 } 21... Ngf6 { 1.05/0 } 22. Ba5 { 1.04/0 } 22... Qe7 { 1.57/0 } 23. Bb4 { 1.05/0 } 23... Nh5 { 1.59/0 } 24. g3 { 1.28/0 } 24... Bg4 { 1.76/0 } 25. Nfd2 { 1.68/0 } 25... Qd7 { 2.11/0 } 26. Qe3 { 2.16/0 } 26... Bh3 { 2.54/0 } 27. Qxa7 { 2.66/0 } 27... Bxf1 { 2.53/0 } 28. Rxf1 { 2.05/0 } 28... Qh3 { 3.08/0 } 29. Qe3 { 2.08/0 } 29... Rxf1+ { 2.98/0 } 30. Rxf1 { 3.09/0 } 30... Nef6 { 3.44/0 } 31. Qe2 { 3.44/0 } 31... Bf8 { 3.81/0 } 32. a5 { 3.68/0 } 32... Be7 { 4.29/0 } 33. a6 { 3.53/0 } 33... bxa6 { 3.72/0 } 34. bxa6 { 3.73/0 } 34... Qd7 { 3.83/0 } 35. Qf2 { 3.06/0 } 35... Bd8 { 4.05/0 } 36. Bxd6 { 4.53/0 } 36... Ba5 { 5.37/0 } 37. Nxa5 { 5.38/0 } 37... Qxd6 { 5.28/0 } 38. Nc6 { 5.32/0 } 1-0
+
+
+[Event "White Horse 2025 IM"]
+[Date "2025.09.23"]
+[Round "5"]
+[White "Sushanth Kamabathula"]
+[Black "Pribelszky, Bence"]
+[Result "0-1"]
+[WhiteElo "2184"]
+[BlackElo "2411"]
+[Annotator "Sushanth"]
+[Variant "Standard"]
+[ECO "A13"]
+[Opening "English Opening: Agincourt Defense"]
+[StudyName "Sushanth's games"]
+[ChapterName "Sushanth Kamabathula - Pribelszky, Bence"]
+[ChapterURL "https://lichess.org/study/VvtZ2fY5/ETZLtU1r"]
+
+1. c4 { 0.12/0 } 1... e6 { 0.25/0 } 2. Nc3 { 0.18/0 } 2... d5 { 0.29/0 } 3. e3 { 0.00/0 } 3... Nf6 { 0.07/0 } 4. Nf3 { 0.01/0 } 4... Nbd7 { 0.17/0 } 5. Qc2 { 0.17/0 } 5... a6 { 0.15/0 } { [%cal Gc4d5,Ge6d5] } 6. cxd5 { 0.00/0 } (6. b3 dxc4 7. Bxc4 (7. bxc4 Be7 8. Be2) 7... b5) 6... exd5 { 0.00/0 } 7. d4 { 0.00/0 } 7... Bd6 { 0.13/0 } 8. Bd3 { 0.12/0 } 8... c5 { 0.17/0 } 9. b3 { 0.16/0 } 9... Qc7 { 0.28/0 } 10. O-O { 0.21/0 } 10... O-O { 0.24/0 } 11. Ne2 { 0.21/0 } { [%csl Gd5][%cal Gd4c5,Ge2d4,Gf3d4] } 11... b6 { 0.25/0 } 12. Bb2 { 0.02/0 } 12... Bb7 { 0.21/0 } 13. Ng3 { 0.22/0 } { [%csl Ge4,Gf5][%cal Ge2g3,Gg3f5] } 13... Rfe8 { 0.02/0 } 14. Nf5 { 0.11/0 } 14... Bf8 { 0.13/0 } 15. Rfd1 { 0.09/0 } { [%cal Ga1c1] } 15... Rac8 { 0.16/0 } 16. Rac1 { 0.21/0 } 16... Qb8 { 0.32/0 } 17. Qb1 { 0.08/0 } (17. Qd2 Ne4) (17. Qe2 g6 18. Ng3 Bg7 { [%csl Ga6] } (18... a5 19. Bb5 Bc6 20. Bxc6 Rxc6 21. Qb5 Qc7 22. Ne5 Nxe5 { [%csl Gd5] } 23. dxe5 { [%cal Gb5e8] }) (18... b5 19. dxc5 Bxc5 20. a4 bxa4 21. bxa4 Qd6 22. Ba1 Qe6 23. Qb2 Bxe3 24. Rxc8 Bxf2+ 25. Kxf2 (25. Qxf2 Rxc8))) 17... Qa8 { 0.32/0 } 18. Ne5 { 0.38/0 } 18... g6 { 0.36/0 } 19. Nh4 { -0.58/0 } (19. Nxd7 Nxd7 20. Ng3 c4 21. bxc4 dxc4 22. Bf5 gxf5 (22... Red8 23. d5 { [%cal Gb2h8] } 23... Bxd5 24. Nh5 { [%csl Gf6][%cal Gf5d7] } 24... Be7 25. Nf4) 23. Qxf5 Be4 24. Qxd7) 19... Nxe5 { -0.49/0 } 20. dxe5 { -0.53/0 } 20... Ne4 { 0.00/0 } 21. f4 { 0.02/0 } 21... Be7 { 0.32/0 } 22. Nf3 { 0.33/0 } 22... Red8 { 0.75/0 } 23. Qc2 { 0.44/0 } 23... b5 { 1.89/0 } 24. Qe2 { 0.65/0 } (24. e6! f6 25. f5 c4 26. Bxe4 dxe4 27. Rxd8+ Rxd8 28. Nd4 $16 { [%csl Ge6,Gf5] }) 24... c4 { 1.57/0 } 25. Bxe4 { 1.46/0 } 25... dxe4 { 1.42/0 } 26. Rxd8+ { 0.56/0 } (26. Nd4 Bd5 (26... cxb3 27. axb3 { [%csl Gb3,Gd5][%cal Gb7d5] } 27... Rxc1 28. Rxc1 Rc8 29. Rd1 { [%csl Gc2,Gc3][%cal Gf4f5,Ge5e6] } 29... Bd5 30. f5 { [%csl Gf4,Ge5][%cal Gd5c4,Ga8d5] }) 27. Qg4 $16 { [%cal Gf4f5] }) 26... Bxd8 { 0.57/0 } 27. Nd2 { 0.63/0 } (27. Nd4 cxb3 (27... Bd5 28. b4 a5 29. a3 axb4 30. axb4 Qa4 31. Bc3 Be7 (31... Qa3 32. Qd2 { [%csl Ga1][%cal Gc1a1] } 32... Qa6 33. f5 Bg5 34. Rf1 $18 { [%csl Gd4,Gc3,Gd5][%cal Gc3h8] }) 32. Ra1 $18 { [%csl Ga4] }) 28. axb3 { [%csl Gc6,Ge6,Gf5][%cal Ge5e6,Gf4f5] }) 27... cxb3 { 0.57/0 } { [%csl Gc8][%cal Ga8c8] } 28. Rxc8 { 0.79/0 } 28... Qxc8 { 0.85/0 } 29. Nxb3 { 0.86/0 } 29... Bd5 { 0.86/0 } 30. Qd2 { 0.92/0 } 30... Qc4 { 0.92/0 } 31. Bc3 { 0.95/0 } 31... Be7 { 0.09/0 } 32. f5 { -1.55/0 } 32... gxf5 { -1.45/0 } 33. Nd4 { -1.15/0 } 33... Qxa2 { -1.19/0 } 34. Qe1 { -1.26/0 } 34... Be6 { -1.21/0 } 35. Nc6 { -3.00/0 } 35... Bf8 { -1.06/0 } 36. Qh4 { -3.15/0 } 36... Qd5 { -1.01/0 } 37. Ne7+ { -2.21/0 } 37... Bxe7 { -2.26/0 } 38. Qxe7 { -2.44/0 } 38... h6 { -1.99/0 } 39. Bd4 { -2.71/0 } 39... Kh7 { -1.47/0 } 40. h3 { -3.74/0 } 40... f4 { -3.87/0 } 41. Qf6 { -3.26/0 } 41... f3 { -3.41/0 } 42. gxf3 { -4.77/0 } 42... exf3 { -4.83/0 } 43. Kf2 { -4.76/0 } 43... Qa2+ { -4.98/0 } 44. Kxf3 { -4.84/0 } 44... Bxh3 { -4.92/0 } 45. e4 { -4.52/0 } 45... Qg2+ { -4.96/0 } 46. Ke3 { -4.64/0 } 46... Qg5+ { -4.73/0 } 47. Qxg5 { -4.69/0 } 47... hxg5 { -4.62/0 } 48. Bc5 { -4.97/0 } 48... Bg2 { -4.88/0 } 49. Be7 { -4.58/0 } 49... Kg6 { -4.62/0 } 50. Bb4 { -4.39/0 } 50... Kh5 { -4.52/0 } 51. Ba5 { -4.17/0 } 51... Kg4 { -4.33/0 } 52. Be1 { -5.92/0 } 52... Kh3 { -5.64/0 } 53. Bc3 { -5.72/0 } 53... Bf1 { -5.81/0 } 54. Be1 { -5.73/0 } 54... Kg2 { -5.97/0 } 55. Bc3 { -5.29/0 } 55... Bc4 { -5.36/0 } 56. Bb4 { -8.87/0 } 56... Be6 { -7.36/0 } 57. Bc3 { -7.13/0 } 57... g4 { -9.86/0 } 58. Be1 { -9.96/0 } 58... Kh2 { -9.76/0 } 59. Kf4 { -9.76/0 } 59... b4 { -8.29/0 } 0-1
+
+
+[Event "White Horse 2025 IM"]
+[Date "2025.09.29"]
+[Round "6"]
+[White "Sushanth, Kamabathula"]
+[Black "Chen, Yining"]
+[Result "1/2-1/2"]
+[WhiteElo "2184"]
+[BlackElo "2148"]
+[Annotator "Sushanth"]
+[Variant "Standard"]
+[ECO "A13"]
+[Opening "English Opening: Agincourt Defense"]
+[StudyName "Sushanth's games"]
+[ChapterName "Sushanth, Kamabathula - Chen, Yining"]
+[ChapterURL "https://lichess.org/study/VvtZ2fY5/ZGAp1r5r"]
+
+1. c4 { 0.12/0 } 1... e6 { 0.25/0 } 2. Nc3 { 0.18/0 } 2... d5 { 0.29/0 } 3. e3 { 0.00/0 } 3... Nf6 { 0.07/0 } 4. Nf3 { 0.01/0 } 4... Bd6 { 0.01/0 } 5. b3 { 0.08/0 } 5... O-O { 0.01/0 } 6. Bb2 { 0.00/0 } 6... Nc6 { 0.03/0 } 7. Rc1 { 0.15/0 } 7... dxc4 { 0.13/0 } 8. Bxc4 { 0.13/0 } 8... e5 { 0.22/0 } 9. Nb5 { 0.11/0 } 9... Bg4 { 0.27/0 } (9... a6 10. Nxd6 cxd6 11. d4) 10. Nxd6 { 0.24/0 } (10. h3 Bh5 11. g4 Bg6 12. Nh4 Be4 13. O-O { This is the best way to continue for white. } 13... Qd7 14. Nxd6 cxd6 15. d3 Bd5 16. e4 Bxc4 17. bxc4 { [%cal Gh4f5] } 17... g6 18. Ng2 { [%cal Gf2f4] } (18. f4)) 10... Qxd6 { 0.31/0 } 11. Be2?! { 0.19/0 } (11. h3 Bh5 12. Bb5 (12. g4) 12... Nb4 13. g4 Bg6 14. Bxe5) 11... e4 { 0.15/0 } 12. Nd4 { 0.21/0 } 12... Bxe2 { 0.11/0 } 13. Qxe2 { 0.21/0 } 13... Ne5 { 0.00/0 } 14. O-O { 0.16/0 } 14... Nd3 { 0.02/0 } 15. Rc2 { 0.11/0 } 15... Nxb2 { 0.14/0 } 16. Rxb2 { 0.01/0 } 16... c5 { 0.00/0 } 17. Nb5 { 0.00/0 } 17... Qe5 { 0.00/0 } 18. Rc2 { 0.24/0 } 18... Rfd8 { 0.28/0 } 19. f3 { 0.49/0 } 19... Rd7 { 0.00/0 } 20. fxe4 { 0.00/0 } 20... Nxe4 { 0.12/0 } 21. Nc3 { 0.39/0 } 21... Nxc3 { 0.01/0 } 22. Rxc3 { 0.14/0 } 22... Rad8 { 0.07/0 } 23. Qc4 { 0.15/0 } 23... h6 { 0.00/0 } 24. Rc2 { 0.76/0 } 24... Rxd2 { 0.00/0 } 25. Rxd2 { 0.00/0 } 25... Rxd2 { 0.00/0 } 26. Qxf7+ { 0.00/0 } 26... Kh7 { 0.17/0 } 27. Qxb7 { 0.14/0 } 27... Qxe3+ { 0.06/0 } { [%cal Gb7g2] } 28. Kh1 { 0.29/0 } 28... Qd3 { 0.23/0 } 29. Rg1 { -1.88/0 } (29. Re1 Rd1) (29. Qf7 Rxa2 30. h3 a5 31. Rf4 Ra1+ 32. Kh2 Qb1 33. Qf5+ (33. Qd5 Qg1+ 34. Kg3 { [%csl Gh7] })) 29... Rxa2 { -1.95/0 } 30. h3 { -0.29/0 } 30... Ra3 { 0.08/0 } 31. Qc6 { 0.72/0 } 31... Qc2 { -0.94/0 } 32. Kh2 { 0.54/0 } 32... Rxb3 { 0.00/0 } 33. Rc1 { 0.09/0 } 33... Qf5 { 0.11/0 } 34. Qxc5 { 0.00/0 } 34... Qf4+ { 0.00/0 } 35. Kh1 { 0.00/0 } 35... Qe4 { 0.00/0 } 36. Qxa7 { 0.00/0 } 36... Rxh3+ { 0.00/0 } 37. Kg1 { 0.00/0 } 37... Rh5 { 0.00/0 } 38. Qf2 { 0.00/0 } 38... Rf5 { 0.00/0 } 39. Re1 { 0.00/0 } 39... Qg4 { 0.00/0 } 40. Qe2 { 0.00/0 } 40... Qd4+ { 0.00/0 } 41. Qe3 { 0.00/0 } 41... Qf6 { 0.00/0 } 42. Qe4 { 0.00/0 } 42... Qg6 { 0.00/0 } 43. Qe8 { 0.00/0 } 43... Qb6+ { 0.00/0 } 44. Qe3 { 0.00/0 } 44... Qf6 { 0.00/0 } 45. Qe4 { 0.00/0 } 45... h5 { 0.00/0 } 46. Rf1 { 0.00/0 } 46... g6 { 0.00/0 } 47. Rxf5 { 0.00/0 } 47... Qxf5 { 0.00/0 } 48. Qe7+ { 0.00/0 } 48... Kh6 { 0.00/0 } 49. Qe3+ { 0.00/0 } 49... g5 { 0.00/0 } 50. Qb6+ { 0.00/0 } 50... Qg6 { 0.00/0 } 51. Qd8 { 0.00/0 } 51... Qe6 { 0.00/0 } 52. Qh8+ { 0.00/0 } 52... Kg6 { 0.00/0 } 53. Qd4 { 0.00/0 } 53... Qe1+ { 0.00/0 } 54. Kh2 { 0.00/0 } 54... h4 { 0.00/0 } 55. Qd3+ { 0.00/0 } 55... Kh6 { 0.00/0 } 56. g3 { 0.00/0 } 1/2-1/2
+
+
+[Event "White Horse 2025 IM"]
+[Date "2025.09.30"]
+[Round "7"]
+[White "Pasti, Aron"]
+[Black "Sushanth Kamabathula"]
+[Result "1-0"]
+[WhiteElo "2366"]
+[BlackElo "2184"]
+[Annotator "Sushanth"]
+[Variant "Standard"]
+[ECO "A01"]
+[Opening "Nimzo-Larsen Attack: Indian Variation"]
+[StudyName "Sushanth's games"]
+[ChapterName "Pasti, Aron - Sushanth Kamabathula"]
+[ChapterURL "https://lichess.org/study/VvtZ2fY5/rmxRAE3F"]
+
+1. b3 { 0.00/0 } (1. d4 Nf6 (1... e6 2. c4 b6 3. a3 Bb7 4. Nc3 f5 5. d5 { [%cal Gg2g3,Gf1g2] } 5... Nf6 6. g3 { [%csl Ge6,Gc6][%cal Gd7d6] }) 2. c4 e6 3. Nf3 b6 4. a3 Bb7 5. Nc3 Be7 6. d5 { [%csl Gb7] }) 1... Nf6 { 0.05/0 } 2. Bb2 { 0.00/0 } 2... g6 { 0.16/0 } 3. e4 { 0.23/0 } 3... d6 { 0.09/0 } 4. f4 { 0.66/0 } 4... Bg7 { 0.53/0 } 5. Nf3 { 0.53/0 } 5... O-O { 0.56/0 } 6. d3 { 0.72/0 } 6... c5 { 0.06/0 } 7. Be2 { 0.74/0 } 7... Nc6 { 0.83/0 } 8. O-O { 0.89/0 } 8... d5 { 0.64/0 } (8... e6) (8... e5 9. fxe5 Ng4) 9. e5 { -0.52/0 } 9... Ng4 { -0.31/0 } 10. Qc1 { -0.44/0 } { [%csl Gb2,Gd4] } 10... f6 { -0.96/0 } (10... d4 { [%csl Ge3][%cal Gd3d2] } 11. Nbd2 (11. c3 Ne3 12. Rf2 f6 13. cxd4 cxd4 14. Qc5 fxe5 15. fxe5 Bg4 { [%csl Ge2] } 16. Nbd2 { [%csl Gb2,Ge2] } 16... Rc8 $17) 11... Ne3 12. Rf2 f6 13. Nc4 Ng4 14. Rf1 b5) 11. h3 { 0.86/0 } 11... Nh6 { 0.91/0 } 12. exf6 { -1.00/0 } 12... Bxf6 { 0.64/0 } 13. Bxf6 { 0.61/0 } 13... exf6 { 0.71/0 } 14. g4 { 0.77/0 } { [%cal Gd5d4] } 14... Re8 { 0.74/0 } (14... d4 { [%cal Gb7b6,Gc8b7] } 15. Nbd2 f5 16. g5 Nf7 17. Nc4 b5 18. Nce5 Bb7) 15. Re1 { 0.53/0 } 15... Qd6 { 0.48/0 } 16. Nc3 { 0.51/0 } { [%csl Gd4] } 16... Nd4 { 0.15/0 } (16... Nf7 { [%csl Gd5,Gc5] }) 17. Nxd4 { 0.15/0 } 17... cxd4 { 0.24/0 } { [%csl Gd4,Gc3] } 18. Nb5 { 0.02/0 } 18... Qb6 { 0.24/0 } 19. a4 { 0.31/0 } 19... Re3 { 0.31/0 } 20. Qb2 { 0.35/0 } 20... Bd7 { 0.00/0 } { [%cal Ga8e8] } (20... Bxg4 21. Bxg4 (21. hxg4 Qe6 22. Nxd4 (22. Qxd4 Rxe2 23. Rxe2 Qxe2 24. Qxd5+ Kh8 25. Qg2 Qe3+ 26. Kh1 { [%csl Gf4] } (26. Qf2 Qh3 27. Qg2 Qh4 28. g5 Nf5)) 22... Rg3+ 23. Kh2 Qe3) 21... Nxg4) 21. Qxd4 { 0.00/0 } 21... Bxb5 { 0.00/0 } (21... Rae8 22. Qxb6 axb6 23. Kf2) 22. Qxb6 { 0.00/0 } 22... axb6 { 0.01/0 } 23. Kf2 { 0.00/0 } (23. axb5 Rxa1 24. Rxa1 Rxe2 25. Ra8+ Kf7 26. Rb8 Re7 27. Rh8 Kg7 (27... Ke6) 28. Rd8) 23... Rxh3 { 0.00/0 } 24. axb5 { 0.00/0 } 24... Rh2+ { 0.00/0 } 25. Kf3 { 0.00/0 } 25... Rxa1 { 0.19/0 } (25... Re8 { [%cal Ge8e1] } 26. Bf1 { [%csl Ge1,Gc2,Ge7] }) 26. Rxa1 { 0.07/0 } 26... Nxg4 { 0.00/0 } (26... f5 27. g5 Ng4) 27. Re1 { 0.00/0 } 27... Rh3+ { 0.00/0 } 28. Kxg4 { 0.00/0 } 28... Re3 { 0.07/0 } 29. f5 { 0.34/0 } { [%csl Gg4][%cal Gg6g5] } 29... d4?? { 3.83/0 } { [%csl Gf4][%cal Gg6g5] } (29... g5 30. c4 (30. Kh5 Rh3+ 31. Kg4 Re3) 30... Kg7 31. cxd5 (31. b4 dxc4 32. dxc4 h5+ 33. Kxh5 Re4 34. Rh1 Rxe2 35. Rd1 Rh2+ 36. Kg4 Rh4+ 37. Kf3 Rxc4) 31... Kf8 32. d6 Ke8 33. Rh1 (33. Kh5 Rh3+ 34. Kg4 Re3) 33... Rxe2 34. Rxh7 Rf2 35. Rxb7 Rf4+ 36. Kh5 Rxf5 37. Kg6 Rd5 38. Kxf6 Rxd6+ 39. Kxg5 Rxd3 40. Rxb6 Rxb3 41. Rb8+ Kd7 42. b6 Kc6 43. Rc8+ Kb7) 30. fxg6 { 3.62/0 } 30... hxg6 { 3.55/0 } 31. c3 { 3.49/0 } 31... g5 { 3.92/0 } 32. cxd4 { 3.94/0 } 32... Kg7 { 4.02/0 } 33. Kf5 { 3.73/0 } 33... Re7 { 3.86/0 } 34. d5 { 3.57/0 } 34... Re5+ { 3.33/0 } 35. Kg4 { 3.38/0 } 35... Re3 { 4.65/0 } 36. d6 { 4.44/0 } 36... Kg6 { 4.58/0 } 37. Rf1 { 4.45/0 } 37... Re6 { 4.44/0 } (37... Rxe2 38. d7) 38. Kf3 { 4.34/0 } 38... Rxd6 { 4.25/0 } 39. Ke3 { 4.19/0 } 39... f5 { 4.08/0 } 40. Bf3 { 3.97/0 } 40... g4 { 4.03/0 } 41. Bxb7 { 4.27/0 } 41... Kg5 { 4.69/0 } 42. d4 { 4.59/0 } 42... Re6+ { 4.58/0 } 43. Kd3 { 4.42/0 } 43... f4 { 4.92/0 } 44. Be4 { 4.86/0 } 44... f3 { 6.57/0 } 45. Bxf3 { 6.00/0 } 45... gxf3 { 6.75/0 } 46. Rxf3 { 6.48/0 } 1-0
+
+
+[Event "White Horse 2025 IM"]
+[Date "2025.10.01"]
+[Round "8"]
+[White "Sushanth Kamabathula"]
+[Black "Garv Rai"]
+[Result "0-1"]
+[WhiteElo "2184"]
+[BlackElo "2397"]
+[Annotator "Sushanth"]
+[Variant "Standard"]
+[ECO "A18"]
+[Opening "English Opening: Mikenas-Carls Variation"]
+[StudyName "Sushanth's games"]
+[ChapterName "Sushanth Kamabathula - Garv Rai"]
+[ChapterURL "https://lichess.org/study/VvtZ2fY5/zq61ekqm"]
+
+1. c4 { 0.12/0 } 1... Nf6 { 0.14/0 } 2. Nc3 { 0.12/0 } 2... e6 { 0.02/0 } 3. e4 { 0.14/0 } 3... d6 { 0.07/0 } 4. d4 { 0.69/0 } (4. g3 { Should have taken the Botvinnik setup. }) 4... e5 { 0.76/0 } 5. Nf3 { 0.73/0 } 5... Nbd7 { 0.89/0 } 6. Be2 { 0.82/0 } 6... g6 { 0.79/0 } 7. h3 { 0.72/0 } 7... Bg7 { 0.73/0 } 8. Be3 { 0.08/0 } 8... b6 { 1.22/0 } { [%csl Gd7] } 9. d5 { 0.77/0 } 9... a5 { 0.73/0 } { [%cal Gf6h5] } 10. Nd2 { 0.55/0 } { [%cal Gf7f5,Gf2f3] } (10. g4) 10... h5 { 0.78/0 } 11. a3 { 0.73/0 } 11... Bh6 { 0.63/0 } 12. Bxh6 { 0.76/0 } 12... Rxh6 { 0.75/0 } 13. b4 { 0.76/0 } 13... h4 { 0.96/0 } 14. Nb3 { 0.08/0 } 14... Nh5 { 1.29/0 } { [%cal Gh5f4,Gd8g5] } 15. Qd2 { 0.35/0 } (15. Bxh5 Rxh5 16. O-O { White doesn't have any problems. } { [%cal Gd8g5,Gd7f6,Gc8h3] } 16... Qg5 { [%cal Gd1d3,Gd3h3] } 17. Nb5 { [%csl Gc7] } 17... Nf6 { [%cal Gb5c7] } 18. Qd3 { [%cal Gd3h3,Gf6h5] } 18... Rh8 (18... Kd8 19. c5 Rh8 20. cxd6 cxd6 21. Nxd6 { [%csl Gf4,Gf3][%cal Gg1h1] }) 19. Nxc7+) 15... Nf4 { 0.26/0 } { [%csl Gf4,Ge2][%cal Gd8g5] } 16. Bf1 { 0.73/0 } { [%csl Gg2] } 16... Rh7 { 0.32/0 } { [%cal Gd2h6] } (16... axb4 17. axb4 Rxa1+ 18. Nxa1 Qg5 19. Kd1 f5 { [%csl Gg2,Gd2,Ge3,Gh6][%cal Gh4g3,Gf2g3] } 20. Qe3 Nf6 21. g3 (21. Nc2 { [%csl Ge3] } 21... fxe4 22. g3 hxg3 23. fxg3 Ng4 { [%cal Gg4h6,Gf4h3] }) 21... hxg3 22. fxg3 { [%csl Ge3] } 22... Ne6) 17. g3 { 0.75/0 } 17... hxg3 { 0.74/0 } 18. fxg3 { 0.73/0 } 18... Nh5 { 0.09/0 } 19. Qe3 { -0.91/0 } 19... f5 { 0.51/0 } 20. exf5 { 0.52/0 } 20... gxf5 { 0.54/0 } 21. Be2 { -0.91/0 } (21. Bd3 Ndf6 22. O-O-O { [%cal Gc1b2,Gg3g4,Gd3h7] }) (21. bxa5 { [%csl Ga8] } 21... bxa5 { [%csl Gb4,Gb6] } 22. c5 (22. a4 Rb8 23. Nb5 { [%cal Gc4c5,Ga8a1] }) 22... a4) 21... Qf6 { 0.00/0 } (21... axb4 22. axb4 Rxa1+ 23. Nxa1 { [%csl Ga1] } 23... Ndf6 { [%csl Gg3,Gf5,Ge5] }) 22. Bxh5+ { 0.78/0 } 22... Rxh5 { 0.85/0 } 23. Nd4 { -0.01/0 } 23... Rh7 { 0.14/0 } (23... axb4 24. Ncb5 Nc5 25. Nxc7+ Kd8 26. Nxa8 exd4 27. Qe2 Rg5 { [%csl Gc5] } 28. axb4 d3 { [%csl Gc3,Ge2][%cal Gf6a1] } 29. Qa2 Qc3+ 30. Kd1 Ne4 $19 { [%csl Gc3][%cal Gg5g3] }) 24. Ndb5? { -0.93/0 } { [%csl Gc3][%cal Ge1c1] } (24. Ncb5 Nf8 25. bxa5 Rxa5 26. O-O-O Bd7 { [%csl Gc7] } (26... Ba6 27. Rhf1 Bxb5 28. Rxf5 Qh6 29. Qxh6 Rxh6 30. Nxb5 Rxh3 { [%csl Gc7] } 31. Nxc7+ Ke7 32. Rdf1 $18) 27. Nxc7+ Kd8 { [%csl Gd4,Gc7] } 28. Nce6+ Nxe6 29. Nxe6+ Bxe6 30. Qxb6+) (24. Ne6 Nf8) (24. Nc6 Nf8 { [%cal Gf8g6,Gf5f4] } (24... axb4 25. Nxb4 { [%cal Ga8a1] } 25... Nc5)) 24... Kd8 { -0.91/0 } 25. O-O-O { -0.91/0 } 25... axb4 { 0.59/0 } 26. axb4 { 0.79/0 } 26... Ra1+ { 0.57/0 } 27. Kc2 { -1.00/0 } (27. Kb2 Rxd1 28. Rxd1 (28. Nxd1 f4 29. gxf4 exf4+ 30. Qc3 Ne5) 28... Rxh3) 27... Rxd1 { -0.97/0 } 28. Nxd1 { -0.14/0 } (28. Kxd1 f4 29. Qd3 Nf8 (29... Rh8) 30. gxf4 exf4 (30... Bf5 31. fxe5 Qxe5 32. Qd4 Qxd4+ 33. Nxd4 Rxh3 34. Rxh3 Bxh3 $10) 31. Nd4 { [%csl Gc6] }) 28... f4 { -0.18/0 } { [%cal Ge3e4,Ge4h7] } 29. Qe4?? { -2.27/0 Completely missed Nc5 idea. } { [%csl Gc5][%cal Gc5e4,Gd7c5] } (29. Qa3) 29... Nc5 { -2.37/0 } (29... Nf8 30. g4) 30. Qf3 { -3.24/0 } 30... Bf5+ { -3.54/0 } 31. Kd2 { -3.53/0 } (31. Kc1 Nd3+ 32. Kd2 e4) 31... Ne4+ { -3.86/0 } 32. Kc1 { -3.98/0 } 32... Nxg3 { -3.57/0 } 33. Rh2 { -3.94/0 } { [%cal Gh2a2] } 33... Bd7 { -3.92/0 } 34. Ra2 { -3.97/0 } 34... e4 { -3.24/0 } 35. Qa3 { -4.84/0 } 35... e3 { -4.98/0 } 36. Ndc3 { -4.92/0 } 36... f3 { -4.91/0 } 37. Qa7 { -4.25/0 } 37... f2 { -4.71/0 } (37... Bxb5 38. Nxb5 f2 39. Qb8+ Kd7 40. Qxc7+) 38. Qxc7+ { -4.28/0 } 38... Ke7 { -4.57/0 } 39. Ra8 { -4.56/0 } 39... f1=Q+ { -4.84/0 } 40. Kb2 { -4.95/0 } 40... Rh8 { -5.00/0 } 41. Rxh8 { -3.15/0 } 41... Qxh8 { -3.34/0 } 42. Qxd6+ { -3.32/0 } 42... Kf7 { -3.35/0 } 43. Qxd7+ { -3.43/0 } 43... Kg6 { -3.55/0 } 44. Qg4+ { -3.68/0 } 44... Kh6 { -3.95/0 } 45. Nd4 { -5.52/0 } (45. Qxg3 Qf2+) (45. Qe6+ Qff6 { [%csl Ge6] } (45... Qhf6 46. Qxe3+ Q1f4)) 45... Qe5 { -5.58/0 } 46. Nf3 { -6.96/0 } 46... Qf2+ { -6.82/0 } 47. Kb3 { -5.64/0 } 47... Qf5 { -5.94/0 } 48. Qh4+ { -5.98/0 } 48... Nh5 { -4.05/0 } 49. Nd4 { -4.37/0 } 49... Q5f4 { -5.91/0 } (49... Qxh4?? 50. Nxf5+ Kg5 51. Nxh4 Kxh4 52. c5 $18) 50. Qxf4+ { -4.05/0 } 50... Nxf4 { -5.83/0 } 51. Nf5+ { -5.16/0 } 51... Kg6 { -5.95/0 } (51... Kg5 52. Ne4+ Kxf5 53. Nxf2 exf2) 0-1
+
+
+[Event "White Horse 2025 IM"]
+[Date "2025.10.02"]
+[Round "9"]
+[White "Belunek, Vladimir"]
+[Black "Sushanth Kamabathula"]
+[Result "0-1"]
+[WhiteElo "2170"]
+[BlackElo "2184"]
+[Annotator "Sushanth"]
+[Variant "Standard"]
+[ECO "A07"]
+[Opening "King's Indian Attack"]
+[StudyName "Sushanth's games"]
+[ChapterName "Belunek, Vladimir - Sushanth Kamabathula"]
+[ChapterURL "https://lichess.org/study/VvtZ2fY5/RIs4K4zL"]
+
+1. Nf3 { 0.01/0 } 1... d5 { 0.18/0 } 2. g3 { 0.15/0 } 2... Nd7 { 0.25/0 } { [%cal Ge7e5] } 3. d4 { 0.22/0 } 3... Nb6 { 0.23/0 } { [%cal Gc2c4] } 4. Bg2 { 0.18/0 } 4... Nf6 { 0.34/0 } 5. O-O { 0.31/0 } 5... Bf5 { 0.45/0 } 6. b3 { 0.17/0 } 6... e6 { 0.31/0 } 7. c4 { 0.21/0 } 7... h6 { 0.36/0 } 8. Bb2 { 0.25/0 } 8... c6 { 0.26/0 } 9. Nbd2 { 0.15/0 } 9... Be7 { 0.21/0 } 10. Ne5 { 0.14/0 } 10... O-O { 0.00/0 } 11. h3 { 0.16/0 } 11... Ne4 { 0.26/0 } { [%cal Gf7f6] } (11... a5 { [%csl Gc4,Gb3,Ga2][%cal Ga5a4] } 12. a3 { [%csl Gb6,Gf5,Ge4] } 12... Nbd7 13. f3 Nxe5 14. dxe5 Nd7 { [%csl Ge5] } 15. f4 Qb6+ 16. Kh2 Rfd8 { [%csl Gd1][%cal Gb6b3,Gf5c2,Gd8d1] }) 12. Nxe4 { 0.02/0 } 12... dxe4 { 0.57/0 } (12... Bxe4 13. f3 (13. Bxe4 dxe4 14. Qc2 f5 { [%csl Gb6][%cal Ge7f6] } (14... f6 15. Ng6 { [%csl Gf8,Ge4] }) 15. f3 exf3 16. exf3 { [%csl Ge6,Gd4,Gg1,Gf3,Gg3,Gh3] } 16... Bd6 { [%cal Gd6e5] } 17. Rae1 Nd7 { [%csl Gb6,Ga4,Gc4][%cal Gb3c4,Gb3a4,Gc4d5] } 18. Nd3 { [%csl Gg3] } (18. Nxd7 Qxd7 19. f4 $10 Rfe8 { [%csl Gd4,Ge6][%cal Gd6e7,Ge7f6] })) 13... Bh7 14. e4 Nd7 15. Nxd7 Qxd7 16. e5 c5 { [%csl Gf4][%cal Gf3f4,Gg3g4] }) 13. e3 { 0.08/0 } (13. Qc2 e3 (13... f6 14. Ng4 e3 15. Be4 exf2+ 16. Rxf2 { [%csl Ge6] }) 14. Nd3 exf2+ 15. Rxf2 { [%cal Ge2e4] } 15... Bf6 16. e4 Bh7 17. Qc3) 13... f6 { 0.13/0 } 14. Ng4 { 0.17/0 } 14... Bh7 { 0.01/0 } 15. f4 { 0.08/0 } { [%csl Gh7,Gg2,Ge4] } (15. f3) 15... exf3 { 0.09/0 } (15... Nd7 { [%csl Gg2][%cal Gg2f1,Gf1c4] } 16. Re1 { [%csl Ge4] } 16... f5 17. Nf2 Nf6 18. Bf1 g5 19. Kh2 Bg6 { [%cal Gg6h5] } 20. Be2 Kh7 { [%csl Gf8,Gg6][%cal Gf8g8,Gd8e8] }) 16. Qxf3 { 0.01/0 } { [%cal Gh7b1] } 16... Nd7 { 0.04/0 } 17. Nf2 { 0.08/0 } 17... Qc7 { 0.11/0 } 18. Kh2 { 0.14/0 } 18... e5 { 0.06/0 } 19. d5 { 0.21/0 } 19... f5 { 0.08/0 } 20. e4 { 0.02/0 } 20... cxd5 { 0.02/0 } 21. cxd5 { 0.81/0 } (21. exd5 e4 { [%cal Ge7d6,Gd7e5] }) 21... Qc2 { 0.84/0 } { [%csl Gb2][%cal Gf5e4,Gf8f2] } 22. Qc3 { -2.45/0 } 22... Rac8 { -2.96/0 } 23. Qxc2 { -2.35/0 } 23... Rxc2 { -2.43/0 } 24. Nd1 { -2.97/0 } { [%cal Gf5f4,Gf5e4] } 24... f4 { -1.88/0 } { [%cal Gg3f4,Ge5f4,Gf4f3,Gg7g5] } (24... fxe4 25. Rxf8+ Kxf8 26. Rc1 Rxc1 27. Bxc1) 25. gxf4 { -0.03/0 } 25... Bxe4 { -0.97/0 } (25... Rxf4 { [%csl Gf4,Gc2] } 26. Rxf4 exf4 27. Rc1 Rxc1 (27... Bxe4 28. Rxc2 Bxc2 29. Nf2 { [%csl Gd5] } 29... Bf6 30. Ba3 Bb1 31. d6 b6 32. Bc6 Bf5 33. Kg2 Bd4 34. Bc1 g5 { [%csl Gb6,Ga7,Gd7][%cal Ga7b6] }) 28. Bxc1) 26. Rf2 { -0.54/0 } 26... Rxf2 { -0.65/0 } 27. Nxf2 { -0.95/0 } 27... Bxg2 { -0.65/0 } 28. Kxg2 { -0.81/0 } 28... exf4 { 0.66/0 } 29. Kf3 { 0.63/0 } 29... Bf6 { 0.22/0 } 30. Bxf6 { 0.29/0 } 30... Nxf6 { 0.51/0 } { [%csl Gd5,Gf4][%cal Ga1d1,Gd1d5] } 31. Kxf4 { -2.00/0 } (31. d6 Rd8 32. Rd1 g5 33. h4 Kf7 34. hxg5 hxg5 35. Ng4 $15) 31... Nxd5+ { -0.24/0 } 32. Kg3 { -0.01/0 } 32... Nb4 { -0.83/0 } (32... Re8! 33. Rd1 Re3+ 34. Kh2 Re2 35. Kg1 (35. Kg2 { [%cal Gd5e3] }) (35. Kg3 Nf6 { [%cal Ge2a2,Gd1a1] } 36. Rd8+ (36. Ra1 Re3+ { [%cal Gg3f4,Gf6d5] } 37. Kg2 Nd5) 36... Kh7 { [%csl Ga2] } 37. a4 (37. Rb8 b6 { [%csl Ga7][%cal Ge2a2] } 38. a4 { [%cal Ge2e3] } 38... Rb2 { [%cal Gb2b3] }))) 33. Rd1 { -0.74/0 } 33... Nc6 { 0.85/0 } 34. Ne4 { 0.08/0 } 34... Rf7 { 0.75/0 } 35. h4 { 0.08/0 } 35... g6 { 0.28/0 } 36. Rd6 { 0.26/0 } 36... Kg7 { 0.06/0 } 37. Nc5 { 0.00/0 } 37... Ne7 { 0.07/0 } 38. Ne6+ { 0.15/0 } { [%csl Ge6,Gd6] } 38... Kh7 { 0.23/0 } 39. Nd4 { 0.16/0 } 39... Ng8 { 0.28/0 } 40. Nf3 { 0.99/0 } 40... Nf6 { -0.95/0 } 41. Re6 { -0.83/0 } 41... Nh5+ { -0.84/0 } 42. Kf2 { -0.58/0 } 42... Ng7 { -0.62/0 } 43. Re4 { -0.97/0 } 43... Nf5 { -0.76/0 } 44. a4 { -0.49/0 } 44... Kg7 { -0.63/0 } 45. b4 { -1.93/0 } 45... Rc7 { -1.82/0 } 46. Nd4 { -1.94/0 } { [%cal Gd4e6] } 46... Nxd4 { -0.51/0 } 47. Rxd4 { -0.96/0 } 47... Kf6 { -0.86/0 } { [%csl Gg6,Gh6,Gh4] } 48. Kf3 { -1.49/0 } (48. Ke3! a6 (48... Ke5 49. Re4+ Kf5 50. Rf4+ Ke5 51. Re4+) 49. Rf4+ Ke5 (49... Kg7) 50. Re4+ Kf5 51. Rf4+ Ke5 $10) 48... Ke5 { -0.08/0 } 49. Rg4 { -1.96/0 } 49... Rc3+ { -0.05/0 } 50. Kf2 { -3.00/0 } 50... Kf5 { -2.95/0 } 51. Rd4 { -0.12/0 } 51... Rc7 { -0.78/0 } 52. Kf3 { -0.02/0 } 52... b6 { 0.45/0 } { [%cal Ga7a5,Gc7c3] } 53. a5 { -2.29/0 } (53. Ke3 { [%cal Gd4f4,Gf4d4] } 53... Rc3+ 54. Kd2 Ra3 55. b5 g5 56. hxg5 hxg5) (53. h5 Rc3+ 54. Kf2 { [%cal Gd4d6,Gd6h6] } 54... gxh5 55. Rd7) 53... Rc3+ { -2.53/0 } 54. Kg2 { -3.92/0 } 54... bxa5 { -2.44/0 } 55. bxa5 { -2.08/0 } 55... Ra3 { -2.41/0 } 56. h5 { -2.07/0 } (56. Rd5+ Kg4 57. h5 g5 { [%cal Gg4h5] }) 56... Rxa5 { -2.34/0 } 57. hxg6 { -3.51/0 } 57... Kxg6 { -3.57/0 } 58. Kg3 { -3.65/0 } 58... Rf5 { -3.34/0 } 59. Rd6+ { -3.94/0 } 59... Rf6 { -3.29/0 } 60. Rd5 { -3.31/0 } 60... a6 { -3.44/0 } 61. Kg4 { -3.85/0 } 61... Kf7 { -3.95/0 } 62. Re5 { -3.53/0 } 62... Re6 { -3.64/0 } 63. Rd5 { -3.83/0 } 63... Ke7 { -3.94/0 } 64. Kf4 { -3.56/0 } 64... Rd6 { -3.83/0 } 65. Ke4 { -#17/0 } (65. Re5+ Kd7 { [%cal Gd7c7,Gc7b6,Ga6a5,Gd6c6,Gc6c5,Gb6b5,Gf4h6] }) (65. Rc5 Rf6+ 66. Ke4 Kf7 67. Ke5 Kg6 68. Ke4 h5 69. Ra5 h4 70. Ra3 Kg5) 65... Rxd5 { -76.95/0 } 0-1
+
+
+[Event "Fagernes International Autumn 2025"]
+[Date "2025.10.05"]
+[Round "1"]
+[White "Sushanth Kamabathula"]
+[Black "Sivuk, Vitaly"]
+[Result "0-1"]
+[WhiteElo "2184"]
+[BlackElo "2506"]
+[Annotator "Sushanth"]
+[Variant "Standard"]
+[ECO "A13"]
+[Opening "English Opening: Agincourt Defense"]
+[StudyName "Sushanth's games"]
+[ChapterName "Sushanth Kamabathula - Sivuk, Vitaly"]
+[ChapterURL "https://lichess.org/study/VvtZ2fY5/7p4BO8EJ"]
+
+1. c4 e6 2. Nc3 d5 3. e3 Nf6 4. Nf3 Bd6 5. b3 O-O 6. Bb2 a6 7. Qc2 (7. Be2 dxc4 8. bxc4) 7... c5 8. cxd5 (8. d4 { [%csl Gd5][%cal Gf1d3] } 8... Nc6 9. dxc5 Bxc5 { [%cal Gc2c5] } 10. Be2) 8... exd5 9. d4 Nc6 10. Rd1 (10. dxc5 Bxc5 11. Be2) 10... Nb4 (10... cxd4 11. Nxd4 Nxd4 12. Rxd4 Be6) 11. Qb1 g6 12. Bd3 Nxd3+ 13. Qxd3 Bf5 14. Qe2 c4 15. bxc4 dxc4 16. Ne5 (16. Qxc4 Rc8 (16... Bc2 17. Rc1 Rc8 18. Qe2) 17. Qb3 Bg4 18. O-O (18. Ne2 Qa5+ 19. Kf1 Be6 { [%csl Gb3] }) 18... Bxf3 19. gxf3 { [%csl Gg1] }) 16... b5 17. e4 Bc8 18. a3 Bb7 19. O-O Qe7 { [%csl Gb2,Gd4,Gd6,Ge5][%cal Gb2h8] } 20. f4 (20. Qe3 { [%csl Ge5,Ge3] } 20... Bxe5? (20... Rad8 { [%csl Ga3] } 21. Rfe1 Bxa3 22. Bxa3 Qxa3 23. d5 b4 24. Qb6 Qxc3 { [%csl Gf6] } 25. Qxf6 Rde8 26. Nd7 (26. f4)) (20... Bxa3 21. Bxa3 Qxa3 22. Nd5 Qd6 23. Nxf6+ Qxf6 24. Nd7) 21. dxe5 Qxe5 22. f3 { [%csl Gb7][%cal Gb2g7] } (22. f4)) 20... Bxa3 21. Bxa3 Qxa3 22. Rf3 Qe7 23. d5 Qc5+ 24. Kh1 b4 25. Na4 Qb5 26. Nb2 c3 27. Nbc4 Rac8 28. Rb1 (28. f5 a5 29. fxg6 fxg6 30. Rdf1 Nd7 (30... b3 31. Rxc3 Nxe4 { [%cal Gb7d5] })) 28... Nxe4 29. Qxe4 Bxd5 30. Qd4 Bxf3 31. gxf3 Rfd8 32. Qa7 Qd5 33. Nb6 Qa2 34. Nxc8 Qxb1+ 35. Kg2 Qa2+ 36. Kg3 Rxc8 37. Nd7 Qe6 38. Qd4 c2 { 0-1 Black wins. } 0-1
+
+
+[Event "Fagernes International Autumn 2025"]
+[Date "2025.10.06"]
+[Round "2"]
+[White "Bech, Havard Eriksen"]
+[Black "Sushanth Kamabathula"]
+[Result "1/2-1/2"]
+[WhiteElo "2006"]
+[BlackElo "2184"]
+[Annotator "Sushanth"]
+[Variant "Standard"]
+[ECO "D20"]
+[Opening "Queen's Gambit Accepted: Old Variation"]
+[StudyName "Sushanth's games"]
+[ChapterName "Bech, Havard Eriksen - Sushanth Kamabathula"]
+[ChapterURL "https://lichess.org/study/VvtZ2fY5/JMBnxWTA"]
+
+1. d4 { 0.17/0 } 1... d5 { 0.18/0 } 2. c4 { 0.18/0 } 2... dxc4 { 0.28/0 } 3. e3 { 0.13/0 } 3... e5 { 0.18/0 } 4. Bxc4 { 0.02/0 } 4... Nc6 { 0.45/0 } 5. Nf3 { 0.45/0 } 5... e4 { 0.54/0 } 6. Qb3 { 0.51/0 } 6... Nh6 { 0.47/0 } 7. Nfd2 { 0.59/0 } 7... Qg5? { 0.57/0 } (7... f5 { This was the way to continue with the Jobava spirit. }) 8. g3 $16 { 0.62/0 } 8... Na5 { 0.62/0 } 9. Qb5+ { 0.68/0 } 9... Qxb5 { 0.78/0 } 10. Bxb5+ { 0.07/0 } 10... c6 { 0.07/0 } 11. Be2 { 0.07/0 } 11... f5 { 0.68/0 } 12. O-O { 0.73/0 } { [%csl Ga5] } 12... Be6 { 0.48/0 } 13. Nc3 { 0.15/0 } 13... O-O-O { 0.74/0 } 14. f3 { 0.27/0 } 14... exf3 { 0.34/0 } 15. Bxf3 { 0.03/0 } 15... Be7 { 0.01/0 } 16. b3 { 0.15/0 } 16... Bg5 { 0.25/0 } 17. Re1 { 0.32/0 } 17... Rhe8 { 0.49/0 } 18. Bb2 { 0.16/0 } 18... Bf7? { 0.59/0 Missed the Nd1 idea. } (18... Bd5 { [%csl Ge3] }) 19. Nd1 { 0.38/0 } { [%csl Ga5,Gc6][%cal Gb2c3] } 19... Bd5 { 1.12/0 } { [%csl Gg4,Gd5,Ge4][%cal Gh6g4] } (19... Ng4 20. Bc3 Nxe3 21. Bxa5 Nc2 22. Rxe8 Bxe8 23. Rc1 (23. Bxd8 Bxd2 24. Rb1 Nxd4 $10 25. Bxc6 Bxc6) 23... Bxd2 24. Bxd2 Nxd4) 20. Rc1 { 1.11/0 } 20... b6 { 1.22/0 } 21. Bxd5 { 1.21/0 } 21... Rxd5 { 1.11/0 } 22. b4 { 1.09/0 } 22... Nb7 { 1.17/0 } 23. Rxc6+ { 1.22/0 } 23... Kd7 { 1.41/0 } 24. Rc2 { 1.35/0 } 24... Ng4 { 1.62/0 } 25. Nf1 { 0.22/0 } { [%csl Gc6][%cal Gb7d6] } 25... Nd6 { 0.27/0 } 26. h3 { 0.15/0 } 26... Nf6 { 0.02/0 } 27. Ree2 { 0.02/0 } 27... Nfe4 { 0.26/0 } 28. Nf2 { 0.02/0 } 28... Nxf2 { 0.00/0 } 29. Kxf2 { 0.12/0 } 29... Ne4+ { 0.00/0 } 30. Kf3 { 0.00/0 } 30... Be7 { 0.00/0 } 31. Bc3 { 0.00/0 } 31... Nxc3 { 0.00/0 } 32. Rxc3 { 0.02/0 } 32... Bxb4 { 0.01/0 } 33. Rc4 { 0.00/0 } 33... Bd6 { 0.01/0 } 34. Nd2 { 0.00/0 } 34... h5 { 0.00/0 } 35. h4 { 0.00/0 } 35... Re6 { 0.00/0 } 36. Nf1 { 0.08/0 } 36... b5 { 0.01/0 } (36... Rb5 { [%cal Gb5b1] } 37. Rec2 Rb1 38. Kf2 Rb4 39. Rc8 Re8 40. R8c3 (40. R8c6) 40... Rg8 { [%cal Gg7g5,Gf1e3,Gf1g3] }) 37. Rc1 { 0.08/0 } 37... b4 { 0.03/0 } 38. Rec2 { 0.24/0 } 38... Ra5 { 0.00/0 } 39. Nd2 { 0.00/0 } 39... Rb5 { 0.00/0 } (39... Ra3 40. Nc4 Ra6 41. Nxd6 { [%cal Gc2c7] }) 40. Rc6 { 0.00/0 } { [%cal Gc6a6,Gc1c6] } (40. Nc4 Bb8) 40... Ra5 { 0.00/0 } 41. R6c2 { 0.00/0 } { [%cal Gd2c4] } 41... Rb5 { 0.00/0 } (41... Ra6 { [%cal Ga7a5,Ga5a4] }) 42. Rc6 a5 43. Ra6 { [%cal Ga6a7] } 1/2-1/2
+
+
+[Event "Fagernes International Autumn 2025"]
+[Date "2025.10.07"]
+[Round "3"]
+[White "Sushanth Kamabathula"]
+[Black "Wiger-Nordas, Felix"]
+[Result "1/2-1/2"]
+[WhiteElo "2184"]
+[BlackElo "2010"]
+[Annotator "Sushanth"]
+[Variant "Standard"]
+[ECO "A16"]
+[Opening "English Opening: Anglo-Indian Defense, Queen's Knight Variation"]
+[StudyName "Sushanth's games"]
+[ChapterName "Sushanth Kamabathula - Wiger-Nordas, Felix"]
+[ChapterURL "https://lichess.org/study/VvtZ2fY5/wIbjZCMW"]
+
+1. c4 { 0.12/0 } 1... Nf6 { 0.14/0 } 2. Nc3 { 0.12/0 } 2... g6 { 0.48/0 } 3. e4 { 0.46/0 } 3... d6 { 0.45/0 } 4. g3 { 0.00/0 } 4... Bg7 { 0.00/0 } 5. Bg2 { 0.00/0 } 5... c5 { 0.00/0 } 6. Nge2 { 0.00/0 } 6... Nc6 { 0.00/0 } 7. d3 { 0.00/0 } 7... O-O { 0.00/0 } 8. O-O { 0.05/0 } 8... Bg4 { 0.04/0 } 9. f3 { 0.01/0 } 9... Bd7 { 0.03/0 } 10. Be3 { 0.00/0 } 10... a6 { 0.01/0 } 11. a4 { 0.08/0 } 11... b6 { 0.21/0 } 12. d4 { 0.19/0 } 12... cxd4 { 0.38/0 } 13. Nxd4 { 0.34/0 } 13... Rb8 { 0.54/0 } 14. Nxc6 { 0.34/0 } (14. b3 Nxd4 15. Bxd4 b5 { [%csl Ga4] } 16. cxb5 (16. axb5 axb5 { [%csl Gc4] }) 16... axb5 17. a5 b4 18. Nd5 Bb5 19. Re1 Nxd5 20. exd5 Bxd4+ 21. Qxd4 { [%cal Gh2h5] } 21... Ba6 { [%csl Ga7] } 22. Qa7 { [%cal Ga7e7,Ga7a6] }) 14... Bxc6 { 0.28/0 } { [%csl Ge4][%cal Ga4a5] } 15. f4? { 0.06/0 } (15. Ne2 { [%cal Ge2d4] } 15... Nd7 16. Nd4 Ba8 { [%csl Gb5] } 17. Ra2) 15... Nd7 { 0.03/0 } 16. Qc2 { 0.22/0 } (16. Bd4 Bxd4+ 17. Qxd4 Nc5 18. Qe3 b5 19. axb5 axb5 20. b4 Nd7 21. cxb5 Bxb5 22. Rfb1 { [%csl Gb6] }) 16... a5 { 0.23/0 } (16... Qc7 17. Nd5 (17. b3 { [%csl Gd4,Gc6][%cal Gg7a1] } 17... Qb7 { [%csl Gc3,Ge4] } 18. Rae1 b5 19. cxb5 axb5 { [%cal Gg7a1] }) 17... Bxd5 18. exd5 b5 { [%cal Gc7c2] }) 17. Rfd1 { 0.04/0 } (17. Nb5 { [%csl Gb5][%cal Gc6a4,Ga1e1,Gb2b3] } 17... Nc5 18. Rae1 { [%cal Gb2b3] } 18... Bxb5 19. cxb5 { [%cal Ge7d6,Gd6d5] }) 17... Qc7 { 0.02/0 } 18. Bd4 { 0.02/0 } 18... Bxd4+ { 0.13/0 } 19. Rxd4 { 0.02/0 } 19... Bb7 { 0.21/0 } 20. b3 { 0.00/0 } (20. Nd5 { [%csl Ge7] } 20... Bxd5 21. Rxd5 e6 22. Rb5 Nc5) 20... Qc5 { 0.00/0 } 21. Qf2 { 0.00/0 } 21... Nf6 { 0.00/0 } 22. h3 { 0.03/0 } 22... Qb4 { 0.02/0 } 23. Qc2 { 0.18/0 } 23... Qc5 { 0.14/0 } (23... e5 24. fxe5 dxe5 25. Rdd1 Rbd8) 1/2-1/2
+
+
+[Event "Fagernes International Autumn 2025"]
+[Date "2025.10.08"]
+[Round "4"]
+[White "Odenthal, Aidan"]
+[Black "Sushanth Kamabathula"]
+[Result "1/2-1/2"]
+[WhiteElo "2045"]
+[BlackElo "2184"]
+[Annotator "Sushanth"]
+[Variant "Standard"]
+[ECO "D25"]
+[Opening "Queen's Gambit Accepted: Janowski-Larsen Variation"]
+[StudyName "Sushanth's games"]
+[ChapterName "Odenthal, Aidan - Sushanth Kamabathula"]
+[ChapterURL "https://lichess.org/study/VvtZ2fY5/8Cyab1bg"]
+
+1. d4 { 0.17/0 } 1... d5 { 0.18/0 } 2. Nf3 { 0.08/0 } 2... Nf6 { 0.11/0 } 3. c4 { 0.22/0 } 3... dxc4 { 0.28/0 } 4. e3 { 0.18/0 } 4... Bg4 { 0.41/0 } 5. Bxc4 { 0.39/0 } 5... e6 { 0.55/0 } 6. O-O { 0.33/0 } 6... Bd6 { 0.06/0 } 7. Nc3 { 0.51/0 } 7... Nc6 { 0.53/0 } 8. Bb5 { 0.16/0 } 8... O-O { 0.18/0 } 9. Bxc6 { 0.00/0 } 9... bxc6 { 0.02/0 } 10. e4 { 0.01/0 } 10... Nd7 { 0.00/0 } 11. h3 { 0.04/0 } 11... Bh5 { 0.00/0 } 12. Re1 { 0.08/0 } 12... c5 { 0.07/0 } 13. d5 { 0.03/0 } 13... e5 { 0.89/0 } 14. g4 { 0.81/0 } 14... Bg6 { 0.85/0 } 15. Qe2 { 0.89/0 } 15... Rb8 { 0.93/0 } 16. Kg2 { 0.76/0 } 16... h6 { 0.69/0 } 17. Nh2 { 0.24/0 } 17... Re8 { 0.23/0 } 18. Nf1 { 0.02/0 } 18... Nf8 { 0.49/0 } 19. Ng3 { 0.04/0 } 19... Bh7 { 0.16/0 } 20. Nf5 { 0.22/0 } 20... Ng6 { 0.13/0 } 21. Kh2 { 0.05/0 } 21... Nf4 { 0.04/0 } 22. Qf3 { 0.00/0 } 22... c4 { 0.05/0 } 23. Rb1 { 0.03/0 } 23... Nd3 { 0.00/0 } 24. Rg1 { 0.05/0 } 24... Nxc1? { 0.94/0 } (24... Bc5 25. Bxh6 (25. Be3 Bd4 { [%cal Gh7e4] } 26. Bxd4 exd4 27. Nxd4 { [%csl Gb2] } 27... Qg5 { [%cal Gg5d2] }) 25... gxh6 26. Nxh6+ Kg7 27. Qxf7+ Kh8 28. Nf5 Qg5 $17) 25. Rgxc1 { 0.09/0 } 25... Bxf5 { 0.65/0 } 26. gxf5 { 0.68/0 } 26... Rb6 { 0.96/0 } 27. Nd1 { 1.03/0 } 27... c6 { 1.15/0 } 28. Ne3 { 1.32/0 } 28... cxd5 { 1.39/0 } 29. Nxd5 { 1.12/0 } 29... Rc6 { 1.82/0 } 30. Rg1 { 1.24/0 } 30... Be7 { 1.21/0 } 31. Rbd1 { 1.00/0 } 31... Kh8 { 1.19/0 } 32. Qh5 { 1.21/0 } 32... Rf8 { 1.02/0 } 33. Kh1 { 1.08/0 } 33... Bf6 { 0.96/0 } 34. Rg3 { 1.02/0 } 34... Rd6 { 1.18/0 } 35. Rc3 { 1.27/0 } 35... Qa5 { 1.21/0 } 36. a3 { 1.17/0 } 36... Qc5 { 1.91/0 } 37. Qe2 { 1.81/0 } 37... Bh4 { 2.21/0 } 38. Kg2 { 2.16/0 } 38... Rc8 { 2.52/0 } 39. b4 { 2.63/0 } 39... Qb5 { 2.77/0 } 40. Qh5 { 2.72/0 } 40... Bg5 { 2.93/0 } 41. Qxf7 { 2.62/0 } 41... a5 { 4.07/0 } 42. Nc7 { 4.06/0 } 42... Qb6 { 7.09/0 } 43. Rxd6 { 4.79/0 } (43. Ne8 { [%csl Gg7,Gd6] }) 43... Qxd6 { 4.56/0 } 44. Ne8?? { -1.68/0 } 44... Qe7 { -1.97/0 } 45. Qxe7 { -1.87/0 } 45... Bxe7 { -1.66/0 } 46. bxa5 { -1.69/0 } 46... Rxe8 { -1.47/0 } 47. Rxc4 { -1.52/0 } 47... Ra8 { -1.66/0 } 48. Ra4 { -0.04/0 } 48... Ra6 { -1.69/0 } 49. f4 { -1.97/0 } 49... exf4 { -1.82/0 } (49... Bf6) (49... Bd6 50. fxe5 Bxe5 51. Kf3 Kg8 52. Ke3 Kf7 53. Kd3 Ke7 54. Kc4 Kd7 55. Kb5) 50. e5 { -0.15/0 } { [%cal Gc5a7,Gc5g1] } 50... Bc5 { 0.29/0 } (50... Bg5 { [%csl Gf4] }) 51. Kf3 { 0.39/0 } 51... Be3 { 0.00/0 } 52. e6 { 0.03/0 } 52... Kg8 { 0.00/0 } { [%csl Gg5][%cal Ge3g1,Ge3a7,Gg5d8] } 53. Rc4 { 0.00/0 } 53... Kf8 { 0.00/0 } 54. Rc8+ { 0.00/0 } 54... Ke7 { 0.00/0 } 55. Rc7+ { 0.00/0 } 55... Kf8 { 0.00/0 } 1/2-1/2
+
+
+[Event "Fagernes International Autumn 2025"]
+[Date "2025.10.08"]
+[Round "5"]
+[White "Sushanth Kamabathula"]
+[Black "Charvi A"]
+[Result "1/2-1/2"]
+[WhiteElo "2184"]
+[BlackElo "2076"]
+[Annotator "Sushanth"]
+[Variant "Standard"]
+[ECO "A10"]
+[Opening "English Opening: Great Snake Variation"]
+[StudyName "Sushanth's games"]
+[ChapterName "Sushanth Kamabathula - Charvi A"]
+[ChapterURL "https://lichess.org/study/VvtZ2fY5/O8CfEm5o"]
+
+1. c4 { 0.12/0 } 1... g6 { 0.22/0 } 2. e4 { 0.13/0 } 2... d6 { 0.55/0 } 3. Nc3 { 0.23/0 } 3... Bg7 { 0.05/0 } 4. g3 { 0.00/0 } 4... Nf6 { 0.00/0 } 5. Bg2 { 0.00/0 } 5... O-O { 0.00/0 } 6. Nge2 { 0.00/0 } 6... e5 { 0.25/0 } 7. O-O { 0.21/0 } 7... Nbd7 { 0.06/0 } 8. d3 { 0.66/0 } 8... c6 { 0.69/0 } 9. h3 { 0.49/0 } 9... Re8 { 0.68/0 } 10. Be3 { 0.66/0 } 10... Nb6 { 0.84/0 } 11. f4 { 0.67/0 } 11... exf4 { 0.72/0 } 12. gxf4 { 0.25/0 } 12... Be6 { 0.09/0 } 13. b3 { 0.32/0 } 13... d5 { 0.45/0 } 14. cxd5 { 0.18/0 } 14... Bxd5 { 1.32/0 } 15. Qd2 { 0.88/0 } 15... Be6 { 0.86/0 } 16. Ng3 { 0.89/0 } 16... Qc7 { 1.71/0 } 17. Rad1 { 1.29/0 } 17... Rad8 { 1.66/0 } 18. Nce2 { 1.36/0 } 18... c5 { 2.00/0 } 19. Qc1 { 1.85/0 } 19... Rc8 { 1.73/0 } 20. f5 { 2.49/0 } 20... Bd7 { 2.39/0 } 21. Bf4 { 2.13/0 } 21... Qd8 { 1.87/0 } 22. Bg5 { 1.19/0 } (22. e5 Nfd5 { [%csl Gf4] } 23. Bg5 Qc7 (23... f6 24. exf6 Bxf6 25. Bxf6 Qxf6 26. fxg6 Qxg6 27. Be4 Qg7 28. Kh1 { [%cal Gf1g1] } 28... Kh8 29. Nh5 { [%cal Gc1h6] }) 24. e6 fxe6 25. f6 { [%cal Gf6f7] }) 22... Bc6 { 0.95/0 } 23. Qf4 { 0.75/0 } 23... Nbd7 { 0.92/0 } 24. Qh4 { 0.05/0 } 24... Qe7 { 0.55/0 } 25. d4 { 0.17/0 } 25... cxd4 { 0.35/0 } 26. Nxd4 { 0.59/0 } 26... Qc5 { 0.74/0 } 27. fxg6 { 0.82/0 } 27... hxg6 { 0.79/0 } 28. Bxf6 { 0.05/0 } (28. Rxf6 Nxf6 29. Bxf6 Bxf6 30. Qxf6) 28... Nxf6 { 0.65/0 } 29. Rxf6 { -0.96/0 } 29... Bxf6 { 0.08/0 } (29... Rcd8 30. e5 (30. Ne2 Bb5 31. Rc1 Qe7 32. Nxb5 Bxf6 33. Qf2 Rd2 34. Nc7 { [%cal Gf6d4,Gd4g1] } 34... Bd4 35. Nxd4 Rxf2 36. Kxf2 Rc8) 30... Qxe5 31. Rxc6 Rxd4) 30. Qxf6 { 0.83/0 } 30... Rcd8 { 0.64/0 } 31. Ne2 { 0.02/0 } 31... Bb5 { 1.17/0 } 32. Rc1 { 0.89/0 } 32... Qb4?? { 3.98/0 } 33. Rc7?? { 1.21/0 } (33. Ne6 fxe6 34. Qxg6+ Kh8 35. Rc7 Bd7 36. Rxd7) 33... Rd7 { 1.18/0 } 34. Nxb5 { 0.08/0 } 34... Rxc7 { 1.03/0 } 35. Nxc7 { 1.19/0 } 35... Qc5+ { 1.14/0 } 36. Kh1 { 0.07/0 } 36... Qxc7 { 0.79/0 } 37. Nf4 { 0.78/0 } 37... Qc1+ { 0.65/0 } 38. Kh2 { 0.78/0 } 38... Qc7 { 0.77/0 } 39. Kg1 { 0.83/0 } (39. h4 Re6 40. Qg5 Re5 41. Qg3) 39... Qc1+ { 0.84/0 } { [%cal Gg1f2] } 40. Kf2 Qd2+ 41. Kg3 Qe3+ 42. Kg4 1/2-1/2
+
+
+[Event "Fagernes International Autumn 2025"]
+[Date "2025.10.09"]
+[Round "6"]
+[White "Harish, Neeraj"]
+[Black "Sushanth Kamabathula"]
+[Result "1/2-1/2"]
+[WhiteElo "2028"]
+[BlackElo "2184"]
+[Annotator "Sushanth"]
+[Variant "Standard"]
+[ECO "B90"]
+[Opening "Sicilian Defense: Najdorf Variation, English Attack"]
+[StudyName "Sushanth's games"]
+[ChapterName "Harish, Neeraj - Sushanth Kamabathula"]
+[ChapterURL "https://lichess.org/study/VvtZ2fY5/jnmi4WUS"]
+
+1. e4 { 0.18/0 } 1... c5 { 0.24/0 } 2. Nf3 { 0.02/0 } 2... d6 { 0.31/0 } 3. d4 { 0.22/0 } 3... cxd4 { 0.19/0 } 4. Nxd4 { 0.18/0 } 4... Nf6 { 0.31/0 } 5. Nc3 { 0.32/0 } 5... a6 { 0.25/0 } 6. Be3 { 0.25/0 } 6... e5 { 0.15/0 } 7. Nb3 { 0.21/0 } 7... Be7 { 0.02/0 } 8. f3 { 0.37/0 } 8... Be6 { 0.44/0 } 9. Qd2 { 0.43/0 } 9... h5 { 0.46/0 } 10. Nd5 { 0.47/0 } 10... Nxd5 { 0.44/0 } 11. exd5 { 0.45/0 } 11... Bf5 { 0.42/0 } 12. Be2 { 0.45/0 } { [%cal Gb3a5] } 12... Nd7 { 0.59/0 } (12... a5! { This is my line }) 13. O-O { 0.58/0 } 13... O-O { 0.49/0 } (13... a5! { [%cal Gc2c4,Gb2b4] }) 14. Na5 { 0.56/0 } { [%cal Gd8c7,Gd8c8] } 14... Qc7 { 0.62/0 } (14... Qc8 { [%csl Gf8,Ga8,Ga5][%cal Gc8c2,Gc8h3,Ge7d8] } 15. Rac1 Bd8 16. Nc4 Qb8) 15. c4 { 0.61/0 } { [%cal Gc7c8] } 15... Bg6 { 1.18/0 } { [%csl Gf4][%cal Gf7f4,Ge5e4,Gd7e5] } (15... Bd8 16. b4 Qc8 { [%csl Ga5] } 17. Nb3 b6 { [%cal Ga6a5] }) (15... Nf6 16. b4 Rfe8) 16. Rac1 { 0.48/0 } (16. b4 f5 (16... Rfd8) (16... Rad8 17. Rad1 f5 18. c5) 17. c5 { [%csl Gd7] } 17... dxc5 18. d6 { [%cal Gd1d7] } 18... Bxd6 19. Rfd1 Rf6 20. Nc4 $16) 16... f5 { 1.15/0 } 17. b4 { 1.23/0 } 17... f4 { 1.33/0 } 18. Bf2 { 1.23/0 } 18... e4 { 1.29/0 } (18... Nf6 19. c5) (18... Rad8 19. c5 (19. Bd3) 19... dxc5 20. bxc5 (20. d6) 20... Nxc5) 19. fxe4 { 1.24/0 } 19... Nf6 { 1.41/0 } 20. Bf3 { 1.32/0 } (20. Qxf4 Nxe4 21. Qe3 Bg5) 20... Bxe4 { 1.35/0 } (20... Nxe4 21. Bxe4 Bxe4 22. Rfe1 Bf5 { [%csl Ge7] } 23. c5) 21. Bd4 { 0.89/0 } (21. Rfe1 Bxf3 22. gxf3 Nh7) (21. Bxe4 Nxe4) (21. c5 Bxf3 22. gxf3 Qd7 23. c6 bxc6 24. dxc6 Qh3 25. c7 { [%csl Gg1] } 25... Qxf3 26. Nc6 Qg4+ 27. Kh1 Qf3+ 28. Kg1 Qg4+ 29. Bg3 { [%csl Ge7] } 29... fxg3 30. Nxe7+ Kh7 31. h3 Qxh3 32. Qc2+ Kh8 33. Ng6+ Kg8 34. Nxf8) 21... Bxf3 { 1.24/0 } 22. Rxf3 { 0.82/0 } (22. gxf3 { [%csl Gf6,Ge6][%cal Gd2g2,Gg2g8] }) 22... Ne4 { 0.89/0 } 23. Qd3 { 0.86/0 } 23... Ng5 { 0.96/0 } 24. Rff1 { 0.58/0 } { [%csl Gg7][%cal Gd3g6,Ge7d8,Gc4c5] } 24... Bf6 { 1.21/0 } 25. Nb3 { 0.87/0 } (25. Rxf4 Bxd4+ 26. Qxd4 (26. Rxd4 Rae8) 26... Rxf4 27. Qxf4 Qb6+) 25... Rae8 { 1.18/0 } 26. Rce1 { 0.00/0 } (26. Rxf4 Bxd4+ 27. Qxd4 Rxf4 28. Qxf4 Ne4 { [%cal Gc7b6,Gb6g1] }) 26... Rxe1 { 0.01/0 } 27. Rxe1 { 0.04/0 } 27... f3 { 0.03/0 } 28. Rf1 { 0.01/0 } 28... Qc8 { 0.00/0 } 29. gxf3 { 0.62/0 } 29... Qh3 { 0.13/0 } (29... Nh3+ 30. Kh1 Nf4 { [%csl Gc4][%cal Gd3c2] } 31. Qe4 (31. Qc2 Qh3 { [%csl Gf1,Gf3] }) 31... Qxc4 { [%cal Gc4d5,Gc4f1] } 32. Rg1 (32. Rc1 Qxd5 33. Qxf4 Bxd4 34. Qxd4 Qxf3+ 35. Kg1 Rf4 { [%cal Gf4g4] } 36. Rc8+ Kh7) 32... Bxd4 33. Nxd4 Qxd5) 30. Nd2?? { -2.44/0 } 30... Bxd4+?? { 0.00/0 } (30... Qf5 31. Qc3 Bxd4+ 32. Qxd4 Re8 $19) 31. Qxd4 { 0.02/0 } 31... Nxf3+ { 0.00/0 } 32. Rxf3 { 0.00/0 } 32... Rxf3 { 9.01/0 } 33. Nxf3 { 4.84/0 } 33... Qxf3 { 4.08/0 } 34. c5 { -#4/0 } 34... h4 35. Qxh4 Qd1+ { 1/2-1/2  wins. } 36. Kf2 Qxd5 37. Qd8+ Kh7 38. Qxd6 Qxa2+ 1/2-1/2
+
+
+[Event "Fagernes International Autumn 2025"]
+[Date "2025.10.10"]
+[Round "7"]
+[White "Sushanth Kamabathula"]
+[Black "Mahir Taneja"]
+[Result "1/2-1/2"]
+[WhiteElo "2184"]
+[BlackElo "1985"]
+[Annotator "Sushanth"]
+[Variant "Standard"]
+[ECO "B12"]
+[Opening "Caro-Kann Defense: Advance Variation, Botvinnik-Carls Defense"]
+[StudyName "Sushanth's games"]
+[ChapterName "Sushanth Kamabathula - Mahir Taneja"]
+[ChapterURL "https://lichess.org/study/VvtZ2fY5/jZzg1941"]
+
+1. e4 { 0.18/0 } 1... c6 { 0.23/0 } 2. d4 { 0.24/0 } 2... d5 { 0.24/0 } 3. e5 { 0.33/0 } 3... c5 { 0.32/0 } 4. dxc5 { 0.27/0 } 4... Nc6 { 0.05/0 } { [%cal Ga2a3] } (4... e6 5. a3) 5. f4 { 0.42/0 } { [%cal Ge7e6] } (5. Nf3) 5... Nh6 { 0.48/0 } (5... e6 6. Be3 d4 7. Bf2 Bxc5 8. Nd2) 6. Nf3! { 0.58/0 } { [%csl Gg5] } (6. Be3 Ng4 { [%csl Ge3] } (6... g5) 7. Bd4) 6... Bg4 { 0.61/0 } (6... Nf5) (6... e6 7. Be3) 7. Be3 { 0.00/0 } (7. Bd3 Nf5 (7... e6 8. Be3 d4 9. Bf2 Bxc5 10. h3) (7... g5 8. h3 Bxf3 9. Qxf3 { [%csl Gh6] }) 8. Bxf5 Bxf5 9. Be3 { [%csl Gc5] } 9... e6 10. c3 { [%cal Gb1d2] }) 7... Nf5 { 0.00/0 } 8. Bf2 { 0.12/0 } 8... e6 { 0.36/0 } (8... g5!) 9. c3 { 0.17/0 } (9. Bd3 g5 { [%csl Gd3] } 10. Bxf5 { [%cal Gg4f5] } 10... Bxf5 (10... exf5 { [%csl Gd5] }) 11. Nxg5) 9... g5 { 0.02/0 } 10. fxg5 { 0.86/0 } (10. Nbd2 gxf4 11. Bb5) (10. Qb3 { [%csl Gb7] } 10... Qc7 11. Nxg5 Bh6 { [%cal Gc6e5] } 12. Na3 { [%cal Ga3b5] } 12... Bxg5 13. Nb5 Qb8) 10... Bxf3 { 0.78/0 } 11. Qxf3 { 0.66/0 } 11... Qxg5 { 0.65/0 } { [%csl Ge5][%cal Gg5c1] } 12. Nd2 { 0.54/0 } 12... O-O-O { 0.17/0 } { [%cal Gf8h6,Gd5d4] } (12... Nxe5 13. Bb5+) 13. O-O-O { 0.88/0 } { [%cal Gh6d2,Gc1b1] } (13. Qe2 d4 14. Ne4 Qf4 15. Nd6+ Nxd6 16. exd6 dxc3 (16... d3 17. Qxd3) 17. bxc3 Bg7 18. Qd2 Qe4+ 19. Be2 { [%csl Ge1] }) 13... Nxe5 { 0.81/0 } 14. Qe2 { 0.89/0 } 14... Bg7 { 0.08/0 } { [%cal Gd2f3] } 15. Kb1 { -0.65/0 } { [%csl Gf1] } (15. h4 Qh6 { [%csl Gg3,Gg4] }) 15... Qg6 { -0.69/0 } 16. Ka1 { -0.79/0 } { [%cal Gg7a1] } 16... d4 { -0.81/0 } 17. Ne4 { -0.94/0 } 17... Nc6 { 0.69/0 } 18. c4 { -1.67/0 } (18. Rc1 d3 19. Qe1 { [%csl Gd3][%cal Gc1d1] }) 18... Nb4 { 0.03/0 } (18... Ne3 19. Nd6+ (19. Bxe3 dxe3 { [%cal Gc6d4,Gd4c2] }) 19... Rxd6) 19. a3 { 0.09/0 } 19... Ne3 { 0.01/0 } { [%cal Ga1a2] } 20. Bxe3 { 0.05/0 } 20... Qxe4 { 0.01/0 } 21. Bg5 { 0.01/0 } 21... Nc2+ { 0.00/0 } 22. Ka2 { 0.04/0 } 22... Qxe2 { 0.02/0 } 23. Bxe2 { 0.06/0 } 23... f6 { 0.00/0 } 24. Bd3 { 0.32/0 } 24... fxg5 { 0.18/0 } 25. Bxc2 { 0.02/0 } 25... Rhf8 { 0.05/0 } 26. Rd2 { 0.01/0 } 26... h6 { 0.42/0 } 27. Bd3 { 0.32/0 } { [%cal Gf8f6,Gd8f8,Ge6e4] } 27... Rf6 28. Re1 Kd7 29. Rde2 Rdf8 30. b4 Rf2 31. Kb3 e5 32. a4 Rxe2 33. Rxe2 Rf1 34. a5 a6 35. b5 { [%cal Gb5b6,Gd3e4,Gc5c6] } 1/2-1/2
+
+
+[Event "Fagernes International Autumn 2025"]
+[Date "2025.10.11"]
+[Round "8"]
+[White "Jess Ruchandani"]
+[Black "Sushanth Kamabathula"]
+[Result "1/2-1/2"]
+[WhiteElo "1967"]
+[BlackElo "2184"]
+[Annotator "Sushanth"]
+[Variant "Standard"]
+[ECO "B21"]
+[Opening "Sicilian Defense: Smith-Morra Gambit"]
+[StudyName "Sushanth's games"]
+[ChapterName "Jess Ruchandani - Sushanth Kamabathula"]
+[ChapterURL "https://lichess.org/study/VvtZ2fY5/KnP7k7a6"]
+
+1. e4 { 0.18/0 } 1... c5 { 0.24/0 } 2. d4 { 0.05/0 } 2... cxd4 { 0.03/0 } 3. Qxd4 { 0.00/0 This move is not given in Anish Giri's course. } 3... Nc6 { 0.00/0 } 4. Qd3 { 0.00/0 } 4... g6 { 0.00/0 } (4... Nf6 5. Nc3) 5. Nc3 { 0.04/0 } 5... Bg7 { 0.00/0 } 6. Nf3 { 0.00/0 } 6... d6 { 0.00/0 } 7. Be2 { 0.00/0 } 7... Nf6 { 0.00/0 } 8. O-O { 0.03/0 } 8... O-O { 0.02/0 } 9. Rd1 { 0.03/0 } 9... Be6 { 0.27/0 } 10. h3 { 0.13/0 } 10... Rc8 { 0.12/0 } 11. Be3 { 0.14/0 } 11... Nb4 { 0.34/0 } (11... a6 { [%cal Gb7b5] }) (11... Nd7) 12. Qd2 { 0.29/0 } 12... Rxc3 { 0.71/0 } 13. Qxc3 { 0.62/0 } (13. bxc3 Nxe4) 13... a5 { 1.14/0 } { [%cal Gf6e4] } (13... Nfd5! 14. Qd2 Nxe3 15. fxe3 Nc6 { [%csl Ge4,Ge3] } 16. Nd4 Bd7) 14. Nd4 { 0.49/0 } (14. Bd4 { [%csl Ge3] } 14... Nxe4 15. Qe3 Nxc2 (15... Nf6 16. Qd2 { [%cal Gc2c3] }) (15... f5) (15... d5 16. Bxg7 Kxg7 17. Nd4) 16. Qxe4 Nxa1 17. Rxa1) 14... Nxe4 { 0.49/0 } 15. Nxe6?? { -1.85/0 } 15... Nxc3 { -1.89/0 } 16. Nxd8 { -1.76/0 } 16... Nxd1?? { 0.00/0 } (16... Nxe2+ 17. Kf1 { [%cal Gg7b2] } 17... Bxb2 (17... Nxc2 18. Rab1 Nxe3+ 19. fxe3 Rxd8 (19... Ng3+ 20. Kf2 Ne4+ 21. Kf3 Ng5+ 22. Kg4 h6 23. Nxb7 Be5 { [%csl Gg4,Gg3,Gf3,Gf4] })) 18. Kxe2 Bxa1 19. Nxb7 Bc3 $19 20. Nxa5 Ra8 21. Nb3 Rxa2) 17. Rxd1 { 0.00/0 } 17... Rxd8 { 0.01/0 } { [%csl Ga5] } 18. Bb6 { 0.00/0 } 18... Rd7 { 1.27/0 } { [%csl Gb7][%cal Gd7b7,Gd6d5,Ge7e5,Gd5d4] } (18... Ra8 19. c3 Nc6 20. Rd5 { [%csl Gb7][%cal Gd5b5,Gb5b7,Gb7g7,Gb6a5] } 20... Kf8 21. Rb5 Ke8 22. Bc7 (22. Be3 Rb8 23. Bf3 Kd7 24. Bxc6+ Kxc6 25. Rxa5) 22... Kd7) (18... Rc8 19. c3 Nc6 20. Rd5) 19. Bb5 { 1.29/0 } 19... Nc6 { 1.31/0 } 20. c3 { 1.31/0 } { [%cal Gd6d5] } 20... d5 { 1.37/0 } 21. Bxa5 { 1.29/0 } 21... d4 { 2.19/0 } 22. Bb6 { [%cal Gd4c3,Gd1d7] } 22... e5 23. b4 (23. a4 $16 { [%cal Ga4a5,Ga5a4] }) 1/2-1/2
+
+
+[Event "Fagernes International Autumn 2025"]
+[Date "2025.10.12"]
+[Round "9"]
+[White "Mrozowski, Nikodem"]
+[Black "Sushanth Kamabathula"]
+[Result "1/2-1/2"]
+[WhiteElo "2008"]
+[BlackElo "2184"]
+[Annotator "Sushanth"]
+[Variant "Standard"]
+[ECO "E60"]
+[Opening "Indian Defense: Anti-Grünfeld, Alekhine Variation"]
+[StudyName "Sushanth's games"]
+[ChapterName "Mrozowski, Nikodem - Sushanth Kamabathula"]
+[ChapterURL "https://lichess.org/study/VvtZ2fY5/qHELvmog"]
+
+1. d4 { 0.17/0 } 1... Nf6 { 0.19/0 } 2. c4 { 0.18/0 } 2... g6 { 0.28/0 } 3. f3 { 0.22/0 } 3... c5 { 0.35/0 } 4. d5 { 0.14/0 } 4... d6 { 0.24/0 } 5. Nc3 { 0.29/0 } 5... Bg7 { 0.26/0 } 6. e4 { 0.17/0 } 6... e6 { 0.24/0 } 7. Bg5 { 0.22/0 } 7... O-O { 0.02/0 } 8. Qd2 { 0.35/0 } 8... h6 { 0.21/0 } 9. Be3 { 0.35/0 } (9. Bxh6 Nxe4 10. Nxe4 Qh4+ 11. g3 Qxh6 12. Qxh6 Bxh6 13. Nxd6 Na6 14. Nxc8 Raxc8 { [%cal Gh1a1] }) 9... exd5 { 0.24/0 } 10. cxd5 { 0.29/0 } 10... a6 { 0.04/0 } 11. a4 { 0.42/0 } 11... Re8 { 0.37/0 } 12. Nge2 { 0.00/0 } 12... Nbd7 { 0.04/0 } 13. Nd1 { 0.16/0 } (13. Nc1 Nxe4 14. Nxe4 (14. fxe4 Bxc3 15. bxc3 Qh4+ 16. Bf2 Qxe4+ 17. Qe2 Nf6 18. Qxe4 Nxe4 19. Be2 Nxc3 { [%csl Gd5][%cal Gc3e2,Gb7b5] }) 14... Qe7 15. Kf2 f5 16. Nc3 f4 17. Bxf4 Bd4+ 18. Kg3 g5) 13... Ne5 { 0.01/0 } 14. Nec3 { 0.00/0 } 14... Nh5 { 0.03/0 } 15. Be2 { 0.08/0 } (15. Bxh6 Bxh6 16. Qxh6 Qh4+ 17. Nf2 Bd7 { [%cal Gb7b5] } 18. Be2 Nf4 19. Qxh4 Nxg2+) 15... Qf6 { 0.22/0 } (15... g5 16. f4 { [%cal Gd8f6] } 16... gxf4 (16... Nxf4) 17. Bxf4 Nxf4 18. Qxf4 Ng6 19. Qd2 Rb8 $17 { [%cal Gd8g5] }) (15... f5) 16. Nf2 { 0.56/0 } (16. f4 Ng4 17. Bxg4 Bxg4 18. Nf2 Bd7 19. g4 Bxg4 20. Nxg4 Qh4+ 21. Nf2 Bxc3 22. bxc3 Rxe4 23. O-O $132) 16... g5! { 0.57/0 } 17. O-O { 0.52/0 } 17... Nf4 { 0.52/0 } 18. a5 { 0.52/0 } { [%csl Gg5,Gf4] } 18... Nxe2+ { 0.44/0 } (18... Rb8 { [%cal Gc3a4,Ga4b6] } 19. Na4 Nxe2+ 20. Qxe2 Bd7) 19. Qxe2 { 0.27/0 } 19... Rb8 { 0.27/0 } 20. Ra3 { 0.51/0 } 20... b5 { 0.53/0 } 21. axb6 { 0.54/0 } 21... Rxb6 { 0.55/0 } 22. Rfa1 { 0.81/0 } 22... Qg6 { 0.09/0 } 23. Ra4 { -1.57/0 } 23... g4 { -1.61/0 } 24. fxg4 { -1.08/0 } (24. f4 Nf3+) 24... Bxg4 { -1.27/0 } (24... Nxg4 25. Nxg4 Bxg4 { [%csl Ge3] } 26. Qf2) 25. Qc2 { -2.96/0 } (25. Nxg4 Nxg4 { [%cal Gg4e3,Gg7d4] }) 25... Bd7 { -1.51/0 } (25... Nf3+ 26. gxf3 Bxf3+ 27. Kf1 Qg2+ 28. Ke1) (25... Bf3 26. g3 h5 27. Bf4) 26. R4a2 { -1.58/0 } { [%csl Ge8] } (26. Rxa6 Nf3+ (26... Rxa6 27. Rxa6 Nf3+ 28. Kf1 (28. Kh1 Ne1) 28... Nxh2+) 27. Kf1 (27. Kh1 Rxa6) 27... Nxh2+) (26. R4a3 { [%cal Gb6b2,Ge5c4,Gc4e3] }) 26... Nf3+ { -0.08/0 } (26... Reb8 { [%cal Gb8b2] }) (26... f5 { [%cal Ge8e3] } 27. exf5 (27. Kh1 { [%csl Ge4] } 27... fxe4 28. Ncxe4 Bf5 29. Qa4 { [%cal Ga4e8] } 29... Nd3 { [%cal Gg6e8,Gf5e4,Gb6b2,Gg7b2] }) 27... Nf3+ { [%csl Ge3] }) 27. Kh1 { -0.05/0 } 27... Qh5 { 0.92/0 } 28. Bf4 { 0.88/0 } 28... Be5 { 0.94/0 } 29. Bxe5 { 0.95/0 } 29... Rxe5 { 0.25/0 } 30. h3 { 0.03/0 } 30... Nd4 { 0.46/0 } 31. Qd3 { 0.75/0 } { [%csl Ga6][%cal Ga2a6,Ga6d6,Gd6h6] } 31... Bc8 { 0.00/0 } (31... Qh4 32. g3 (32. Rf1 { [%csl Gf2][%cal Gf1f2,Ga2a6] } 32... Rg5 33. e5 Rxe5 34. Rxa6 Rxa6 35. Qxa6 Nf5 { [%csl Gg3] } 36. Nce4 { [%cal Gh4e4,Ge5e4] }) 32... Qg5 33. Kh2 Re8 { [%cal Ge8b8] } 34. Rxa6 (34. Ne2 Bb5 { [%cal Gb5e2] }) (34. h4) 34... Rxb2) 32. Rg1 { 0.27/0 } 32... Qh4 { 0.37/0 } 33. g3 { 0.06/0 } 33... Qf6 { 0.64/0 } (33... Qg5 34. h4 (34. g4 { [%cal Gg1g8,Gd3g3,Gh3h4] })) 34. Rf1 { 0.88/0 } 34... Qg6 { 0.51/0 } 35. g4 { 0.96/0 } 35... h5 { -0.99/0 } 36. Qg3 { -0.81/0 } 36... hxg4 { -0.74/0 } 37. Nxg4 { -0.85/0 } 37... Bxg4 { 0.44/0 } (37... Rg5 { [%csl Gg5] } 38. Rg1 Bxg4 39. hxg4 Kg7 { [%cal Gb6b8,Gb8h8,Gh8h2] }) 38. Qxg4 { 0.46/0 } 38... Rg5 { 0.15/0 } { [%cal Gg6g1] } 39. Qxg5 { 0.26/0 } (39. Qc8+ Kg7 40. Rxa6 Rxb2) 39... Qxg5 { 0.24/0 } 40. Rg1 { 0.03/0 } 40... Qxg1+ 41. Kxg1 { [%csl Gh3,Gb6,Gd4][%cal Gg8d8,Ga2a6,Ga6d6] } 41... Nf3+ 42. Kg2 Ne5 43. Kg3 Kg7 44. h4 Kf6 45. Kf4 { [%csl Gb2][%cal Ge5d3,Gd3b2] } (45. Kh3 a5 { [%cal Ga2a5,Gb6b2] } 46. Kg3 Nc4 { [%csl Gb2] } 47. Nd1 Ke5 48. h5 { [%csl Gd2] } 48... Nd2 49. Nc3 Nxe4+ 50. Nxe4 Kxe4 51. Kg4 f5+ 52. Kg5 f4 53. Ra4+ Rb4 54. Rxa5 f3 55. Ra8 Rxb2 56. Re8+ Kxd5) 1/2-1/2
+
+[Event "rated blitz game"]
+[Site "https://lichess.org/oVXkwpty"]
+[Date "2026.01.08"]
+[Round "-"]
+[White "Essam--Hilaly"]
+[Black "Sushanth Kamabathula"]
+[Result "0-1"]
+[GameId "oVXkwpty"]
+[UTCDate "2026.01.08"]
+[UTCTime "03:11:49"]
+[WhiteElo "2140"]
+[BlackElo "2161"]
+[WhiteRatingDiff "-5"]
+[BlackRatingDiff "+44"]
+[BlackTitle "CM"]
+[Variant "Standard"]
+[TimeControl "180+0"]
+[ECO "B20"]
+[Opening "Sicilian Defense: Mengarini Variation"]
+[Termination "Time forfeit"]
+
+1. e4 c5 2. a3 d6 3. c3 Nf6 4. f3 Nc6 5. Bc4 g6 6. Ne2 Bg7 7. O-O O-O 8. d3 d5 9. Bb3 Na5 10. Bc2 dxe4 11. fxe4 Bg4 12. h3 Bd7 13. Bf4 Nh5 14. Be3 Rc8 15. Nd2 b6 16. Nf3 Qc7 17. Qe1 Rfd8 18. Rd1 Be6 19. Rd2 Nb3 20. Rd1 a5 21. Qh4 a4 22. Ng5 Qc6 23. g4 Nf6 24. e5 h6 25. Nxe6 Qxe6 26. Qg3 Nd5 27. d4 cxd4 28. Bxb3 axb3 29. cxd4 Rc2 30. Rd2 Rdc8 31. Rfd1 f6 32. Bf4 g5 33. exf6 gxf4 34. Nxf4 Nxf4 35. fxg7 Ne2+ 0-1
+
+
+

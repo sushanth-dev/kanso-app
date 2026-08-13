@@ -1,0 +1,19 @@
+[Event "Club Championship"]
+[Site "Local"]
+[Date "2024.10.11"]
+[Round "1"]
+[White "Player, Test"]
+[Black "Opponent, One"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 Nc6 1-0
+
+[Event "Club Championship"]
+[Site "Local"]
+[Date "2025.10.11"]
+[Round "1"]
+[White "Opponent, Two"]
+[Black "Player, Test"]
+[Result "0-1"]
+
+1. d4 d5 2. c4 e6 0-1
