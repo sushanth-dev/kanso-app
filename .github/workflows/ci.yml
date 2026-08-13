@@ -97,6 +97,11 @@ jobs:
           --health-retries 20
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/kanso_dev
+      # A fixed test value, not a real credential: it signs session cookies in
+      # the throwaway test database the suite creates and drops. The production
+      # secret comes from the environment at deploy time and never appears
+      # here.
+      BETTER_AUTH_SECRET: ci-test-secret-for-the-integration-suite-0123456789abcdef
       # LocalStack takes any credentials; the SDK refuses to send without them.
       AWS_ENDPOINT_URL: http://localhost:4566
       AWS_REGION: us-east-1
