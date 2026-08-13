@@ -186,6 +186,9 @@ export const listGames = createRoute({
     params: playerParams,
     query: z.object({
       stream: Stream.optional().openapi({ param: { name: 'stream', in: 'query' } }),
+      // An object id that names something other than the player in the path,
+      // so it is claim-checked in the handler before it is used as a filter.
+      tournament: Uuid.optional().openapi({ param: { name: 'tournament', in: 'query' } }),
       limit: z.coerce
         .number()
         .int()
