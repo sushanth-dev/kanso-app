@@ -19,7 +19,7 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { listGames } from '../contract/routes.ts';
 import * as schema from '../db/schema.ts';
-import { game } from '../db/schema.ts';
+import { game, tournament } from '../db/schema.ts';
 import { readSession } from '../session.ts';
 import { hasPlayerClaim } from '../players/claim.ts';
 import { toGameSummary } from './game-summary.ts';
@@ -32,7 +32,7 @@ export function mountListGames(
 ): void {
   app.openapi(listGames, async (c) => {
     const { playerId } = c.req.valid('param');
-    const { stream, limit, page } = c.req.valid('query');
+    const { stream, limit, page, tournament: tournamentId } = c.req.valid('query');
 
     const session = readSession(deps.getSession, c);
     if (session === null) {
@@ -42,9 +42,28 @@ export function mountListGames(
       return c.json({ code: 'forbidden', message: 'Not your player.' }, 403);
     }
 
-    const where = stream
-      ? and(eq(game.playerId, playerId), eq(game.stream, stream))
-      : eq(game.playerId, playerId);
+    // A tournament id names something other than the player in the path, so it
+    // is claim-checked before it is used as a filter, the same rule and helper
+    // as the tournament endpoints. Absence and refusal both answer 403, so the
+    // id cannot be used to enumerate which tournaments exist.
+    if (tournamentId) {
+      const [t] = await deps.db
+        .select({ playerId: tournament.playerId })
+        .from(tournament)
+        .where(eq(tournament.id, tournamentId))
+        .limit(1);
+      if (!t || !(await hasPlayerClaim(deps.db, session.userId, t.playerId))) {
+        return c.json({ code: 'forbidden', message: 'Not your tournament.' }, 403);
+      }
+    }
+
+    // `and` drops `undefined` members, so the stream and tournament filters
+    // compose when both are given and are each optional on their own.
+    const where = and(
+      eq(game.playerId, playerId),
+      stream ? eq(game.stream, stream) : undefined,
+      tournamentId ? eq(game.tournamentId, tournamentId) : undefined,
+    );
 
     const rows = await deps.db
       .select()

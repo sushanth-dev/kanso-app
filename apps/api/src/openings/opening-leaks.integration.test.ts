@@ -6,7 +6,7 @@
  * never mix.
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
-import { game, mistake, player } from '../db/schema.ts';
+import { game, mistake, player, tournament } from '../db/schema.ts';
 import { user } from '../db/auth-schema.ts';
 import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-harness.ts';
 import { openingLeaks } from './opening-leaks.ts';
@@ -37,6 +37,18 @@ async function makePlayer(ownerId: string): Promise<string> {
     .values({ ownerUserId: ownerId, displayName: 'Sushanth Kamabathula' })
     .returning({ id: player.id });
   return row.id;
+}
+
+/** Insert a tournament row and return its id. */
+async function seedTournament(
+  playerId: string,
+  fields: Partial<typeof tournament.$inferInsert> = {},
+): Promise<string> {
+  const [t] = await harness.db
+    .insert(tournament)
+    .values({ playerId, name: 'Autumn Open', key: 'autumn open', ...fields })
+    .returning({ id: tournament.id });
+  return t.id;
 }
 
 let seq = 0;
@@ -179,5 +191,32 @@ describe('openingLeaks', () => {
 
     const { leaks } = await openingLeaks(harness.db, mine, 'tournament');
     expect(leaks[0].leakScore).toBe(1);
+  });
+
+  test('scopes to one tournament: neither result contains the other’s games', async () => {
+    const p = await makePlayer(OWNER);
+    const t1 = await seedTournament(p);
+    const t2 = await seedTournament(p);
+    // Two games in t1 with 4 mistakes → 2.0, high; two games in t2 with 0
+    // mistakes → 0.0, low. Same ECO, same player, opposite tournaments: the
+    // scores can only differ if the scoped query separates them.
+    for (const n of [3, 1])
+      await addMistakes(await insertGame(p, { tournamentId: t1, eco: 'B10' }), n);
+    for (const n of [0, 0])
+      await addMistakes(await insertGame(p, { tournamentId: t2, eco: 'B10' }), n);
+
+    const inT1 = await openingLeaks(harness.db, p, 'tournament', t1);
+    expect(inT1.leaks).toHaveLength(1);
+    expect(inT1.leaks[0].leakScore).toBe(2);
+    expect(inT1.leaks[0].games).toBe(2);
+
+    const inT2 = await openingLeaks(harness.db, p, 'tournament', t2);
+    expect(inT2.leaks).toHaveLength(1);
+    expect(inT2.leaks[0].leakScore).toBe(0);
+    expect(inT2.leaks[0].games).toBe(2);
+
+    // The scoped scores differ, which is only possible if neither query
+    // counted the other tournament's games.
+    expect(inT1.leaks[0].leakScore).not.toBe(inT2.leaks[0].leakScore);
   });
 });
