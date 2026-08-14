@@ -6,6 +6,7 @@
 // Formatting is Prettier's job and is deliberately absent here, so the two
 // tools never disagree about the same line.
 import js from '@eslint/js';
+import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
@@ -17,10 +18,11 @@ export default tseslint.config(
       '**/sst-env.d.ts',
       'site/',
       'coverage/',
-      'dist/',
+      '**/dist/',
       'tokens/build/',
       'apps/*/drizzle/',
       'apps/*/openapi.json',
+      'apps/web/src/generated/',
     ],
   },
   js.configs.recommended,
@@ -28,7 +30,7 @@ export default tseslint.config(
   // unsafe `any` flowing across boundaries. It needs a tsconfig per file.
   ...tseslint.configs.recommendedTypeChecked,
   {
-    files: ['apps/**/*.ts'],
+    files: ['apps/**/*.{ts,tsx}'],
     languageOptions: {
       parserOptions: {
         projectService: true,
@@ -47,6 +49,10 @@ export default tseslint.config(
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
     },
+  },
+  {
+    files: ['apps/web/**/*.{ts,tsx}'],
+    languageOptions: { globals: globals.browser },
   },
   // Config files sit outside every tsconfig, so type-aware rules cannot run on
   // them. Syntax rules still do.

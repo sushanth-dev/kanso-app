@@ -2,6 +2,7 @@
 # and neither is ever hand-edited, so neither is ever reformatted.
 apps/api/openapi.json
 apps/api/drizzle/
+apps/web/src/generated/
 
 # Build output and vendored files.
 node_modules/
