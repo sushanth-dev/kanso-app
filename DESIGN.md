@@ -191,6 +191,10 @@ rhythm. Density is calm; the board gets its own surface rather than competing
 with the text column. Layouts must tolerate roughly 40 percent label expansion
 for German and French.
 
+The sign-in and sign-up screens narrow to a centered card (`max-w-sm`, 24rem)
+inside that column, so the entry forms read as a focused, quiet moment rather
+than a full-width form.
+
 ## Elevation & Depth
 
 Flat by default. Depth is tonal, not shadowed: three brightness steps,
@@ -209,6 +213,16 @@ cards and panels use lg. Borders are hairline and decorative where subtle,
 strong where a control boundary must be visible. Focus is a teal ring, 2px,
 with a 2px offset, distinct from the action accent so focus never reads as
 selection.
+
+## Motion
+
+Motion is purposeful and subtle, never decorative. The tokens are fast
+(120ms) for control states (hover, press, focus), base (200ms) for reveals and
+state changes, and slow (320ms) for route and board transitions, all on the
+standard ease `cubic-bezier(0.2, 0, 0, 1)`. Control transitions move color,
+border, and box-shadow; reveals fade and rise 4px. Every duration collapses to
+zero under `prefers-reduced-motion`, both in the token theme and in a CSS
+override, so no motion runs when reduced motion is requested.
 
 ## Components
 
@@ -243,9 +257,10 @@ selection.
 
 ### Navigation
 
-- **Style:** a hairline bottom border (subtle) under the wordmark in Source
-  Serif 4. The single centered column is the whole navigation model at this
-  stage; no persistent side or top nav exists yet.
+- **Style:** a hairline bottom border (subtle) under the wordmark: a small
+  terracotta mark beside "Kanso Chess" in Source Serif 4. The single centered
+  column is the whole navigation model at this stage; no persistent side or
+  top nav exists yet.
 
 ## Do's and Don'ts
 
