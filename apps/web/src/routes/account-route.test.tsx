@@ -1,7 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { QueryClient } from '@tanstack/react-query';
+import { createMemoryHistory, RouterContextProvider } from '@tanstack/react-router';
 import { describe, expect, test, vi } from 'vitest';
 import type { Me, Player } from '../api/account-api.ts';
+import { createAppRouter } from '../router.tsx';
 import { AccountScreen } from './account-route.tsx';
 
 const playerId = '00000000-0000-4000-8000-000000000001';
@@ -37,8 +40,15 @@ function meFixture(overrides: Partial<Me> = {}): Me {
   };
 }
 
-function renderAccount(me: Me = meFixture()) {
-  return render(<AccountScreen me={me} signOut={vi.fn().mockResolvedValue(undefined)} />);
+function renderAccount(me: Me = meFixture(), signOut = vi.fn().mockResolvedValue(undefined)) {
+  const history = createMemoryHistory();
+  const queryClient = new QueryClient();
+  const router = createAppRouter({ history, queryClient });
+  return render(
+    <RouterContextProvider router={router}>
+      <AccountScreen me={me} signOut={signOut} />
+    </RouterContextProvider>,
+  );
 }
 
 describe('AccountScreen', () => {
@@ -55,7 +65,7 @@ describe('AccountScreen', () => {
   test('signs out through the injected handler', async () => {
     const user = userEvent.setup();
     const signOut = vi.fn().mockResolvedValue(undefined);
-    render(<AccountScreen me={meFixture()} signOut={signOut} />);
+    renderAccount(meFixture(), signOut);
 
     await user.click(screen.getByRole('button', { name: 'Sign out' }));
 
@@ -72,9 +82,17 @@ describe('AccountScreen', () => {
     expect(screen.getByText('No players you support')).toBeVisible();
   });
 
-  test('renders no mutation links in Task 3; guarded cards stay read-only', () => {
+  test('owned cards link to edit and add guardian; guarded cards stay read-only', () => {
     renderAccount();
-    expect(screen.queryByRole('link', { name: 'Edit' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Add guardian' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Edit' })).toHaveAttribute(
+      'href',
+      `/account/players/${playerId}/edit`,
+    );
+    expect(screen.getByRole('link', { name: 'Add guardian' })).toHaveAttribute(
+      'href',
+      `/account/players/${playerId}/guardian`,
+    );
+    expect(screen.getAllByRole('link', { name: 'Edit' })).toHaveLength(1);
+    expect(screen.getAllByRole('link', { name: 'Add guardian' })).toHaveLength(1);
   });
 });

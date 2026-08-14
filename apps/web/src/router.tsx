@@ -16,6 +16,8 @@ import { PageFrame } from './components/page-frame.tsx';
 import { meQueryOptions, queryClient } from './query-client.ts';
 import { AccountRoute } from './routes/account-route.tsx';
 import { SignInRoute, SignUpRoute } from './routes/auth-routes.tsx';
+import { GuardianRoute } from './routes/guardian-route.tsx';
+import { PlayerEditRoute, PlayerNewRoute } from './routes/player-routes.tsx';
 
 interface RouterContext {
   queryClient: QueryClient;
@@ -85,10 +87,38 @@ const accountRoute = createRoute({
       throw error;
     }
   },
+});
+
+const accountIndexRoute = createRoute({
+  getParentRoute: () => accountRoute,
+  path: '/',
   component: AccountRoute,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, signInRoute, signUpRoute, accountRoute]);
+const playersNewRoute = createRoute({
+  getParentRoute: () => accountRoute,
+  path: '/players/new',
+  component: PlayerNewRoute,
+});
+
+const playerEditRoute = createRoute({
+  getParentRoute: () => accountRoute,
+  path: '/players/$playerId/edit',
+  component: PlayerEditRoute,
+});
+
+const guardianRoute = createRoute({
+  getParentRoute: () => accountRoute,
+  path: '/players/$playerId/guardian',
+  component: GuardianRoute,
+});
+
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  signInRoute,
+  signUpRoute,
+  accountRoute.addChildren([accountIndexRoute, playersNewRoute, playerEditRoute, guardianRoute]),
+]);
 
 export interface CreateAppRouterOptions {
   history: RouterHistory;

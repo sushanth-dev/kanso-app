@@ -5,7 +5,7 @@ import { Card } from '@astryxdesign/core/Card';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Heading } from '@astryxdesign/core/Heading';
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { authClient } from '../auth-client.ts';
 import type { Me, Player } from '../api/account-api.ts';
 import { ME_QUERY_KEY, meQueryOptions } from '../query-client.ts';
@@ -23,6 +23,24 @@ function PlayerCard({ player, prefix }: { player: Player; prefix: 'Owned' | 'Gua
         <Heading level={3}>
           {prefix} {player.displayName}
         </Heading>
+        {prefix === 'Owned' ? (
+          <div className="mt-3 flex gap-4">
+            <Link
+              to="/account/players/$playerId/edit"
+              params={{ playerId: player.id }}
+              className="font-ui text-sm text-accent underline"
+            >
+              Edit
+            </Link>
+            <Link
+              to="/account/players/$playerId/guardian"
+              params={{ playerId: player.id }}
+              className="font-ui text-sm text-accent underline"
+            >
+              Add guardian
+            </Link>
+          </div>
+        ) : null}
       </Card>
     </li>
   );
