@@ -1,10 +1,12 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient } from '@tanstack/react-query';
+import { createMemoryHistory, RouterContextProvider } from '@tanstack/react-router';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { AccountApi, Me, Player } from '../api/account-api.ts';
 import { ApiRequestError } from '../api/account-api.ts';
 import { ME_QUERY_KEY } from '../query-client.ts';
+import { createAppRouter } from '../router.tsx';
 import type { NavigateTo } from './auth-routes.tsx';
 import { playerBody, PlayerFormScreen } from './player-routes.tsx';
 
@@ -71,15 +73,19 @@ function renderScreen({
 } = {}) {
   const user = userEvent.setup();
   const queryClient = new QueryClient();
+  const history = createMemoryHistory();
+  const router = createAppRouter({ history, queryClient });
   render(
-    <PlayerFormScreen
-      mode={mode}
-      me={me}
-      playerId={id}
-      accountApi={api}
-      queryClient={queryClient}
-      navigate={navigate}
-    />,
+    <RouterContextProvider router={router}>
+      <PlayerFormScreen
+        mode={mode}
+        me={me}
+        playerId={id}
+        accountApi={api}
+        queryClient={queryClient}
+        navigate={navigate}
+      />
+    </RouterContextProvider>,
   );
   return { user, queryClient };
 }
@@ -129,7 +135,7 @@ describe('PlayerFormScreen create', () => {
     );
   });
 
-  test('renders a 400 issue with path birthYear beside Birth year', async () => {
+  test('renders a 400 issue with path birthYear beside Birth year and preserves values', async () => {
     const createPlayer = vi
       .fn()
       .mockRejectedValue(
@@ -147,6 +153,29 @@ describe('PlayerFormScreen create', () => {
     await user.click(screen.getByRole('button', { name: 'Create player' }));
 
     expect(await screen.findByText('Birth year must be between 1900 and 2100.')).toBeVisible();
+    expect(screen.getByLabelText('Display name')).toHaveValue('Mina');
+  });
+
+  test('does not map field issues for a non-400 status', async () => {
+    const createPlayer = vi
+      .fn()
+      .mockRejectedValue(
+        new ApiRequestError(
+          409,
+          'conflict',
+          [{ path: 'birthYear', message: 'SERVER DETAIL SHOULD NOT LEAK' }],
+          'Conflict.',
+        ),
+      );
+    const { user } = renderScreen({ api: accountApi({ createPlayer }) });
+
+    await user.type(screen.getByLabelText('Display name'), 'Mina');
+    await user.click(screen.getByRole('button', { name: 'Create player' }));
+
+    expect(
+      await screen.findByText('The player could not be saved. Please try again.'),
+    ).toBeVisible();
+    expect(screen.queryByText('SERVER DETAIL SHOULD NOT LEAK')).not.toBeInTheDocument();
   });
 
   test('navigates to /sign-in on 401', async () => {
@@ -162,7 +191,7 @@ describe('PlayerFormScreen create', () => {
     await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: '/sign-in' }));
   });
 
-  test('renders the 403 copy', async () => {
+  test('renders the 403 copy and preserves values', async () => {
     const createPlayer = vi
       .fn()
       .mockRejectedValue(new ApiRequestError(403, 'forbidden', undefined, 'Not yours.'));
@@ -174,49 +203,60 @@ describe('PlayerFormScreen create', () => {
     expect(
       await screen.findByText('This player cannot be changed from this account.'),
     ).toBeVisible();
+    expect(screen.getByLabelText('Display name')).toHaveValue('Mina');
   });
 
-  test('disables submit while pending', async () => {
-    let resolveCreate: (value: Player) => void = () => {};
-    const pending = new Promise<Player>((resolve) => {
-      resolveCreate = resolve;
+  test('keeps submit disabled and blocks duplicate mutations until invalidation resolves', async () => {
+    const createPlayer = vi.fn().mockResolvedValue(player());
+    let resolveInvalidate: () => void = () => {};
+    const pending = new Promise<void>((resolve) => {
+      resolveInvalidate = resolve;
     });
-    const createPlayer = vi.fn().mockReturnValue(pending);
-    const { user } = renderScreen({ api: accountApi({ createPlayer }) });
+    const { user, queryClient } = renderScreen({ api: accountApi({ createPlayer }) });
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockReturnValue(pending);
 
     await user.type(screen.getByLabelText('Display name'), 'Mina');
     await user.click(screen.getByRole('button', { name: 'Create player' }));
 
-    expect(await screen.findByRole('button', { name: 'Create player' })).toBeDisabled();
-    resolveCreate(player());
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Create player' })).not.toBeDisabled(),
-    );
+    await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ME_QUERY_KEY }));
+    const button = screen.getByRole('button', { name: 'Create player' });
+    expect(button).toBeDisabled();
+    expect(createPlayer).toHaveBeenCalledTimes(1);
+
+    // The disabled submit button cannot fire a second mutation.
+    await user.click(button).catch(() => {});
+    expect(createPlayer).toHaveBeenCalledTimes(1);
+
+    resolveInvalidate();
+    await waitFor(() => expect(invalidateSpy.mock.results[0]?.value).toBe(pending));
   });
 
-  test('success invalidates me, announces, and navigates to /account', async () => {
+  test('announces via role=status, invalidates, then navigates only after invalidation resolves', async () => {
     const createPlayer = vi.fn().mockResolvedValue(player());
     const navigate = vi.fn();
+    let resolveInvalidate: () => void = () => {};
+    const pending = new Promise<void>((resolve) => {
+      resolveInvalidate = resolve;
+    });
     const { user, queryClient } = renderScreen({ api: accountApi({ createPlayer }), navigate });
-    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue(undefined);
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockReturnValue(pending);
 
     await user.type(screen.getByLabelText('Display name'), 'Mina');
     await user.click(screen.getByRole('button', { name: 'Create player' }));
 
     await waitFor(() => {
-      expect(screen.getByText('Player saved.')).toBeVisible();
+      expect(screen.getByText('Player saved.')).toHaveAttribute('role', 'status');
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ME_QUERY_KEY });
-      expect(navigate).toHaveBeenCalledWith({ to: '/account' });
+      expect(navigate).not.toHaveBeenCalled();
     });
+
+    resolveInvalidate();
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: '/account' }));
   });
 
-  test('Cancel returns to /account', async () => {
-    const navigate = vi.fn();
-    const { user } = renderScreen({ navigate });
-
-    await user.click(screen.getByRole('button', { name: 'Cancel' }));
-
-    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: '/account' }));
+  test('Cancel is a link to /account', () => {
+    renderScreen();
+    expect(screen.getByRole('link', { name: 'Cancel' })).toHaveAttribute('href', '/account');
   });
 });
 

@@ -6,6 +6,7 @@ import {
   createRootRouteWithContext,
   createRoute,
   createRouter,
+  notFound,
   Outlet,
   redirect,
   useRouter,
@@ -104,12 +105,26 @@ const playersNewRoute = createRoute({
 const playerEditRoute = createRoute({
   getParentRoute: () => accountRoute,
   path: '/players/$playerId/edit',
+  beforeLoad: async ({ context, params }) => {
+    const me = await context.queryClient.ensureQueryData(meQueryOptions());
+    if (!me.players.some((owned) => owned.id === params.playerId)) {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error -- notFound() returns a router not-found error, not an Error.
+      throw notFound();
+    }
+  },
   component: PlayerEditRoute,
 });
 
 const guardianRoute = createRoute({
   getParentRoute: () => accountRoute,
   path: '/players/$playerId/guardian',
+  beforeLoad: async ({ context, params }) => {
+    const me = await context.queryClient.ensureQueryData(meQueryOptions());
+    if (!me.players.some((owned) => owned.id === params.playerId)) {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error -- notFound() returns a router not-found error, not an Error.
+      throw notFound();
+    }
+  },
   component: GuardianRoute,
 });
 

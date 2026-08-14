@@ -5,7 +5,7 @@ import { Field } from '@astryxdesign/core/Field';
 import { FormLayout } from '@astryxdesign/core/FormLayout';
 import { Heading } from '@astryxdesign/core/Heading';
 import { useQueryClient, useSuspenseQuery, type QueryClient } from '@tanstack/react-query';
-import { notFound, useNavigate, useParams } from '@tanstack/react-router';
+import { Link, notFound, useNavigate, useParams } from '@tanstack/react-router';
 import type { AccountApi, Me } from '../api/account-api.ts';
 import { ApiRequestError, accountApi } from '../api/account-api.ts';
 import { StatusMessage } from '../components/status-message.tsx';
@@ -22,7 +22,7 @@ function readValue(data: FormData, key: string): string {
 
 export interface GuardianScreenProps {
   me: Me;
-  playerId: string;
+  playerId: string | undefined;
   accountApi: AccountApi;
   queryClient: QueryClient;
   navigate: NavigateTo;
@@ -75,7 +75,6 @@ export function GuardianScreen({
       setFormError('The guardian could not be added. Please try again.');
       return;
     }
-    setSubmitting(false);
 
     setSuccessMessage('Guardian invitation sent.');
     await queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY });
@@ -133,15 +132,12 @@ export function GuardianScreen({
               isLoading={submitting}
               className="min-h-11 flex-1"
             />
-            <Button
-              type="button"
-              label="Cancel"
-              variant="secondary"
-              onClick={() => {
-                void navigate({ to: '/account' });
-              }}
-              className="min-h-11"
-            />
+            <Link
+              to="/account"
+              className="inline-flex min-h-11 items-center justify-center rounded-control border border-border-strong bg-raised px-3 py-2 font-ui text-primary hover:bg-sunken focus:border-focus focus:outline-none focus:ring-2 focus:ring-focus"
+            >
+              Cancel
+            </Link>
           </div>
         </FormLayout>
       </form>
@@ -159,7 +155,7 @@ export function GuardianRoute() {
   return (
     <GuardianScreen
       me={me}
-      playerId={playerId ?? ''}
+      playerId={playerId}
       accountApi={accountApi}
       queryClient={queryClient}
       navigate={navigate}

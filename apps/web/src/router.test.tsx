@@ -33,14 +33,38 @@ vi.mock('./auth-client.ts', () => ({
 // eslint-disable-next-line @typescript-eslint/unbound-method -- accountApi.getMe is a vi.fn() from the module mock.
 const getMe = vi.mocked(accountApi.getMe);
 const signOut = vi.mocked(authClient.signOut);
+// eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() from the module mock.
+const createPlayer = vi.mocked(accountApi.createPlayer);
+// eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() from the module mock.
+const updatePlayer = vi.mocked(accountApi.updatePlayer);
+// eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() from the module mock.
+const attachGuardian = vi.mocked(accountApi.attachGuardian);
+
+const ownedPlayerId = '00000000-0000-4000-8000-000000000001';
+const guardedPlayerId = '00000000-0000-4000-8000-000000000002';
+
+const ownedPlayer = {
+  id: ownedPlayerId,
+  displayName: 'Mina',
+  birthYear: 2013,
+  fideId: null,
+  fideRating: null,
+  uscfId: null,
+  uscfRating: null,
+  chesscomUsername: null,
+  lichessUsername: null,
+  chesscomRating: null,
+  lichessRating: null,
+  createdAt: '2026-08-14T00:00:00.000Z',
+};
 
 const meFixture = {
   userId: 'user-1',
   email: 'player@example.com',
   name: 'Player',
   tier: 'free' as const,
-  players: [],
-  guardedPlayers: [],
+  players: [ownedPlayer],
+  guardedPlayers: [{ ...ownedPlayer, id: guardedPlayerId, displayName: 'Theo' }],
 };
 
 function renderAt(path: string) {
@@ -59,6 +83,9 @@ describe('router', () => {
   beforeEach(() => {
     getMe.mockReset();
     signOut.mockReset();
+    createPlayer.mockReset();
+    updatePlayer.mockReset();
+    attachGuardian.mockReset();
   });
 
   test('redirects / to /account', async () => {
@@ -108,5 +135,47 @@ describe('router', () => {
     );
     expect(pathAtRemoval).toBe('/account');
     expect(router.state.location.pathname).toBe('/sign-in');
+  });
+
+  test('creates a player through the real router and lands back on /account', async () => {
+    const user = userEvent.setup();
+    getMe.mockResolvedValue(meFixture);
+    createPlayer.mockResolvedValue(ownedPlayer);
+    const { router } = renderAt('/account/players/new');
+
+    expect(await screen.findByRole('heading', { name: 'New player' })).toBeVisible();
+    await user.type(screen.getByLabelText('Display name'), 'Mina');
+    await user.click(screen.getByRole('button', { name: 'Create player' }));
+
+    expect(await screen.findByRole('heading', { name: 'Your account' })).toBeVisible();
+    expect(createPlayer).toHaveBeenCalledWith({ displayName: 'Mina' });
+    expect(router.state.location.pathname).toBe('/account');
+  });
+
+  test('a guarded player id cannot be edited and triggers no mutation', async () => {
+    getMe.mockResolvedValue(meFixture);
+    updatePlayer.mockResolvedValue(ownedPlayer);
+    renderAt(`/account/players/${guardedPlayerId}/edit`);
+
+    expect(await screen.findByText('Not Found')).toBeVisible();
+    expect(updatePlayer).not.toHaveBeenCalled();
+  });
+
+  test('an unknown player id cannot be edited and triggers no mutation', async () => {
+    getMe.mockResolvedValue(meFixture);
+    updatePlayer.mockResolvedValue(ownedPlayer);
+    renderAt('/account/players/00000000-0000-4000-8000-999999999999/edit');
+
+    expect(await screen.findByText('Not Found')).toBeVisible();
+    expect(updatePlayer).not.toHaveBeenCalled();
+  });
+
+  test('a guarded player id cannot attach a guardian and triggers no mutation', async () => {
+    getMe.mockResolvedValue(meFixture);
+    attachGuardian.mockResolvedValue(undefined);
+    renderAt(`/account/players/${guardedPlayerId}/guardian`);
+
+    expect(await screen.findByText('Not Found')).toBeVisible();
+    expect(attachGuardian).not.toHaveBeenCalled();
   });
 });

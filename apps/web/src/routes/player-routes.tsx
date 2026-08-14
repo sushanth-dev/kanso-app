@@ -5,7 +5,7 @@ import { Field, type FieldStatusInput } from '@astryxdesign/core/Field';
 import { FormLayout } from '@astryxdesign/core/FormLayout';
 import { Heading } from '@astryxdesign/core/Heading';
 import { useQueryClient, useSuspenseQuery, type QueryClient } from '@tanstack/react-query';
-import { notFound, useNavigate, useParams } from '@tanstack/react-router';
+import { Link, notFound, useNavigate, useParams } from '@tanstack/react-router';
 import type { AccountApi, CreatePlayer, Me } from '../api/account-api.ts';
 import { ApiRequestError, accountApi } from '../api/account-api.ts';
 import { StatusMessage } from '../components/status-message.tsx';
@@ -132,17 +132,17 @@ export function PlayerFormScreen({
           setFormError('This player cannot be changed from this account.');
           return;
         }
-        const issues = error.issues ?? [];
-        if (issues.length > 0) {
-          setFieldErrors(issuesByPath(issues));
-          return;
+        if (error.status === 400) {
+          const issues = error.issues ?? [];
+          if (issues.length > 0) {
+            setFieldErrors(issuesByPath(issues));
+            return;
+          }
         }
       }
       setFormError('The player could not be saved. Please try again.');
       return;
     }
-    setSubmitting(false);
-
     setSuccessMessage('Player saved.');
     await queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY });
     await navigate({ to: '/account' });
@@ -308,15 +308,12 @@ export function PlayerFormScreen({
               isLoading={submitting}
               className="min-h-11 flex-1"
             />
-            <Button
-              type="button"
-              label="Cancel"
-              variant="secondary"
-              onClick={() => {
-                void navigate({ to: '/account' });
-              }}
-              className="min-h-11"
-            />
+            <Link
+              to="/account"
+              className="inline-flex min-h-11 items-center justify-center rounded-control border border-border-strong bg-raised px-3 py-2 font-ui text-primary hover:bg-sunken focus:border-focus focus:outline-none focus:ring-2 focus:ring-focus"
+            >
+              Cancel
+            </Link>
           </div>
         </FormLayout>
       </form>

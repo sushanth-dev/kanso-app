@@ -24,18 +24,18 @@ function PlayerCard({ player, prefix }: { player: Player; prefix: 'Owned' | 'Gua
           {prefix} {player.displayName}
         </Heading>
         {prefix === 'Owned' ? (
-          <div className="mt-3 flex gap-4">
+          <div className="mt-3 flex flex-wrap gap-4">
             <Link
               to="/account/players/$playerId/edit"
               params={{ playerId: player.id }}
-              className="font-ui text-sm text-accent underline"
+              className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline"
             >
               Edit
             </Link>
             <Link
               to="/account/players/$playerId/guardian"
               params={{ playerId: player.id }}
-              className="font-ui text-sm text-accent underline"
+              className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline"
             >
               Add guardian
             </Link>

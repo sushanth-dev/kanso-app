@@ -1,10 +1,12 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient } from '@tanstack/react-query';
+import { createMemoryHistory, RouterContextProvider } from '@tanstack/react-router';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { AccountApi, Me, Player } from '../api/account-api.ts';
 import { ApiRequestError } from '../api/account-api.ts';
 import { ME_QUERY_KEY } from '../query-client.ts';
+import { createAppRouter } from '../router.tsx';
 import type { NavigateTo } from './auth-routes.tsx';
 import { GuardianScreen } from './guardian-route.tsx';
 
@@ -63,14 +65,18 @@ function renderGuardian({
 } = {}) {
   const user = userEvent.setup();
   const queryClient = new QueryClient();
+  const history = createMemoryHistory();
+  const router = createAppRouter({ history, queryClient });
   render(
-    <GuardianScreen
-      me={me}
-      playerId={id}
-      accountApi={api}
-      queryClient={queryClient}
-      navigate={navigate}
-    />,
+    <RouterContextProvider router={router}>
+      <GuardianScreen
+        me={me}
+        playerId={id}
+        accountApi={api}
+        queryClient={queryClient}
+        navigate={navigate}
+      />
+    </RouterContextProvider>,
   );
   return { user, queryClient };
 }
@@ -124,6 +130,7 @@ describe('GuardianScreen', () => {
       }),
     );
   });
+
   test('navigates to /sign-in on 401', async () => {
     const attachGuardian = vi
       .fn()
@@ -147,33 +154,78 @@ describe('GuardianScreen', () => {
     await user.click(screen.getByRole('button', { name: 'Send invitation' }));
 
     expect(await screen.findByText('That guardian is already attached.')).toBeVisible();
+    expect(screen.getByLabelText('Guardian email')).toHaveValue('adult@example.com');
   });
 
-  test('success announces, invalidates me, and navigates to /account', async () => {
+  test('preserves values after a generic failure', async () => {
+    const attachGuardian = vi
+      .fn()
+      .mockRejectedValue(new ApiRequestError(500, 'server_error', undefined, 'Boom.'));
+    const { user } = renderGuardian({ api: accountApi({ attachGuardian }) });
+
+    await user.type(screen.getByLabelText('Guardian email'), 'adult@example.com');
+    await user.type(screen.getByLabelText('Relationship'), 'Parent');
+    await user.click(screen.getByRole('button', { name: 'Send invitation' }));
+
+    expect(
+      await screen.findByText('The guardian could not be added. Please try again.'),
+    ).toBeVisible();
+    expect(screen.getByLabelText('Guardian email')).toHaveValue('adult@example.com');
+    expect(screen.getByLabelText('Relationship')).toHaveValue('Parent');
+  });
+
+  test('keeps submit disabled and blocks duplicate mutations until invalidation resolves', async () => {
+    const attachGuardian = vi.fn().mockResolvedValue(undefined);
+    let resolveInvalidate: () => void = () => {};
+    const pending = new Promise<void>((resolve) => {
+      resolveInvalidate = resolve;
+    });
+    const { user, queryClient } = renderGuardian({ api: accountApi({ attachGuardian }) });
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockReturnValue(pending);
+
+    await user.type(screen.getByLabelText('Guardian email'), 'adult@example.com');
+    await user.click(screen.getByRole('button', { name: 'Send invitation' }));
+
+    await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ME_QUERY_KEY }));
+    const button = screen.getByRole('button', { name: 'Send invitation' });
+    expect(button).toBeDisabled();
+    expect(attachGuardian).toHaveBeenCalledTimes(1);
+
+    await user.click(button).catch(() => {});
+    expect(attachGuardian).toHaveBeenCalledTimes(1);
+
+    resolveInvalidate();
+    await waitFor(() => expect(invalidateSpy.mock.results[0]?.value).toBe(pending));
+  });
+
+  test('announces via role=status, invalidates, then navigates only after invalidation resolves', async () => {
     const attachGuardian = vi.fn().mockResolvedValue(undefined);
     const navigate = vi.fn();
+    let resolveInvalidate: () => void = () => {};
+    const pending = new Promise<void>((resolve) => {
+      resolveInvalidate = resolve;
+    });
     const { user, queryClient } = renderGuardian({
       api: accountApi({ attachGuardian }),
       navigate,
     });
-    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue(undefined);
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockReturnValue(pending);
 
     await user.type(screen.getByLabelText('Guardian email'), 'adult@example.com');
     await user.click(screen.getByRole('button', { name: 'Send invitation' }));
 
     await waitFor(() => {
-      expect(screen.getByText('Guardian invitation sent.')).toBeVisible();
+      expect(screen.getByText('Guardian invitation sent.')).toHaveAttribute('role', 'status');
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ME_QUERY_KEY });
-      expect(navigate).toHaveBeenCalledWith({ to: '/account' });
+      expect(navigate).not.toHaveBeenCalled();
     });
+
+    resolveInvalidate();
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: '/account' }));
   });
 
-  test('Cancel returns to /account', async () => {
-    const navigate = vi.fn();
-    const { user } = renderGuardian({ navigate });
-
-    await user.click(screen.getByRole('button', { name: 'Cancel' }));
-
-    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: '/account' }));
+  test('Cancel is a link to /account', () => {
+    renderGuardian();
+    expect(screen.getByRole('link', { name: 'Cancel' })).toHaveAttribute('href', '/account');
   });
 });
