@@ -9,6 +9,8 @@ import { Link, notFound, useNavigate, useParams } from '@tanstack/react-router';
 import type { AccountApi, CreatePlayer, Me } from '../api/account-api.ts';
 import { ApiRequestError, accountApi } from '../api/account-api.ts';
 import { StatusMessage, useStatusMessage } from '../components/status-message.tsx';
+import { TextInput } from '../components/text-input.tsx';
+import { secondaryLinkClassName } from '../components/secondary-link.ts';
 import { ME_QUERY_KEY, meQueryOptions } from '../query-client.ts';
 import type { NavigateTo } from './auth-routes.tsx';
 
@@ -20,9 +22,6 @@ const numberFieldLabels: Record<(typeof numberFields)[number], string> = {
   fideRating: 'FIDE rating',
   uscfRating: 'USCF rating',
 };
-
-const inputClassName =
-  'min-h-11 w-full rounded-control border border-border-strong bg-raised px-3 py-2 text-primary focus:border-focus focus:outline-none focus:ring-2 focus:ring-focus';
 
 function readValue(data: FormData, key: string): string {
   const value = data.get(key);
@@ -168,7 +167,7 @@ export function PlayerFormScreen({
             inputID="displayName"
             status={fieldStatus(fieldErrors.displayName)}
           >
-            <input
+            <TextInput
               id="displayName"
               name="displayName"
               type="text"
@@ -179,11 +178,10 @@ export function PlayerFormScreen({
               aria-describedby={
                 fieldErrors.displayName === undefined ? undefined : 'displayName-status'
               }
-              className={inputClassName}
             />
           </Field>
           <Field label="Birth year" inputID="birthYear" status={fieldStatus(fieldErrors.birthYear)}>
-            <input
+            <TextInput
               id="birthYear"
               name="birthYear"
               type="number"
@@ -194,11 +192,10 @@ export function PlayerFormScreen({
               aria-describedby={
                 fieldErrors.birthYear === undefined ? undefined : 'birthYear-status'
               }
-              className={inputClassName}
             />
           </Field>
           <Field label="FIDE ID" inputID="fideId" status={fieldStatus(fieldErrors.fideId)}>
-            <input
+            <TextInput
               id="fideId"
               name="fideId"
               type="text"
@@ -206,7 +203,6 @@ export function PlayerFormScreen({
               defaultValue={player?.fideId ?? undefined}
               aria-invalid={fieldErrors.fideId === undefined ? undefined : true}
               aria-describedby={fieldErrors.fideId === undefined ? undefined : 'fideId-status'}
-              className={inputClassName}
             />
           </Field>
           <Field
@@ -214,7 +210,7 @@ export function PlayerFormScreen({
             inputID="fideRating"
             status={fieldStatus(fieldErrors.fideRating)}
           >
-            <input
+            <TextInput
               id="fideRating"
               name="fideRating"
               type="number"
@@ -225,11 +221,10 @@ export function PlayerFormScreen({
               aria-describedby={
                 fieldErrors.fideRating === undefined ? undefined : 'fideRating-status'
               }
-              className={inputClassName}
             />
           </Field>
           <Field label="USCF ID" inputID="uscfId" status={fieldStatus(fieldErrors.uscfId)}>
-            <input
+            <TextInput
               id="uscfId"
               name="uscfId"
               type="text"
@@ -237,7 +232,6 @@ export function PlayerFormScreen({
               defaultValue={player?.uscfId ?? undefined}
               aria-invalid={fieldErrors.uscfId === undefined ? undefined : true}
               aria-describedby={fieldErrors.uscfId === undefined ? undefined : 'uscfId-status'}
-              className={inputClassName}
             />
           </Field>
           <Field
@@ -245,7 +239,7 @@ export function PlayerFormScreen({
             inputID="uscfRating"
             status={fieldStatus(fieldErrors.uscfRating)}
           >
-            <input
+            <TextInput
               id="uscfRating"
               name="uscfRating"
               type="number"
@@ -256,7 +250,6 @@ export function PlayerFormScreen({
               aria-describedby={
                 fieldErrors.uscfRating === undefined ? undefined : 'uscfRating-status'
               }
-              className={inputClassName}
             />
           </Field>
           <Field
@@ -264,7 +257,7 @@ export function PlayerFormScreen({
             inputID="chesscomUsername"
             status={fieldStatus(fieldErrors.chesscomUsername)}
           >
-            <input
+            <TextInput
               id="chesscomUsername"
               name="chesscomUsername"
               type="text"
@@ -274,7 +267,6 @@ export function PlayerFormScreen({
               aria-describedby={
                 fieldErrors.chesscomUsername === undefined ? undefined : 'chesscomUsername-status'
               }
-              className={inputClassName}
             />
           </Field>
           <Field
@@ -282,7 +274,7 @@ export function PlayerFormScreen({
             inputID="lichessUsername"
             status={fieldStatus(fieldErrors.lichessUsername)}
           >
-            <input
+            <TextInput
               id="lichessUsername"
               name="lichessUsername"
               type="text"
@@ -292,7 +284,6 @@ export function PlayerFormScreen({
               aria-describedby={
                 fieldErrors.lichessUsername === undefined ? undefined : 'lichessUsername-status'
               }
-              className={inputClassName}
             />
           </Field>
           <div className="flex flex-col gap-3 sm:flex-row">
@@ -304,10 +295,7 @@ export function PlayerFormScreen({
               isLoading={submitting}
               className="min-h-11 flex-1"
             />
-            <Link
-              to="/account"
-              className="inline-flex min-h-11 items-center justify-center rounded-control border border-border-strong bg-raised px-3 py-2 font-ui text-primary hover:bg-sunken focus:border-focus focus:outline-none focus:ring-2 focus:ring-focus"
-            >
+            <Link to="/account" className={secondaryLinkClassName}>
               Cancel
             </Link>
           </div>

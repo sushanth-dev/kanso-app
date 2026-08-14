@@ -30,7 +30,10 @@ export function PageFrame({ children }: PageFrameProps) {
       </a>
       <header className="border-b border-border-subtle">
         <div className="mx-auto w-full max-w-3xl px-4 py-4">
-          <p className="font-display text-xl leading-tight">Kanso Chess</p>
+          <div className="flex items-center gap-2">
+            <span aria-hidden="true" className="size-2.5 shrink-0 rounded-control bg-accent" />
+            <span className="font-display text-xl leading-tight">Kanso Chess</span>
+          </div>
         </div>
       </header>
       <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">

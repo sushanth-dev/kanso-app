@@ -22,11 +22,21 @@
   --color-accent-hover: var(--kanso-color-action-primary-hover);
   --color-on-accent: var(--kanso-color-text-on-accent);
   --color-danger: var(--kanso-color-danger);
+  --color-success: var(--kanso-color-success);
+  --color-info: var(--kanso-color-info);
   --color-border-subtle: var(--kanso-color-border-subtle);
   --color-border-strong: var(--kanso-color-border-strong);
   --color-focus: var(--kanso-color-focus-ring);
   --radius-control: var(--kanso-radius-control);
   --radius-surface: var(--kanso-radius-surface);
+  --text-xs: var(--kanso-text-xs);
+  --text-sm: var(--kanso-text-sm);
+  --text-base: var(--kanso-text-base);
+  --text-lg: var(--kanso-text-lg);
+  --text-xl: var(--kanso-text-xl);
+  --text-2xl: var(--kanso-text-2xl);
+  --text-3xl: var(--kanso-text-3xl);
+  --text-4xl: var(--kanso-text-4xl);
 }
 
 html {
@@ -42,11 +52,30 @@ body {
   outline: var(--kanso-space-1) solid var(--kanso-color-focus-ring);
   outline-offset: var(--kanso-space-1);
 }
+.transition-control {
+  transition-property: color, background-color, border-color, box-shadow;
+  transition-duration: var(--kanso-motion-duration-fast);
+  transition-timing-function: var(--kanso-motion-ease-standard);
+}
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.reveal-in {
+  animation: reveal-in var(--kanso-motion-duration-base) var(--kanso-motion-ease-standard);
+}
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     scroll-behavior: auto !important;
     transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
   }
 }
