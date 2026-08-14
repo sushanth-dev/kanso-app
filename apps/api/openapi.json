@@ -1319,6 +1319,55 @@
           "lichess"
         ]
       },
+      "TournamentDecay": {
+        "type": "object",
+        "properties": {
+          "tournamentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rounds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoundDecay"
+            }
+          },
+          "roundCount": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tournamentId",
+          "rounds",
+          "roundCount"
+        ]
+      },
+      "RoundDecay": {
+        "type": "object",
+        "properties": {
+          "round": {
+            "type": "integer"
+          },
+          "games": {
+            "type": "integer"
+          },
+          "mistakes": {
+            "type": "integer"
+          },
+          "lossPerMove": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "round",
+          "games",
+          "mistakes",
+          "lossPerMove"
+        ]
+      },
       "Explanation": {
         "type": "object",
         "properties": {
@@ -2840,6 +2889,68 @@
           },
           "404": {
             "description": "No such player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tournaments/{tournamentId}/round-decay": {
+      "get": {
+        "tags": [
+          "Diagnosis"
+        ],
+        "summary": "A player’s average centipawn loss per move, by round",
+        "description": "ST-019. The player’s total evaluation loss per round, divided by the moves they played, so a rising line across rounds is the decay signal. Refuses with 422 when the tournament has fewer than two rounds or any round has fewer than three analysed games.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "tournamentId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The round-by-round decay, with evidence counts.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TournamentDecay"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not your tournament.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Not enough evidence to report a trend.",
             "content": {
               "application/json": {
                 "schema": {

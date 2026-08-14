@@ -350,6 +350,35 @@ export const TournamentDetail = z
   })
   .openapi('TournamentDetail');
 
+/**
+ * ST-019. One round of a tournament's decay line. `games` is the unique
+ * complete-game count the average rests on; `mistakes` is the raw mistake row
+ * count, kept separate so the join fan-out never masquerades as the game count.
+ * `lossPerMove` is the average centipawn loss per player move, null when the
+ * round has no moves.
+ */
+export const RoundDecay = z
+  .object({
+    round: z.number().int(),
+    games: z.number().int(),
+    mistakes: z.number().int(),
+    lossPerMove: z.number().nullable(),
+  })
+  .openapi('RoundDecay');
+
+/**
+ * ST-019. A player's round-by-round evaluation loss in one tournament, with the
+ * evidence count travelling with the line rather than the figure alone.
+ */
+export const TournamentDecay = z
+  .object({
+    tournamentId: Uuid,
+    rounds: z.array(RoundDecay),
+    /** Distinct rounds the line covers. */
+    roundCount: z.number().int(),
+  })
+  .openapi('TournamentDecay');
+
 // ─── Report ──────────────────────────────────────────────────────────────────
 
 /**
