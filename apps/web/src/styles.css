@@ -1,0 +1,52 @@
+@layer reset, theme, base, astryx-base, components, utilities;
+@import '@fontsource/public-sans/400.css';
+@import '@fontsource/public-sans/600.css';
+@import '@fontsource/source-serif-4/600.css';
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/preflight.css' layer(base);
+@import '@astryxdesign/core/reset.css';
+@import '@astryxdesign/core/astryx.css';
+@import './generated/tokens.css';
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+@theme inline {
+  --font-ui: var(--kanso-font-ui);
+  --font-display: var(--kanso-font-display);
+  --spacing: var(--kanso-space-1);
+  --color-page: var(--kanso-color-surface-page);
+  --color-raised: var(--kanso-color-surface-raised);
+  --color-sunken: var(--kanso-color-surface-sunken);
+  --color-primary: var(--kanso-color-text-primary);
+  --color-muted: var(--kanso-color-text-muted);
+  --color-accent: var(--kanso-color-action-primary-default);
+  --color-accent-hover: var(--kanso-color-action-primary-hover);
+  --color-on-accent: var(--kanso-color-text-on-accent);
+  --color-danger: var(--kanso-color-danger);
+  --color-border-subtle: var(--kanso-color-border-subtle);
+  --color-border-strong: var(--kanso-color-border-strong);
+  --color-focus: var(--kanso-color-focus-ring);
+  --radius-control: var(--kanso-radius-control);
+  --radius-surface: var(--kanso-radius-surface);
+}
+
+html {
+  background: var(--kanso-color-surface-page);
+  color: var(--kanso-color-text-primary);
+}
+body {
+  margin: 0;
+  min-width: 320px;
+  font-family: var(--kanso-font-ui);
+}
+:focus-visible {
+  outline: var(--kanso-space-1) solid var(--kanso-color-focus-ring);
+  outline-offset: var(--kanso-space-1);
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0ms !important;
+  }
+}

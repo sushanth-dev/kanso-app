@@ -28,6 +28,14 @@ export default defineConfig({
       },
       {
         test: {
+          name: 'web',
+          include: ['apps/web/src/**/*.test.tsx'],
+          environment: 'jsdom',
+          setupFiles: ['apps/web/src/test/setup.ts'],
+        },
+      },
+      {
+        test: {
           name: 'integration',
           include: ['apps/*/src/**/*.integration.test.ts'],
           // Applying migrations to a fresh database is measured in seconds.
@@ -41,7 +49,12 @@ export default defineConfig({
       reporter: ['text', 'lcov'],
       include: ['apps/*/src/**'],
       // Generated, hand-written-against, or not ours to cover.
-      exclude: ['apps/*/src/**/*.test.ts', 'apps/*/src/contract/emit-openapi.ts'],
+      exclude: [
+        'apps/*/src/**/*.test.ts',
+        'apps/*/src/**/*.test.tsx',
+        'apps/*/src/contract/emit-openapi.ts',
+        'apps/web/src/generated/**',
+      ],
     },
   },
 });
