@@ -1,9 +1,10 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { QueryClientProvider } from '@tanstack/react-query';
+import { RouterProvider } from '@tanstack/react-router';
 import { Theme } from '@astryxdesign/core/theme';
 import { queryClient } from './query-client.ts';
-import { Shell } from './shell.tsx';
+import { router } from './router.tsx';
 import { studyRoomTheme } from './theme.ts';
 import './styles.css';
 
@@ -14,7 +15,7 @@ createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <Theme theme={studyRoomTheme} mode="light">
-        <Shell />
+        <RouterProvider router={router} context={{ queryClient }} />
       </Theme>
     </QueryClientProvider>
   </StrictMode>,
