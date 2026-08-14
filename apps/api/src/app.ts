@@ -18,6 +18,8 @@ import { routes } from './contract/routes.ts';
 import { mountMe } from './account/me.ts';
 import { mountCreatePlayer } from './account/create-player.ts';
 import { mountUpdatePlayer } from './account/update-player.ts';
+import { mountAttachGuardian } from './account/attach-guardian.ts';
+import { mountConfirmGuardian } from './account/confirm-guardian.ts';
 import { mountHealth } from './health.ts';
 import { mountImport } from './import/import-games.ts';
 import { mountListGames } from './games/list-games.ts';
@@ -26,6 +28,7 @@ import { mountListTournaments } from './tournaments/list-tournaments.ts';
 import { mountGetTournament } from './tournaments/get-tournament.ts';
 import { realSessionReader } from './session.ts';
 import type * as schema from './db/schema.ts';
+import { sesConfigFromEnv, sesMailer, type Mailer } from './account/mailer.ts';
 
 /** The shape of every error the API emits, from `ApiError` in the contract. */
 export interface ErrorBody {
@@ -102,9 +105,15 @@ export interface AppOptions {
    * is only mounted when it is supplied.
    */
   db?: PostgresJsDatabase<typeof schema>;
+  /**
+   * Sends the guardian consent notice. Defaults to SES reading its
+   * configuration from the environment; tests pass a fake so no test sends
+   * real mail.
+   */
+  mailer?: Mailer;
 }
 
-export function createApp({ getSession, auth, db }: AppOptions = {}) {
+export function createApp({ getSession, auth, db, mailer: mailerOption }: AppOptions = {}) {
   const app = new OpenAPIHono({
     /**
      * A validation failure is a 400 in the contract, so it is answered in the
@@ -150,10 +159,13 @@ export function createApp({ getSession, auth, db }: AppOptions = {}) {
   }
 
   if (db) {
+    const mailer = mailerOption ?? sesMailer(sesConfigFromEnv());
     mountHealth(app, { db });
     mountMe(app, { db, getSession: effectiveGetSession });
     mountCreatePlayer(app, { db, getSession: effectiveGetSession });
     mountUpdatePlayer(app, { db, getSession: effectiveGetSession });
+    mountAttachGuardian(app, { db, getSession: effectiveGetSession, mailer });
+    mountConfirmGuardian(app, { db });
     mountImport(app, { db, getSession: effectiveGetSession });
     mountListGames(app, { db, getSession: effectiveGetSession });
     mountSetGameColor(app, { db, getSession: effectiveGetSession });

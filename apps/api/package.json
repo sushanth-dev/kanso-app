@@ -12,6 +12,7 @@
     "backfill": "node src/scripts/backfill.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-ses": "^3.1106.0",
     "@aws-sdk/client-sqs": "^3.1106.0",
     "@better-auth/drizzle-adapter": "^1.6.27",
     "@hono/node-server": "^2.1.0",

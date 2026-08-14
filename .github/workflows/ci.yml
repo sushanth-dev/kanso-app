@@ -67,9 +67,10 @@ jobs:
         run: npm audit --audit-level=high
 
   integration:
-    # The integration suite runs against a real PostgreSQL and a real SQS
-    # because the testing policy forbids mocking either. The service container
-    # versions are pinned by ADR-0022 and must match docs/guides/local-setup.md.
+    # The integration suite runs against a real PostgreSQL, a real SQS, and a
+    # real SES because the testing policy forbids mocking them. The service
+    # container versions are pinned by ADR-0022 and must match
+    # docs/guides/local-setup.md.
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -87,7 +88,7 @@ jobs:
       localstack:
         image: localstack/localstack:4
         env:
-          SERVICES: sqs
+          SERVICES: ses,sqs
         ports:
           - 4566:4566
         options: >-
