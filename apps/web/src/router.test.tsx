@@ -148,8 +148,28 @@ describe('router', () => {
     await user.click(screen.getByRole('button', { name: 'Create player' }));
 
     expect(await screen.findByRole('heading', { name: 'Your account' })).toBeVisible();
+    expect(screen.getByText('Player saved.')).toHaveAttribute('role', 'status');
     expect(createPlayer).toHaveBeenCalledWith({ displayName: 'Mina' });
     expect(router.state.location.pathname).toBe('/account');
+  });
+
+  test('keeps guardian success visible after returning to /account', async () => {
+    const user = userEvent.setup();
+    getMe.mockResolvedValue(meFixture);
+    attachGuardian.mockResolvedValue(undefined);
+    renderAt(`/account/players/${ownedPlayerId}/guardian`);
+
+    expect(await screen.findByRole('heading', { name: 'Add guardian' })).toBeVisible();
+    await user.type(screen.getByLabelText('Guardian email'), 'guardian@example.com');
+    await user.type(screen.getByLabelText('Relationship'), 'Parent');
+    await user.click(screen.getByRole('button', { name: 'Send invitation' }));
+
+    expect(await screen.findByRole('heading', { name: 'Your account' })).toBeVisible();
+    expect(screen.getByText('Guardian invitation sent.')).toHaveAttribute('role', 'status');
+    expect(attachGuardian).toHaveBeenCalledWith(ownedPlayerId, {
+      guardianEmail: 'guardian@example.com',
+      relationship: 'Parent',
+    });
   });
 
   test('a guarded player id cannot be edited and triggers no mutation', async () => {

@@ -16,4 +16,18 @@ export const studyRoomTheme = defineTheme({
     '--font-family-body': 'var(--kanso-font-ui)',
     '--font-family-heading': 'var(--kanso-font-display)',
   },
+  components: {
+    button: {
+      'variant:primary': {
+        ':hover': {
+          backgroundColor: 'var(--kanso-color-action-primary-hover)',
+          backgroundImage: 'none',
+        },
+        ':active': {
+          backgroundColor: 'var(--kanso-color-action-primary-hover)',
+          backgroundImage: 'none',
+        },
+      },
+    },
+  },
 });

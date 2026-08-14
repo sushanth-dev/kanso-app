@@ -24,7 +24,8 @@
     "test:integration": "vitest run --project integration",
     "test:watch": "vitest --project unit",
     "test:coverage": "npm run generate && vitest run --coverage --project unit --project web",
-    "openapi": "npm run openapi --workspace apps/api"
+    "openapi": "npm run openapi --workspace apps/api",
+    "test:e2e": "npm run test:e2e --workspace apps/web"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

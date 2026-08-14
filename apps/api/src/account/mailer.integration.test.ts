@@ -30,6 +30,7 @@ describe.skipIf(endpoint === undefined)('sesMailer', () => {
   });
 
   afterAll(async () => {
+    if (process.env.KEEP_SES_IDENTITY === '1') return;
     await ses.send(new DeleteIdentityCommand({ Identity: SENDER }));
   });
 

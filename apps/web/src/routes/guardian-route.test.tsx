@@ -5,6 +5,8 @@ import { createMemoryHistory, RouterContextProvider } from '@tanstack/react-rout
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { AccountApi, Me, Player } from '../api/account-api.ts';
 import { ApiRequestError } from '../api/account-api.ts';
+import { PageFrame } from '../components/page-frame.tsx';
+import { StatusMessageProvider } from '../components/status-message.tsx';
 import { ME_QUERY_KEY } from '../query-client.ts';
 import { createAppRouter } from '../router.tsx';
 import type { NavigateTo } from './auth-routes.tsx';
@@ -69,13 +71,17 @@ function renderGuardian({
   const router = createAppRouter({ history, queryClient });
   render(
     <RouterContextProvider router={router}>
-      <GuardianScreen
-        me={me}
-        playerId={id}
-        accountApi={api}
-        queryClient={queryClient}
-        navigate={navigate}
-      />
+      <StatusMessageProvider>
+        <PageFrame>
+          <GuardianScreen
+            me={me}
+            playerId={id}
+            accountApi={api}
+            queryClient={queryClient}
+            navigate={navigate}
+          />
+        </PageFrame>
+      </StatusMessageProvider>
     </RouterContextProvider>,
   );
   return { user, queryClient };

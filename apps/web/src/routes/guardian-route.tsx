@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { Field } from '@astryxdesign/core/Field';
@@ -8,7 +8,7 @@ import { useQueryClient, useSuspenseQuery, type QueryClient } from '@tanstack/re
 import { Link, notFound, useNavigate, useParams } from '@tanstack/react-router';
 import type { AccountApi, Me } from '../api/account-api.ts';
 import { ApiRequestError, accountApi } from '../api/account-api.ts';
-import { StatusMessage } from '../components/status-message.tsx';
+import { StatusMessage, useStatusMessage } from '../components/status-message.tsx';
 import { ME_QUERY_KEY, meQueryOptions } from '../query-client.ts';
 import type { NavigateTo } from './auth-routes.tsx';
 
@@ -43,14 +43,18 @@ export function GuardianScreen({
   }
   const player = found;
 
+  const { setMessage } = useStatusMessage();
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMessage(null);
+  }, [setMessage]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormError(null);
-    setSuccessMessage(null);
+    setMessage(null);
 
     const data = new FormData(event.currentTarget);
     const guardianEmail = readValue(data, 'guardianEmail');
@@ -76,7 +80,7 @@ export function GuardianScreen({
       return;
     }
 
-    setSuccessMessage('Guardian invitation sent.');
+    setMessage('Guardian invitation sent.');
     await queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY });
     await navigate({ to: '/account' });
   }
@@ -91,11 +95,6 @@ export function GuardianScreen({
       {formError !== null ? (
         <div className="mt-4">
           <StatusMessage tone="error">{formError}</StatusMessage>
-        </div>
-      ) : null}
-      {successMessage !== null ? (
-        <div className="mt-4">
-          <StatusMessage tone="success">{successMessage}</StatusMessage>
         </div>
       ) : null}
       <form

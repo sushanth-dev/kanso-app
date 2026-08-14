@@ -66,7 +66,10 @@ export function createAccountApi(fetcher: typeof globalThis.fetch = globalThis.f
         params: { path: { playerId } },
         body,
       });
-      if (result.response.ok) return;
+      if (result.response.ok) {
+        await result.response.arrayBuffer();
+        return;
+      }
       throw failure(result.response.status, result.error);
     },
   };

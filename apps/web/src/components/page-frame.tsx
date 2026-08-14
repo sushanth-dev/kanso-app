@@ -1,10 +1,13 @@
 import type { ReactNode } from 'react';
+import { StatusMessage, useStatusMessage } from './status-message.tsx';
 
 export interface PageFrameProps {
   children: ReactNode;
 }
 
 export function PageFrame({ children }: PageFrameProps) {
+  const { message } = useStatusMessage();
+
   return (
     <div className="flex min-h-screen flex-col bg-page font-ui">
       <a
@@ -19,6 +22,11 @@ export function PageFrame({ children }: PageFrameProps) {
         </div>
       </header>
       <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">
+        {message === null ? null : (
+          <div className="mb-6">
+            <StatusMessage tone="success">{message}</StatusMessage>
+          </div>
+        )}
         {children}
       </main>
     </div>

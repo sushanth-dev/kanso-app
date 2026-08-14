@@ -14,6 +14,7 @@ import {
 } from '@tanstack/react-router';
 import { ApiRequestError } from './api/account-api.ts';
 import { PageFrame } from './components/page-frame.tsx';
+import { StatusMessageProvider } from './components/status-message.tsx';
 import { meQueryOptions, queryClient } from './query-client.ts';
 import { AccountRoute } from './routes/account-route.tsx';
 import { SignInRoute, SignUpRoute } from './routes/auth-routes.tsx';
@@ -26,9 +27,11 @@ interface RouterContext {
 
 function RootComponent() {
   return (
-    <PageFrame>
-      <Outlet />
-    </PageFrame>
+    <StatusMessageProvider>
+      <PageFrame>
+        <Outlet />
+      </PageFrame>
+    </StatusMessageProvider>
   );
 }
 
