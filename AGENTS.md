@@ -150,6 +150,18 @@ mounted in `app.ts` via `app.openapi(route, handler)` to `db/schema.ts`
 (Drizzle). Cross-cutting concerns (error shape, session, 404) live in
 `app.ts`, not in every handler.
 
+## Frontend visual work
+
+Changing what a screen in `apps/web` looks like goes through the Impeccable
+plugin, per ADR-0031. Read `PRODUCT.md` and `DESIGN.md` at the repository root
+first, critique and audit the surface before editing it, refine rather than
+redesign, and update `DESIGN.md` from what shipped in the same pull request.
+Replacing the visual world rather than refining it is Sushanth's decision and
+its own story. The plugin exempts nothing: every visual decision still resolves
+to a semantic token, primitives still come from Astryx, and the WCAG 2.2 AA
+floor still binds. A change that alters no visual decision, such as routing or
+data fetching, is outside this.
+
 ## TypeScript strictness
 
 `strict: true` and `noUncheckedIndexedAccess: true` are enforced and gate
