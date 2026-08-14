@@ -33,6 +33,7 @@ import {
   SocraticQuestion,
   StartImport,
   Stream,
+  TournamentDecay,
   TournamentDetail,
   TournamentList,
   TransferGap,
@@ -183,6 +184,26 @@ export const getTransferGap = createRoute({
     200: json(TransferGap, 'The gap, fetched and snapshotted if needed.'),
     ...authErrors,
     404: error('No such player.'),
+  },
+});
+
+export const getRoundDecay = createRoute({
+  method: 'get',
+  path: '/tournaments/{tournamentId}/round-decay',
+  tags: ['Diagnosis'],
+  summary: 'A player’s average centipawn loss per move, by round',
+  description:
+    'ST-019. The player’s total evaluation loss per round, divided by the moves they played, so a rising line across rounds is the decay signal. Refuses with 422 when the tournament has fewer than two rounds or any round has fewer than three analysed games.',
+  request: {
+    params: z.object({
+      tournamentId: Uuid.openapi({ param: { name: 'tournamentId', in: 'path' } }),
+    }),
+  },
+  responses: {
+    200: json(TournamentDecay, 'The round-by-round decay, with evidence counts.'),
+    401: error('No session.'),
+    403: error('Not your tournament.'),
+    422: error('Not enough evidence to report a trend.'),
   },
 });
 
@@ -574,6 +595,7 @@ export const routes = [
   getTournament,
   getReport,
   getTransferGap,
+  getRoundDecay,
   getExplanation,
   getSocraticQuestion,
   listFocuses,

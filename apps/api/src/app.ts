@@ -26,6 +26,7 @@ import { mountListGames } from './games/list-games.ts';
 import { mountSetGameColor } from './games/set-game-color.ts';
 import { mountListTournaments } from './tournaments/list-tournaments.ts';
 import { mountGetTournament } from './tournaments/get-tournament.ts';
+import { mountRoundDecay } from './tournaments/round-decay.ts';
 import { realSessionReader } from './session.ts';
 import type * as schema from './db/schema.ts';
 import { sesConfigFromEnv, sesMailer, type Mailer } from './account/mailer.ts';
@@ -185,6 +186,7 @@ export function createApp({
     mountSetGameColor(app, { db, getSession: effectiveGetSession });
     mountListTournaments(app, { db, getSession: effectiveGetSession });
     mountGetTournament(app, { db, getSession: effectiveGetSession });
+    mountRoundDecay(app, { db, getSession: effectiveGetSession });
     mountTransferGap(app, { db, getSession: effectiveGetSession, ratingFetcher });
   }
 
