@@ -15,18 +15,14 @@
 import { DeleteIdentityCommand, SESClient, VerifyEmailIdentityCommand } from '@aws-sdk/client-ses';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { sesConfigFromEnv, sesMailer, type SesConfig } from './mailer.ts';
+import { localstackClientOptions } from '../localstack.ts';
 
 const endpoint = process.env.AWS_ENDPOINT_URL;
-
-// LocalStack accepts any credentials but the SDK refuses to send without them.
-process.env.AWS_REGION ??= 'us-east-1';
-process.env.AWS_ACCESS_KEY_ID ??= 'test';
-process.env.AWS_SECRET_ACCESS_KEY ??= 'test';
 
 const SENDER = 'sender@example.com';
 const RECIPIENT = 'guardian@example.com';
 
-const ses = new SESClient({ endpoint });
+const ses = new SESClient(endpoint ? { endpoint, ...localstackClientOptions } : {});
 
 describe.skipIf(endpoint === undefined)('sesMailer', () => {
   beforeAll(async () => {

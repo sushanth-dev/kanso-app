@@ -18,6 +18,8 @@ export function toPlayer(row: typeof player.$inferSelect) {
     uscfRating: row.uscfRating,
     chesscomUsername: row.chesscomUsername,
     lichessUsername: row.lichessUsername,
+    chesscomRating: row.chesscomRating,
+    lichessRating: row.lichessRating,
     createdAt: row.createdAt.toISOString(),
   };
 }

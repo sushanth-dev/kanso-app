@@ -210,6 +210,18 @@
               "null"
             ]
           },
+          "chesscomRating": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "lichessRating": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -225,6 +237,8 @@
           "uscfRating",
           "chesscomUsername",
           "lichessUsername",
+          "chesscomRating",
+          "lichessRating",
           "createdAt"
         ]
       },
@@ -1240,6 +1254,69 @@
           "motif",
           "phase",
           "time_trouble"
+        ]
+      },
+      "TransferGap": {
+        "type": "object",
+        "properties": {
+          "playerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "overTheBoardRating": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "chesscom": {
+            "type": "object",
+            "properties": {
+              "rating": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "gap": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "rating",
+              "gap"
+            ]
+          },
+          "lichess": {
+            "type": "object",
+            "properties": {
+              "rating": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "gap": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "rating",
+              "gap"
+            ]
+          }
+        },
+        "required": [
+          "playerId",
+          "overTheBoardRating",
+          "chesscom",
+          "lichess"
         ]
       },
       "Explanation": {
@@ -2683,6 +2760,86 @@
           },
           "404": {
             "description": "No such player, or no analyzed games in that stream yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/players/{playerId}/transfer-gap": {
+      "get": {
+        "tags": [
+          "Diagnosis"
+        ],
+        "summary": "The gap between a player’s online and over-the-board rating",
+        "description": "ST-018. Online rapid rating from Chess.com and Lichess, compared against the over-the-board rating (FIDE, else USCF). Fetched and snapshotted on the first view, then re-fetched only on an explicit refresh.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "playerId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "refresh",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The gap, fetched and snapshotted if needed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransferGap"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The session has no claim on this player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such player.",
             "content": {
               "application/json": {
                 "schema": {

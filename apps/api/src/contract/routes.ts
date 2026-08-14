@@ -35,6 +35,7 @@ import {
   Stream,
   TournamentDetail,
   TournamentList,
+  TransferGap,
   UpdatePlayer,
   Uuid,
 } from './schemas.ts';
@@ -155,6 +156,33 @@ export const confirmGuardian = createRoute({
   responses: {
     204: { description: 'Consent recorded, or already recorded.' },
     404: error('No such consent request, or the link was tampered with or has expired.'),
+  },
+});
+
+// ─── Diagnosis ───────────────────────────────────────────────────────────────
+
+export const getTransferGap = createRoute({
+  method: 'get',
+  path: '/players/{playerId}/transfer-gap',
+  tags: ['Diagnosis'],
+  summary: 'The gap between a player’s online and over-the-board rating',
+  description:
+    'ST-018. Online rapid rating from Chess.com and Lichess, compared against the over-the-board rating (FIDE, else USCF). Fetched and snapshotted on the first view, then re-fetched only on an explicit refresh.',
+  request: {
+    params: playerParams,
+    query: z.object({
+      // `refresh=true` is the deliberate re-fetch. A plain string rather than
+      // `z.coerce.boolean()`, which turns the string "false" into `true`.
+      refresh: z
+        .string()
+        .optional()
+        .openapi({ param: { name: 'refresh', in: 'query' } }),
+    }),
+  },
+  responses: {
+    200: json(TransferGap, 'The gap, fetched and snapshotted if needed.'),
+    ...authErrors,
+    404: error('No such player.'),
   },
 });
 
@@ -545,6 +573,7 @@ export const routes = [
   listTournaments,
   getTournament,
   getReport,
+  getTransferGap,
   getExplanation,
   getSocraticQuestion,
   listFocuses,

@@ -127,6 +127,14 @@ export const player = pgTable(
     chesscomUsername: text('chesscom_username'),
     lichessUsername: text('lichess_username'),
 
+    /**
+     * ST-018. Fetched from the platform's public API; null until fetched, and
+     * null when the platform reports nothing. Never zero for a failed fetch.
+     */
+    chesscomRating: smallint('chesscom_rating'),
+    lichessRating: smallint('lichess_rating'),
+    ratingFetchedAt: timestamp('rating_fetched_at', { withTimezone: true }),
+
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
