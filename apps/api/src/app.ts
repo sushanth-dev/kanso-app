@@ -29,6 +29,8 @@ import { mountGetTournament } from './tournaments/get-tournament.ts';
 import { realSessionReader } from './session.ts';
 import type * as schema from './db/schema.ts';
 import { sesConfigFromEnv, sesMailer, type Mailer } from './account/mailer.ts';
+import { httpRatingFetcher, type RatingFetcher } from './rating/rating-fetcher.ts';
+import { mountTransferGap } from './rating/transfer-gap.ts';
 
 /** The shape of every error the API emits, from `ApiError` in the contract. */
 export interface ErrorBody {
@@ -111,9 +113,20 @@ export interface AppOptions {
    * real mail.
    */
   mailer?: Mailer;
+  /**
+   * Fetches online ratings from Chess.com and Lichess. Defaults to the real
+   * HTTP fetchers; tests pass a fake so no test makes a real outbound call.
+   */
+  ratingFetcher?: RatingFetcher;
 }
 
-export function createApp({ getSession, auth, db, mailer: mailerOption }: AppOptions = {}) {
+export function createApp({
+  getSession,
+  auth,
+  db,
+  mailer: mailerOption,
+  ratingFetcher: ratingFetcherOption,
+}: AppOptions = {}) {
   const app = new OpenAPIHono({
     /**
      * A validation failure is a 400 in the contract, so it is answered in the
@@ -160,6 +173,7 @@ export function createApp({ getSession, auth, db, mailer: mailerOption }: AppOpt
 
   if (db) {
     const mailer = mailerOption ?? sesMailer(sesConfigFromEnv());
+    const ratingFetcher = ratingFetcherOption ?? httpRatingFetcher;
     mountHealth(app, { db });
     mountMe(app, { db, getSession: effectiveGetSession });
     mountCreatePlayer(app, { db, getSession: effectiveGetSession });
@@ -171,6 +185,7 @@ export function createApp({ getSession, auth, db, mailer: mailerOption }: AppOpt
     mountSetGameColor(app, { db, getSession: effectiveGetSession });
     mountListTournaments(app, { db, getSession: effectiveGetSession });
     mountGetTournament(app, { db, getSession: effectiveGetSession });
+    mountTransferGap(app, { db, getSession: effectiveGetSession, ratingFetcher });
   }
 
   app.notFound((c) => c.json<ErrorBody>({ code: 'not_found', message: 'No such endpoint.' }, 404));
