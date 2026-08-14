@@ -86,13 +86,16 @@ describe('router', () => {
     expect(router.state.location.pathname).toBe('/account');
   });
 
-  test('sign-out runs one auth call, clears the me query, then navigates to /sign-in', async () => {
+  test('sign-out clears the me query before navigating away, then lands on /sign-in', async () => {
     const user = userEvent.setup();
     getMe.mockResolvedValue(meFixture);
     const { router, queryClient } = renderAt('/account');
     expect(await screen.findByRole('heading', { name: 'Your account' })).toBeVisible();
 
-    const removeSpy = vi.spyOn(queryClient, 'removeQueries');
+    let pathAtRemoval: string | undefined;
+    const removeSpy = vi.spyOn(queryClient, 'removeQueries').mockImplementation(() => {
+      pathAtRemoval = router.state.location.pathname;
+    });
 
     await user.click(screen.getByRole('button', { name: 'Sign out' }));
 
@@ -103,6 +106,7 @@ describe('router', () => {
     expect(signOut.mock.invocationCallOrder[0]).toBeLessThan(
       removeSpy.mock.invocationCallOrder[0] ?? 0,
     );
+    expect(pathAtRemoval).toBe('/account');
     expect(router.state.location.pathname).toBe('/sign-in');
   });
 });
