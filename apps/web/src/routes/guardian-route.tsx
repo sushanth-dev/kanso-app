@@ -9,11 +9,9 @@ import { Link, notFound, useNavigate, useParams } from '@tanstack/react-router';
 import type { AccountApi, Me } from '../api/account-api.ts';
 import { ApiRequestError, accountApi } from '../api/account-api.ts';
 import { StatusMessage, useStatusMessage } from '../components/status-message.tsx';
+import { TextInput } from '../components/text-input.tsx';
 import { ME_QUERY_KEY, meQueryOptions } from '../query-client.ts';
 import type { NavigateTo } from './auth-routes.tsx';
-
-const inputClassName =
-  'min-h-11 w-full rounded-control border border-border-strong bg-raised px-3 py-2 text-primary focus:border-focus focus:outline-none focus:ring-2 focus:ring-focus';
 
 function readValue(data: FormData, key: string): string {
   const value = data.get(key);
@@ -127,7 +125,7 @@ export function GuardianScreen({
             descriptionID="guardianEmail-consent"
             status={fieldStatus(fieldErrors.guardianEmail)}
           >
-            <input
+            <TextInput
               id="guardianEmail"
               name="guardianEmail"
               type="email"
@@ -139,7 +137,6 @@ export function GuardianScreen({
                   ? 'guardianEmail-consent'
                   : 'guardianEmail-consent guardianEmail-status'
               }
-              className={inputClassName}
             />
           </Field>
           <Field
@@ -147,7 +144,7 @@ export function GuardianScreen({
             inputID="relationship"
             status={fieldStatus(fieldErrors.relationship)}
           >
-            <input
+            <TextInput
               id="relationship"
               name="relationship"
               type="text"
@@ -156,7 +153,6 @@ export function GuardianScreen({
               aria-describedby={
                 fieldErrors.relationship === undefined ? undefined : 'relationship-status'
               }
-              className={inputClassName}
             />
           </Field>
           <div className="flex flex-col gap-3 sm:flex-row">
