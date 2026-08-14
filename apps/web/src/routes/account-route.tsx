@@ -14,51 +14,27 @@ import { StatusMessage } from '../components/status-message.tsx';
 export interface AccountScreenProps {
   me: Me;
   signOut: () => Promise<void>;
-  clearAccount: () => void;
 }
 
-function OwnedPlayerCard({ player }: { player: Player }) {
+function PlayerCard({ player, prefix }: { player: Player; prefix: 'Owned' | 'Guarded' }) {
   return (
     <li>
       <Card>
-        <Heading level={3}>Owned {player.displayName}</Heading>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button
-            href={`/account/players/${player.id}/edit`}
-            label="Edit"
-            variant="secondary"
-            size="sm"
-          />
-          <Button
-            href={`/account/players/${player.id}/guardian`}
-            label="Add guardian"
-            variant="secondary"
-            size="sm"
-          />
-        </div>
+        <Heading level={3}>
+          {prefix} {player.displayName}
+        </Heading>
       </Card>
     </li>
   );
 }
 
-function GuardedPlayerCard({ player }: { player: Player }) {
-  return (
-    <li>
-      <Card>
-        <Heading level={3}>Guarded {player.displayName}</Heading>
-      </Card>
-    </li>
-  );
-}
-
-export function AccountScreen({ me, signOut, clearAccount }: AccountScreenProps) {
+export function AccountScreen({ me, signOut }: AccountScreenProps) {
   const [signOutError, setSignOutError] = useState<string | null>(null);
 
   async function handleSignOut() {
     setSignOutError(null);
     try {
       await signOut();
-      clearAccount();
     } catch {
       setSignOutError('Sign out failed. Please try again.');
     }
@@ -90,7 +66,7 @@ export function AccountScreen({ me, signOut, clearAccount }: AccountScreenProps)
         ) : (
           <ul className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
             {me.players.map((player) => (
-              <OwnedPlayerCard key={player.id} player={player} />
+              <PlayerCard key={player.id} player={player} prefix="Owned" />
             ))}
           </ul>
         )}
@@ -109,7 +85,7 @@ export function AccountScreen({ me, signOut, clearAccount }: AccountScreenProps)
         ) : (
           <ul className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
             {me.guardedPlayers.map((player) => (
-              <GuardedPlayerCard key={player.id} player={player} />
+              <PlayerCard key={player.id} player={player} prefix="Guarded" />
             ))}
           </ul>
         )}
@@ -123,15 +99,11 @@ export function AccountRoute() {
   const queryClient = useQueryClient();
   const { data: me } = useSuspenseQuery(meQueryOptions());
 
-  const clearAccount = () => {
-    queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
-  };
-
   const signOut = async () => {
     await authClient.signOut();
-    clearAccount();
+    queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
     await navigate({ to: '/sign-in' });
   };
 
-  return <AccountScreen me={me} signOut={signOut} clearAccount={clearAccount} />;
+  return <AccountScreen me={me} signOut={signOut} />;
 }

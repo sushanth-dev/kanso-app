@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, test, vi } from 'vitest';
 import type { Me, Player } from '../api/account-api.ts';
@@ -37,16 +37,13 @@ function meFixture(overrides: Partial<Me> = {}): Me {
   };
 }
 
+function renderAccount(me: Me = meFixture()) {
+  return render(<AccountScreen me={me} signOut={vi.fn().mockResolvedValue(undefined)} />);
+}
+
 describe('AccountScreen', () => {
   test('renders account identity and the owned and guarded lists', () => {
-    render(
-      <AccountScreen
-        me={meFixture()}
-        signOut={vi.fn().mockResolvedValue(undefined)}
-        clearAccount={vi.fn()}
-      />,
-    );
-
+    renderAccount();
     expect(screen.getByRole('heading', { name: 'Your account' })).toBeVisible();
     expect(screen.getByText('Owned Mina')).toBeVisible();
     expect(screen.getByText('Guarded Theo')).toBeVisible();
@@ -58,8 +55,7 @@ describe('AccountScreen', () => {
   test('signs out through the injected handler', async () => {
     const user = userEvent.setup();
     const signOut = vi.fn().mockResolvedValue(undefined);
-    const clearAccount = vi.fn();
-    render(<AccountScreen me={meFixture()} signOut={signOut} clearAccount={clearAccount} />);
+    render(<AccountScreen me={meFixture()} signOut={signOut} />);
 
     await user.click(screen.getByRole('button', { name: 'Sign out' }));
 
@@ -67,50 +63,18 @@ describe('AccountScreen', () => {
   });
 
   test('shows the owned empty-state message when there are no owned players', () => {
-    render(
-      <AccountScreen
-        me={meFixture({ players: [] })}
-        signOut={vi.fn().mockResolvedValue(undefined)}
-        clearAccount={vi.fn()}
-      />,
-    );
-
+    renderAccount(meFixture({ players: [] }));
     expect(screen.getByText('No players yet')).toBeVisible();
   });
 
   test('shows the guarded empty-state message when there are no guarded players', () => {
-    render(
-      <AccountScreen
-        me={meFixture({ guardedPlayers: [] })}
-        signOut={vi.fn().mockResolvedValue(undefined)}
-        clearAccount={vi.fn()}
-      />,
-    );
-
+    renderAccount(meFixture({ guardedPlayers: [] }));
     expect(screen.getByText('No players you support')).toBeVisible();
   });
 
-  test('owned cards link to edit and guardian paths, guarded cards are read-only', () => {
-    render(
-      <AccountScreen
-        me={meFixture()}
-        signOut={vi.fn().mockResolvedValue(undefined)}
-        clearAccount={vi.fn()}
-      />,
-    );
-
-    const owned = screen.getByRole('region', { name: 'Your players' });
-    expect(within(owned).getByRole('link', { name: 'Edit' })).toHaveAttribute(
-      'href',
-      `/account/players/${playerId}/edit`,
-    );
-    expect(within(owned).getByRole('link', { name: 'Add guardian' })).toHaveAttribute(
-      'href',
-      `/account/players/${playerId}/guardian`,
-    );
-
-    const guarded = screen.getByRole('region', { name: 'Players you support' });
-    expect(within(guarded).queryByRole('link', { name: 'Edit' })).not.toBeInTheDocument();
-    expect(within(guarded).queryByRole('link', { name: 'Add guardian' })).not.toBeInTheDocument();
+  test('renders no mutation links in Task 3; guarded cards stay read-only', () => {
+    renderAccount();
+    expect(screen.queryByRole('link', { name: 'Edit' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Add guardian' })).not.toBeInTheDocument();
   });
 });
