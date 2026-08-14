@@ -74,7 +74,7 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
   }
 
   return (
-    <Card>
+    <Card className="mx-auto w-full max-w-sm">
       <Heading level={1}>{heading}</Heading>
       {errorMessage !== null ? (
         <div className="mt-4">
@@ -145,7 +145,7 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
         {isSignUp ? 'Already have an account? ' : 'Need an account? '}
         <Link
           to={isSignUp ? '/sign-in' : '/sign-up'}
-          className="inline-flex min-h-11 items-center font-ui text-accent underline"
+          className="inline-flex min-h-11 items-center font-ui text-accent underline transition-control hover:text-accent-hover"
         >
           {isSignUp ? 'Sign in' : 'Sign up'}
         </Link>
