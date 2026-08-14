@@ -43,6 +43,12 @@ nav:
           - 0005 Astryx primitives: adrs/frontend/0005-astryx-primitives.md
           - 0006 D3 for data visualization: adrs/frontend/0006-d3-visualizations.md
           - 0017 Canvas UI decorative motion: adrs/frontend/0017-canvas-ui-effects.md
+          - 0024 TanStack Query data fetching: adrs/frontend/0024-tanstack-query-data-fetching.md
+          - 0025 TanStack Table tabular data: adrs/frontend/0025-tanstack-table-tabular-data.md
+          - 0026 TanStack Virtual list rendering: adrs/frontend/0026-tanstack-virtual-list-rendering.md
+          - 0027 TanStack Router SPA routing: adrs/frontend/0027-tanstack-router-spa-routing.md
+          - 0028 TanStack Charts deferral: adrs/frontend/0028-tanstack-charts-deferral.md
+          - 0031 Impeccable frontend refinement: adrs/frontend/0031-impeccable-frontend-refinement.md
       - Backend:
           - Records: adrs/backend/index.md
           - 0007 Hono HTTP framework: adrs/backend/0007-hono-http-framework.md
@@ -61,6 +67,8 @@ nav:
           - 0021 postgres.js driver: adrs/backend/0021-postgres-js-driver.md
           - 0022 PostgreSQL 18: adrs/backend/0022-postgresql-18.md
           - 0023 Native Stockfish in Lambda: adrs/backend/0023-stockfish-native-lambda-depth-21.md
+          - 0029 ChessOps attack detection: adrs/backend/0029-chessops-attack-detection.md
+          - 0030 COPPA guardian consent: adrs/backend/0030-coppa-guardian-consent.md
   - Guides:
       - Overview: guides/index.md
       - Local setup: guides/local-setup.md
