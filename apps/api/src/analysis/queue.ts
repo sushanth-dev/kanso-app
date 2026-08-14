@@ -11,6 +11,7 @@
  * running, with no queue and no branch in the calling code.
  */
 import { SendMessageBatchCommand, SQSClient } from '@aws-sdk/client-sqs';
+import { localstackClientOptions } from '../localstack.ts';
 
 export interface QueueConfig {
   queueUrl: string;
@@ -35,7 +36,9 @@ function clientFor(config: QueueConfig): SQSClient {
   // One client per process. The SDK holds the connection pool, and building a
   // fresh one per import is how a Lambda ends up re-resolving credentials on
   // every message.
-  client ??= new SQSClient(config.endpoint ? { endpoint: config.endpoint } : {});
+  client ??= new SQSClient(
+    config.endpoint ? { endpoint: config.endpoint, ...localstackClientOptions } : {},
+  );
   return client;
 }
 

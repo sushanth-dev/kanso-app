@@ -21,15 +21,11 @@ import {
 } from '@aws-sdk/client-sqs';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 import { enqueueAnalysis, queueConfigFromEnv, type QueueConfig } from './queue.ts';
+import { localstackClientOptions } from '../localstack.ts';
 
 const endpoint = process.env.AWS_ENDPOINT_URL;
 
-// LocalStack accepts any credentials but the SDK refuses to send without them.
-process.env.AWS_REGION ??= 'us-east-1';
-process.env.AWS_ACCESS_KEY_ID ??= 'test';
-process.env.AWS_SECRET_ACCESS_KEY ??= 'test';
-
-const sqs = new SQSClient({ endpoint });
+const sqs = new SQSClient(endpoint ? { endpoint, ...localstackClientOptions } : {});
 let config: QueueConfig;
 
 /** Receive until nothing more arrives; SQS returns messages a few at a time. */

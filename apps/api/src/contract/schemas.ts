@@ -70,6 +70,8 @@ export const Player = z
     uscfRating: z.number().int().nullable(),
     chesscomUsername: z.string().nullable(),
     lichessUsername: z.string().nullable(),
+    chesscomRating: z.number().int().nullable(),
+    lichessRating: z.number().int().nullable(),
     createdAt: z.iso.datetime(),
   })
   .openapi('Player');
@@ -113,6 +115,23 @@ export const Me = z
     guardedPlayers: z.array(Player),
   })
   .openapi('Me');
+
+/** ST-018. Online rating against over-the-board, per platform. */
+export const TransferGap = z
+  .object({
+    playerId: Uuid,
+    /** FIDE when present, else USCF. */
+    overTheBoardRating: z.number().int().nullable(),
+    chesscom: z.object({
+      rating: z.number().int().nullable(),
+      gap: z.number().int().nullable(),
+    }),
+    lichess: z.object({
+      rating: z.number().int().nullable(),
+      gap: z.number().int().nullable(),
+    }),
+  })
+  .openapi('TransferGap');
 
 // ─── Import ──────────────────────────────────────────────────────────────────
 
