@@ -41,7 +41,10 @@ describe('account API transport', () => {
     });
 
     expect(await api.getMe()).toEqual(meFixture);
-    expect(lastRequest?.url).toMatch(/\/me$/);
+    expect(lastRequest).toBeDefined();
+    const requestUrl = new URL(lastRequest?.url ?? 'about:blank');
+    expect(requestUrl.origin).toBe(window.location.origin);
+    expect(requestUrl.pathname).toBe('/me');
     expect(lastRequest?.credentials).toBe('same-origin');
   });
 

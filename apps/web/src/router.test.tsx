@@ -83,6 +83,7 @@ describe('router', () => {
   beforeEach(() => {
     getMe.mockReset();
     signOut.mockReset();
+    signOut.mockResolvedValue({ data: { success: true }, error: null });
     createPlayer.mockReset();
     updatePlayer.mockReset();
     attachGuardian.mockReset();
@@ -116,12 +117,16 @@ describe('router', () => {
   test('sign-out clears the me query before navigating away, then lands on /sign-in', async () => {
     const user = userEvent.setup();
     getMe.mockResolvedValue(meFixture);
+    signOut.mockResolvedValue({ data: { success: true }, error: null });
     const { router, queryClient } = renderAt('/account');
     expect(await screen.findByRole('heading', { name: 'Your account' })).toBeVisible();
 
+    queryClient.setQueryData(ME_QUERY_KEY, meFixture);
     let pathAtRemoval: string | undefined;
-    const removeSpy = vi.spyOn(queryClient, 'removeQueries').mockImplementation(() => {
+    const removeQueries = queryClient.removeQueries.bind(queryClient);
+    const removeSpy = vi.spyOn(queryClient, 'removeQueries').mockImplementation((filters) => {
       pathAtRemoval = router.state.location.pathname;
+      removeQueries(filters);
     });
 
     await user.click(screen.getByRole('button', { name: 'Sign out' }));
@@ -134,7 +139,26 @@ describe('router', () => {
       removeSpy.mock.invocationCallOrder[0] ?? 0,
     );
     expect(pathAtRemoval).toBe('/account');
+    expect(queryClient.getQueryData(ME_QUERY_KEY)).toBeUndefined();
     expect(router.state.location.pathname).toBe('/sign-in');
+  });
+
+  test('retains the account cache and page when sign-out resolves with an error', async () => {
+    const user = userEvent.setup();
+    getMe.mockResolvedValue(meFixture);
+    signOut.mockResolvedValue({
+      data: null,
+      error: { status: 500, statusText: 'Internal Server Error' },
+    });
+    const { router, queryClient } = renderAt('/account');
+    expect(await screen.findByRole('heading', { name: 'Your account' })).toBeVisible();
+    queryClient.setQueryData(ME_QUERY_KEY, meFixture);
+
+    await user.click(screen.getByRole('button', { name: 'Sign out' }));
+
+    expect(await screen.findByText('Sign out failed.', { exact: true })).toBeVisible();
+    expect(queryClient.getQueryData(ME_QUERY_KEY)).toEqual(meFixture);
+    expect(router.state.location.pathname).toBe('/account');
   });
 
   test('creates a player through the real router and lands back on /account', async () => {

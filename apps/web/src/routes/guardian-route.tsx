@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
-import { Field } from '@astryxdesign/core/Field';
+import { Field, type FieldStatusInput } from '@astryxdesign/core/Field';
 import { FormLayout } from '@astryxdesign/core/FormLayout';
 import { Heading } from '@astryxdesign/core/Heading';
 import { useQueryClient, useSuspenseQuery, type QueryClient } from '@tanstack/react-query';
@@ -20,9 +20,13 @@ function readValue(data: FormData, key: string): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function fieldStatus(message: string | undefined): FieldStatusInput | undefined {
+  return message === undefined ? undefined : { type: 'error', message };
+}
+
 export interface GuardianScreenProps {
   me: Me;
-  playerId: string | undefined;
+  playerId: string;
   accountApi: AccountApi;
   queryClient: QueryClient;
   navigate: NavigateTo;
@@ -46,10 +50,15 @@ export function GuardianScreen({
   const { clearMessage, showMessage } = useStatusMessage();
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{
+    guardianEmail?: string;
+    relationship?: string;
+  }>({});
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormError(null);
+    setFieldErrors({});
     clearMessage();
 
     const data = new FormData(event.currentTarget);
@@ -64,8 +73,21 @@ export function GuardianScreen({
       setSubmitting(false);
       if (error instanceof ApiRequestError) {
         if (error.status === 401) {
+          queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
           await navigate({ to: '/sign-in' });
           return;
+        }
+        if (error.status === 400) {
+          const nextErrors: { guardianEmail?: string; relationship?: string } = {};
+          for (const issue of error.issues ?? []) {
+            if (issue.path === 'guardianEmail' || issue.path === 'relationship') {
+              nextErrors[issue.path] = issue.message;
+            }
+          }
+          if (Object.keys(nextErrors).length > 0) {
+            setFieldErrors(nextErrors);
+            return;
+          }
         }
         if (error.status === 409) {
           setFormError('That guardian is already attached.');
@@ -87,7 +109,6 @@ export function GuardianScreen({
       <p className="mt-2 text-muted">
         You're adding a guardian for <strong>{player.displayName}</strong>.
       </p>
-      <p className="mt-2 text-muted">The adult will receive an email to confirm their consent.</p>
       {formError !== null ? (
         <div className="mt-4">
           <StatusMessage tone="error">{formError}</StatusMessage>
@@ -99,22 +120,42 @@ export function GuardianScreen({
         }}
       >
         <FormLayout>
-          <Field label="Guardian email" inputID="guardianEmail">
+          <Field
+            label="Guardian email"
+            inputID="guardianEmail"
+            description="The adult will receive an email to confirm their consent."
+            descriptionID="guardianEmail-consent"
+            status={fieldStatus(fieldErrors.guardianEmail)}
+          >
             <input
               id="guardianEmail"
               name="guardianEmail"
               type="email"
               autoComplete="email"
               required
+              aria-invalid={fieldErrors.guardianEmail === undefined ? undefined : true}
+              aria-describedby={
+                fieldErrors.guardianEmail === undefined
+                  ? 'guardianEmail-consent'
+                  : 'guardianEmail-consent guardianEmail-status'
+              }
               className={inputClassName}
             />
           </Field>
-          <Field label="Relationship" inputID="relationship">
+          <Field
+            label="Relationship"
+            inputID="relationship"
+            status={fieldStatus(fieldErrors.relationship)}
+          >
             <input
               id="relationship"
               name="relationship"
               type="text"
               maxLength={40}
+              aria-invalid={fieldErrors.relationship === undefined ? undefined : true}
+              aria-describedby={
+                fieldErrors.relationship === undefined ? undefined : 'relationship-status'
+              }
               className={inputClassName}
             />
           </Field>
@@ -143,8 +184,7 @@ export function GuardianScreen({
 export function GuardianRoute() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const params: { playerId?: string } = useParams({ strict: false });
-  const { playerId } = params;
+  const { playerId } = useParams({ from: '/account/players/$playerId/guardian' });
   const { data: me } = useSuspenseQuery(meQueryOptions());
 
   return (

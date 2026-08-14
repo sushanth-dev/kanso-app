@@ -160,6 +160,7 @@ describe('PlayerFormScreen create', () => {
 
     expect(await screen.findByText('Birth year must be between 1900 and 2100.')).toBeVisible();
     expect(screen.getByLabelText('Display name')).toHaveValue('Mina');
+    expect(screen.getByLabelText('Birth year')).toHaveValue(2013);
   });
 
   test('does not map field issues for a non-400 status', async () => {
@@ -189,12 +190,18 @@ describe('PlayerFormScreen create', () => {
       .fn()
       .mockRejectedValue(new ApiRequestError(401, 'unauthorized', undefined, 'No session.'));
     const navigate = vi.fn();
-    const { user } = renderScreen({ api: accountApi({ createPlayer }), navigate });
+    const { user, queryClient } = renderScreen({ api: accountApi({ createPlayer }), navigate });
+    queryClient.setQueryData(ME_QUERY_KEY, meFixture());
+    const removeSpy = vi.spyOn(queryClient, 'removeQueries');
 
     await user.type(screen.getByLabelText('Display name'), 'Mina');
     await user.click(screen.getByRole('button', { name: 'Create player' }));
 
     await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: '/sign-in' }));
+    expect(queryClient.getQueryData(ME_QUERY_KEY)).toBeUndefined();
+    expect(removeSpy.mock.invocationCallOrder[0]).toBeLessThan(
+      navigate.mock.invocationCallOrder[0] ?? 0,
+    );
   });
 
   test('renders the 403 copy and preserves values', async () => {

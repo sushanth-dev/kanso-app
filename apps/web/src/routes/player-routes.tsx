@@ -125,6 +125,7 @@ export function PlayerFormScreen({
       setSubmitting(false);
       if (error instanceof ApiRequestError) {
         if (error.status === 401) {
+          queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
           await navigate({ to: '/sign-in' });
           return;
         }
@@ -335,8 +336,7 @@ export function PlayerNewRoute() {
 export function PlayerEditRoute() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const params: { playerId?: string } = useParams({ strict: false });
-  const { playerId } = params;
+  const { playerId } = useParams({ from: '/account/players/$playerId/edit' });
   const { data: me } = useSuspenseQuery(meQueryOptions());
 
   return (

@@ -101,6 +101,9 @@ describe('GuardianScreen', () => {
     renderGuardian();
     expect(screen.getByLabelText('Guardian email')).toBeRequired();
     expect(screen.getByLabelText('Guardian email')).toHaveAttribute('autocomplete', 'email');
+    expect(screen.getByLabelText('Guardian email')).toHaveAccessibleDescription(
+      'The adult will receive an email to confirm their consent.',
+    );
   });
 
   test('relationship is optional and max 40', () => {
@@ -142,12 +145,80 @@ describe('GuardianScreen', () => {
       .fn()
       .mockRejectedValue(new ApiRequestError(401, 'unauthorized', undefined, 'No session.'));
     const navigate = vi.fn();
-    const { user } = renderGuardian({ api: accountApi({ attachGuardian }), navigate });
+    const { user, queryClient } = renderGuardian({ api: accountApi({ attachGuardian }), navigate });
+    queryClient.setQueryData(ME_QUERY_KEY, meFixture());
+    const removeSpy = vi.spyOn(queryClient, 'removeQueries');
 
     await user.type(screen.getByLabelText('Guardian email'), 'adult@example.com');
     await user.click(screen.getByRole('button', { name: 'Send invitation' }));
 
     await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: '/sign-in' }));
+    expect(queryClient.getQueryData(ME_QUERY_KEY)).toBeUndefined();
+    expect(removeSpy.mock.invocationCallOrder[0]).toBeLessThan(
+      navigate.mock.invocationCallOrder[0] ?? 0,
+    );
+  });
+
+  test('maps named 400 issues to fields, associates status, and preserves values', async () => {
+    const attachGuardian = vi.fn().mockRejectedValue(
+      new ApiRequestError(
+        400,
+        'validation_failed',
+        [
+          { path: 'guardianEmail', message: 'Enter a valid guardian email.' },
+          { path: 'relationship', message: 'Relationship is too long.' },
+        ],
+        'Invalid.',
+      ),
+    );
+    const { user } = renderGuardian({ api: accountApi({ attachGuardian }) });
+
+    await user.type(screen.getByLabelText('Guardian email'), 'adult@example.com');
+    await user.type(screen.getByLabelText('Relationship'), 'Parent');
+    await user.click(screen.getByRole('button', { name: 'Send invitation' }));
+
+    expect(await screen.findByText('Enter a valid guardian email.')).toHaveAttribute(
+      'id',
+      'guardianEmail-status',
+    );
+    expect(screen.getByText('Relationship is too long.')).toHaveAttribute(
+      'id',
+      'relationship-status',
+    );
+    expect(screen.getByLabelText('Guardian email')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByLabelText('Guardian email')).toHaveAttribute(
+      'aria-describedby',
+      'guardianEmail-consent guardianEmail-status',
+    );
+    expect(screen.getByLabelText('Relationship')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByLabelText('Relationship')).toHaveAttribute(
+      'aria-describedby',
+      'relationship-status',
+    );
+    expect(screen.getByLabelText('Guardian email')).toHaveValue('adult@example.com');
+    expect(screen.getByLabelText('Relationship')).toHaveValue('Parent');
+  });
+
+  test('keeps unknown 400 issues generic', async () => {
+    const attachGuardian = vi
+      .fn()
+      .mockRejectedValue(
+        new ApiRequestError(
+          400,
+          'validation_failed',
+          [{ path: 'unknown', message: 'SERVER DETAIL SHOULD NOT LEAK' }],
+          'Invalid.',
+        ),
+      );
+    const { user } = renderGuardian({ api: accountApi({ attachGuardian }) });
+
+    await user.type(screen.getByLabelText('Guardian email'), 'adult@example.com');
+    await user.click(screen.getByRole('button', { name: 'Send invitation' }));
+
+    expect(
+      await screen.findByText('The guardian could not be added. Please try again.'),
+    ).toBeVisible();
+    expect(screen.queryByText('SERVER DETAIL SHOULD NOT LEAK')).not.toBeInTheDocument();
   });
 
   test('renders the 409 copy and preserves the typed email', async () => {

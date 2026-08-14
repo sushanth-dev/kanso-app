@@ -27,13 +27,10 @@ test('signs up and persists an owned player and guardian through sign-in', async
   page.on('console', (message) => {
     if (message.type() === 'error') consoleErrors.push(message.text());
   });
-  const allowedHttpOrigins: Record<string, true> = {
-    'http://127.0.0.1:5173': true,
-    'http://127.0.0.1:3000': true,
-  };
+  const viteOrigin = 'http://127.0.0.1:5173';
   await page.route('**/*', async (route) => {
     const url = new URL(route.request().url());
-    if (['http:', 'https:'].includes(url.protocol) && allowedHttpOrigins[url.origin] !== true) {
+    if (['http:', 'https:'].includes(url.protocol) && url.origin !== viteOrigin) {
       externalRequests.push(route.request().url());
       await route.abort('blockedbyclient');
       return;
@@ -60,7 +57,10 @@ test('signs up and persists an owned player and guardian through sign-in', async
     }
   });
 
-  await page.goto('/sign-up');
+  await page.goto('/sign-in');
+  await page.getByRole('link', { name: 'Sign up' }).focus();
+  await expect(page.getByRole('link', { name: 'Sign up' })).toBeFocused();
+  await page.keyboard.press('Enter');
   await expect(page.getByRole('heading', { name: 'Create your account' })).toBeVisible();
   await expectNoAxeViolations(page);
   await signUp(page, 'E2E Guardian', guardianEmail, guardianPassword);
@@ -68,7 +68,9 @@ test('signs up and persists an owned player and guardian through sign-in', async
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
 
-  await page.goto('/sign-up');
+  await page.getByRole('link', { name: 'Sign up' }).focus();
+  await expect(page.getByRole('link', { name: 'Sign up' })).toBeFocused();
+  await page.keyboard.press('Enter');
   await expect(page.getByRole('heading', { name: 'Create your account' })).toBeVisible();
   await signUp(page, 'E2E Account', email, password);
 
@@ -79,15 +81,15 @@ test('signs up and persists an owned player and guardian through sign-in', async
   await expect(page.getByRole('heading', { name: 'Your account' })).toBeVisible();
   expect(await page.evaluate(() => fetch('/me').then((response) => response.status))).toBe(200);
 
-  await page.goto('/account/players/new');
+  await page.getByRole('link', { name: 'Create player' }).focus();
+  await expect(page.getByRole('link', { name: 'Create player' })).toBeFocused();
+  await page.keyboard.press('Enter');
   await expect(
     page.getByRole('heading', { name: 'New player' }),
     failedRequests.join('\n'),
   ).toBeVisible();
   await expectNoAxeViolations(page);
 
-  await page.keyboard.press('Tab');
-  await expect(page.getByRole('link', { name: 'Skip to main content' })).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(page.getByLabel('Display name')).toBeFocused();
   await page.keyboard.type('Mina');

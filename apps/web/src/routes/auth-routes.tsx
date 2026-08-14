@@ -4,9 +4,11 @@ import { Card } from '@astryxdesign/core/Card';
 import { Field } from '@astryxdesign/core/Field';
 import { FormLayout } from '@astryxdesign/core/FormLayout';
 import { Heading } from '@astryxdesign/core/Heading';
-import { useNavigate } from '@tanstack/react-router';
+import { useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { authClient } from '../auth-client.ts';
 import { StatusMessage } from '../components/status-message.tsx';
+import { ME_QUERY_KEY } from '../query-client.ts';
 
 export type AuthMode = 'sign-in' | 'sign-up';
 export type NavigateTo = (options: { to: string }) => void | Promise<void>;
@@ -14,6 +16,7 @@ export type NavigateTo = (options: { to: string }) => void | Promise<void>;
 export interface AuthScreenProps {
   mode: AuthMode;
   navigate: NavigateTo;
+  queryClient: QueryClient;
 }
 
 const REJECTION_COPY = 'Email or password was not accepted.';
@@ -28,7 +31,7 @@ function readText(data: FormData, key: string): string {
   return typeof value === 'string' ? value : '';
 }
 
-export function AuthScreen({ mode, navigate }: AuthScreenProps) {
+export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
   const isSignUp = mode === 'sign-up';
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -60,6 +63,7 @@ export function AuthScreen({ mode, navigate }: AuthScreenProps) {
         ? await authClient.signUp.email({ name, email, password })
         : await authClient.signIn.email({ email, password });
       if (error === null) {
+        queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
         await navigate({ to: '/account' });
         return;
       }
@@ -143,16 +147,27 @@ export function AuthScreen({ mode, navigate }: AuthScreenProps) {
           />
         </FormLayout>
       </form>
+      <p className="mt-4 text-center text-muted">
+        {isSignUp ? 'Already have an account? ' : 'Need an account? '}
+        <Link
+          to={isSignUp ? '/sign-in' : '/sign-up'}
+          className="inline-flex min-h-11 items-center font-ui text-accent underline"
+        >
+          {isSignUp ? 'Sign in' : 'Sign up'}
+        </Link>
+      </p>
     </Card>
   );
 }
 
 export function SignInRoute() {
   const navigate = useNavigate();
-  return <AuthScreen mode="sign-in" navigate={navigate} />;
+  const queryClient = useQueryClient();
+  return <AuthScreen mode="sign-in" navigate={navigate} queryClient={queryClient} />;
 }
 
 export function SignUpRoute() {
   const navigate = useNavigate();
-  return <AuthScreen mode="sign-up" navigate={navigate} />;
+  const queryClient = useQueryClient();
+  return <AuthScreen mode="sign-up" navigate={navigate} queryClient={queryClient} />;
 }

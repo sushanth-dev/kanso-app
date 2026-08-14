@@ -28,7 +28,7 @@ function PlayerCard({ player, prefix }: { player: Player; prefix: 'Owned' | 'Gua
             <Link
               to="/account/players/$playerId/edit"
               params={{ playerId: player.id }}
-              className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center font-ui text-sm text-accent underline"
             >
               Edit
             </Link>
@@ -54,7 +54,7 @@ export function AccountScreen({ me, signOut }: AccountScreenProps) {
     try {
       await signOut();
     } catch {
-      setSignOutError('Sign out failed. Please try again.');
+      setSignOutError('Sign out failed.');
     }
   }
 
@@ -75,6 +75,12 @@ export function AccountScreen({ me, signOut }: AccountScreenProps) {
         <Heading level={2} id="owned-heading">
           Your players
         </Heading>
+        <Link
+          to="/account/players/new"
+          className="mt-3 inline-flex min-h-11 items-center rounded-control bg-accent px-4 py-2 font-ui text-on-accent focus:outline-none focus:ring-2 focus:ring-focus"
+        >
+          Create player
+        </Link>
         {me.players.length === 0 ? (
           <EmptyState
             title="No players yet"
@@ -118,7 +124,8 @@ export function AccountRoute() {
   const { data: me } = useSuspenseQuery(meQueryOptions());
 
   const signOut = async () => {
-    await authClient.signOut();
+    const { error } = await authClient.signOut();
+    if (error !== null) throw new Error('Sign out failed.');
     queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
     await navigate({ to: '/sign-in' });
   };

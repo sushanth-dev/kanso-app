@@ -72,9 +72,24 @@ describe('AccountScreen', () => {
     expect(signOut).toHaveBeenCalledOnce();
   });
 
+  test('keeps the account visible and reports a sign-out failure', async () => {
+    const user = userEvent.setup();
+    const signOut = vi.fn().mockRejectedValue(new Error('HTTP failure'));
+    renderAccount(meFixture(), signOut);
+
+    await user.click(screen.getByRole('button', { name: 'Sign out' }));
+
+    expect(await screen.findByText('Sign out failed.', { exact: true })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Your account' })).toBeVisible();
+  });
+
   test('shows the owned empty-state message when there are no owned players', () => {
     renderAccount(meFixture({ players: [] }));
     expect(screen.getByText('No players yet')).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Create player' })).toHaveAttribute(
+      'href',
+      '/account/players/new',
+    );
   });
 
   test('shows the guarded empty-state message when there are no guarded players', () => {
@@ -88,6 +103,7 @@ describe('AccountScreen', () => {
       'href',
       `/account/players/${playerId}/edit`,
     );
+    expect(screen.getByRole('link', { name: 'Edit' })).toHaveClass('min-w-11', 'justify-center');
     expect(screen.getByRole('link', { name: 'Add guardian' })).toHaveAttribute(
       'href',
       `/account/players/${playerId}/guardian`,
