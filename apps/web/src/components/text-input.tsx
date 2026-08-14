@@ -6,5 +6,5 @@ const textInputClassName =
 export type TextInputProps = ComponentPropsWithoutRef<'input'>;
 
 export function TextInput({ className, ...props }: TextInputProps) {
-  return <input {...props} className={className ?? textInputClassName} />;
+  return <input {...props} className={[textInputClassName, className].filter(Boolean).join(' ')} />;
 }
