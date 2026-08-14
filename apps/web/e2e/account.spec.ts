@@ -27,11 +27,27 @@ test('signs up and persists an owned player and guardian through sign-in', async
   page.on('console', (message) => {
     if (message.type() === 'error') consoleErrors.push(message.text());
   });
-  page.on('request', (request) => {
-    const url = new URL(request.url());
-    if (['http:', 'https:', 'ws:', 'wss:'].includes(url.protocol) && url.hostname !== '127.0.0.1') {
-      externalRequests.push(request.url());
+  const allowedHttpOrigins: Record<string, true> = {
+    'http://127.0.0.1:5173': true,
+    'http://127.0.0.1:3000': true,
+  };
+  await page.route('**/*', async (route) => {
+    const url = new URL(route.request().url());
+    if (['http:', 'https:'].includes(url.protocol) && allowedHttpOrigins[url.origin] !== true) {
+      externalRequests.push(route.request().url());
+      await route.abort('blockedbyclient');
+      return;
     }
+    await route.continue();
+  });
+  await page.routeWebSocket(/.*/, async (webSocket) => {
+    const url = new URL(webSocket.url());
+    if (url.origin === 'ws://127.0.0.1:5173') {
+      webSocket.connectToServer();
+      return;
+    }
+    externalRequests.push(webSocket.url());
+    await webSocket.close({ code: 1008, reason: 'Unexpected network origin' });
   });
   page.on('requestfailed', (request) => {
     failedRequests.push(
@@ -123,6 +139,7 @@ test('signs up and persists an owned player and guardian through sign-in', async
 
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
+  await expect(page.getByText('Guardian invitation sent.', { exact: true })).toHaveCount(0);
   await page.keyboard.press('Tab');
   await expect(page.getByLabel('Email')).toBeFocused();
   await page.keyboard.type(email);
@@ -139,6 +156,7 @@ test('signs up and persists an owned player and guardian through sign-in', async
     page.getByRole('heading', { name: 'Players you support', exact: true }),
   ).toBeVisible();
   await expect(page.getByText('No players you support')).toBeVisible();
+  await expect(page.getByText('Guardian invitation sent.', { exact: true })).toHaveCount(0);
   expect(externalRequests).toEqual([]);
   expect(failedRequests).toEqual([]);
   expect(consoleErrors).toEqual([]);

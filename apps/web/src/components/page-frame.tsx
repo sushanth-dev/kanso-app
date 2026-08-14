@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
+import { useLocation } from '@tanstack/react-router';
 import { StatusMessage, useStatusMessage } from './status-message.tsx';
 
 export interface PageFrameProps {
@@ -6,7 +7,18 @@ export interface PageFrameProps {
 }
 
 export function PageFrame({ children }: PageFrameProps) {
-  const { message } = useStatusMessage();
+  const pathname = useLocation({ select: (location) => location.pathname });
+  const { flash, markPresented, clearMessage } = useStatusMessage();
+  const atDestination = flash !== null && pathname === flash.destination;
+
+  useEffect(() => {
+    if (flash === null) return;
+    if (pathname === flash.destination) {
+      if (!flash.presented) markPresented();
+    } else if (flash.presented) {
+      clearMessage();
+    }
+  }, [clearMessage, flash, markPresented, pathname]);
 
   return (
     <div className="flex min-h-screen flex-col bg-page font-ui">
@@ -22,11 +34,11 @@ export function PageFrame({ children }: PageFrameProps) {
         </div>
       </header>
       <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">
-        {message === null ? null : (
+        {atDestination ? (
           <div className="mb-6">
-            <StatusMessage tone="success">{message}</StatusMessage>
+            <StatusMessage tone="success">{flash.message}</StatusMessage>
           </div>
-        )}
+        ) : null}
         {children}
       </main>
     </div>

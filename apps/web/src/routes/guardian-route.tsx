@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { Field } from '@astryxdesign/core/Field';
@@ -43,18 +43,14 @@ export function GuardianScreen({
   }
   const player = found;
 
-  const { setMessage } = useStatusMessage();
+  const { clearMessage, showMessage } = useStatusMessage();
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setMessage(null);
-  }, [setMessage]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormError(null);
-    setMessage(null);
+    clearMessage();
 
     const data = new FormData(event.currentTarget);
     const guardianEmail = readValue(data, 'guardianEmail');
@@ -80,7 +76,7 @@ export function GuardianScreen({
       return;
     }
 
-    setMessage('Guardian invitation sent.');
+    showMessage('Guardian invitation sent.', '/account');
     await queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY });
     await navigate({ to: '/account' });
   }

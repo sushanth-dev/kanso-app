@@ -153,11 +153,11 @@ describe('router', () => {
     expect(router.state.location.pathname).toBe('/account');
   });
 
-  test('keeps guardian success visible after returning to /account', async () => {
+  test('shows guardian success once on /account and clears it across authentication', async () => {
     const user = userEvent.setup();
     getMe.mockResolvedValue(meFixture);
     attachGuardian.mockResolvedValue(undefined);
-    renderAt(`/account/players/${ownedPlayerId}/guardian`);
+    const { router } = renderAt(`/account/players/${ownedPlayerId}/guardian`);
 
     expect(await screen.findByRole('heading', { name: 'Add guardian' })).toBeVisible();
     await user.type(screen.getByLabelText('Guardian email'), 'guardian@example.com');
@@ -170,6 +170,14 @@ describe('router', () => {
       guardianEmail: 'guardian@example.com',
       relationship: 'Parent',
     });
+
+    await user.click(screen.getByRole('button', { name: 'Sign out' }));
+    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeVisible();
+    expect(screen.queryByText('Guardian invitation sent.')).not.toBeInTheDocument();
+
+    await router.navigate({ to: '/account' });
+    expect(await screen.findByRole('heading', { name: 'Your account' })).toBeVisible();
+    expect(screen.queryByText('Guardian invitation sent.')).not.toBeInTheDocument();
   });
 
   test('a guarded player id cannot be edited and triggers no mutation', async () => {

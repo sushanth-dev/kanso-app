@@ -237,7 +237,7 @@ describe('PlayerFormScreen create', () => {
     await waitFor(() => expect(invalidateSpy.mock.results[0]?.value).toBe(pending));
   });
 
-  test('announces via role=status, invalidates, then navigates only after invalidation resolves', async () => {
+  test('invalidates, then navigates only after invalidation resolves', async () => {
     const createPlayer = vi.fn().mockResolvedValue(player());
     const navigate = vi.fn();
     let resolveInvalidate: () => void = () => {};
@@ -251,7 +251,6 @@ describe('PlayerFormScreen create', () => {
     await user.click(screen.getByRole('button', { name: 'Create player' }));
 
     await waitFor(() => {
-      expect(screen.getByText('Player saved.')).toHaveAttribute('role', 'status');
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ME_QUERY_KEY });
       expect(navigate).not.toHaveBeenCalled();
     });

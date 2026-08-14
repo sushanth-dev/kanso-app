@@ -204,7 +204,7 @@ describe('GuardianScreen', () => {
     await waitFor(() => expect(invalidateSpy.mock.results[0]?.value).toBe(pending));
   });
 
-  test('announces via role=status, invalidates, then navigates only after invalidation resolves', async () => {
+  test('invalidates, then navigates only after invalidation resolves', async () => {
     const attachGuardian = vi.fn().mockResolvedValue(undefined);
     const navigate = vi.fn();
     let resolveInvalidate: () => void = () => {};
@@ -221,7 +221,6 @@ describe('GuardianScreen', () => {
     await user.click(screen.getByRole('button', { name: 'Send invitation' }));
 
     await waitFor(() => {
-      expect(screen.getByText('Guardian invitation sent.')).toHaveAttribute('role', 'status');
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ME_QUERY_KEY });
       expect(navigate).not.toHaveBeenCalled();
     });

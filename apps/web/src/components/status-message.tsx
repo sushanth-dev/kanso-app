@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
 
 export type StatusTone = 'error' | 'success';
 
@@ -7,17 +7,37 @@ export interface StatusMessageProps {
   children: ReactNode;
 }
 
+interface StatusMessageFlash {
+  message: string;
+  destination: string;
+  presented: boolean;
+}
+
 interface StatusMessageContextValue {
-  message: string | null;
-  setMessage: (message: string | null) => void;
+  flash: StatusMessageFlash | null;
+  showMessage: (message: string, destination: string) => void;
+  markPresented: () => void;
+  clearMessage: () => void;
 }
 
 const StatusMessageContext = createContext<StatusMessageContextValue | null>(null);
 
 export function StatusMessageProvider({ children }: { children: ReactNode }) {
-  const [message, setMessage] = useState<string | null>(null);
+  const [flash, setFlash] = useState<StatusMessageFlash | null>(null);
+  const showMessage = useCallback((message: string, destination: string) => {
+    setFlash({ message, destination, presented: false });
+  }, []);
+  const markPresented = useCallback(() => {
+    setFlash((current) =>
+      current === null || current.presented ? current : { ...current, presented: true },
+    );
+  }, []);
+  const clearMessage = useCallback(() => {
+    setFlash(null);
+  }, []);
+
   return (
-    <StatusMessageContext.Provider value={{ message, setMessage }}>
+    <StatusMessageContext.Provider value={{ flash, showMessage, markPresented, clearMessage }}>
       {children}
     </StatusMessageContext.Provider>
   );

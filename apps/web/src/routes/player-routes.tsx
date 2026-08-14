@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { Field, type FieldStatusInput } from '@astryxdesign/core/Field';
@@ -92,14 +92,10 @@ export function PlayerFormScreen({
     throw notFound();
   }
 
-  const { setMessage } = useStatusMessage();
+  const { clearMessage, showMessage } = useStatusMessage();
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    setMessage(null);
-  }, [setMessage]);
 
   const heading = isEdit ? 'Edit player' : 'New player';
   const submitLabel = isEdit ? 'Save changes' : 'Create player';
@@ -107,7 +103,7 @@ export function PlayerFormScreen({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormError(null);
-    setMessage(null);
+    clearMessage();
     setFieldErrors({});
 
     let body: CreatePlayer;
@@ -147,7 +143,7 @@ export function PlayerFormScreen({
       setFormError('The player could not be saved. Please try again.');
       return;
     }
-    setMessage('Player saved.');
+    showMessage('Player saved.', '/account');
     await queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY });
     await navigate({ to: '/account' });
   }
