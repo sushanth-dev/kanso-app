@@ -49,12 +49,42 @@ export function useStatusMessage() {
   return context;
 }
 
+const toneClassName: Record<StatusTone, string> = {
+  error: 'text-danger',
+  success: 'text-success',
+};
+
+function StatusIcon({ tone }: { tone: StatusTone }) {
+  if (tone === 'success') {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 20 20" className="size-5 shrink-0" fill="none">
+        <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="1.5" />
+        <path
+          d="m6 10 2.5 2.5L14 7"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" className="size-5 shrink-0" fill="none">
+      <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M10 6v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="10" cy="14" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
 export function StatusMessage({ tone, children }: StatusMessageProps) {
   return (
     <p
       role={tone === 'error' ? 'alert' : 'status'}
-      className={tone === 'error' ? 'text-danger' : 'text-primary'}
+      className={`flex items-center gap-2 reveal-in ${toneClassName[tone]}`}
     >
+      <StatusIcon tone={tone} />
       {children}
     </p>
   );
