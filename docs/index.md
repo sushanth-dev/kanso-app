@@ -17,3 +17,6 @@ repository.
   request, and follow the working agreements.
 * [Security policy](SECURITY.md) - how to report a vulnerability and the
   standing security rules.
+* [Product](../PRODUCT.md) - what the app is and who it is for.
+* [Design system](../DESIGN.md) - the Study Room visual language, tokens,
+  and rules.

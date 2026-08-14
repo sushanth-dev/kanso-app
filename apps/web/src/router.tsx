@@ -52,6 +52,15 @@ function DefaultErrorComponent() {
   );
 }
 
+function PendingComponent() {
+  return (
+    <div role="status" aria-label="Loading" aria-busy="true" className="space-y-3">
+      <div className="h-5 w-40 rounded-control bg-sunken" />
+      <div className="h-4 w-64 rounded-control bg-sunken" />
+    </div>
+  );
+}
+
 const rootRoute = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,
 });
@@ -152,6 +161,7 @@ export function createAppRouter({
     history,
     context: { queryClient: routerQueryClient },
     defaultErrorComponent: DefaultErrorComponent,
+    defaultPendingComponent: PendingComponent,
   });
 }
 

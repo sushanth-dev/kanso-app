@@ -28,14 +28,14 @@ function PlayerCard({ player, prefix }: { player: Player; prefix: 'Owned' | 'Gua
             <Link
               to="/account/players/$playerId/edit"
               params={{ playerId: player.id }}
-              className="inline-flex min-h-11 min-w-11 items-center justify-center font-ui text-sm text-accent underline"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center font-ui text-sm text-accent underline transition-control"
             >
               Edit
             </Link>
             <Link
               to="/account/players/$playerId/guardian"
               params={{ playerId: player.id }}
-              className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline"
+              className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline transition-control"
             >
               Add guardian
             </Link>
@@ -64,7 +64,7 @@ export function AccountScreen({ me, signOut }: AccountScreenProps) {
         <Heading level={1} id="account-heading">
           Your account
         </Heading>
-        <p>{me.name}</p>
+        <p className="font-display text-lg leading-tight">{me.name}</p>
         <p className="text-muted">{me.email}</p>
         <Badge label={me.tier === 'paid' ? 'Paid' : 'Free'} variant="neutral" />
         {signOutError !== null ? <StatusMessage tone="error">{signOutError}</StatusMessage> : null}
@@ -77,7 +77,7 @@ export function AccountScreen({ me, signOut }: AccountScreenProps) {
         </Heading>
         <Link
           to="/account/players/new"
-          className="mt-3 inline-flex min-h-11 items-center rounded-control bg-accent px-4 py-2 font-ui text-on-accent focus:outline-none focus:ring-2 focus:ring-focus"
+          className="mt-3 inline-flex min-h-11 items-center rounded-control bg-accent px-4 py-2 font-ui text-on-accent transition-control hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-focus"
         >
           Create player
         </Link>

@@ -1,0 +1,360 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-14T00:00:00Z",
+  "title": "Design System: Kanso Chess",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Terracotta",
+        "canonical": "#a03f22",
+        "tonalRamp": [
+          "oklch(15% 0.136 37)",
+          "oklch(26% 0.136 37)",
+          "oklch(38% 0.136 37)",
+          "oklch(49% 0.136 37)",
+          "oklch(61% 0.136 37)",
+          "oklch(72% 0.136 37)",
+          "oklch(84% 0.136 37)",
+          "oklch(95% 0.136 37)"
+        ]
+      },
+      "primary-deep": {
+        "role": "primary",
+        "displayName": "Terracotta Deep",
+        "canonical": "#86341c",
+        "tonalRamp": [
+          "oklch(15% 0.119 37)",
+          "oklch(26% 0.119 37)",
+          "oklch(38% 0.119 37)",
+          "oklch(49% 0.119 37)",
+          "oklch(61% 0.119 37)",
+          "oklch(72% 0.119 37)",
+          "oklch(84% 0.119 37)",
+          "oklch(95% 0.119 37)"
+        ]
+      },
+      "on-accent": {
+        "role": "neutral",
+        "displayName": "On Accent",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15% 0.000 90)",
+          "oklch(26% 0.000 90)",
+          "oklch(38% 0.000 90)",
+          "oklch(49% 0.000 90)",
+          "oklch(61% 0.000 90)",
+          "oklch(72% 0.000 90)",
+          "oklch(84% 0.000 90)",
+          "oklch(95% 0.000 90)"
+        ]
+      },
+      "neutral-bg": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "#f7f2ea",
+        "tonalRamp": [
+          "oklch(15% 0.012 80)",
+          "oklch(26% 0.012 80)",
+          "oklch(38% 0.012 80)",
+          "oklch(49% 0.012 80)",
+          "oklch(61% 0.012 80)",
+          "oklch(72% 0.012 80)",
+          "oklch(84% 0.012 80)",
+          "oklch(95% 0.012 80)"
+        ]
+      },
+      "neutral-raised": {
+        "role": "neutral",
+        "displayName": "Raised Paper",
+        "canonical": "#fffdf8",
+        "tonalRamp": [
+          "oklch(15% 0.007 89)",
+          "oklch(26% 0.007 89)",
+          "oklch(38% 0.007 89)",
+          "oklch(49% 0.007 89)",
+          "oklch(61% 0.007 89)",
+          "oklch(72% 0.007 89)",
+          "oklch(84% 0.007 89)",
+          "oklch(95% 0.007 89)"
+        ]
+      },
+      "neutral-sunken": {
+        "role": "neutral",
+        "displayName": "Sunken Paper",
+        "canonical": "#efe6d8",
+        "tonalRamp": [
+          "oklch(15% 0.021 79)",
+          "oklch(26% 0.021 79)",
+          "oklch(38% 0.021 79)",
+          "oklch(49% 0.021 79)",
+          "oklch(61% 0.021 79)",
+          "oklch(72% 0.021 79)",
+          "oklch(84% 0.021 79)",
+          "oklch(95% 0.021 79)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#241d16",
+        "tonalRamp": [
+          "oklch(15% 0.017 67)",
+          "oklch(26% 0.017 67)",
+          "oklch(38% 0.017 67)",
+          "oklch(49% 0.017 67)",
+          "oklch(61% 0.017 67)",
+          "oklch(72% 0.017 67)",
+          "oklch(84% 0.017 67)",
+          "oklch(95% 0.017 67)"
+        ]
+      },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "Muted Ink",
+        "canonical": "#584e42",
+        "tonalRamp": [
+          "oklch(15% 0.023 72)",
+          "oklch(26% 0.023 72)",
+          "oklch(38% 0.023 72)",
+          "oklch(49% 0.023 72)",
+          "oklch(61% 0.023 72)",
+          "oklch(72% 0.023 72)",
+          "oklch(84% 0.023 72)",
+          "oklch(95% 0.023 72)"
+        ]
+      },
+      "teal": {
+        "role": "neutral",
+        "displayName": "Teal",
+        "canonical": "#0f5e66",
+        "tonalRamp": [
+          "oklch(15% 0.071 206)",
+          "oklch(26% 0.071 206)",
+          "oklch(38% 0.071 206)",
+          "oklch(49% 0.071 206)",
+          "oklch(61% 0.071 206)",
+          "oklch(72% 0.071 206)",
+          "oklch(84% 0.071 206)",
+          "oklch(95% 0.071 206)"
+        ]
+      },
+      "success": {
+        "role": "status",
+        "displayName": "Success Green",
+        "canonical": "#4c7a26",
+        "tonalRamp": [
+          "oklch(15% 0.125 134)",
+          "oklch(26% 0.125 134)",
+          "oklch(38% 0.125 134)",
+          "oklch(49% 0.125 134)",
+          "oklch(61% 0.125 134)",
+          "oklch(72% 0.125 134)",
+          "oklch(84% 0.125 134)",
+          "oklch(95% 0.125 134)"
+        ]
+      },
+      "danger": {
+        "role": "status",
+        "displayName": "Danger Red",
+        "canonical": "#b03a52",
+        "tonalRamp": [
+          "oklch(15% 0.153 12)",
+          "oklch(26% 0.153 12)",
+          "oklch(38% 0.153 12)",
+          "oklch(49% 0.153 12)",
+          "oklch(61% 0.153 12)",
+          "oklch(72% 0.153 12)",
+          "oklch(84% 0.153 12)",
+          "oklch(95% 0.153 12)"
+        ]
+      },
+      "border-strong": {
+        "role": "neutral",
+        "displayName": "Strong Border",
+        "canonical": "#847867",
+        "tonalRamp": [
+          "oklch(15% 0.029 77)",
+          "oklch(26% 0.029 77)",
+          "oklch(38% 0.029 77)",
+          "oklch(49% 0.029 77)",
+          "oklch(61% 0.029 77)",
+          "oklch(72% 0.029 77)",
+          "oklch(84% 0.029 77)",
+          "oklch(95% 0.029 77)"
+        ]
+      },
+      "periwinkle": {
+        "role": "primary",
+        "displayName": "Periwinkle (dark accent)",
+        "canonical": "#7b9dff",
+        "tonalRamp": [
+          "oklch(15% 0.148 268)",
+          "oklch(26% 0.148 268)",
+          "oklch(38% 0.148 268)",
+          "oklch(49% 0.148 268)",
+          "oklch(61% 0.148 268)",
+          "oklch(72% 0.148 268)",
+          "oklch(84% 0.148 268)",
+          "oklch(95% 0.148 268)"
+        ]
+      },
+      "cyan": {
+        "role": "status",
+        "displayName": "Cyan (dark info)",
+        "canonical": "#3ecbd3",
+        "tonalRamp": [
+          "oklch(15% 0.117 201)",
+          "oklch(26% 0.117 201)",
+          "oklch(38% 0.117 201)",
+          "oklch(49% 0.117 201)",
+          "oklch(61% 0.117 201)",
+          "oklch(72% 0.117 201)",
+          "oklch(84% 0.117 201)",
+          "oklch(95% 0.117 201)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Headings and marketing display in Source Serif 4."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "All interface text in Public Sans at 1rem, line-height 1.55."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "Moves, clocks, coordinates, and evaluations in IBM Plex Mono."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      { "name": "duration-fast", "value": "120ms", "purpose": "Hovers and toggles." },
+      { "name": "duration-base", "value": "200ms", "purpose": "Piece slides and panel reveals." },
+      { "name": "duration-slow", "value": "320ms", "purpose": "Route and board transitions." },
+      {
+        "name": "ease-standard",
+        "value": "cubic-bezier(0.2, 0, 0, 1)",
+        "purpose": "Default state transitions."
+      },
+      { "name": "ease-decelerate", "value": "cubic-bezier(0, 0, 0, 1)", "purpose": "Entrances." },
+      { "name": "ease-accelerate", "value": "cubic-bezier(0.3, 0, 1, 1)", "purpose": "Exits." }
+    ],
+    "breakpoints": [
+      { "name": "floor", "value": "320px" },
+      { "name": "content-max", "value": "48rem" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single filled action. Terracotta fill, white text, 44px target.",
+      "html": "<button class=\"ds-btn-primary\" type=\"button\">Sign in</button>",
+      "css": ".ds-btn-primary { font-family: var(--kanso-font-ui); background: var(--kanso-color-action-primary-default); color: var(--kanso-color-text-on-accent); border: none; border-radius: var(--kanso-radius-control); min-height: 44px; padding: 0 1rem; font-weight: 600; font-size: 1rem; cursor: pointer; transition: background 120ms cubic-bezier(0.2, 0, 0, 1); } .ds-btn-primary:hover, .ds-btn-primary:active { background: var(--kanso-color-action-primary-hover); } .ds-btn-primary:focus-visible { outline: 2px solid var(--kanso-color-focus-ring); outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Raised background, strong border, teal focus ring.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Email</span><input class=\"ds-input\" type=\"email\" placeholder=\"you@example.com\" /></label>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 0.5rem; } .ds-field-label { font-family: var(--kanso-font-ui); font-size: 0.875rem; font-weight: 600; color: var(--kanso-color-text-primary); } .ds-input { font-family: var(--kanso-font-ui); min-height: 44px; width: 100%; padding: 0.5rem 0.75rem; background: var(--kanso-color-surface-raised); color: var(--kanso-color-text-primary); border: 1px solid var(--kanso-color-border-strong); border-radius: var(--kanso-radius-control); font-size: 1rem; transition: border-color 120ms cubic-bezier(0.2, 0, 0, 1); } .ds-input:focus-visible { outline: none; border-color: var(--kanso-color-focus-ring); box-shadow: 0 0 0 2px var(--kanso-color-focus-ring); } .ds-input::placeholder { color: var(--kanso-color-text-muted); }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Raised paper surface, lg radius, no shadow.",
+      "html": "<div class=\"ds-card\"><h2 class=\"ds-card-title\">Sign in</h2><p class=\"ds-card-body\">Body text sits on raised paper.</p></div>",
+      "css": ".ds-card { background: var(--kanso-color-surface-raised); border-radius: var(--kanso-radius-surface); padding: 1rem; color: var(--kanso-color-text-primary); } .ds-card-title { font-family: var(--kanso-font-display); font-size: 1.375rem; line-height: 1.2; margin: 0 0 0.5rem; } .ds-card-body { font-family: var(--kanso-font-ui); font-size: 1rem; line-height: 1.55; color: var(--kanso-color-text-muted); margin: 0; }"
+    },
+    {
+      "name": "Link",
+      "kind": "custom",
+      "refersTo": "link",
+      "description": "Action hue with an underline as the second channel.",
+      "html": "<a class=\"ds-link\" href=\"#\">Sign up</a>",
+      "css": ".ds-link { font-family: var(--kanso-font-ui); color: var(--kanso-color-link); text-decoration: underline; text-underline-offset: 0.15em; min-height: 44px; display: inline-flex; align-items: center; } .ds-link:hover { color: var(--kanso-color-action-primary-hover); } .ds-link:focus-visible { outline: 2px solid var(--kanso-color-focus-ring); outline-offset: 2px; }"
+    },
+    {
+      "name": "Status Message",
+      "kind": "custom",
+      "refersTo": "status-message",
+      "description": "Success and error states, each with an icon so hue is never the only channel.",
+      "html": "<p class=\"ds-status ds-status-success\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" aria-hidden=\"true\"><path d=\"M2 8.5 6 12.5 14 4\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg> Account created.</p><p class=\"ds-status ds-status-error\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" aria-hidden=\"true\"><path d=\"M8 4v5\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"/><circle cx=\"8\" cy=\"12.5\" r=\"1.25\" fill=\"currentColor\"/></svg> Email or password was not accepted.</p>",
+      "css": ".ds-status { font-family: var(--kanso-font-ui); font-size: 0.875rem; line-height: 1.55; display: flex; align-items: center; gap: 0.5rem; margin: 0; } .ds-status svg { flex-shrink: 0; } .ds-status-success { color: var(--kanso-color-success); } .ds-status-error { color: var(--kanso-color-danger); }"
+    },
+    {
+      "name": "App Header",
+      "kind": "nav",
+      "refersTo": "header",
+      "description": "Wordmark in display type under a hairline bottom border.",
+      "html": "<header class=\"ds-header\"><p class=\"ds-wordmark\">Kanso Chess</p></header>",
+      "css": ".ds-header { border-bottom: 1px solid var(--kanso-color-border-subtle); } .ds-wordmark { font-family: var(--kanso-font-display); font-size: 1.375rem; line-height: 1.2; color: var(--kanso-color-text-primary); margin: 0; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Study Room",
+    "overview": "Kanso Chess looks like serious study, not a game. The light theme is a warm study: paper neutrals, printed-book typography, and one terracotta accent, credible to a coach and aspirational to a twelve-year-old competitor. The dark theme, Rapid, is the same study after dark: cool slate surfaces and a periwinkle accent, because serious young players live in dark mode and a light-toned board stays the obvious focal point there. The interface is calm and uncluttered. One action accent per theme, used sparingly. Depth comes from three steps of brightness, never drop shadows. The board is always the brightest object on the screen; the interface recedes so the position reads at a glance. This is the anti-game-portal: no saturated neon, no gamified candy, no red-green status pairs. Every state carries its meaning in at least two channels, never hue alone.",
+    "keyCharacteristics": [
+      "Warm paper light theme (Study Room) and cool slate dark theme (Rapid); a third high-contrast theme reaches WCAG AAA.",
+      "Print typography: Source Serif 4 display over Public Sans interface, with IBM Plex Mono for anything tabular.",
+      "One action accent per theme, scarce by design.",
+      "Flat tonal depth: brightness steps, no drop shadows.",
+      "The board is the brightest object on every screen."
+    ],
+    "rules": [
+      {
+        "name": "The One Accent Rule",
+        "body": "One action accent per theme, used on no more than a tenth of any screen. Its rarity is the point.",
+        "section": "colors"
+      },
+      {
+        "name": "The Never-Next-to-Green Rule",
+        "body": "The action accent is never placed adjacent to green, so the pair cannot read as a flag or trip red-green deficiency.",
+        "section": "colors"
+      },
+      {
+        "name": "The Board Brightest Rule",
+        "body": "Page surfaces stay a step duller than any board theme. The board is the brightest object on every screen.",
+        "section": "colors"
+      },
+      {
+        "name": "The No Hue Alone Rule",
+        "body": "Meaning never travels by hue alone. Every state carries a second channel: an icon, an outline, a border, or a label.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tabular Rule",
+        "body": "Anything that must line up, digit over digit, uses IBM Plex Mono: moves, clocks, coordinates, evaluations.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-By-Default Rule",
+        "body": "Surfaces are flat at rest. Depth is conveyed by the three brightness steps, never by drop shadows.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep one action accent per theme, used on a tenth or less of any screen.",
+      "Do keep the board the brightest object; page surfaces stay a step duller.",
+      "Do pair every status color with a second channel: icon, outline, border, or label.",
+      "Do use md radius for controls and lg for cards.",
+      "Do use IBM Plex Mono for moves, clocks, coordinates, and evaluations.",
+      "Do hold muted text at 7:1 or better; body line-height at 1.55 or better.",
+      "Do target 44px for primary buttons and board squares."
+    ],
+    "donts": [
+      "Don't place the action accent next to green.",
+      "Don't use red-to-green on the evaluation bar; it is white and black with a numeric label.",
+      "Don't encode meaning by hue alone.",
+      "Don't add drop shadows; depth is the three brightness steps.",
+      "Don't introduce a fourth font family; display, interface, and mono are fixed.",
+      "Don't let the interface outshine the board."
+    ]
+  }
+}
