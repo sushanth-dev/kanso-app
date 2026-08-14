@@ -13,6 +13,7 @@
  * sender that cannot be exercised locally is a sender that cannot be trusted.
  */
 import { SendEmailCommand, SESClient } from '@aws-sdk/client-ses';
+import { localstackClientOptions } from '../localstack.ts';
 
 export interface Mailer {
   sendConsentNotice(input: { to: string; confirmUrl: string }): Promise<void>;
@@ -36,7 +37,9 @@ let client: SESClient | null = null;
 // One client per process, for the same reason as the SQS client: the SDK holds
 // the connection pool, and rebuilding it per send re-resolves credentials.
 function clientFor(config: SesConfig): SESClient {
-  client ??= new SESClient(config.endpoint ? { endpoint: config.endpoint } : {});
+  client ??= new SESClient(
+    config.endpoint ? { endpoint: config.endpoint, ...localstackClientOptions } : {},
+  );
   return client;
 }
 

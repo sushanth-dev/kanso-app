@@ -53,7 +53,7 @@ Run the same major version CI and production run
 
 ```sh
 docker run --name kanso-db -e POSTGRES_PASSWORD=postgres \
-  -p 5432:5432 -d postgres:18
+  -p 5433:5432 -d postgres:18
 ```
 
 Then create the development database:
@@ -88,20 +88,24 @@ docker run --rm -d -p 4566:4566 --name kanso-localstack \
 ```
 
 The tests create and delete their own queues, so nothing needs to be set up
-inside it. They need an endpoint and credentials, which LocalStack accepts as
-anything at all:
+inside it. The only thing they need is the endpoint:
 
 ```sh
 export AWS_ENDPOINT_URL=http://localhost:4566
-export AWS_REGION=us-east-1
-export AWS_ACCESS_KEY_ID=test
-export AWS_SECRET_ACCESS_KEY=test
 ```
 
 `AWS_ENDPOINT_URL` is also the switch: with it unset the queue tests skip
 rather than run, because without an endpoint the SDK talks to real AWS with
 whatever credentials the machine holds. So the rest of the integration suite
 works with no LocalStack, and CI, which does set it, runs them every time.
+
+Credentials and region need no exports. The client pins both (`ap-south-2` and
+static test credentials) whenever it points at an
+endpoint, because the SDK's default provider chain skips the
+`AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` environment pair whenever
+`AWS_PROFILE` is set and falls through to the profile instead. That is what
+lets the suite run on a machine with `AWS_PROFILE` exported, without that
+profile's region or an expired SSO session leaking in.
 
 `ANALYSIS_QUEUE_URL` stays unset locally. Without it the API imports games and
 does not queue them, which is the path the rest of the suite runs on, and
