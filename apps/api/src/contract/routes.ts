@@ -135,6 +135,29 @@ export const attachGuardian = createRoute({
   },
 });
 
+export const confirmGuardian = createRoute({
+  method: 'get',
+  path: '/guardians/confirm/{token}',
+  tags: ['Account'],
+  summary: 'Confirm guardian consent from the emailed link',
+  /** The consent link is opened by a guardian with no session. */
+  security: [],
+  description:
+    'N7. The unauthenticated route the notice email points at. It records consent exactly once: a valid token for an unconsented link records it, a valid token for an already-consented link is a no-op, and a tampered or expired token answers 404 rather than confirming that a consent request exists.',
+  request: {
+    params: z.object({
+      token: z
+        .string()
+        .min(32)
+        .openapi({ param: { name: 'token', in: 'path' } }),
+    }),
+  },
+  responses: {
+    204: { description: 'Consent recorded, or already recorded.' },
+    404: error('No such consent request, or the link was tampered with or has expired.'),
+  },
+});
+
 // ─── Import ──────────────────────────────────────────────────────────────────
 
 export const startImport = createRoute({
@@ -487,10 +510,10 @@ export const getSharedProofSheet = createRoute({
   path: '/shared/proof-sheets/{token}',
   tags: ['Proof sheet'],
   summary: 'Read a shared page by its token',
-  /** The one route in the API that answers without a session. */
+  /** Answers without a session: it is opened by someone with no account. */
   security: [],
   description:
-    'F14, S6. The one unauthenticated route in the API, and the only screen designed to leave the account that created it. A revoked or expired token answers 404 rather than 403, so a link cannot be used to confirm a player exists.',
+    'F14, S6. An unauthenticated route, and the only screen designed to leave the account that created it. A revoked or expired token answers 404 rather than 403, so a link cannot be used to confirm a player exists.',
   request: {
     params: z.object({
       token: z
@@ -511,6 +534,7 @@ export const routes = [
   createPlayer,
   updatePlayer,
   attachGuardian,
+  confirmGuardian,
   startImport,
   getImport,
   listGames,
