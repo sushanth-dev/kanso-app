@@ -65,20 +65,33 @@ git commit -m "docs: relocate design docs into the app repo"
 ### Task 2: Add success/info color tokens and motion utilities
 
 **Files:**
-- Modify: `apps/web/src/styles.css:26-34` (add `success` and `info` to `@theme inline`)
+- Modify: `apps/web/src/styles.css` (add `success`, `info`, and the `--text-*` scale to `@theme inline`)
 - Modify: `apps/web/src/styles.css` (append motion utilities; extend reduced-motion rule)
 
 **Interfaces:**
-- Consumes: token values already emitted by Style Dictionary (`--kanso-color-success`, `--kanso-color-info`, `--kanso-motion-duration-fast`, `--kanso-motion-duration-base`, `--kanso-motion-ease-standard`).
-- Produces: Tailwind utilities `text-success` and `text-info`; classes `transition-control` and `reveal-in`, consumed by Tasks 3–8.
+- Consumes: token values already emitted by Style Dictionary (`--kanso-color-success`, `--kanso-color-info`, `--kanso-text-xs` through `--kanso-text-4xl`, `--kanso-motion-duration-fast`, `--kanso-motion-duration-base`, `--kanso-motion-ease-standard`).
+- Produces: Tailwind utilities `text-success`, `text-info`, and `text-xs` through `text-4xl`; classes `transition-control` and `reveal-in`, consumed by Tasks 3–8.
 
-- [ ] **Step 1: Add `success` and `info` to the color mappings**
+- [ ] **Step 1: Add `success`, `info`, and the type scale to `@theme inline`**
 
 In `@theme inline`, after the `--color-danger` line, add:
 
 ```css
   --color-success: var(--kanso-color-success);
   --color-info: var(--kanso-color-info);
+```
+
+Then, after the `--radius-surface` line (the last entry in `@theme inline`), add the text ramp so `text-*` utilities resolve to the tokens instead of Tailwind's defaults:
+
+```css
+  --text-xs: var(--kanso-text-xs);
+  --text-sm: var(--kanso-text-sm);
+  --text-base: var(--kanso-text-base);
+  --text-lg: var(--kanso-text-lg);
+  --text-xl: var(--kanso-text-xl);
+  --text-2xl: var(--kanso-text-2xl);
+  --text-3xl: var(--kanso-text-3xl);
+  --text-4xl: var(--kanso-text-4xl);
 ```
 
 - [ ] **Step 2: Add the motion utility class and the reveal animation**
@@ -400,28 +413,40 @@ git commit -m "feat: refine account screen hierarchy and states"
 ### Task 8: Refine the player and guardian forms
 
 **Files:**
+- Create: `apps/web/src/components/secondary-link.ts`
 - Modify: `apps/web/src/routes/player-routes.tsx`
 - Modify: `apps/web/src/routes/guardian-route.tsx`
 
 **Interfaces:**
 - Consumes: `TextInput` from Task 3, `StatusMessage` from Task 5, `transition-control` from Task 2.
-- Produces: nothing new.
+- Produces: `secondaryLinkClassName` (a string constant), used by the two Cancel links.
 
-- [ ] **Step 1: Add motion to the guardian Cancel link**
+- [ ] **Step 1: Create the shared secondary-link constant**
 
-In `guardian-route.tsx`, change the Cancel `<Link>` className by inserting ` transition-control` after `text-primary`.
+```ts
+export const secondaryLinkClassName =
+  'inline-flex min-h-11 items-center justify-center rounded-control border border-border-strong bg-raised px-3 py-2 font-ui text-primary transition-control hover:bg-sunken focus:border-focus focus:outline-none focus:ring-2 focus:ring-focus';
+```
 
-- [ ] **Step 2: Confirm field-level error states already carry a second channel**
+- [ ] **Step 2: Use it for the guardian Cancel link**
+
+In `guardian-route.tsx`, add `import { secondaryLinkClassName } from '../components/secondary-link.ts';` and change the Cancel `<Link>` from its inline className string to `className={secondaryLinkClassName}`.
+
+- [ ] **Step 3: Use it for the player Cancel link**
+
+In `player-routes.tsx`, add the same import and change the Cancel `<Link>` to `className={secondaryLinkClassName}`. The two files now share one class; no drift.
+
+- [ ] **Step 4: Confirm field-level error states already carry a second channel**
 
 Verify by reading the rendered output that Astryx `Field` with `status={{ type: 'error', message }}` shows the message text next to the label. No code change: the text message is the second channel; hue is not relied on alone. Record this confirmation in the commit body.
 
-- [ ] **Step 3: Verify and commit**
+- [ ] **Step 5: Verify and commit**
 
 Run: `npm test`
 Expected: PASS (playerBody parsing, create/edit flows, guardian attach, field-error, not-found, and 409 assertions unchanged).
 
 ```bash
-git add apps/web/src/routes/player-routes.tsx apps/web/src/routes/guardian-route.tsx
+git add apps/web/src/components/secondary-link.ts apps/web/src/routes/player-routes.tsx apps/web/src/routes/guardian-route.tsx
 git commit -m "feat: refine player and guardian forms"
 ```
 
@@ -472,4 +497,13 @@ git commit -m "docs: regenerate DESIGN.md from the refined shell"
 
 ## Recorded findings
 
-Task 1's critique and audit findings go here, one bullet each, with the task that answers each. The three known defects answered by design: bare `<p>` wordmark (Task 4), `inputClassName` duplicated in three routes (Task 3), and iconless `text-primary` success status (Task 5). Additional findings get appended during Task 1 and folded into Tasks 6–8.
+The three known defects answered by design:
+
+- Bare `<p>` wordmark in the header (`apps/web/src/components/page-frame.tsx`) — Task 4.
+- `inputClassName` duplicated in three routes (`auth-routes.tsx`, `player-routes.tsx`, `guardian-route.tsx`) — Task 3.
+- Iconless `text-primary` success status (`apps/web/src/components/status-message.tsx`) — Task 5.
+
+Additional findings from the Task 1 critique and audit (the Impeccable mechanical detector, `detect.mjs`, returned no anti-pattern findings over `apps/web/src`; these are from the manual critique and audit):
+
+- Hand-rolled secondary "Cancel" link duplicated in `player-routes.tsx` and `guardian-route.tsx`, recreating Astryx `Button variant="secondary"` (already used for "Sign out" in `account-route.tsx`) — fold into Task 8.
+- The design type ramp is not wired to Tailwind: `styles.css` `@theme inline` maps color/radius/font/spacing but no `--text-*` scale, so the wordmark's `text-xl` renders Tailwind's 1.25rem instead of the `--kanso-text-xl` Title token (1.375rem) — fold into Task 2 (theme layer; the wordmark in Task 4 then inherits it).
