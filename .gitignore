@@ -44,6 +44,9 @@ site/
 # Style Dictionary build output; tokens/ sources are committed, generated files are not
 tokens/_computed.json
 tokens/build/
+apps/web/src/generated/
+apps/web/playwright-report/
+apps/web/test-results/
 
 # graphify knowledge graph output; regenerated from the repo, not a source of record
 graphify-out/
