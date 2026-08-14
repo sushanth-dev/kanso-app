@@ -20,3 +20,5 @@ frontend decisions. The format and rules are in
 * [0026. Use TanStack Virtual for long list rendering](0026-tanstack-virtual-list-rendering.md)
 * [0027. Use TanStack Router for SPA routing](0027-tanstack-router-spa-routing.md)
 * [0028. Defer TanStack Charts until stable](0028-tanstack-charts-deferral.md)
+* [0031. Refine frontend surfaces with the Impeccable
+  plugin](0031-impeccable-frontend-refinement.md)
