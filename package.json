@@ -17,7 +17,7 @@
     "generate": "npm run generate --workspace apps/web",
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run generate && npm run typecheck --workspaces --if-present",
-    "lint": "eslint .",
+    "lint": "npm run generate && eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "npm run generate && vitest run --project unit --project web",
