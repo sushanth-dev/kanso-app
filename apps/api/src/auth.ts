@@ -43,6 +43,21 @@ export function createAuth(db: PostgresJsDatabase<typeof schema>) {
     emailAndPassword: {
       enabled: true,
     },
+    rateLimit: {
+      // better-auth only enables rate limiting in production by default, and
+      // that default is what keeps the integration suite - which signs up and
+      // signs in far more than any real attacker - unthrottled. Production is
+      // on automatically via NODE_ENV so a deploy cannot forget the launch
+      // gate; the ST-021 test opts in with SIGN_IN_RATE_LIMIT_ENABLED.
+      enabled:
+        process.env.SIGN_IN_RATE_LIMIT_ENABLED === 'true' || process.env.NODE_ENV === 'production',
+      customRules: {
+        '/sign-in/email': {
+          window: Number(process.env.SIGN_IN_RATE_LIMIT_WINDOW_SECONDS ?? 300),
+          max: Number(process.env.SIGN_IN_RATE_LIMIT_MAX ?? 5),
+        },
+      },
+    },
     advanced: {
       cookiePrefix: 'kanso',
       useSecureCookies: process.env.NODE_ENV === 'production',
