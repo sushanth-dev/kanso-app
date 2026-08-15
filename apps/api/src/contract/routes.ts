@@ -24,6 +24,7 @@ import {
   Health,
   ImportJob,
   Me,
+  MotifReport,
   Player,
   ProofSheet,
   Report,
@@ -204,6 +205,26 @@ export const getRoundDecay = createRoute({
     401: error('No session.'),
     403: error('Not your tournament.'),
     422: error('Not enough evidence to report a trend.'),
+  },
+});
+
+export const getMotifs = createRoute({
+  method: 'get',
+  path: '/players/{playerId}/motifs',
+  tags: ['Diagnosis'],
+  summary: 'A player’s missed tactical motifs, ranked by cost',
+  description:
+    'ST-024. Each mistake is attributed to one motif from a closed set, then grouped per motif with the centipawns lost to it, ranked worst first. A motif with fewer than three supporting positions is withheld rather than reported, and the unattributed share is stated, so a thin history reads as thin rather than clean.',
+  request: {
+    params: playerParams,
+    query: z.object({
+      stream: Stream.openapi({ param: { name: 'stream', in: 'query' } }),
+    }),
+  },
+  responses: {
+    200: json(MotifReport, 'The ranked motifs, with evidence counts.'),
+    ...authErrors,
+    422: error('No analysed games in this stream.'),
   },
 });
 
@@ -597,6 +618,7 @@ export const routes = [
   getReport,
   getTransferGap,
   getRoundDecay,
+  getMotifs,
   getExplanation,
   getSocraticQuestion,
   listFocuses,

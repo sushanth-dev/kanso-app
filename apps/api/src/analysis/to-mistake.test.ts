@@ -119,8 +119,14 @@ describe('toMistakeRow', () => {
     const row = toMistakeRow(GAME, ply({ evalBefore: { cp: 400 }, evalAfter: { cp: -400 } }));
 
     expect(row?.phase).toBeUndefined();
-    expect(row?.motif).toBeUndefined();
     expect(row?.crossedResultBoundary).toBeUndefined();
     expect(row?.halfPointsLost).toBeUndefined();
+  });
+
+  test('sets the motif from the stored position, or null when none applies', () => {
+    // The start-position Nf3/d4 mistake is a quiet positional miss: no motif in
+    // the set explains it, so the row records null rather than a forced label.
+    const row = toMistakeRow(GAME, ply({ evalBefore: { cp: 400 }, evalAfter: { cp: -400 } }));
+    expect(row?.motif).toBeNull();
   });
 });
