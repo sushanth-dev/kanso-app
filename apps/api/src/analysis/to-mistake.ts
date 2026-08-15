@@ -12,6 +12,7 @@ import { classifyMove, winProbDrop, type Color, type EvalScore } from '../chess/
 import type { mistake } from '../db/schema.ts';
 import { attributeMotif } from './motif.ts';
 import type { Phase } from './phase.ts';
+import { boundaryOutcome } from './result-boundary.ts';
 
 export type MistakeInsert = typeof mistake.$inferInsert;
 
@@ -64,6 +65,11 @@ export function toMistakeRow(gameId: string, ply: AnalysedPly): MistakeInsert | 
 
   const advice = classifyMove(ply.movingColor, ply.evalBefore, ply.evalAfter);
   if (advice === null) return null;
+  const { crossedResultBoundary, halfPointsLost } = boundaryOutcome(
+    ply.movingColor,
+    ply.evalBefore,
+    ply.evalAfter,
+  );
 
   return {
     gameId,
@@ -89,8 +95,9 @@ export function toMistakeRow(gameId: string, ply: AnalysedPly): MistakeInsert | 
     // ST-025. The phase of the position the move was played from, computed by
     // the one rule in `analysis/phase.ts`.
     phase: ply.phase,
-    // `crossedResultBoundary` and `halfPointsLost` keep their defaults, because
-    // backlog item 9 owns the rating leak and an undefended number in front of
-    // a coach is worse than a null.
+    // F9. The boundary rule lives in `analysis/result-boundary.ts`; this file
+    // records its verdict on the evals it already stores.
+    crossedResultBoundary,
+    halfPointsLost,
   };
 }
