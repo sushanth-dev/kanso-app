@@ -116,11 +116,10 @@ describe('toMistakeRow', () => {
     expect(['inaccuracy', 'mistake', 'blunder']).toContain(row?.judgement);
   });
 
-  test('leaves the columns other stories own alone', () => {
+  test('sets the result-boundary columns from the stored evals', () => {
     const row = toMistakeRow(GAME, ply({ evalBefore: { cp: 400 }, evalAfter: { cp: -400 } }));
-
-    expect(row?.crossedResultBoundary).toBeUndefined();
-    expect(row?.halfPointsLost).toBeUndefined();
+    expect(row?.crossedResultBoundary).toBe(true);
+    expect(row?.halfPointsLost).toBe(1);
   });
 
   test('sets the phase from the passed value', () => {

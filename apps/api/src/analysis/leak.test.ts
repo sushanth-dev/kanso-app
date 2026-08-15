@@ -1,0 +1,46 @@
+/**
+ * ST-026. The pure scoring over leak rows: conversion application and ordering.
+ *
+ * No database, no clock. The conversion itself is pinned in
+ * performance-rating.test.ts; here the scorer's contract is pinned: every group
+ * gets a rating leak, and the order is cost, not row count.
+ */
+import { describe, expect, test } from 'vitest';
+import { scoreLeaks } from './leak.ts';
+
+const midTable = { games: 20, score: 10, avgOpponentElo: 1500 };
+
+describe('scoreLeaks', () => {
+  test('converts each weakness half-points to rating points', () => {
+    const leaks = scoreLeaks(midTable, [
+      { kind: 'opening', key: 'B22', halfPointsLost: 2, occurrences: 4, gamesAffected: 3 },
+      { kind: 'motif', key: 'hanging_piece', halfPointsLost: 1, occurrences: 2, gamesAffected: 2 },
+    ]);
+    expect(leaks).toEqual([
+      {
+        kind: 'opening',
+        key: 'B22',
+        halfPointsLost: 2,
+        occurrences: 4,
+        gamesAffected: 3,
+        ratingLeak: 70,
+      },
+      {
+        kind: 'motif',
+        key: 'hanging_piece',
+        halfPointsLost: 1,
+        occurrences: 2,
+        gamesAffected: 2,
+        ratingLeak: 35,
+      },
+    ]);
+  });
+
+  test('orders worst first by half-points, not by row count', () => {
+    const leaks = scoreLeaks(midTable, [
+      { kind: 'motif', key: 'many', halfPointsLost: 0.5, occurrences: 100, gamesAffected: 50 },
+      { kind: 'opening', key: 'one', halfPointsLost: 1, occurrences: 1, gamesAffected: 1 },
+    ]);
+    expect(leaks.map((l) => l.key)).toEqual(['one', 'many']);
+  });
+});
