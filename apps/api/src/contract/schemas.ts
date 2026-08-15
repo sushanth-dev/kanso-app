@@ -7,6 +7,7 @@
  * implementation. Nothing here is hand-mirrored anywhere else.
  */
 import { z } from '@hono/zod-openapi';
+import { MOTIFS } from '../analysis/motif.ts';
 
 // ─── Primitives ──────────────────────────────────────────────────────────────
 
@@ -378,6 +379,46 @@ export const TournamentDecay = z
     roundCount: z.number().int(),
   })
   .openapi('TournamentDecay');
+
+// ─── Motifs ──────────────────────────────────────────────────────────────────
+
+/**
+ * ST-024. The closed set of tactical motifs a mistake can be attributed to.
+ * A mistake no motif in the set explains stays null (unattributed).
+ */
+export const Motif = z.enum(MOTIFS).openapi('Motif', {
+  description: 'A tactical motif from the closed set in analysis/motif.ts.',
+});
+
+/** One motif in the ranked report, with the evidence that supports it. */
+export const MotifPoint = z
+  .object({
+    motif: Motif,
+    /** Mistakes attributed to this motif. */
+    positions: z.number().int(),
+    /** Total `mistake.cp_loss` over those mistakes, the cost to the player. */
+    totalCpLoss: z.number().int(),
+  })
+  .openapi('MotifPoint');
+
+/**
+ * ST-024. A player's missed motifs in one stream, ranked by cost. The
+ * unattributed share and the withheld count travel with the list so a thin
+ * history reads as thin rather than clean.
+ */
+export const MotifReport = z
+  .object({
+    playerId: Uuid,
+    stream: Stream,
+    motifs: z.array(MotifPoint),
+    /** Mistakes no motif in the set explains. */
+    unattributed: z.number().int(),
+    /** Total mistakes in scope; the unattributed share is unattributed / mistakeCount. */
+    mistakeCount: z.number().int(),
+    /** Motifs below the reporting threshold, held back rather than reported. */
+    withheld: z.number().int(),
+  })
+  .openapi('MotifReport');
 
 // ─── Report ──────────────────────────────────────────────────────────────────
 

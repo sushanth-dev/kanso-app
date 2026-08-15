@@ -1368,6 +1368,70 @@
           "lossPerMove"
         ]
       },
+      "MotifReport": {
+        "type": "object",
+        "properties": {
+          "playerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "stream": {
+            "$ref": "#/components/schemas/Stream"
+          },
+          "motifs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MotifPoint"
+            }
+          },
+          "unattributed": {
+            "type": "integer"
+          },
+          "mistakeCount": {
+            "type": "integer"
+          },
+          "withheld": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "playerId",
+          "stream",
+          "motifs",
+          "unattributed",
+          "mistakeCount",
+          "withheld"
+        ]
+      },
+      "MotifPoint": {
+        "type": "object",
+        "properties": {
+          "motif": {
+            "$ref": "#/components/schemas/Motif"
+          },
+          "positions": {
+            "type": "integer"
+          },
+          "totalCpLoss": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "motif",
+          "positions",
+          "totalCpLoss"
+        ]
+      },
+      "Motif": {
+        "type": "string",
+        "enum": [
+          "hanging_piece",
+          "missed_check",
+          "missed_capture",
+          "missed_threat"
+        ],
+        "description": "A tactical motif from the closed set in analysis/motif.ts."
+      },
       "Explanation": {
         "type": "object",
         "properties": {
@@ -2961,6 +3025,87 @@
           },
           "422": {
             "description": "Not enough evidence to report a trend.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/players/{playerId}/motifs": {
+      "get": {
+        "tags": [
+          "Diagnosis"
+        ],
+        "summary": "A player’s missed tactical motifs, ranked by cost",
+        "description": "ST-024. Each mistake is attributed to one motif from a closed set, then grouped per motif with the centipawns lost to it, ranked worst first. A motif with fewer than three supporting positions is withheld rather than reported, and the unattributed share is stated, so a thin history reads as thin rather than clean.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "playerId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/Stream"
+            },
+            "required": true,
+            "description": "Tournament games and online games describe different players and are never aggregated together.",
+            "name": "stream",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The ranked motifs, with evidence counts.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MotifReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The session has no claim on this player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "No analysed games in this stream.",
             "content": {
               "application/json": {
                 "schema": {
