@@ -11,6 +11,7 @@
 import { classifyMove, winProbDrop, type Color, type EvalScore } from '../chess/lichess-utils.ts';
 import type { mistake } from '../db/schema.ts';
 import { attributeMotif } from './motif.ts';
+import type { Phase } from './phase.ts';
 
 export type MistakeInsert = typeof mistake.$inferInsert;
 
@@ -29,6 +30,8 @@ export interface AnalysedPly {
   evalAfter: EvalScore;
   /** What the engine wanted played instead, in SAN. */
   bestMoveSan: string | null;
+  /** The phase of `fenBefore`, computed by the one rule in `./phase.ts`. */
+  phase: Phase;
 }
 
 /**
@@ -83,8 +86,9 @@ export function toMistakeRow(gameId: string, ply: AnalysedPly): MistakeInsert | 
     // the row is the number the decision was made with.
     winProbDrop: winProbDrop(ply.movingColor, ply.evalBefore, ply.evalAfter),
     motif: attributeMotif(ply.fenBefore, ply.san, ply.bestMoveSan),
-    // `phase` stays null: no phase attribution exists anywhere yet and backlog
-    // item 8 owns it.
+    // ST-025. The phase of the position the move was played from, computed by
+    // the one rule in `analysis/phase.ts`.
+    phase: ply.phase,
     // `crossedResultBoundary` and `halfPointsLost` keep their defaults, because
     // backlog item 9 owns the rating leak and an undefended number in front of
     // a coach is worse than a null.

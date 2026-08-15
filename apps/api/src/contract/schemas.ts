@@ -420,6 +420,61 @@ export const MotifReport = z
   })
   .openapi('MotifReport');
 
+// ─── Phase and time trouble ──────────────────────────────────────────────────
+
+/**
+ * ST-025. One phase's loss, with the number of games behind it.
+ */
+export const PhasePoint = z
+  .object({
+    phase: Phase,
+    /** Total `mistake.cp_loss` in this phase. */
+    totalCpLoss: z.number().int(),
+    /** Games with at least one mistake in this phase. */
+    games: z.number().int(),
+  })
+  .openapi('PhasePoint');
+
+/**
+ * ST-025. The time-trouble half, online only. `unavailable` is a first-class
+ * answer rather than a null, and the reason says why there is no number.
+ */
+export const TimeTrouble = z
+  .discriminatedUnion('status', [
+    z.object({
+      status: z.literal('reported'),
+      clockedGames: z.number().int(),
+      /** Earliest full move where the player's clock was under the threshold. */
+      fromMove: z.number().int(),
+      troubleMoves: z.number().int(),
+      /** Mistakes per move under the threshold. */
+      troubleMistakeRate: z.number(),
+      calmMoves: z.number().int(),
+      /** Mistakes per move above the threshold. */
+      calmMistakeRate: z.number(),
+    }),
+    z.object({
+      status: z.literal('unavailable'),
+      reason: z.enum(['not_online', 'no_clock_data', 'not_enough_evidence']),
+    }),
+  ])
+  .openapi('TimeTrouble');
+
+/**
+ * ST-025. A player's evaluation loss by phase for one stream, with the
+ * time-trouble half where it applies.
+ */
+export const PhaseReport = z
+  .object({
+    playerId: Uuid,
+    stream: Stream,
+    phases: z.array(PhasePoint),
+    /** Total mistakes in scope. */
+    mistakeCount: z.number().int(),
+    timeTrouble: TimeTrouble,
+  })
+  .openapi('PhaseReport');
+
 // ─── Report ──────────────────────────────────────────────────────────────────
 
 /**

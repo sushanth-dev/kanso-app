@@ -1432,6 +1432,121 @@
         ],
         "description": "A tactical motif from the closed set in analysis/motif.ts."
       },
+      "PhaseReport": {
+        "type": "object",
+        "properties": {
+          "playerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "stream": {
+            "$ref": "#/components/schemas/Stream"
+          },
+          "phases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PhasePoint"
+            }
+          },
+          "mistakeCount": {
+            "type": "integer"
+          },
+          "timeTrouble": {
+            "$ref": "#/components/schemas/TimeTrouble"
+          }
+        },
+        "required": [
+          "playerId",
+          "stream",
+          "phases",
+          "mistakeCount",
+          "timeTrouble"
+        ]
+      },
+      "PhasePoint": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "$ref": "#/components/schemas/Phase"
+          },
+          "totalCpLoss": {
+            "type": "integer"
+          },
+          "games": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "phase",
+          "totalCpLoss",
+          "games"
+        ]
+      },
+      "TimeTrouble": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "reported"
+                ]
+              },
+              "clockedGames": {
+                "type": "integer"
+              },
+              "fromMove": {
+                "type": "integer"
+              },
+              "troubleMoves": {
+                "type": "integer"
+              },
+              "troubleMistakeRate": {
+                "type": "number"
+              },
+              "calmMoves": {
+                "type": "integer"
+              },
+              "calmMistakeRate": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "status",
+              "clockedGames",
+              "fromMove",
+              "troubleMoves",
+              "troubleMistakeRate",
+              "calmMoves",
+              "calmMistakeRate"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "unavailable"
+                ]
+              },
+              "reason": {
+                "type": "string",
+                "enum": [
+                  "not_online",
+                  "no_clock_data",
+                  "not_enough_evidence"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "reason"
+            ]
+          }
+        ]
+      },
       "Explanation": {
         "type": "object",
         "properties": {
@@ -3070,6 +3185,87 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MotifReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The session has no claim on this player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "No analysed games in this stream.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/players/{playerId}/phase": {
+      "get": {
+        "tags": [
+          "Diagnosis"
+        ],
+        "summary": "A player’s evaluation loss by phase, and where time trouble starts",
+        "description": "ST-025. A player’s centipawn loss attributed to opening, middlegame, and endgame for one stream, with the games behind each phase. For online games with clock data, the time-trouble half reports the move where the remaining clock starts driving mistakes; it is unavailable rather than guessed on tournament games or games without a clock.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "playerId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/Stream"
+            },
+            "required": true,
+            "description": "Tournament games and online games describe different players and are never aggregated together.",
+            "name": "stream",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The phase breakdown, with the time-trouble half where it applies.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhaseReport"
                 }
               }
             }

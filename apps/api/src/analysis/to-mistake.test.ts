@@ -23,6 +23,7 @@ function ply(overrides: Partial<AnalysedPly> = {}): AnalysedPly {
     evalBefore: { cp: 30 },
     evalAfter: { cp: 20 },
     bestMoveSan: 'd4',
+    phase: 'opening',
     ...overrides,
   };
 }
@@ -118,9 +119,16 @@ describe('toMistakeRow', () => {
   test('leaves the columns other stories own alone', () => {
     const row = toMistakeRow(GAME, ply({ evalBefore: { cp: 400 }, evalAfter: { cp: -400 } }));
 
-    expect(row?.phase).toBeUndefined();
     expect(row?.crossedResultBoundary).toBeUndefined();
     expect(row?.halfPointsLost).toBeUndefined();
+  });
+
+  test('sets the phase from the passed value', () => {
+    const row = toMistakeRow(
+      GAME,
+      ply({ evalBefore: { cp: 400 }, evalAfter: { cp: -400 }, phase: 'middlegame' }),
+    );
+    expect(row?.phase).toBe('middlegame');
   });
 
   test('sets the motif from the stored position, or null when none applies', () => {
