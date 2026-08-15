@@ -21,7 +21,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "npm run generate && vitest run --project unit --project web",
-    "test:integration": "vitest run --project integration",
+    "test:integration": "node --env-file-if-exists=.env ./node_modules/vitest/vitest.mjs run --project integration",
     "test:watch": "vitest --project unit",
     "test:coverage": "npm run generate && vitest run --coverage --project unit --project web",
     "openapi": "npm run openapi --workspace apps/api",
