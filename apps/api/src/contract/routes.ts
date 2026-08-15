@@ -25,6 +25,7 @@ import {
   ImportJob,
   Me,
   MotifReport,
+  PhaseReport,
   Player,
   ProofSheet,
   Report,
@@ -223,6 +224,26 @@ export const getMotifs = createRoute({
   },
   responses: {
     200: json(MotifReport, 'The ranked motifs, with evidence counts.'),
+    ...authErrors,
+    422: error('No analysed games in this stream.'),
+  },
+});
+
+export const getPhases = createRoute({
+  method: 'get',
+  path: '/players/{playerId}/phase',
+  tags: ['Diagnosis'],
+  summary: 'A player’s evaluation loss by phase, and where time trouble starts',
+  description:
+    'ST-025. A player’s centipawn loss attributed to opening, middlegame, and endgame for one stream, with the games behind each phase. For online games with clock data, the time-trouble half reports the move where the remaining clock starts driving mistakes; it is unavailable rather than guessed on tournament games or games without a clock.',
+  request: {
+    params: playerParams,
+    query: z.object({
+      stream: Stream.openapi({ param: { name: 'stream', in: 'query' } }),
+    }),
+  },
+  responses: {
+    200: json(PhaseReport, 'The phase breakdown, with the time-trouble half where it applies.'),
     ...authErrors,
     422: error('No analysed games in this stream.'),
   },
@@ -619,6 +640,7 @@ export const routes = [
   getTransferGap,
   getRoundDecay,
   getMotifs,
+  getPhases,
   getExplanation,
   getSocraticQuestion,
   listFocuses,

@@ -34,6 +34,7 @@ import { sesConfigFromEnv, sesMailer, type Mailer } from './account/mailer.ts';
 import { httpRatingFetcher, type RatingFetcher } from './rating/rating-fetcher.ts';
 import { mountTransferGap } from './rating/transfer-gap.ts';
 import { mountMotifs } from './motifs/motifs.ts';
+import { mountPhases } from './phases/phases.ts';
 
 /** The shape of every error the API emits, from `ApiError` in the contract. */
 export interface ErrorBody {
@@ -198,6 +199,7 @@ export function createApp({
     mountRoundDecay(app, { db, getSession: effectiveGetSession });
     mountTransferGap(app, { db, getSession: effectiveGetSession, ratingFetcher });
     mountMotifs(app, { db, getSession: effectiveGetSession });
+    mountPhases(app, { db, getSession: effectiveGetSession });
   }
 
   app.notFound((c) => c.json<ErrorBody>({ code: 'not_found', message: 'No such endpoint.' }, 404));
