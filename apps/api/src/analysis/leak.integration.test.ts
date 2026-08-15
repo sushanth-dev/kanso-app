@@ -103,8 +103,8 @@ describe('computeLeaks', () => {
   test('computes the leak per kind over the season rated games', async () => {
     const playerId = await makePlayer();
     // 10 rated draws: S=5.0, N=10, R=1500.
-    const g1 = await seedRatedGame(playerId, { eco: 'B22' });
-    const g2 = await seedRatedGame(playerId, { eco: 'B22' });
+    const g1 = await seedRatedGame(playerId, { eco: 'B22', opening: 'Sicilian, Alapin' });
+    const g2 = await seedRatedGame(playerId, { eco: 'B22', opening: 'Sicilian, Alapin' });
     const g3 = await seedRatedGame(playerId, { eco: 'B20' });
     for (let i = 0; i < 7; i++) await seedRatedGame(playerId);
 
@@ -141,6 +141,19 @@ describe('computeLeaks', () => {
 
     expect(find('time_trouble', 'time_trouble').halfPointsLost).toBeCloseTo(2);
     expect(find('time_trouble', 'time_trouble').ratingLeak).toBe(147);
+
+    // ST-027. Labels travel with the leak: the opening name from `game.opening`,
+    // the ECO code on openings only, and humanized names for the other kinds.
+    expect(find('opening', 'B22').label).toBe('Sicilian, Alapin');
+    expect(find('opening', 'B22').eco).toBe('B22');
+    expect(find('opening', 'B20').label).toBe('B20');
+    expect(find('opening', 'B20').eco).toBe('B20');
+    expect(find('motif', 'hanging_piece').label).toBe('Hanging piece');
+    expect(find('motif', 'hanging_piece').eco).toBeNull();
+    expect(find('phase', 'middlegame').label).toBe('Middlegame');
+    expect(find('phase', 'middlegame').eco).toBeNull();
+    expect(find('time_trouble', 'time_trouble').label).toBe('Time trouble');
+    expect(find('time_trouble', 'time_trouble').eco).toBeNull();
 
     // Worst first by half-points, not by row count.
     expect(result.weaknesses[0]!.halfPointsLost).toBeCloseTo(2);
