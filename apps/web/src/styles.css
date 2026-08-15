@@ -40,6 +40,7 @@
 }
 
 html {
+  color-scheme: light;
   background: var(--kanso-color-surface-page);
   color: var(--kanso-color-text-primary);
 }
@@ -48,7 +49,20 @@ body {
   min-width: 320px;
   font-family: var(--kanso-font-ui);
 }
-:focus-visible {
+::selection {
+  background-color: var(--kanso-color-action-primary-default);
+  color: var(--kanso-color-text-on-accent);
+}
+input,
+textarea,
+select {
+  caret-color: var(--kanso-color-action-primary-default);
+}
+a {
+  text-decoration-thickness: 0.06em;
+  text-underline-offset: 0.22em;
+}
+::focus-visible {
   outline: var(--kanso-space-1) solid var(--kanso-color-focus-ring);
   outline-offset: var(--kanso-space-1);
 }
@@ -57,10 +71,18 @@ body {
   transition-duration: var(--kanso-motion-duration-fast);
   transition-timing-function: var(--kanso-motion-ease-standard);
 }
+.press {
+  transition-property: color, background-color, border-color, box-shadow, transform;
+  transition-duration: var(--kanso-motion-duration-fast);
+  transition-timing-function: var(--kanso-motion-ease-standard);
+}
+.press:active:not(:disabled) {
+  transform: scale(0.98);
+}
 @keyframes reveal-in {
   from {
     opacity: 0;
-    transform: translateY(-4px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
@@ -68,7 +90,7 @@ body {
   }
 }
 .reveal-in {
-  animation: reveal-in var(--kanso-motion-duration-base) var(--kanso-motion-ease-standard);
+  animation: reveal-in var(--kanso-motion-duration-base) var(--kanso-motion-ease-decelerate) both;
 }
 @media (prefers-reduced-motion: reduce) {
   *,

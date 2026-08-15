@@ -7,6 +7,7 @@ import { Heading } from '@astryxdesign/core/Heading';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { authClient } from '../auth-client.ts';
+import { Clouds } from '../components/canvas-ui/Clouds.tsx';
 import { StatusMessage } from '../components/status-message.tsx';
 import { TextInput } from '../components/text-input.tsx';
 import { ME_QUERY_KEY } from '../query-client.ts';
@@ -27,6 +28,24 @@ const MISMATCH_COPY = 'Passwords do not match.';
 function readText(data: FormData, key: string): string {
   const value = data.get(key);
   return typeof value === 'string' ? value : '';
+}
+
+const AMBIENT_CLOUD_COLOR: [number, number, number] = [0.937, 0.902, 0.847];
+
+function AuthAmbient() {
+  return (
+    <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10">
+      <Clouds
+        className="h-full w-full"
+        color={AMBIENT_CLOUD_COLOR}
+        opacity={0.32}
+        density={1.2}
+        speed={0.35}
+      >
+        <div className="h-full w-full bg-page" />
+      </Clouds>
+    </div>
+  );
 }
 
 export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
@@ -74,83 +93,86 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
   }
 
   return (
-    <Card className="mx-auto w-full max-w-sm">
-      <Heading level={1}>{heading}</Heading>
-      {errorMessage !== null ? (
-        <div className="mt-4">
-          <StatusMessage tone="error">{errorMessage}</StatusMessage>
-        </div>
-      ) : null}
-      <form
-        onSubmit={(event) => {
-          void handleSubmit(event);
-        }}
-      >
-        <FormLayout>
-          {isSignUp ? (
-            <Field label="Name" inputID="name">
+    <>
+      <AuthAmbient />
+      <Card className="mx-auto w-full max-w-sm">
+        <Heading level={1}>{heading}</Heading>
+        {errorMessage !== null ? (
+          <div className="mt-4">
+            <StatusMessage tone="error">{errorMessage}</StatusMessage>
+          </div>
+        ) : null}
+        <form
+          onSubmit={(event) => {
+            void handleSubmit(event);
+          }}
+        >
+          <FormLayout>
+            {isSignUp ? (
+              <Field label="Name" inputID="name">
+                <TextInput
+                  id="name"
+                  name="name"
+                  type="text"
+                  autoComplete="name"
+                  required
+                  maxLength={100}
+                />
+              </Field>
+            ) : null}
+            <Field label="Email" inputID="email">
               <TextInput
-                id="name"
-                name="name"
-                type="text"
-                autoComplete="name"
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
                 required
-                maxLength={100}
+                maxLength={254}
               />
             </Field>
-          ) : null}
-          <Field label="Email" inputID="email">
-            <TextInput
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              maxLength={254}
-            />
-          </Field>
-          <Field label="Password" inputID="password">
-            <TextInput
-              id="password"
-              name="password"
-              type="password"
-              autoComplete={isSignUp ? 'new-password' : 'current-password'}
-              required
-              minLength={8}
-            />
-          </Field>
-          {isSignUp ? (
-            <Field label="Confirm password" inputID="passwordConfirmation">
+            <Field label="Password" inputID="password">
               <TextInput
-                id="passwordConfirmation"
-                name="passwordConfirmation"
+                id="password"
+                name="password"
                 type="password"
-                autoComplete="new-password"
+                autoComplete={isSignUp ? 'new-password' : 'current-password'}
                 required
                 minLength={8}
               />
             </Field>
-          ) : null}
-          <Button
-            type="submit"
-            label={submitLabel}
-            variant="primary"
-            isDisabled={submitting}
-            isLoading={submitting}
-            className="min-h-11 w-full"
-          />
-        </FormLayout>
-      </form>
-      <p className="mt-4 text-center text-muted">
-        {isSignUp ? 'Already have an account? ' : 'Need an account? '}
-        <Link
-          to={isSignUp ? '/sign-in' : '/sign-up'}
-          className="inline-flex min-h-11 items-center font-ui text-accent underline transition-control hover:text-accent-hover"
-        >
-          {isSignUp ? 'Sign in' : 'Sign up'}
-        </Link>
-      </p>
-    </Card>
+            {isSignUp ? (
+              <Field label="Confirm password" inputID="passwordConfirmation">
+                <TextInput
+                  id="passwordConfirmation"
+                  name="passwordConfirmation"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  minLength={8}
+                />
+              </Field>
+            ) : null}
+            <Button
+              type="submit"
+              label={submitLabel}
+              variant="primary"
+              isDisabled={submitting}
+              isLoading={submitting}
+              className="min-h-11 w-full press"
+            />
+          </FormLayout>
+        </form>
+        <p className="mt-4 text-center text-muted">
+          {isSignUp ? 'Already have an account? ' : 'Need an account? '}
+          <Link
+            to={isSignUp ? '/sign-in' : '/sign-up'}
+            className="inline-flex min-h-11 items-center font-ui text-accent underline transition-control hover:text-accent-hover"
+          >
+            {isSignUp ? 'Sign in' : 'Sign up'}
+          </Link>
+        </p>
+      </Card>
+    </>
   );
 }
 

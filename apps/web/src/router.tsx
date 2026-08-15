@@ -20,6 +20,7 @@ import { AccountRoute } from './routes/account-route.tsx';
 import { SignInRoute, SignUpRoute } from './routes/auth-routes.tsx';
 import { GuardianRoute } from './routes/guardian-route.tsx';
 import { PlayerEditRoute, PlayerNewRoute } from './routes/player-routes.tsx';
+import { ReportRoute } from './routes/report-route.tsx';
 
 interface RouterContext {
   queryClient: QueryClient;
@@ -140,11 +141,34 @@ const guardianRoute = createRoute({
   component: GuardianRoute,
 });
 
+const reportRoute = createRoute({
+  getParentRoute: () => accountRoute,
+  path: '/players/$playerId/report',
+  validateSearch: (search: Record<string, unknown>) =>
+    search.stream === 'online' ? { stream: 'online' as const } : { stream: 'tournament' as const },
+  beforeLoad: async ({ context, params }) => {
+    const me = await context.queryClient.ensureQueryData(meQueryOptions());
+    const owned = me.players.some((player) => player.id === params.playerId);
+    const guarded = me.guardedPlayers.some((player) => player.id === params.playerId);
+    if (!owned && !guarded) {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error -- notFound() returns a router not-found error, not an Error.
+      throw notFound();
+    }
+  },
+  component: ReportRoute,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   signInRoute,
   signUpRoute,
-  accountRoute.addChildren([accountIndexRoute, playersNewRoute, playerEditRoute, guardianRoute]),
+  accountRoute.addChildren([
+    accountIndexRoute,
+    playersNewRoute,
+    playerEditRoute,
+    guardianRoute,
+    reportRoute,
+  ]),
 ]);
 
 export interface CreateAppRouterOptions {

@@ -293,7 +293,7 @@ export function PlayerFormScreen({
               variant="primary"
               isDisabled={submitting}
               isLoading={submitting}
-              className="min-h-11 flex-1"
+              className="min-h-11 flex-1 press"
             />
             <Link to="/account" className={secondaryLinkClassName}>
               Cancel
