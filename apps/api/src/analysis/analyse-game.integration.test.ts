@@ -118,6 +118,23 @@ describe('analyseGame', () => {
     }
   });
 
+  test('reads %clk into move_ply and attributes a phase to every ply', async () => {
+    // White's clock after e4 is 2:58, after Nf3 is 2:57; black's after e5 is
+    // 2:59. The first move of each side has no previous clock, so its
+    // move_time_ms is null; white's second move took one second.
+    const CLOCKED_PGN =
+      '[Event "Live Chess"]\n[Result "1-0"]\n\n1. e4 {[%clk 0:02:58]} e5 {[%clk 0:02:59]} 2. Nf3 {[%clk 0:02:57]} 1-0';
+    const gameId = await seedGame(CLOCKED_PGN, 'white');
+
+    await analyseGame(harness.db, gameId, options);
+
+    const rows = await plies(gameId);
+    expect(rows).toHaveLength(3);
+    expect(rows.map((p) => p.clockMs)).toEqual([178000, 179000, 177000]);
+    expect(rows.map((p) => p.moveTimeMs)).toEqual([null, null, 1000]);
+    expect(rows.map((p) => p.phase)).toEqual(['opening', 'opening', 'opening']);
+  });
+
   test('records mistakes for the player’s own moves and nobody else’s', async () => {
     // The opening-leak aggregation counts every mistake row on a game with no
     // filter on colour, so an opponent's blunder stored here would be read as
