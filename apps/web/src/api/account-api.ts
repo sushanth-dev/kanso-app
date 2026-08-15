@@ -20,7 +20,7 @@ export class ApiRequestError extends Error {
   }
 }
 
-function failure(status: number, body: ApiError | undefined): ApiRequestError {
+export function failure(status: number, body: ApiError | undefined): ApiRequestError {
   return new ApiRequestError(
     status,
     body?.code ?? 'request_failed',

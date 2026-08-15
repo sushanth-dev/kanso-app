@@ -220,9 +220,18 @@ Motion is purposeful and subtle, never decorative. The tokens are fast
 (120ms) for control states (hover, press, focus), base (200ms) for reveals and
 state changes, and slow (320ms) for route and board transitions, all on the
 standard ease `cubic-bezier(0.2, 0, 0, 1)`. Control transitions move color,
-border, and box-shadow; reveals fade and rise 4px. Every duration collapses to
+border, and box-shadow; reveals fade and rise 6px. Every duration collapses to
 zero under `prefers-reduced-motion`, both in the token theme and in a CSS
 override, so no motion runs when reduced motion is requested.
+
+The shipped surfaces add four concrete moves on top of the tokens. A `.press`
+utility scales controls to 0.98 on `:active`, merging the color transition with
+a transform so a button feels tactile. A `.stagger-in` list reveals its items
+in order, capped at six steps of 45ms, and is used for the ranked weakness
+list. Browser surfaces are themed from the palette: text selection is
+terracotta on white, the text caret is terracotta, links carry a 0.06em
+underline with a 0.22em offset, and `color-scheme: light` keeps native controls
+in the Study Room.
 
 ## Components
 
@@ -261,6 +270,20 @@ override, so no motion runs when reduced motion is requested.
   terracotta mark beside "Kanso Chess" in Source Serif 4. The single centered
   column is the whole navigation model at this stage; no persistent side or
   top nav exists yet.
+
+### Report and ranked lists
+
+The ranked weakness report composes from existing primitives rather than a new
+component. Each weakness is a `Card` in an ordered list; the rank, the label,
+and the headline `ratingLeak` number lead in IBM Plex Mono, with the evidence
+(games affected, occurrences, half-points lost) beside it in mono. The stream
+is a typed search parameter with a visible segmented toggle, never a silent
+default and never blended. A weakness expands into its aggregate (motifs, or
+phase and time trouble) through the existing endpoints; an opening weakness
+carries its evidence on the row and does not expand, because no opening
+endpoint exists. The report has three states: the ranked list, an honest empty
+statement ("could not identify a defensible weakness"), and a not-ready state
+that separates "still being analyzed" from "no analyzed games."
 
 ## Do's and Don'ts
 

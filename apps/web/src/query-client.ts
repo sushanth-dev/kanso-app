@@ -1,5 +1,6 @@
 import { queryOptions, QueryClient } from '@tanstack/react-query';
 import { accountApi } from './api/account-api.ts';
+import { diagnosisApi, type Stream } from './api/diagnosis-api.ts';
 
 export const ME_QUERY_KEY = ['me'] as const;
 export const meQueryOptions = () =>
@@ -9,4 +10,37 @@ export const meQueryOptions = () =>
     retry: false,
     staleTime: 30_000,
   });
+
+export const reportQueryOptions = (playerId: string, stream: Stream) =>
+  queryOptions({
+    queryKey: ['report', playerId, stream] as const,
+    queryFn: () => diagnosisApi.getReport(playerId, stream),
+    retry: false,
+    staleTime: 30_000,
+  });
+
+export const motifsQueryOptions = (playerId: string, stream: Stream) =>
+  queryOptions({
+    queryKey: ['motifs', playerId, stream] as const,
+    queryFn: () => diagnosisApi.getMotifs(playerId, stream),
+    retry: false,
+    staleTime: 30_000,
+  });
+
+export const phasesQueryOptions = (playerId: string, stream: Stream) =>
+  queryOptions({
+    queryKey: ['phases', playerId, stream] as const,
+    queryFn: () => diagnosisApi.getPhases(playerId, stream),
+    retry: false,
+    staleTime: 30_000,
+  });
+
+export const gamesQueryOptions = (playerId: string, stream: Stream) =>
+  queryOptions({
+    queryKey: ['games', playerId, stream] as const,
+    queryFn: () => diagnosisApi.listGames(playerId, stream),
+    retry: false,
+    staleTime: 30_000,
+  });
+
 export const queryClient = new QueryClient();
