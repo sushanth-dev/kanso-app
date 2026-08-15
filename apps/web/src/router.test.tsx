@@ -230,4 +230,22 @@ describe('router', () => {
     expect(await screen.findByText('Not Found')).toBeVisible();
     expect(attachGuardian).not.toHaveBeenCalled();
   });
+
+  test('an owned player id renders the import screen', async () => {
+    getMe.mockResolvedValue(meFixture);
+    renderAt(`/account/players/${ownedPlayerId}/import`);
+    expect(await screen.findByRole('heading', { name: 'Import games' })).toBeVisible();
+  });
+
+  test('a guarded player id renders the import screen', async () => {
+    getMe.mockResolvedValue(meFixture);
+    renderAt(`/account/players/${guardedPlayerId}/import`);
+    expect(await screen.findByRole('heading', { name: 'Import games' })).toBeVisible();
+  });
+
+  test('an unknown player id cannot import', async () => {
+    getMe.mockResolvedValue(meFixture);
+    renderAt('/account/players/00000000-0000-4000-8000-999999999999/import');
+    expect(await screen.findByText('Not Found')).toBeVisible();
+  });
 });

@@ -17,6 +17,7 @@ export default defineConfig({
         APP_ORIGIN: 'http://127.0.0.1:5173',
         BETTER_AUTH_URL: 'http://127.0.0.1:5173',
         SES_FROM_ADDRESS: 'sender@example.com',
+        IMPORT_PROVIDER_STUB: '1',
       },
     },
     {

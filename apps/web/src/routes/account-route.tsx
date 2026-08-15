@@ -34,6 +34,13 @@ function PlayerCard({ player, prefix }: { player: Player; prefix: 'Owned' | 'Gua
               View report
             </Link>
             <Link
+              to="/account/players/$playerId/import"
+              params={{ playerId: player.id }}
+              className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline transition-control"
+            >
+              Import games
+            </Link>
+            <Link
               to="/account/players/$playerId/edit"
               params={{ playerId: player.id }}
               className="inline-flex min-h-11 min-w-11 items-center justify-center font-ui text-sm text-accent underline transition-control"

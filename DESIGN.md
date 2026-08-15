@@ -285,6 +285,25 @@ endpoint exists. The report has three states: the ranked list, an honest empty
 statement ("could not identify a defensible weakness"), and a not-ready state
 that separates "still being analyzed" from "no analyzed games."
 
+### Import
+
+The import form is one `Card` with a provider `select` (Chess.com or Lichess)
+and a username `TextInput`, both through the existing `Field` wrapper. The
+period is stated rather than implied: "Imports the last 12 months of online
+games." The submit is a primary `Button`, with a secondary "Back to account"
+link. The username is validated client-side against the provider's charset
+before any request.
+
+The import has six outcomes, never one generic failure. A successful import is
+a success `StatusMessage` naming the count, with a rejected-games sentence
+appended when any game was rejected. A valid username with no games in the
+period, and a re-import that found only duplicates, are both `info` messages:
+neutral facts, not errors. An unresolved username (422) and an unreachable
+provider (502) are `error` messages naming the provider. The waiting state is
+an `info` message ("this usually takes about a minute"); there is no polling.
+`StatusMessage` carries an `info` tone for the first time here, backed by the
+teal informational role with an "i" icon as its second channel.
+
 ## Do's and Don'ts
 
 ### Do:

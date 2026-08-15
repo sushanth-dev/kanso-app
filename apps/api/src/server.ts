@@ -14,6 +14,7 @@ import postgres from 'postgres';
 import { createApp } from './app.ts';
 import { createAuth } from './auth.ts';
 import * as schema from './db/schema.ts';
+import { fixtureGameFetcher } from './import/fixture-game-fetcher.ts';
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
@@ -35,8 +36,12 @@ const db = drizzle(sql, { schema });
 // rather than answering 401 forever.
 const auth = createAuth(db);
 
+// The Playwright import journey (ST-029) stubs the provider with the captured
+// fixtures; production never sets this flag and keeps the real HTTP fetcher.
+const gameFetcher = process.env.IMPORT_PROVIDER_STUB === '1' ? fixtureGameFetcher : undefined;
+
 const server = serve(
-  { fetch: createApp({ db, auth }).fetch, port, hostname: '0.0.0.0' },
+  { fetch: createApp({ db, auth, gameFetcher }).fetch, port, hostname: '0.0.0.0' },
   (info) => {
     console.log(`API listening on ${info.address}:${info.port}`);
   },
