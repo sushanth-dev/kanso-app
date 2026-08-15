@@ -1,34 +1,50 @@
 /**
- * The PGN upload import endpoint.
+ * The game import endpoint: a PGN upload, or a Chess.com/Lichess username.
  *
  * The order here is the security assessment made real. The framework has
- * already validated the body shape and the 5,000,000-character cap by the time
- * this runs (ADR-0008). This handler then decides authorization before it
- * parses anything, so an unauthorized caller never makes the parser run, and
- * writes the job and its games in one transaction so a partial file cannot
- * leave a job without its games. Malformed input is a 400 naming the game;
- * nothing is stored on a rejected upload (F2).
+ * already validated the body shape (ADR-0008), including the 5,000,000-character
+ * cap on an upload. This handler decides authorization before it parses or
+ * fetches anything, so an unauthorized caller never makes the parser run or
+ * an outbound call, and it writes the job and its games in one transaction so
+ * a partial import cannot leave a job without its games.
+ *
+ * An upload rejects the whole file when any game is malformed (F2); a username
+ * import rejects one malformed game and keeps the rest, because the player did
+ * not assemble the provider's page.
  */
 import type { Context } from 'hono';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { startImport } from '../contract/routes.ts';
 import * as schema from '../db/schema.ts';
 import { game, importJob, player } from '../db/schema.ts';
 import { enqueueAnalysis } from '../analysis/queue.ts';
-import { parsePgn, type ParsedGame } from './parse-pgn.ts';
+import { hasPlayerClaim } from '../players/claim.ts';
+import { parseOne, parsePgn, type ParsedGame } from './parse-pgn.ts';
 import { decidePlayerColor } from './player-color.ts';
 import { attachGames } from '../tournaments/attach.ts';
 import { readSession } from '../session.ts';
+import type { GameFetcher } from './game-fetcher.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
 
+/** A parsed game plus the provider's own id, which only a username import has. */
+export interface ImportGame extends ParsedGame {
+  externalId: string | null;
+}
+
 export interface ImportGamesInput {
   playerId: string;
+  source: 'chesscom' | 'lichess' | 'pgn_upload';
+  /** The provider account a username import reads; null for a PGN upload. */
+  username: string | null;
   stream: 'tournament' | 'online';
-  displayName: string;
-  games: ParsedGame[];
+  /** The name to match against `[White]`/`[Black]`: display name or username. */
+  matchName: string;
+  games: ImportGame[];
+  /** Malformed games rejected at the parse boundary; `gamesFound` adds these to `games`. */
+  gamesRejected: number;
 }
 
 export interface ImportGamesResult {
@@ -39,67 +55,84 @@ export interface ImportGamesResult {
 }
 
 /**
- * The importer's write path (ST-011): store a parsed PGN's games and attach
+ * The importer's write path (ST-011): store parsed games and attach
  * them to tournaments, in one transaction. The HTTP route calls this after
  * authorization, and it parses before the call; the dev-only seed calls it
  * directly, which is what lets the seed exercise the same `attachGames` as the
  * route rather than a copy of it.
  */
 export async function importGames(db: Db, input: ImportGamesInput): Promise<ImportGamesResult> {
-  const { playerId, stream, displayName, games } = input;
+  const { playerId, source, username, stream, matchName, games, gamesRejected } = input;
   const queued: string[] = [];
   const { job } = await db.transaction(async (tx) => {
     const [created] = await tx
       .insert(importJob)
       .values({
         playerId,
-        source: 'pgn_upload',
+        source,
         kind: 'backfill',
+        username,
         stream,
         status: 'complete',
-        gamesFound: games.length,
+        gamesFound: games.length + gamesRejected,
+        gamesRejected,
         startedAt: new Date(),
         finishedAt: new Date(),
       })
       .returning({ id: importJob.id });
 
-    const inserted = await tx
-      .insert(game)
-      .values(
-        games.map((g) => ({
-          playerId,
-          importJobId: created!.id,
-          stream,
-          source: 'pgn_upload' as const,
-          pgnHash: g.pgnHash,
-          pgn: g.pgn,
-          playerColor: decidePlayerColor(displayName, g.whiteName, g.blackName),
-          result: g.result,
-          playedAt: g.playedAt,
-          moveCount: g.moveCount,
-          event: g.event,
-          site: g.site,
-          round: g.round,
-          board: g.board,
-          whiteName: g.whiteName,
-          blackName: g.blackName,
-          whiteElo: g.whiteElo,
-          blackElo: g.blackElo,
-          eco: g.eco,
-          opening: g.opening,
-          timeControl: g.timeControl,
-          hasClockData: g.hasClockData,
-        })),
-      )
-      .onConflictDoNothing({ target: [game.playerId, game.pgnHash] })
-      .returning({
-        id: game.id,
-        playerColor: game.playerColor,
-        stream: game.stream,
-        event: game.event,
-        site: game.site,
-        playedAt: game.playedAt,
-      });
+    // A provider game dedupes on its own id; an upload dedupes on the PGN hash.
+    // The partial index needs its predicate in the target or PostgreSQL cannot
+    // infer it.
+    const conflictTarget =
+      source === 'pgn_upload'
+        ? { target: [game.playerId, game.pgnHash] }
+        : {
+            target: [game.playerId, game.source, game.externalId],
+            where: sql`${game.externalId} is not null`,
+          };
+
+    const inserted =
+      games.length === 0
+        ? []
+        : await tx
+            .insert(game)
+            .values(
+              games.map((g) => ({
+                playerId,
+                importJobId: created!.id,
+                stream,
+                source,
+                externalId: g.externalId,
+                pgnHash: g.pgnHash,
+                pgn: g.pgn,
+                playerColor: decidePlayerColor(matchName, g.whiteName, g.blackName),
+                result: g.result,
+                playedAt: g.playedAt,
+                moveCount: g.moveCount,
+                event: g.event,
+                site: g.site,
+                round: g.round,
+                board: g.board,
+                whiteName: g.whiteName,
+                blackName: g.blackName,
+                whiteElo: g.whiteElo,
+                blackElo: g.blackElo,
+                eco: g.eco,
+                opening: g.opening,
+                timeControl: g.timeControl,
+                hasClockData: g.hasClockData,
+              })),
+            )
+            .onConflictDoNothing(conflictTarget)
+            .returning({
+              id: game.id,
+              playerColor: game.playerColor,
+              stream: game.stream,
+              event: game.event,
+              site: game.site,
+              playedAt: game.playedAt,
+            });
 
     const undetermined = inserted.filter((row) => row.playerColor === null).length;
 
@@ -129,68 +162,114 @@ export async function importGames(db: Db, input: ImportGamesInput): Promise<Impo
   return { job, queued };
 }
 
+/**
+ * The default username-import period: one rolling year, ST-023's stated choice.
+ * A caller narrows it with `since`.
+ */
+const DEFAULT_PERIOD_MS = 365 * 24 * 60 * 60 * 1000;
+
 export function mountImport(
   app: OpenAPIHono,
-  deps: { db: Db; getSession: (c: Context) => unknown },
+  deps: { db: Db; getSession: (c: Context) => unknown; gameFetcher: GameFetcher },
 ): void {
   app.openapi(startImport, async (c) => {
     const { playerId } = c.req.valid('param');
     const body = c.req.valid('json');
 
-    // Backlog item 6. A source is added by adding a source, not by reworking
-    // the endpoint.
-    if (body.source !== 'pgn_upload') {
-      return c.json(
-        {
-          code: 'not_implemented',
-          message: 'Username import is not built yet; upload a PGN.',
-        },
-        501,
-      );
-    }
-
-    // Authorization before parsing. The session is present (the guard proved
-    // it); ownership is this handler's to check.
+    // Authorization before any work. The session is present (the guard proved
+    // it); existence is this handler's 404; the claim is the 403, and it covers
+    // owners and guardians, the same rule as every other player-scoped route.
     const session = await readSession(deps.getSession, c);
     if (session == null) {
       return c.json({ code: 'no_session', message: 'Sign in to use this endpoint.' }, 401);
     }
     const owner = await deps.db
-      .select({
-        ownerUserId: player.ownerUserId,
-        displayName: player.displayName,
-      })
+      .select({ displayName: player.displayName })
       .from(player)
       .where(eq(player.id, playerId));
     if (owner.length === 0) {
       return c.json({ code: 'not_found', message: 'No such player.' }, 404);
     }
-    if (owner[0]!.ownerUserId !== session.userId) {
+    if (!(await hasPlayerClaim(deps.db, session.userId, playerId))) {
       return c.json({ code: 'forbidden', message: 'Not your player.' }, 403);
     }
 
-    const parsed = parsePgn(body.pgn);
-    if (!parsed.ok) {
-      return c.json(
-        {
-          code: 'invalid_pgn',
-          message: 'The upload contains a game that could not be parsed.',
-          // ParseFault.index is 0-based; players count games from 1.
-          issues: parsed.faults.map((f) => ({
-            path: `game ${f.index + 1}`,
-            message: f.reason,
-          })),
-        },
-        400,
-      );
-    }
+    let job: typeof importJob.$inferSelect;
+    let queued: string[];
 
-    const { job, queued } = await importGames(deps.db, {
-      playerId,
-      stream: body.stream,
-      displayName: owner[0]!.displayName,
-      games: parsed.games,
-    });
+    if (body.source === 'pgn_upload') {
+      const parsed = parsePgn(body.pgn);
+      if (!parsed.ok) {
+        return c.json(
+          {
+            code: 'invalid_pgn',
+            message: 'The upload contains a game that could not be parsed.',
+            // ParseFault.index is 0-based; players count games from 1.
+            issues: parsed.faults.map((f) => ({
+              path: `game ${f.index + 1}`,
+              message: f.reason,
+            })),
+          },
+          400,
+        );
+      }
+
+      ({ job, queued } = await importGames(deps.db, {
+        playerId,
+        source: 'pgn_upload',
+        username: null,
+        stream: body.stream,
+        matchName: owner[0]!.displayName,
+        games: parsed.games.map((g) => ({ ...g, externalId: null })),
+        gamesRejected: 0,
+      }));
+    } else {
+      const username = body.username;
+      const since = body.since ? new Date(body.since) : new Date(Date.now() - DEFAULT_PERIOD_MS);
+      const providerName = body.source === 'chesscom' ? 'Chess.com' : 'Lichess';
+      const outcome =
+        body.source === 'chesscom'
+          ? await deps.gameFetcher.chesscom(username, since)
+          : await deps.gameFetcher.lichess(username, since);
+
+      if (!outcome.ok) {
+        if (outcome.code === 'username_not_found') {
+          return c.json(
+            { code: 'username_not_found', message: `No ${providerName} account by that username.` },
+            422,
+          );
+        }
+        return c.json(
+          { code: 'upstream_error', message: `${providerName} is unreachable; try again later.` },
+          502,
+        );
+      }
+
+      // A provider page the player did not assemble can carry one game the
+      // parser dislikes among hundreds; reject that one and keep the rest. The
+      // boundary is the same `parseOne` an upload runs through, only the batch
+      // handling differs.
+      const games: ImportGame[] = [];
+      let gamesRejected = 0;
+      outcome.games.forEach((providerGame, index) => {
+        const parsed = parseOne(providerGame.pgn, index);
+        if ('reason' in parsed) {
+          gamesRejected += 1;
+          return;
+        }
+        games.push({ ...parsed, externalId: providerGame.externalId });
+      });
+
+      ({ job, queued } = await importGames(deps.db, {
+        playerId,
+        source: body.source,
+        username,
+        stream: 'online',
+        matchName: username,
+        games,
+        gamesRejected,
+      }));
+    }
 
     // After the commit, never inside it. A message pointing at a game the
     // transaction went on to roll back is a job that fails forever, and a queue
@@ -198,8 +277,8 @@ export function mountImport(
     //
     // A queue that is down does not fail the import: the games are stored, and
     // they keep `analysis_status = 'pending'`, which is a state someone can see
-    // and re-queue. Failing the upload would instead ask the player to re-send
-    // a file that is already safely in the database.
+    // and re-queue. Failing the import would instead ask the player to re-send
+    // games that are already safely in the database.
     try {
       await enqueueAnalysis(queued);
     } catch (error) {

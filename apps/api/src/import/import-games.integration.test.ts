@@ -192,16 +192,6 @@ describe('POST /players/{playerId}/imports (pgn_upload)', () => {
     expect(res.status).toBe(403);
   });
 
-  test('answers 501 for a username source', async () => {
-    const playerId = await seedPlayer();
-    const res = await upload(OWNER, playerId, {
-      source: 'chesscom',
-      stream: 'online',
-      username: 'someone',
-    });
-    expect(res.status).toBe(501);
-  });
-
   test('counts the games whose side it could not decide', async () => {
     const playerId = await seedPlayer('Nobody Here');
     const res = await upload(OWNER, playerId, {

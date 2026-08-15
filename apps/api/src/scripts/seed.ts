@@ -82,9 +82,12 @@ try {
     }
     const result = await importGames(db, {
       playerId: createdPlayer.id,
+      source: 'pgn_upload',
+      username: null,
       stream: 'tournament',
-      displayName: DISPLAY_NAME,
-      games: parsed.games,
+      matchName: DISPLAY_NAME,
+      games: parsed.games.map((g) => ({ ...g, externalId: null })),
+      gamesRejected: 0,
     });
     gamesFound += result.job.gamesFound;
     gamesImported += result.job.gamesImported;
