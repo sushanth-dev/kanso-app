@@ -215,7 +215,7 @@ export const startImport = createRoute({
   tags: ['Import'],
   summary: 'Import games by site username, or from an uploaded PGN',
   description:
-    'S1, F1, F2, T1. Every game is tagged with its stream at import. Malformed PGN is rejected here rather than stored and skipped later.',
+    'S1, F1, F2, T1. Every game is tagged with its stream at import. An upload rejects the whole file on one malformed game; a username import rejects one malformed game and keeps the rest.',
   request: {
     params: playerParams,
     body: json(StartImport, 'What to import.'),
@@ -224,8 +224,9 @@ export const startImport = createRoute({
     202: json(ImportJob, 'Queued. Poll the job or watch the event stream.'),
     ...authErrors,
     404: error('No such player.'),
+    422: error('No Chess.com or Lichess account by that username.'),
     429: error('The free tier import cap is reached.'),
-    501: error('Username import is not built yet; upload a PGN.'),
+    502: error('The provider fetch failed. Retry later.'),
   },
 });
 

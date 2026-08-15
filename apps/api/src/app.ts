@@ -22,6 +22,7 @@ import { mountAttachGuardian } from './account/attach-guardian.ts';
 import { mountConfirmGuardian } from './account/confirm-guardian.ts';
 import { mountHealth } from './health.ts';
 import { mountImport } from './import/import-games.ts';
+import { httpGameFetcher, type GameFetcher } from './import/game-fetcher.ts';
 import { mountListGames } from './games/list-games.ts';
 import { mountSetGameColor } from './games/set-game-color.ts';
 import { mountListTournaments } from './tournaments/list-tournaments.ts';
@@ -119,6 +120,11 @@ export interface AppOptions {
    * HTTP fetchers; tests pass a fake so no test makes a real outbound call.
    */
   ratingFetcher?: RatingFetcher;
+  /**
+   * Fetches games from Chess.com and Lichess by username. Defaults to the real
+   * HTTP fetchers; tests pass a fake so no test makes a real outbound call.
+   */
+  gameFetcher?: GameFetcher;
 }
 
 export function createApp({
@@ -127,6 +133,7 @@ export function createApp({
   db,
   mailer: mailerOption,
   ratingFetcher: ratingFetcherOption,
+  gameFetcher: gameFetcherOption,
 }: AppOptions = {}) {
   const app = new OpenAPIHono({
     /**
@@ -175,13 +182,14 @@ export function createApp({
   if (db) {
     const mailer = mailerOption ?? sesMailer(sesConfigFromEnv());
     const ratingFetcher = ratingFetcherOption ?? httpRatingFetcher;
+    const gameFetcher = gameFetcherOption ?? httpGameFetcher;
     mountHealth(app, { db });
     mountMe(app, { db, getSession: effectiveGetSession });
     mountCreatePlayer(app, { db, getSession: effectiveGetSession });
     mountUpdatePlayer(app, { db, getSession: effectiveGetSession });
     mountAttachGuardian(app, { db, getSession: effectiveGetSession, mailer });
     mountConfirmGuardian(app, { db });
-    mountImport(app, { db, getSession: effectiveGetSession });
+    mountImport(app, { db, getSession: effectiveGetSession, gameFetcher });
     mountListGames(app, { db, getSession: effectiveGetSession });
     mountSetGameColor(app, { db, getSession: effectiveGetSession });
     mountListTournaments(app, { db, getSession: effectiveGetSession });

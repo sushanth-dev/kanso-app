@@ -2060,7 +2060,7 @@
           "Import"
         ],
         "summary": "Import games by site username, or from an uploaded PGN",
-        "description": "S1, F1, F2, T1. Every game is tagged with its stream at import. Malformed PGN is rejected here rather than stored and skipped later.",
+        "description": "S1, F1, F2, T1. Every game is tagged with its stream at import. An upload rejects the whole file on one malformed game; a username import rejects one malformed game and keeps the rest.",
         "parameters": [
           {
             "schema": {
@@ -2133,6 +2133,16 @@
               }
             }
           },
+          "422": {
+            "description": "No Chess.com or Lichess account by that username.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
           "429": {
             "description": "The free tier import cap is reached.",
             "content": {
@@ -2143,8 +2153,8 @@
               }
             }
           },
-          "501": {
-            "description": "Username import is not built yet; upload a PGN.",
+          "502": {
+            "description": "The provider fetch failed. Retry later.",
             "content": {
               "application/json": {
                 "schema": {
