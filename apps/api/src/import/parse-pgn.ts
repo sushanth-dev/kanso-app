@@ -63,7 +63,7 @@ export function pgnHash(pgn: string): string {
  * `[Event`/`[` tag line that follows movetext, which is the only unambiguous
  * boundary: blank lines appear inside a game between the tags and the moves.
  */
-function splitGames(pgn: string): string[] {
+export function splitGames(pgn: string): string[] {
   // ponytail: adjacent tag blocks with no movetext AND no result line between
   // them merge into one chunk; that chunk then fails to parse and the whole
   // upload is rejected (F2 holds), only the fault index is imprecise. Widen
@@ -131,7 +131,7 @@ function stripAnnotations(movetext: string): string {
   return movetext.replace(/\{[^}]*\}/g, ' ').replace(/\$[0-9]+/g, ' ');
 }
 
-function parseOne(text: string, index: number): ParsedGame | ParseFault {
+export function parseOne(text: string, index: number): ParsedGame | ParseFault {
   const lines = text.split('\n');
   const tags = lines.filter((line) => line.startsWith('[')).join('\n');
   const movetext = lines.filter((line) => !line.startsWith('[')).join(' ');
