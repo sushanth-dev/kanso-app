@@ -430,7 +430,7 @@ export const mistake = pgTable(
     cpLoss: integer('cp_loss').notNull(),
     winProbDrop: real('win_prob_drop').notNull(),
 
-    /** F5. Null until motif detection runs, and null forever for a mistake with no motif. */
+    /** F5. Set by `attributeMotif` (ST-024); null for a mistake no motif explains. */
     motif: text('motif'),
 
     /**

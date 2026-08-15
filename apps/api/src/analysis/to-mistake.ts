@@ -10,6 +10,7 @@
  */
 import { classifyMove, winProbDrop, type Color, type EvalScore } from '../chess/lichess-utils.ts';
 import type { mistake } from '../db/schema.ts';
+import { attributeMotif } from './motif.ts';
 
 export type MistakeInsert = typeof mistake.$inferInsert;
 
@@ -81,8 +82,9 @@ export function toMistakeRow(gameId: string, ply: AnalysedPly): MistakeInsert | 
     // Stored from the same helper the classifier judged on, so the number in
     // the row is the number the decision was made with.
     winProbDrop: winProbDrop(ply.movingColor, ply.evalBefore, ply.evalAfter),
+    motif: attributeMotif(ply.fenBefore, ply.san, ply.bestMoveSan),
     // `phase` stays null: no phase attribution exists anywhere yet and backlog
-    // item 8 owns it. `motif` stays null until motif detection (item 7).
+    // item 8 owns it.
     // `crossedResultBoundary` and `halfPointsLost` keep their defaults, because
     // backlog item 9 owns the rating leak and an undefended number in front of
     // a coach is worse than a null.
