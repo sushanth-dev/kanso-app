@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
 
-export type StatusTone = 'error' | 'success';
+export type StatusTone = 'error' | 'success' | 'info';
 
 export interface StatusMessageProps {
   tone: StatusTone;
@@ -52,9 +52,19 @@ export function useStatusMessage() {
 const toneClassName: Record<StatusTone, string> = {
   error: 'text-danger',
   success: 'text-success',
+  info: 'text-info',
 };
 
 function StatusIcon({ tone }: { tone: StatusTone }) {
+  if (tone === 'info') {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 20 20" className="size-5 shrink-0" fill="none">
+        <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M10 9v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <circle cx="10" cy="6.5" r="1" fill="currentColor" />
+      </svg>
+    );
+  }
   if (tone === 'success') {
     return (
       <svg aria-hidden="true" viewBox="0 0 20 20" className="size-5 shrink-0" fill="none">

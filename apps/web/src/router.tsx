@@ -19,6 +19,7 @@ import { meQueryOptions, queryClient } from './query-client.ts';
 import { AccountRoute } from './routes/account-route.tsx';
 import { SignInRoute, SignUpRoute } from './routes/auth-routes.tsx';
 import { GuardianRoute } from './routes/guardian-route.tsx';
+import { ImportRoute } from './routes/import-route.tsx';
 import { PlayerEditRoute, PlayerNewRoute } from './routes/player-routes.tsx';
 import { ReportRoute } from './routes/report-route.tsx';
 
@@ -158,6 +159,21 @@ const reportRoute = createRoute({
   component: ReportRoute,
 });
 
+const importRoute = createRoute({
+  getParentRoute: () => accountRoute,
+  path: '/players/$playerId/import',
+  beforeLoad: async ({ context, params }) => {
+    const me = await context.queryClient.ensureQueryData(meQueryOptions());
+    const owned = me.players.some((player) => player.id === params.playerId);
+    const guarded = me.guardedPlayers.some((player) => player.id === params.playerId);
+    if (!owned && !guarded) {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error -- notFound() returns a router not-found error, not an Error.
+      throw notFound();
+    }
+  },
+  component: ImportRoute,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   signInRoute,
@@ -168,6 +184,7 @@ const routeTree = rootRoute.addChildren([
     playerEditRoute,
     guardianRoute,
     reportRoute,
+    importRoute,
   ]),
 ]);
 
