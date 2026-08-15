@@ -34,6 +34,10 @@ export interface WeaknessLeak {
   kind: WeaknessKind;
   /** The group key: an ECO code, a motif name, a phase, or `time_trouble`. */
   key: string;
+  /** Display label: an opening name, a humanized motif or phase, or `Time trouble`. */
+  label: string;
+  /** The ECO code for an opening, null for every other kind. */
+  eco: string | null;
   halfPointsLost: number;
   occurrences: number;
   gamesAffected: number;
@@ -71,6 +75,8 @@ const countGames = sql<number>`count(distinct ${mistake.gameId})::int`;
 export interface LeakRow {
   kind: WeaknessKind;
   key: string;
+  label: string;
+  eco: string | null;
   halfPointsLost: number;
   occurrences: number;
   gamesAffected: number;
@@ -155,6 +161,11 @@ export async function weaknessLeakRows(
   const openings = await db
     .select({
       key: game.eco,
+      // The opening name is display-only, from the most recent game in the
+      // group, the same rule `opening-leaks.ts` uses so the two never disagree.
+      label: sql<
+        string | null
+      >`(array_agg(${game.opening} order by ${game.playedAt} desc nulls last))[1]`,
       halfPointsLost: sumHalfPoints,
       occurrences: countOccurrences,
       gamesAffected: countGames,
@@ -200,26 +211,42 @@ export async function weaknessLeakRows(
     .where(and(scope, lte(movePly.clockMs, TROUBLE_CLOCK_MS)));
 
   const rows: LeakRow[] = [
-    ...openings.flatMap((r) => (r.key == null ? [] : [asRow('opening', r.key, r)])),
-    ...motifs.flatMap((r) => (r.key == null ? [] : [asRow('motif', r.key, r)])),
-    ...phases.flatMap((r) => (r.key == null ? [] : [asRow('phase', r.key, r)])),
+    ...openings.flatMap((r) => (r.key == null ? [] : [asRow('opening', r.key, r.key, r.label, r)])),
+    ...motifs.flatMap((r) => (r.key == null ? [] : [asRow('motif', r.key, null, null, r)])),
+    ...phases.flatMap((r) => (r.key == null ? [] : [asRow('phase', r.key, null, null, r)])),
   ];
 
   if (trouble && trouble.occurrences > 0) {
-    rows.push(asRow('time_trouble', 'time_trouble', trouble));
+    rows.push(asRow('time_trouble', 'time_trouble', null, null, trouble));
   }
 
   return rows;
 }
 
+/** Human display labels for the kinds whose key is not already a name. */
+const HUMAN_LABELS: Record<string, string> = {
+  hanging_piece: 'Hanging piece',
+  missed_check: 'Missed check',
+  missed_capture: 'Missed capture',
+  missed_threat: 'Missed threat',
+  opening: 'Opening',
+  middlegame: 'Middlegame',
+  endgame: 'Endgame',
+  time_trouble: 'Time trouble',
+};
+
 function asRow(
   kind: WeaknessKind,
   key: string,
+  eco: string | null,
+  label: string | null,
   r: { halfPointsLost: number; occurrences: number; gamesAffected: number },
 ): LeakRow {
   return {
     kind,
     key,
+    label: label ?? HUMAN_LABELS[key] ?? key,
+    eco,
     halfPointsLost: r.halfPointsLost,
     occurrences: r.occurrences,
     gamesAffected: r.gamesAffected,

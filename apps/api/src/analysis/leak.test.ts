@@ -13,13 +13,31 @@ const midTable = { games: 20, score: 10, avgOpponentElo: 1500 };
 describe('scoreLeaks', () => {
   test('converts each weakness half-points to rating points', () => {
     const leaks = scoreLeaks(midTable, [
-      { kind: 'opening', key: 'B22', halfPointsLost: 2, occurrences: 4, gamesAffected: 3 },
-      { kind: 'motif', key: 'hanging_piece', halfPointsLost: 1, occurrences: 2, gamesAffected: 2 },
+      {
+        kind: 'opening',
+        key: 'B22',
+        label: 'Sicilian, Alapin',
+        eco: 'B22',
+        halfPointsLost: 2,
+        occurrences: 4,
+        gamesAffected: 3,
+      },
+      {
+        kind: 'motif',
+        key: 'hanging_piece',
+        label: 'Hanging piece',
+        eco: null,
+        halfPointsLost: 1,
+        occurrences: 2,
+        gamesAffected: 2,
+      },
     ]);
     expect(leaks).toEqual([
       {
         kind: 'opening',
         key: 'B22',
+        label: 'Sicilian, Alapin',
+        eco: 'B22',
         halfPointsLost: 2,
         occurrences: 4,
         gamesAffected: 3,
@@ -28,6 +46,8 @@ describe('scoreLeaks', () => {
       {
         kind: 'motif',
         key: 'hanging_piece',
+        label: 'Hanging piece',
+        eco: null,
         halfPointsLost: 1,
         occurrences: 2,
         gamesAffected: 2,
@@ -38,8 +58,24 @@ describe('scoreLeaks', () => {
 
   test('orders worst first by half-points, not by row count', () => {
     const leaks = scoreLeaks(midTable, [
-      { kind: 'motif', key: 'many', halfPointsLost: 0.5, occurrences: 100, gamesAffected: 50 },
-      { kind: 'opening', key: 'one', halfPointsLost: 1, occurrences: 1, gamesAffected: 1 },
+      {
+        kind: 'motif',
+        key: 'many',
+        label: 'Many',
+        eco: null,
+        halfPointsLost: 0.5,
+        occurrences: 100,
+        gamesAffected: 50,
+      },
+      {
+        kind: 'opening',
+        key: 'one',
+        label: 'One',
+        eco: 'one',
+        halfPointsLost: 1,
+        occurrences: 1,
+        gamesAffected: 1,
+      },
     ]);
     expect(leaks.map((l) => l.key)).toEqual(['one', 'many']);
   });
