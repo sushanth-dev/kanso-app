@@ -26,6 +26,14 @@ function PlayerCard({ player, prefix }: { player: Player; prefix: 'Owned' | 'Gua
         {prefix === 'Owned' ? (
           <div className="mt-3 flex flex-wrap gap-4">
             <Link
+              to="/account/players/$playerId/report"
+              params={{ playerId: player.id }}
+              search={{ stream: 'tournament' }}
+              className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline transition-control"
+            >
+              View report
+            </Link>
+            <Link
               to="/account/players/$playerId/edit"
               params={{ playerId: player.id }}
               className="inline-flex min-h-11 min-w-11 items-center justify-center font-ui text-sm text-accent underline transition-control"
@@ -68,7 +76,12 @@ export function AccountScreen({ me, signOut }: AccountScreenProps) {
         <p className="text-muted">{me.email}</p>
         <Badge label={me.tier === 'paid' ? 'Paid' : 'Free'} variant="neutral" />
         {signOutError !== null ? <StatusMessage tone="error">{signOutError}</StatusMessage> : null}
-        <Button label="Sign out" variant="secondary" clickAction={handleSignOut} />
+        <Button
+          label="Sign out"
+          variant="secondary"
+          clickAction={handleSignOut}
+          className="press"
+        />
       </section>
 
       <section aria-labelledby="owned-heading" className="mt-8">
@@ -77,7 +90,7 @@ export function AccountScreen({ me, signOut }: AccountScreenProps) {
         </Heading>
         <Link
           to="/account/players/new"
-          className="mt-3 inline-flex min-h-11 items-center rounded-control bg-accent px-4 py-2 font-ui text-on-accent transition-control hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-focus"
+          className="mt-3 inline-flex min-h-11 items-center rounded-control bg-accent px-4 py-2 font-ui text-on-accent press hover:bg-accent-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
         >
           Create player
         </Link>

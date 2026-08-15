@@ -159,7 +159,24 @@ test('signs up and persists an owned player and guardian through sign-in', async
   ).toBeVisible();
   await expect(page.getByText('No players you support')).toBeVisible();
   await expect(page.getByText('Guardian invitation sent.', { exact: true })).toHaveCount(0);
+  await page.getByRole('link', { name: 'View report' }).click();
+  await expect(page.getByRole('heading', { name: 'Tournament report' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'No analyzed games in this stream yet' }),
+  ).toBeVisible();
+  await expectNoAxeViolations(page);
+  await page.getByRole('link', { name: 'Back to your account' }).click();
+  await expect(page.getByRole('heading', { name: 'Your account' })).toBeVisible();
   expect(externalRequests).toEqual([]);
-  expect(failedRequests).toEqual([]);
-  expect(consoleErrors).toEqual([]);
+  // The report returns 404 until a player has analyzed games, which is the
+  // honest state Mina is in here, not a failed request.
+  const unexpectedFailures = failedRequests.filter(
+    (entry) => !/\/report\?stream=\w+:\s*404$/.test(entry),
+  );
+  expect(unexpectedFailures).toEqual([]);
+  // Chromium logs a generic "Failed to load resource" for that same 404.
+  const unexpectedConsoleErrors = consoleErrors.filter(
+    (message) => !message.includes('the server responded with a status of 404'),
+  );
+  expect(unexpectedConsoleErrors).toEqual([]);
 });
