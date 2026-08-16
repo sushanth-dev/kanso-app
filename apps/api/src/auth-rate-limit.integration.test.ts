@@ -39,7 +39,10 @@ beforeEach(async () => {
 });
 
 function app() {
-  return createApp({ db: harness.db, auth: createAuth(harness.db) });
+  return createApp({
+    db: harness.db,
+    auth: createAuth(harness.db, { mailer: { async sendConsentNotice() {} } }),
+  });
 }
 
 async function signUp(): Promise<void> {

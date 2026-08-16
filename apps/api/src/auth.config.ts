@@ -17,4 +17,6 @@ import { createAuth } from './auth.ts';
 // It must not be used at runtime.
 const placeholderDb = {} as never;
 
-export default createAuth(placeholderDb);
+export default createAuth(placeholderDb, {
+  mailer: { async sendConsentNotice() {} },
+});

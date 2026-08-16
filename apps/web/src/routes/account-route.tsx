@@ -16,46 +16,35 @@ export interface AccountScreenProps {
   signOut: () => Promise<void>;
 }
 
-function PlayerCard({ player, prefix }: { player: Player; prefix: 'Owned' | 'Guarded' }) {
+function PlayerCard({ player }: { player: Player }) {
   return (
     <li>
       <Card>
-        <Heading level={3}>
-          {prefix} {player.displayName}
-        </Heading>
-        {prefix === 'Owned' ? (
-          <div className="mt-3 flex flex-wrap gap-4">
-            <Link
-              to="/account/players/$playerId/report"
-              params={{ playerId: player.id }}
-              search={{ stream: 'tournament' }}
-              className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline transition-control"
-            >
-              View report
-            </Link>
-            <Link
-              to="/account/players/$playerId/import"
-              params={{ playerId: player.id }}
-              className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline transition-control"
-            >
-              Import games
-            </Link>
-            <Link
-              to="/account/players/$playerId/edit"
-              params={{ playerId: player.id }}
-              className="inline-flex min-h-11 min-w-11 items-center justify-center font-ui text-sm text-accent underline transition-control"
-            >
-              Edit
-            </Link>
-            <Link
-              to="/account/players/$playerId/guardian"
-              params={{ playerId: player.id }}
-              className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline transition-control"
-            >
-              Add guardian
-            </Link>
-          </div>
-        ) : null}
+        <Heading level={3}>{player.displayName}</Heading>
+        <div className="mt-3 flex flex-wrap gap-4">
+          <Link
+            to="/account/players/$playerId/report"
+            params={{ playerId: player.id }}
+            search={{ stream: 'tournament' }}
+            className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline transition-control"
+          >
+            View report
+          </Link>
+          <Link
+            to="/account/players/$playerId/import"
+            params={{ playerId: player.id }}
+            className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline transition-control"
+          >
+            Import games
+          </Link>
+          <Link
+            to="/account/players/$playerId/edit"
+            params={{ playerId: player.id }}
+            className="inline-flex min-h-11 min-w-11 items-center justify-center font-ui text-sm text-accent underline transition-control"
+          >
+            Edit
+          </Link>
+        </div>
       </Card>
     </li>
   );
@@ -110,26 +99,7 @@ export function AccountScreen({ me, signOut }: AccountScreenProps) {
         ) : (
           <ul className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
             {me.players.map((player) => (
-              <PlayerCard key={player.id} player={player} prefix="Owned" />
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section aria-labelledby="guarded-heading" className="mt-8">
-        <Heading level={2} id="guarded-heading">
-          Players you support
-        </Heading>
-        {me.guardedPlayers.length === 0 ? (
-          <EmptyState
-            title="No players you support"
-            description="Players you pay for will show up here."
-            headingLevel={3}
-          />
-        ) : (
-          <ul className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-            {me.guardedPlayers.map((player) => (
-              <PlayerCard key={player.id} player={player} prefix="Guarded" />
+              <PlayerCard key={player.id} player={player} />
             ))}
           </ul>
         )}

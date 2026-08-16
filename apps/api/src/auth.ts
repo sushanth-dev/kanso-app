@@ -21,8 +21,15 @@ import { drizzleAdapter } from '@better-auth/drizzle-adapter';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { account, session, user, verification } from './db/auth-schema.ts';
 import * as schema from './db/schema.ts';
+import {
+  maybeCreateGuardianConsent,
+  validateMinorSignup,
+  type MinorSignup,
+  type NewUser,
+} from './account/consent-request.ts';
+import type { Mailer } from './account/mailer.ts';
 
-export function createAuth(db: PostgresJsDatabase<typeof schema>) {
+export function createAuth(db: PostgresJsDatabase<typeof schema>, deps: { mailer: Mailer }) {
   const secret = process.env.BETTER_AUTH_SECRET;
   if (!secret) {
     throw new Error('BETTER_AUTH_SECRET is not set. See .env.example.');
@@ -42,6 +49,21 @@ export function createAuth(db: PostgresJsDatabase<typeof schema>) {
     basePath: '/api/auth',
     emailAndPassword: {
       enabled: true,
+    },
+    user: {
+      additionalFields: {
+        dateOfBirth: { type: 'string', required: false },
+        guardianEmail: { type: 'string', required: false },
+      },
+    },
+    databaseHooks: {
+      user: {
+        create: {
+          before: (user) => Promise.resolve(validateMinorSignup(user as unknown as MinorSignup)),
+          after: (created) =>
+            maybeCreateGuardianConsent(db, deps.mailer, created as unknown as NewUser),
+        },
+      },
     },
     rateLimit: {
       // better-auth only enables rate limiting in production by default, and

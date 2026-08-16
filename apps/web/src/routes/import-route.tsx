@@ -92,9 +92,7 @@ export function ImportScreen({
   queryClient,
   navigate,
 }: ImportScreenProps) {
-  const player =
-    me.players.find((owned) => owned.id === playerId) ??
-    me.guardedPlayers.find((guarded) => guarded.id === playerId);
+  const player = me.players.find((owned) => owned.id === playerId);
 
   if (player === undefined) {
     // eslint-disable-next-line @typescript-eslint/only-throw-error -- notFound() returns a router not-found error, not an Error.

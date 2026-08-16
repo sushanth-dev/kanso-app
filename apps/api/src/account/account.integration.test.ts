@@ -10,7 +10,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { createApp } from '../app.ts';
 import { createAuth } from '../auth.ts';
-import { guardianLink } from '../db/schema.ts';
+
 import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-harness.ts';
 
 let harness: IntegrationDatabase;
@@ -33,7 +33,10 @@ beforeEach(async () => {
 
 /** The app with the real better-auth handler and the real session reader. */
 function app() {
-  return createApp({ db: harness.db, auth: createAuth(harness.db) });
+  return createApp({
+    db: harness.db,
+    auth: createAuth(harness.db, { mailer: { async sendConsentNotice() {} } }),
+  });
 }
 
 /** Sign up and sign in, returning the session cookie header value. */
@@ -53,16 +56,6 @@ async function signIn(email: string): Promise<string> {
   const setCookie = res.headers.get('set-cookie');
   expect(setCookie).toBeTruthy();
   return setCookie as string;
-}
-
-/** Ask better-auth who the cookie belongs to, and return the user id. */
-async function whoAmI(cookie: string): Promise<{ userId: string }> {
-  const a = app();
-  const res = await a.request('/api/auth/get-session', { headers: { cookie } });
-  expect(res.status).toBe(200);
-  const body = (await res.json()) as { session: { userId: string } };
-  expect(body.session).toBeTruthy();
-  return { userId: body.session.userId };
 }
 
 describe('the signed-in user and their players', () => {
@@ -98,13 +91,11 @@ describe('the signed-in user and their players', () => {
       name: string;
       tier: string;
       players: Array<{ id: string }>;
-      guardedPlayers: unknown[];
     };
     expect(meBody.email).toBe(EMAIL_A);
     expect(meBody.name).toBe('alice');
     expect(meBody.tier).toBe('free');
     expect(meBody.players.map((p) => p.id)).toContain(createdBody.id);
-    expect(meBody.guardedPlayers).toEqual([]);
   });
 
   test('a second user’s player is absent from the first user’s /me', async () => {
@@ -123,35 +114,6 @@ describe('the signed-in user and their players', () => {
     const me = await a.request('/me', { headers: { cookie: aliceCookie } });
     const meBody = (await me.json()) as { players: Array<{ id: string }> };
     expect(meBody.players.map((p) => p.id)).not.toContain(bobId);
-  });
-
-  test('a guardian sees the guarded player in guardedPlayers, not in players', async () => {
-    const aliceCookie = await signIn(EMAIL_A);
-    const bobCookie = await signIn(EMAIL_B);
-    const bob = await whoAmI(bobCookie);
-    const a = app();
-
-    const child = await a.request('/players', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', cookie: aliceCookie },
-      body: JSON.stringify({ displayName: 'Child Player' }),
-    });
-    expect(child.status).toBe(201);
-    const childId = ((await child.json()) as { id: string }).id;
-
-    // Bob is attached as the guardian of Alice's child, directly in the data.
-    await harness.db.insert(guardianLink).values({
-      guardianUserId: bob.userId,
-      playerId: childId,
-    });
-
-    const me = await a.request('/me', { headers: { cookie: bobCookie } });
-    const meBody = (await me.json()) as {
-      players: Array<{ id: string }>;
-      guardedPlayers: Array<{ id: string }>;
-    };
-    expect(meBody.players.map((p) => p.id)).not.toContain(childId);
-    expect(meBody.guardedPlayers.map((p) => p.id)).toContain(childId);
   });
 
   test('a foreign player is refused on PATCH with 403, and the owner can update their own', async () => {

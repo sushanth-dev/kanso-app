@@ -5,7 +5,6 @@ export type Me = components['schemas']['Me'];
 export type Player = components['schemas']['Player'];
 export type CreatePlayer = components['schemas']['CreatePlayer'];
 export type UpdatePlayer = components['schemas']['UpdatePlayer'];
-export type AttachGuardian = components['schemas']['AttachGuardian'];
 export type ApiError = components['schemas']['ApiError'];
 
 export class ApiRequestError extends Error {
@@ -33,7 +32,6 @@ export interface AccountApi {
   getMe(): Promise<Me>;
   createPlayer(body: CreatePlayer): Promise<Player>;
   updatePlayer(playerId: string, body: UpdatePlayer): Promise<Player>;
-  attachGuardian(playerId: string, body: AttachGuardian): Promise<void>;
 }
 
 export function createAccountApi(fetcher: typeof globalThis.fetch = globalThis.fetch): AccountApi {
@@ -59,17 +57,6 @@ export function createAccountApi(fetcher: typeof globalThis.fetch = globalThis.f
         body,
       });
       if (result.data !== undefined) return result.data;
-      throw failure(result.response.status, result.error);
-    },
-    async attachGuardian(playerId: string, body: AttachGuardian): Promise<void> {
-      const result = await client.POST('/players/{playerId}/guardians', {
-        params: { path: { playerId } },
-        body,
-      });
-      if (result.response.ok) {
-        await result.response.arrayBuffer();
-        return;
-      }
       throw failure(result.response.status, result.error);
     },
   };

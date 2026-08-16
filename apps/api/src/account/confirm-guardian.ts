@@ -17,7 +17,7 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { confirmGuardian } from '../contract/routes.ts';
 import * as schema from '../db/schema.ts';
-import { guardianLink } from '../db/schema.ts';
+import { guardianConsent } from '../db/schema.ts';
 import { verifyConsentToken } from './consent-token.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
@@ -35,20 +35,20 @@ export function mountConfirmGuardian(app: OpenAPIHono, deps: { db: Db }): void {
       return c.json(NOT_FOUND, 404);
     }
 
-    const [link] = await deps.db
-      .select({ id: guardianLink.id, consentGrantedAt: guardianLink.consentGrantedAt })
-      .from(guardianLink)
-      .where(eq(guardianLink.id, verified.linkId))
+    const [consent] = await deps.db
+      .select({ id: guardianConsent.id, consentGrantedAt: guardianConsent.consentGrantedAt })
+      .from(guardianConsent)
+      .where(eq(guardianConsent.id, verified.linkId))
       .limit(1);
-    if (!link) {
+    if (!consent) {
       return c.json(NOT_FOUND, 404);
     }
 
-    if (link.consentGrantedAt === null) {
+    if (consent.consentGrantedAt === null) {
       await deps.db
-        .update(guardianLink)
+        .update(guardianConsent)
         .set({ consentGrantedAt: new Date(), consentMethod: 'email' })
-        .where(eq(guardianLink.id, link.id));
+        .where(eq(guardianConsent.id, consent.id));
     }
 
     return c.body(null, 204);

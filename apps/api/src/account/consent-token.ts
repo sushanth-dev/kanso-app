@@ -2,7 +2,7 @@
  * The consent confirm token, signed so the confirm route can trust it without
  * a session (N7).
  *
- * The payload is `{ linkId, exp }`: which `guardian_link` to confirm, and when
+ * The payload is `{ linkId, exp }`: which `guardian_consent` request to confirm, and when
  * the token stops working. The signature is HMAC-SHA256 keyed by
  * `BETTER_AUTH_SECRET`, the same secret better-auth signs sessions with, so
  * there is no second secret to manage. Tampering with either half fails

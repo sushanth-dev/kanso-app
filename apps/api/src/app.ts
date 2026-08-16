@@ -18,8 +18,8 @@ import { routes } from './contract/routes.ts';
 import { mountMe } from './account/me.ts';
 import { mountCreatePlayer } from './account/create-player.ts';
 import { mountUpdatePlayer } from './account/update-player.ts';
-import { mountAttachGuardian } from './account/attach-guardian.ts';
 import { mountConfirmGuardian } from './account/confirm-guardian.ts';
+import { isConsentGated } from './account/consent-request.ts';
 import { mountHealth } from './health.ts';
 import { mountImport } from './import/import-games.ts';
 import { httpGameFetcher, type GameFetcher } from './import/game-fetcher.ts';
@@ -28,9 +28,8 @@ import { mountSetGameColor } from './games/set-game-color.ts';
 import { mountListTournaments } from './tournaments/list-tournaments.ts';
 import { mountGetTournament } from './tournaments/get-tournament.ts';
 import { mountRoundDecay } from './tournaments/round-decay.ts';
-import { realSessionReader } from './session.ts';
+import { realSessionReader, readSession } from './session.ts';
 import type * as schema from './db/schema.ts';
-import { sesConfigFromEnv, sesMailer, type Mailer } from './account/mailer.ts';
 import { httpRatingFetcher, type RatingFetcher } from './rating/rating-fetcher.ts';
 import { mountTransferGap } from './rating/transfer-gap.ts';
 import { mountMotifs } from './motifs/motifs.ts';
@@ -85,6 +84,33 @@ export function requireSession(getSession: (c: Context) => unknown): MiddlewareH
   };
 }
 
+/**
+ * The consent gate (ST-034): a signed-in minor whose guardian has not yet
+ * confirmed is refused every product route. It runs after `requireSession`, so
+ * it can assume a session and does one database read in the shared path rather
+ * than one per handler. Applied only when `db` is supplied, like the handlers
+ * themselves.
+ */
+export function requireConsent(
+  db: PostgresJsDatabase<typeof schema>,
+  getSession: (c: Context) => unknown,
+): MiddlewareHandler {
+  return async (c, next) => {
+    const session = await readSession(getSession, c);
+    if (session === null || !(await isConsentGated(db, session.userId))) {
+      await next();
+      return;
+    }
+    return c.json<ErrorBody>(
+      {
+        code: 'consent_required',
+        message: 'A guardian must confirm consent before you can use KansoChess.',
+      },
+      403,
+    );
+  };
+}
+
 export interface AppOptions {
   /**
    * Reads the session off the request. Returns null or undefined when there is
@@ -113,12 +139,6 @@ export interface AppOptions {
    */
   db?: PostgresJsDatabase<typeof schema>;
   /**
-   * Sends the guardian consent notice. Defaults to SES reading its
-   * configuration from the environment; tests pass a fake so no test sends
-   * real mail.
-   */
-  mailer?: Mailer;
-  /**
    * Fetches online ratings from Chess.com and Lichess. Defaults to the real
    * HTTP fetchers; tests pass a fake so no test makes a real outbound call.
    */
@@ -134,7 +154,6 @@ export function createApp({
   getSession,
   auth,
   db,
-  mailer: mailerOption,
   ratingFetcher: ratingFetcherOption,
   gameFetcher: gameFetcherOption,
 }: AppOptions = {}) {
@@ -180,17 +199,18 @@ export function createApp({
     if (open.has(route.path) || guarded.has(route.path)) continue;
     guarded.add(route.path);
     app.use(toHonoPath(route.path), requireSession(effectiveGetSession));
+    if (db) {
+      app.use(toHonoPath(route.path), requireConsent(db, effectiveGetSession));
+    }
   }
 
   if (db) {
-    const mailer = mailerOption ?? sesMailer(sesConfigFromEnv());
     const ratingFetcher = ratingFetcherOption ?? httpRatingFetcher;
     const gameFetcher = gameFetcherOption ?? httpGameFetcher;
     mountHealth(app, { db });
     mountMe(app, { db, getSession: effectiveGetSession });
     mountCreatePlayer(app, { db, getSession: effectiveGetSession });
     mountUpdatePlayer(app, { db, getSession: effectiveGetSession });
-    mountAttachGuardian(app, { db, getSession: effectiveGetSession, mailer });
     mountConfirmGuardian(app, { db });
     mountImport(app, { db, getSession: effectiveGetSession, gameFetcher });
     mountListGames(app, { db, getSession: effectiveGetSession });
