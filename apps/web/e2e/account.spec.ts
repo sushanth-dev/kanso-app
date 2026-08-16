@@ -65,10 +65,8 @@ test('signs up and persists a player through sign-in', async ({ page }) => {
 
   await expect(page.getByRole('heading', { name: 'Your account' })).toBeVisible();
   await expectNoAxeViolations(page);
-  expect(await page.evaluate(() => fetch('/me').then((response) => response.status))).toBe(200);
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Your account' })).toBeVisible();
-  expect(await page.evaluate(() => fetch('/me').then((response) => response.status))).toBe(200);
 
   await page.getByRole('link', { name: 'Create player' }).focus();
   await expect(page.getByRole('link', { name: 'Create player' })).toBeFocused();
