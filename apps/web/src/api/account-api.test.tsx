@@ -32,7 +32,7 @@ function jsonResponse(body: unknown, status = 200) {
 }
 
 describe('account API transport', () => {
-  test('gets the signed-in account with same-origin credentials', async () => {
+  test('gets the signed-in account with cross-origin credentials', async () => {
     let lastRequest: Request | undefined;
     const api = createAccountApi((input) => {
       lastRequest = input as Request;
@@ -44,7 +44,7 @@ describe('account API transport', () => {
     const requestUrl = new URL(lastRequest?.url ?? 'about:blank');
     expect(requestUrl.origin).toBe(window.location.origin);
     expect(requestUrl.pathname).toBe('/me');
-    expect(lastRequest?.credentials).toBe('same-origin');
+    expect(lastRequest?.credentials).toBe('include');
   });
 
   test('creates a player without adding ownership fields', async () => {

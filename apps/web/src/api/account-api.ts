@@ -1,5 +1,6 @@
 import createClient from 'openapi-fetch';
 import type { components, paths } from '../generated/api.ts';
+import { apiBaseUrl } from './base-url.ts';
 
 export type Me = components['schemas']['Me'];
 export type Player = components['schemas']['Player'];
@@ -36,9 +37,9 @@ export interface AccountApi {
 
 export function createAccountApi(fetcher: typeof globalThis.fetch = globalThis.fetch): AccountApi {
   const client = createClient<paths>({
-    baseUrl: window.location.origin,
+    baseUrl: apiBaseUrl,
     fetch: fetcher,
-    credentials: 'same-origin',
+    credentials: 'include',
   });
   return {
     async getMe(): Promise<Me> {
