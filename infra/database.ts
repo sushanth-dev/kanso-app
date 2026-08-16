@@ -6,11 +6,17 @@
  * internet cannot open a connection to it whatever the credential is. The API
  * reaches it inside the VPC.
  *
- * No NAT gateway. SST creates none by default, and nothing here needs one: the
- * database talks to nobody, and the API sits in the public subnets. A managed
- * NAT would be $65 a month for an outbound path we do not use.
+ * A NAT instance, not a NAT gateway. The API runs as a Lambda (ADR-0033), which
+ * cannot take a public IP the way the Fargate task did, so it reaches the
+ * internet - Chess.com, Lichess, SES, SQS - through a NAT from the private
+ * subnets. Two `t4g.nano` instances cost about $6 a month; the managed gateway
+ * would be about $64, which is more than the database. A single instance per
+ * zone is a single point of failure an unpublished stage does not notice; the
+ * managed gateway is the launch-time upgrade.
  */
-export const vpc = new sst.aws.Vpc('Vpc');
+export const vpc = new sst.aws.Vpc('Vpc', {
+  nat: 'ec2',
+});
 
 export const database = new sst.aws.Postgres('Database', {
   vpc,

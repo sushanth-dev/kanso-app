@@ -6,9 +6,9 @@
 /**
  * The infrastructure, in the same language as the application (ADR-0015).
  *
- * Only what this sprint needs: a VPC, a database, the API, and the analysis
- * queue with its worker. ST-008 brings the measurement, and it arrives with the
- * story that needs it rather than being scaffolded now.
+ * Only what this sprint needs: a VPC, a database, the API, the web, and the
+ * analysis queue with its worker. ST-008 brings the measurement, and it
+ * arrives with the story that needs it rather than being scaffolded now.
  */
 export default $config({
   app(input) {
@@ -27,8 +27,10 @@ export default $config({
     const database = await import('./infra/database.ts');
     const analysis = await import('./infra/analysis.ts');
     const api = await import('./infra/api.ts');
+    const web = await import('./infra/web.ts');
     return {
       api: api.api.url,
+      web: web.web.url,
       database: database.database.host,
       analysisQueue: analysis.analysisQueue.url,
     };

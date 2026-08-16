@@ -75,7 +75,7 @@ removed is a budget rather than a habit.
 cat > /tmp/budget.json <<'JSON'
 {
   "BudgetName": "kanso-monthly",
-  "BudgetLimit": { "Amount": "20", "Unit": "USD" },
+  "BudgetLimit": { "Amount": "80", "Unit": "USD" },
   "TimeUnit": "MONTHLY",
   "BudgetType": "COST"
 }
@@ -97,10 +97,10 @@ aws budgets create-budget --profile kanso \
   --notifications-with-subscribers file:///tmp/budget-notifications.json
 ```
 
-No output means it worked. A $20 limit with an alert at half of it, against an
-environment that costs roughly $42 a month while it is running, means the mail
-arrives within days of a stage being left up rather than at the end of the
-month.
+No output means it worked. A $80 limit with an alert at half of it ($40),
+against an environment that costs roughly $30 a month while it is running,
+means one deliberate stage sits under the alert while a second, forgotten stage
+trips it.
 
 A budget alerts, it does not stop anything. Nothing in AWS turns the taps off
 for us, which is the other half of why the deploy guide tears the stage down

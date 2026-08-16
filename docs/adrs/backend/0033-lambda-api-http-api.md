@@ -33,27 +33,31 @@ is unpublished with traffic of one invited person rather than a launch.
 
 Run the same Hono app from ADR-0007 in a Lambda behind API Gateway HTTP API (or
 a Function URL), instead of a Fargate task behind an application load balancer.
-The domain, the stage-aware resolution, the database, the VPC, and the analysis
-path all stay as they are. The change is the compute and the front door, not the
-application.
+The domain, the stage-aware resolution, the database, and the analysis path all
+stay as they are. The VPC gains a NAT instance, because a Lambda cannot take the
+public IP the Fargate task used to reach the internet. The change is the compute
+and the front door, not the application.
 
 Cold start latency on the first request after idle is accepted and measured,
 with the number recorded rather than guessed.
 
 ## Consequences
 
-The idle AWS cost of the API stage drops from about $45 a month to about $18:
-RDS about $17, Lambda and the HTTP API about $0 at this traffic, and small change
-for Secrets Manager and ECR. The load balancer and its flat hourly fee are gone.
+The idle AWS cost of the API stage drops from about $45 a month to about $30:
+RDS about $17, a pair of NAT instances about $6, a WAF Web ACL and its allowlist
+rule about $6, Lambda and the HTTP API about $0 at this traffic, and small
+change for Secrets Manager and ECR. The load balancer and its flat hourly fee
+are gone.
 
 The API Lambda role becomes the new security surface, scoped to the database and
 the queue and nothing else. Cloudflare's ingress allowlist moves from the load
-balancer to the HTTP API.
+balancer's security group to a WAF Web ACL on the HTTP API's stage, because API
+Gateway has no security group to lock.
 
 Database connection exhaustion stays the named risk it was in ADR-0014, with RDS
-Proxy as the unchanged mitigation if it shows up. Many concurrent Lambdas each
-opening a connection is the same failure as many concurrent tasks, only reached
-through a different compute path.
+Proxy as the unchanged mitigation if it shows up. Each execution environment
+opens one connection, not the pool of ten the Fargate task used, and concurrency
+comes from the environment count rather than the pool.
 
 ADR-0014's "two compute models" consequence is reduced: the API and the analysis
 both run as Lambda now, with one deployment and logging path for serverless and
