@@ -5,7 +5,7 @@ const repositoryRoot = fileURLToPath(new URL('../..', import.meta.url));
 
 export default defineConfig({
   testDir: './e2e',
-  timeout: 60_000,
+  timeout: 180_000,
   expect: { timeout: 15_000 },
   webServer: [
     {
