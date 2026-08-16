@@ -1,0 +1,123 @@
+/**
+ * F12, ADR-0036. The focus verification model: the rolling window, the
+ * baseline split, the minimum-evidence refusal, and the trend rule.
+ *
+ * The window is a count of analysed games, not calendar time, and the baseline
+ * is two equal windows split at `focus.startedAt`, because that is what makes
+ * the loop mean "did the work help" rather than "is my career average moving".
+ * The trend is a fixed per-focus effect size, all four units "higher is
+ * better". The model is recorded in ADR-0036 and cited the way
+ * `performance-rating.ts` cites ADR-0032.
+ */
+import { and, desc, eq, isNotNull } from 'drizzle-orm';
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
+import * as schema from '../db/schema.ts';
+import { game } from '../db/schema.ts';
+
+type Db = PostgresJsDatabase<typeof schema>;
+type Stream = (typeof schema.streamEnum.enumValues)[number];
+
+export type FocusTrend = 'improving' | 'flat' | 'declining' | 'insufficient_evidence';
+
+/** F12. The rolling window, in analysed games per half. Matches ST-026's `MIN_RATED_GAMES`. */
+export const FOCUS_WINDOW_GAMES = 10;
+
+export interface FocusSpec {
+  /** What the two values are in, for the page that explains the number. */
+  unit: string;
+  /** The effect size that separates a trend from noise, in `unit`. */
+  threshold: number;
+}
+
+/** The four focuses, keyed by catalogue key. All four units are "higher is better". */
+export const FOCUS_SPECS: Record<string, FocusSpec> = {
+  converting_won_positions: { unit: 'share converted', threshold: 0.1 },
+  time_management: { unit: 'move', threshold: 3 },
+  opening_repertoire_results: { unit: 'points per game', threshold: 0.25 },
+  tactical_alertness: { unit: 'share found', threshold: 0.1 },
+};
+
+/**
+ * The trend for one baseline/current pair. A null value is a refusal, so the
+ * trend is `insufficient_evidence`; otherwise the fixed effect size decides.
+ */
+export function trendFor(
+  spec: FocusSpec,
+  baselineValue: number | null,
+  currentValue: number | null,
+): FocusTrend {
+  if (baselineValue === null || currentValue === null) return 'insufficient_evidence';
+  const diff = currentValue - baselineValue;
+  if (diff >= spec.threshold) return 'improving';
+  if (diff <= -spec.threshold) return 'declining';
+  return 'flat';
+}
+
+/**
+ * Split a stream's analysed games, newest first, at `startedAt` into two
+ * equal-sized windows: the games since the commitment and the games before it.
+ * Each half is capped at {@link FOCUS_WINDOW_GAMES}; the caller decides refusal.
+ */
+export function splitWindow(
+  startedAt: Date,
+  games: { id: string; playedAt: Date | null }[],
+): { baselineIds: string[]; currentIds: string[] } {
+  const baselineIds: string[] = [];
+  const currentIds: string[] = [];
+  for (const g of games) {
+    if (g.playedAt === null) continue;
+    const target = g.playedAt.getTime() >= startedAt.getTime() ? currentIds : baselineIds;
+    if (target.length < FOCUS_WINDOW_GAMES) target.push(g.id);
+  }
+  return { baselineIds, currentIds };
+}
+
+/** Computes one focus's value over a window of games, or null when it refuses. */
+export type FocusValueFn = (gameIds: string[]) => Promise<number | null>;
+
+export interface FocusMeasurementDraft {
+  /** The current window's size: how many recent games sit behind the verdict. */
+  windowGames: number;
+  baselineValue: number | null;
+  currentValue: number | null;
+}
+
+/**
+ * Measure one focus over one stream. A window thinner than the floor refuses
+ * without computing, and a focus that refuses its own half returns null for it;
+ * both surface as `insufficient_evidence` through {@link trendFor}.
+ */
+export async function measureFocusStream(
+  db: Db,
+  playerId: string,
+  stream: Stream,
+  startedAt: Date,
+  computeValue: FocusValueFn,
+): Promise<FocusMeasurementDraft> {
+  const games = await db
+    .select({ id: game.id, playedAt: game.playedAt })
+    .from(game)
+    .where(
+      and(
+        eq(game.playerId, playerId),
+        eq(game.stream, stream),
+        eq(game.analysisStatus, 'complete'),
+        isNotNull(game.playedAt),
+      ),
+    )
+    .orderBy(desc(game.playedAt));
+
+  const { baselineIds, currentIds } = splitWindow(startedAt, games);
+  const windowGames = currentIds.length;
+
+  if (baselineIds.length < FOCUS_WINDOW_GAMES || currentIds.length < FOCUS_WINDOW_GAMES) {
+    return { windowGames, baselineValue: null, currentValue: null };
+  }
+
+  const [baselineValue, currentValue] = await Promise.all([
+    computeValue(baselineIds),
+    computeValue(currentIds),
+  ]);
+
+  return { windowGames, baselineValue, currentValue };
+}

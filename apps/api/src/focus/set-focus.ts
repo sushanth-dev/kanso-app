@@ -78,6 +78,6 @@ export function mountSetFocus(
         .returning();
     });
 
-    return c.json(toActiveFocus(row!, catalogue ? toCatalogueEntry(catalogue) : null), 200);
+    return c.json(toActiveFocus(row!, catalogue ? toCatalogueEntry(catalogue) : null, []), 200);
   });
 }

@@ -29,6 +29,7 @@ number sequence is shared with the frontend records.
 * [0032. Convert half-points lost to rating points through performance rating](0032-performance-rating-leak.md)
 * [0033. Move the API from Fargate and ALB to Lambda](0033-lambda-api-http-api.md)
 * [0035. Minor self-sign-up with guardian consent by email](0035-minor-self-signup-consent.md)
+* [0036. Verify a focus over a rolling window of games](0036-verify-focus-rolling-window.md)
 
 Still open, to be recorded when the work starts: frontend routing and data
 fetching (once the app shell exists), and observability (once there is
