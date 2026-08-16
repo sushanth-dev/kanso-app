@@ -36,6 +36,9 @@ import { mountTransferGap } from './rating/transfer-gap.ts';
 import { mountMotifs } from './motifs/motifs.ts';
 import { mountPhases } from './phases/phases.ts';
 import { mountReport } from './report/report.ts';
+import { mountListFocuses } from './focus/list-focuses.ts';
+import { mountGetFocus } from './focus/get-focus.ts';
+import { mountSetFocus } from './focus/set-focus.ts';
 
 /** The shape of every error the API emits, from `ApiError` in the contract. */
 export interface ErrorBody {
@@ -235,6 +238,9 @@ export function createApp({
     mountMotifs(app, { db, getSession: effectiveGetSession });
     mountPhases(app, { db, getSession: effectiveGetSession });
     mountReport(app, { db, getSession: effectiveGetSession });
+    mountListFocuses(app, { db });
+    mountGetFocus(app, { db, getSession: effectiveGetSession });
+    mountSetFocus(app, { db, getSession: effectiveGetSession });
   }
 
   app.notFound((c) => c.json<ErrorBody>({ code: 'not_found', message: 'No such endpoint.' }, 404));
