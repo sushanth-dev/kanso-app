@@ -13,8 +13,10 @@
  * ours to rotate.
  *
  * The Cloudflare-only ingress rule that lived on the load balancer's security
- * group moves to a WAF Web ACL on the HTTP API's stage, because API Gateway has
- * no security group to lock.
+ * group moves to `disableExecuteApiEndpoint` on the HTTP API: API Gateway has
+ * no security group to lock, and HTTP API cannot take a WAF Web ACL. Disabling
+ * the default `execute-api` URL leaves the custom domain behind Cloudflare as
+ * the only public entry.
  */
 import { analysisQueue } from './analysis.ts';
 import { database, vpc } from './database.ts';
@@ -26,13 +28,6 @@ import { apiHostname, webHostname } from './domains.ts';
 // Cloudflare with a deploy token that cannot edit DNS.
 const certificateArn =
   'arn:aws:acm:ap-south-2:082867428520:certificate/3490faff-7dac-4eb3-964c-1bf5de5e85c0';
-
-// Read at deploy time rather than pasted in, because Cloudflare changes this
-// list and a stale copy fails closed: the WAF would start refusing the edge it
-// is supposed to serve. This is the only network call the configuration makes.
-const cloudflare = (await (await fetch('https://api.cloudflare.com/client/v4/ips')).json()) as {
-  result: { ipv4_cidrs: string[]; ipv6_cidrs: string[] };
-};
 
 // The database URL, assembled from the database component's outputs so the
 // credential is resolved by SST at deploy time and lands in the function
@@ -71,64 +66,15 @@ export const api = new sst.aws.ApiGatewayV2('Api', {
     dns: false,
     cert: certificateArn,
   },
+  // The Cloudflare-only ingress rule, as a native close (ADR-0033): disable
+  // the default `execute-api` URL so the custom domain behind Cloudflare is
+  // the only public entry. HTTP API cannot take a WAF Web ACL.
+  transform: {
+    api: { disableExecuteApiEndpoint: true },
+  },
 });
 
 api.route('$default', handler.arn);
-
-// The Cloudflare-only allowlist, which replaces the load balancer's security
-// group. API Gateway HTTP API has no security group to lock, so the same
-// "Cloudflare is the only public entry point" rule becomes a WAF Web ACL on the
-// stage: allow Cloudflare's published ranges, block everything else by default.
-// The default `execute-api` URL is then refused for anyone whose request did
-// not come through the proxied hostname.
-const cloudflareIpv4 = new aws.wafv2.IpSet('ApiCloudflareIpv4Set', {
-  ipAddressVersion: 'IPV4',
-  scope: 'REGIONAL',
-  addresses: cloudflare.result.ipv4_cidrs,
-});
-
-const cloudflareIpv6 = new aws.wafv2.IpSet('ApiCloudflareIpv6Set', {
-  ipAddressVersion: 'IPV6',
-  scope: 'REGIONAL',
-  addresses: cloudflare.result.ipv6_cidrs,
-});
-
-const webAcl = new aws.wafv2.WebAcl('ApiWebAcl', {
-  scope: 'REGIONAL',
-  defaultAction: { block: {} },
-  visibilityConfig: {
-    cloudwatchMetricsEnabled: true,
-    metricName: 'ApiWebAcl',
-    sampledRequestsEnabled: true,
-  },
-  rules: [
-    {
-      name: 'AllowCloudflare',
-      priority: 0,
-      action: { allow: {} },
-      statement: {
-        orStatement: {
-          statements: [
-            { ipSetReferenceStatement: { arn: cloudflareIpv4.arn } },
-            { ipSetReferenceStatement: { arn: cloudflareIpv6.arn } },
-          ],
-        },
-      },
-      visibilityConfig: {
-        cloudwatchMetricsEnabled: false,
-        metricName: 'AllowCloudflare',
-        sampledRequestsEnabled: false,
-      },
-    },
-  ],
-});
-
-new aws.wafv2.WebAclAssociation('ApiWebAclAssociation', {
-  resourceArn: api.nodes.api.id.apply(
-    (id) => `arn:aws:apigateway:ap-south-2::/apis/${id}/stages/$default`,
-  ),
-  webAclArn: webAcl.arn,
-});
 
 // The migration, run once after a deploy from `sst shell` with
 // `aws lambda invoke`. It shares the API's VPC and database link, so it can

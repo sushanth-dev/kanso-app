@@ -43,16 +43,17 @@ with the number recorded rather than guessed.
 
 ## Consequences
 
-The idle AWS cost of the API stage drops from about $45 a month to about $30:
-RDS about $17, a pair of NAT instances about $6, a WAF Web ACL and its allowlist
-rule about $6, Lambda and the HTTP API about $0 at this traffic, and small
-change for Secrets Manager and ECR. The load balancer and its flat hourly fee
-are gone.
+The idle AWS cost of the API stage drops from about $45 a month to about $24:
+RDS about $17, a pair of NAT instances about $6, Lambda and the HTTP API about
+$0 at this traffic, and small change for Secrets Manager and ECR. The load
+balancer and its flat hourly fee are gone.
 
 The API Lambda role becomes the new security surface, scoped to the database and
 the queue and nothing else. Cloudflare's ingress allowlist moves from the load
-balancer's security group to a WAF Web ACL on the HTTP API's stage, because API
-Gateway has no security group to lock.
+balancer's security group to `disableExecuteApiEndpoint` on the HTTP API,
+because API Gateway has no security group to lock and an HTTP API cannot take a
+WAF Web ACL. Disabling the default `execute-api` URL leaves the custom domain
+behind Cloudflare as the only public entry.
 
 Database connection exhaustion stays the named risk it was in ADR-0014, with RDS
 Proxy as the unchanged mitigation if it shows up. Each execution environment
