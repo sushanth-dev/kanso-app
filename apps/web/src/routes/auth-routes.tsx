@@ -30,6 +30,14 @@ function readText(data: FormData, key: string): string {
   return typeof value === 'string' ? value : '';
 }
 
+/** The client-side mirror of the server's age gate: under 13 (ST-034). */
+function isMinorDob(dateOfBirth: string): boolean {
+  const [year, month, day] = dateOfBirth.split('-').map(Number);
+  if (!year || !month || !day) return false;
+  const thirteenthBirthday = new Date(year + 13, month - 1, day);
+  return new Date() < thirteenthBirthday;
+}
+
 const AMBIENT_CLOUD_COLOR: [number, number, number] = [0.937, 0.902, 0.847];
 
 function AuthAmbient() {
@@ -52,6 +60,8 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
   const isSignUp = mode === 'sign-up';
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const showGuardianEmail = isSignUp && isMinorDob(dateOfBirth);
 
   const heading = isSignUp ? 'Create your account' : 'Sign in';
   const submitLabel = isSignUp ? 'Sign up' : 'Sign in';
@@ -64,6 +74,8 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
     const email = readText(data, 'email').trim();
     const password = readText(data, 'password');
     const name = readText(data, 'name').trim();
+    const dateOfBirthValue = readText(data, 'dateOfBirth');
+    const guardianEmail = readText(data, 'guardianEmail').trim();
 
     if (isSignUp) {
       const confirmation = readText(data, 'passwordConfirmation');
@@ -77,7 +89,13 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
     setSubmitting(true);
     try {
       const { error } = isSignUp
-        ? await authClient.signUp.email({ name, email, password })
+        ? await authClient.signUp.email({
+            name,
+            email,
+            password,
+            dateOfBirth: dateOfBirthValue || undefined,
+            guardianEmail: guardianEmail || undefined,
+          })
         : await authClient.signIn.email({ email, password });
       if (error === null) {
         queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
@@ -117,6 +135,30 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
                   autoComplete="name"
                   required
                   maxLength={100}
+                />
+              </Field>
+            ) : null}
+            {isSignUp ? (
+              <Field label="Date of birth" inputID="dateOfBirth">
+                <TextInput
+                  id="dateOfBirth"
+                  name="dateOfBirth"
+                  type="date"
+                  autoComplete="bday"
+                  value={dateOfBirth}
+                  onChange={(event) => setDateOfBirth(event.target.value)}
+                />
+              </Field>
+            ) : null}
+            {showGuardianEmail ? (
+              <Field label="Guardian email" inputID="guardianEmail">
+                <TextInput
+                  id="guardianEmail"
+                  name="guardianEmail"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  maxLength={254}
                 />
               </Field>
             ) : null}

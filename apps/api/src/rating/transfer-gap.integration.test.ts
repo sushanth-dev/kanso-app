@@ -61,7 +61,11 @@ beforeEach(async () => {
 });
 
 function app() {
-  return createApp({ db: harness.db, auth: createAuth(harness.db), ratingFetcher });
+  return createApp({
+    db: harness.db,
+    auth: createAuth(harness.db, { mailer: { async sendConsentNotice() {} } }),
+    ratingFetcher,
+  });
 }
 
 async function signIn(email: string): Promise<string> {

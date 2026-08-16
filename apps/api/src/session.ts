@@ -29,9 +29,8 @@ export async function readSession(
  * server this is the reader behind that seam: it asks better-auth for the
  * session behind the request's cookie and maps it to the `{ userId }` shape
  * `hasPlayerClaim` resolves against. The id better-auth puts in a session is
- * the id it writes into `user.id`, which is what `player.owner_user_id` and
- * `guardian_link.guardian_user_id` reference, so this is where the sprint's
- * question is answered.
+ * the id it writes into `user.id`, which is what `player.owner_user_id`
+ * references, so this is where the sprint's question is answered.
  */
 export function realSessionReader(auth: {
   api: {

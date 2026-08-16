@@ -15,7 +15,7 @@ number sequence is shared with the frontend records.
 * [0011. Use better-auth for session management](0011-better-auth-session-management.md)
 * [0012. Run Stockfish as WASM, queued through pg-boss](0012-pg-boss-stockfish-analysis.md) (superseded by 0014 and 0023)
 * [0013. Define the API as REST with an OpenAPI contract](0013-rest-openapi-api-contract.md)
-* [0014. Host on AWS: API on a small always-on service, analysis on SQS and Lambda](0014-aws-hosting-layout.md)
+* [0014. Host on AWS: API on a small always-on service, analysis on SQS and Lambda](0014-aws-hosting-layout.md) (API half superseded by 0033)
 * [0015. Define AWS infrastructure with SST](0015-sst-infrastructure-as-code.md)
 * [0016. Deliver analysis results over server-sent events](0016-sse-analysis-result-delivery.md)
 * [0018. Use Gemini Flash for coaching prose, over engine-verified facts only](0018-ai-explanation-layer.md)
@@ -25,8 +25,10 @@ number sequence is shared with the frontend records.
 * [0022. Run PostgreSQL 18](0022-postgresql-18.md)
 * [0023. Analyse with four native Stockfish processes per Lambda, to a minimum depth of 21](0023-stockfish-native-lambda-depth-21.md)
 * [0029. Use ChessOps for attack and threat detection](0029-chessops-attack-detection.md)
-* [0030. Record COPPA consent through guardian email-plus](0030-coppa-guardian-consent.md)
+* [0030. Record COPPA consent through guardian email-plus](0030-coppa-guardian-consent.md) (the actor model superseded by 0035)
 * [0032. Convert half-points lost to rating points through performance rating](0032-performance-rating-leak.md)
+* [0033. Move the API from Fargate and ALB to Lambda](0033-lambda-api-http-api.md)
+* [0035. Minor self-sign-up with guardian consent by email](0035-minor-self-signup-consent.md)
 
 Still open, to be recorded when the work starts: frontend routing and data
 fetching (once the app shell exists), and observability (once there is

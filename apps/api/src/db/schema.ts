@@ -93,9 +93,9 @@ export const tierEnum = pgEnum('tier', ['free', 'paid']);
  * it means migrating every account we have.
  *
  * A `user` is a login (better-auth, ADR-0011). A `player` is a chess identity.
- * A self-managing adult owns their own player and has no guardian row. A child
- * logs in as themselves and a parent reaches the same player through
- * `guardian_link`.
+ * A self-managing adult owns their own player. A minor signs up themselves and
+ * is gated until their guardian confirms consent by email (ST-034, ADR-0035);
+ * the guardian is a bare email, not a second account with its own players.
  */
 export const player = pgTable(
   'player',
@@ -142,29 +142,24 @@ export const player = pgTable(
 );
 
 /**
- * B4, N7. A paying adult attached to a playing child. `consentGrantedAt` and
- * `consentMethod` are where verifiable parental consent will be recorded; they
- * are nullable because the mechanism that fills them is undecided.
+ * ST-034, N7. The consent a guardian gives for a minor's own account. One row
+ * per minor: the guardian email lives on `user`, and this row records whether
+ * the emailed link has been confirmed. `consentGrantedAt` and `consentMethod`
+ * stay null until the confirm route writes them, so consent can only ever be
+ * recorded by the route that owns the token.
  */
-export const guardianLink = pgTable(
-  'guardian_link',
+export const guardianConsent = pgTable(
+  'guardian_consent',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    guardianUserId: text('guardian_user_id')
+    userId: text('user_id')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
-    playerId: uuid('player_id')
-      .notNull()
-      .references(() => player.id, { onDelete: 'cascade' }),
-    relationship: text('relationship'),
     consentGrantedAt: timestamp('consent_granted_at', { withTimezone: true }),
     consentMethod: text('consent_method'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [
-    uniqueIndex('guardian_link_unique').on(t.guardianUserId, t.playerId),
-    index('guardian_link_player_idx').on(t.playerId),
-  ],
+  (t) => [uniqueIndex('guardian_consent_user_unique').on(t.userId)],
 );
 
 /** B2, O3. The free tier gives one real diagnosis; the paid tier gives the loop. */
@@ -646,7 +641,6 @@ export const playerRelations = relations(player, ({ many }) => ({
   tournaments: many(tournament),
   reports: many(report),
   focuses: many(playerFocus),
-  guardians: many(guardianLink),
   imports: many(importJob),
 }));
 

@@ -8,7 +8,6 @@ import { createAppRouter } from '../router.tsx';
 import { AccountScreen } from './account-route.tsx';
 
 const playerId = '00000000-0000-4000-8000-000000000001';
-const guardedId = '00000000-0000-4000-8000-000000000002';
 
 function player(overrides: Partial<Player> = {}): Player {
   return {
@@ -35,7 +34,6 @@ function meFixture(overrides: Partial<Me> = {}): Me {
     name: 'Player',
     tier: 'free',
     players: [player()],
-    guardedPlayers: [player({ id: guardedId, displayName: 'Theo' })],
     ...overrides,
   };
 }
@@ -52,12 +50,10 @@ function renderAccount(me: Me = meFixture(), signOut = vi.fn().mockResolvedValue
 }
 
 describe('AccountScreen', () => {
-  test('renders account identity and the owned and guarded lists', () => {
+  test('renders account identity and the owned players', () => {
     renderAccount();
     expect(screen.getByRole('heading', { name: 'Your account' })).toBeVisible();
-    expect(screen.getByText('Owned Mina')).toBeVisible();
-    expect(screen.getByText('Guarded Theo')).toBeVisible();
-    expect(screen.getByRole('heading', { name: 'Players you support' })).toBeVisible();
+    expect(screen.getByText('Mina')).toBeVisible();
     expect(screen.getByText('player@example.com')).toBeVisible();
     expect(screen.getByText('Free')).toBeVisible();
   });
@@ -92,23 +88,12 @@ describe('AccountScreen', () => {
     );
   });
 
-  test('shows the guarded empty-state message when there are no guarded players', () => {
-    renderAccount(meFixture({ guardedPlayers: [] }));
-    expect(screen.getByText('No players you support')).toBeVisible();
-  });
-
-  test('owned cards link to edit and add guardian; guarded cards stay read-only', () => {
+  test('owned cards link to edit', () => {
     renderAccount();
     expect(screen.getByRole('link', { name: 'Edit' })).toHaveAttribute(
       'href',
       `/account/players/${playerId}/edit`,
     );
     expect(screen.getByRole('link', { name: 'Edit' })).toHaveClass('min-w-11', 'justify-center');
-    expect(screen.getByRole('link', { name: 'Add guardian' })).toHaveAttribute(
-      'href',
-      `/account/players/${playerId}/guardian`,
-    );
-    expect(screen.getAllByRole('link', { name: 'Edit' })).toHaveLength(1);
-    expect(screen.getAllByRole('link', { name: 'Add guardian' })).toHaveLength(1);
   });
 });

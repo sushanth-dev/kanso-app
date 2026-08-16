@@ -134,12 +134,6 @@
             "items": {
               "$ref": "#/components/schemas/Player"
             }
-          },
-          "guardedPlayers": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Player"
-            }
           }
         },
         "required": [
@@ -147,8 +141,7 @@
           "email",
           "name",
           "tier",
-          "players",
-          "guardedPlayers"
+          "players"
         ]
       },
       "Tier": {
@@ -326,22 +319,6 @@
             "maxLength": 60
           }
         }
-      },
-      "AttachGuardian": {
-        "type": "object",
-        "properties": {
-          "guardianEmail": {
-            "type": "string",
-            "format": "email"
-          },
-          "relationship": {
-            "type": "string",
-            "maxLength": 40
-          }
-        },
-        "required": [
-          "guardianEmail"
-        ]
       },
       "ImportJob": {
         "type": "object",
@@ -2101,91 +2078,6 @@
           },
           "404": {
             "description": "No such player.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/players/{playerId}/guardians": {
-      "post": {
-        "tags": [
-          "Account"
-        ],
-        "summary": "Attach a paying adult to a playing child",
-        "description": "B4, N7. The consent mechanism this records is undecided and blocks launch, so the endpoint exists and the verification behind it does not yet.",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "name": "playerId",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "description": "The adult to attach.",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AttachGuardian"
-              }
-            }
-          }
-        },
-        "responses": {
-          "204": {
-            "description": "Attached."
-          },
-          "400": {
-            "description": "The request body or query failed validation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "No session.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "The session has no claim on this player.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "No such player.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "That adult is already attached to this player.",
             "content": {
               "application/json": {
                 "schema": {

@@ -1,7 +1,7 @@
 import type { Context } from 'hono';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { createApp } from '../app.ts';
-import { guardianLink, player, tournament } from '../db/schema.ts';
+import { player, tournament } from '../db/schema.ts';
 import { user } from '../db/auth-schema.ts';
 import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-harness.ts';
 
@@ -152,14 +152,5 @@ describe('GET /players/{playerId}/tournaments', () => {
   test('answers 403 for a player that does not exist, not 404', async () => {
     const res = await list(OWNER, '00000000-0000-4000-8000-000000000000');
     expect(res.status).toBe(403);
-  });
-
-  test('lets a guardian list the tournaments of a player they pay for', async () => {
-    const child = await makePlayer(OWNER);
-    await harness.db.insert(guardianLink).values({ guardianUserId: GUARDIAN, playerId: child });
-    const t = await seedTournament(child);
-
-    const body = (await (await list(GUARDIAN, child)).json()) as TournamentListBody;
-    expect(body.tournaments.map((t) => t.id)).toEqual([t]);
   });
 });

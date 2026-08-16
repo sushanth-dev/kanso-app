@@ -14,6 +14,7 @@ import postgres from 'postgres';
 import { createApp } from './app.ts';
 import { createAuth } from './auth.ts';
 import * as schema from './db/schema.ts';
+import { sesConfigFromEnv, sesMailer } from './account/mailer.ts';
 import { fixtureGameFetcher } from './import/fixture-game-fetcher.ts';
 
 const databaseUrl = process.env.DATABASE_URL;
@@ -34,7 +35,7 @@ const db = drizzle(sql, { schema });
 // The real session provider (ADR-0011). `createAuth` throws on a missing
 // `BETTER_AUTH_SECRET`, so a server that cannot authenticate refuses to start
 // rather than answering 401 forever.
-const auth = createAuth(db);
+const auth = createAuth(db, { mailer: sesMailer(sesConfigFromEnv()) });
 
 // The Playwright import journey (ST-029) stubs the provider with the captured
 // fixtures; production never sets this flag and keeps the real HTTP fetcher.

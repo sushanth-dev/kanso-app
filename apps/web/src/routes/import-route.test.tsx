@@ -31,7 +31,6 @@ const me: Me = {
   name: 'Player',
   tier: 'free',
   players: [ownedPlayer],
-  guardedPlayers: [],
 };
 
 const startImport = vi.fn<ImportApi['startImport']>();

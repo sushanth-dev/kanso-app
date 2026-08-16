@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient } from '@tanstack/react-query';
 import { createMemoryHistory, RouterContextProvider } from '@tanstack/react-router';
@@ -117,6 +117,8 @@ describe('AuthScreen sign-up', () => {
     expect(screen.getByLabelText('Password')).toHaveAttribute('autocomplete', 'new-password');
     expect(screen.getByLabelText('Password')).toBeRequired();
     expect(screen.getByLabelText('Password')).toHaveAttribute('minlength', '8');
+    expect(screen.getByLabelText('Date of birth')).toHaveAttribute('type', 'date');
+    expect(screen.queryByLabelText('Guardian email')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Confirm password')).toHaveAttribute('type', 'password');
     expect(screen.getByLabelText('Confirm password')).toHaveAttribute(
       'autocomplete',
@@ -190,13 +192,46 @@ describe('AuthScreen sign-up', () => {
     await user.click(screen.getByRole('button', { name: 'Sign up' }));
 
     await waitFor(() => {
-      expect(signUpEmail).toHaveBeenCalledWith({
-        name: 'Player',
-        email: 'player@example.com',
-        password: 'a-secure-password',
-      });
+      expect(signUpEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'Player',
+          email: 'player@example.com',
+          password: 'a-secure-password',
+        }),
+      );
       expect(navigate).toHaveBeenCalledWith({ to: '/account' });
     });
     expect(queryClient.getQueryData(ME_QUERY_KEY)).toBeUndefined();
+  });
+
+  test('reveals the guardian email field for a minor and sends both fields', async () => {
+    const { user } = renderSignUp();
+    signUpEmail.mockResolvedValue({ data: { user: {} }, error: null });
+
+    // No guardian field until a minor date of birth is entered.
+    expect(screen.queryByLabelText('Guardian email')).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Date of birth'), {
+      target: { value: '2015-06-01' },
+    });
+    expect(screen.getByLabelText('Guardian email')).toBeVisible();
+
+    await user.type(screen.getByLabelText('Name'), 'Player');
+    await user.type(screen.getByLabelText('Email'), 'player@example.com');
+    await user.type(screen.getByLabelText('Password'), 'a-secure-password');
+    await user.type(screen.getByLabelText('Confirm password'), 'a-secure-password');
+    await user.type(screen.getByLabelText('Guardian email'), 'parent@example.com');
+    await user.click(screen.getByRole('button', { name: 'Sign up' }));
+
+    await waitFor(() => {
+      expect(signUpEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'Player',
+          email: 'player@example.com',
+          password: 'a-secure-password',
+          dateOfBirth: '2015-06-01',
+          guardianEmail: 'parent@example.com',
+        }),
+      );
+    });
   });
 });

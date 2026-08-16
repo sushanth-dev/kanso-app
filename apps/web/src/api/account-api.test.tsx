@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { ApiRequestError, createAccountApi } from './account-api.ts';
 
 const meFixture = {
@@ -7,7 +7,6 @@ const meFixture = {
   name: 'Player',
   tier: 'free' as const,
   players: [],
-  guardedPlayers: [],
 };
 const playerId = '00000000-0000-4000-8000-000000000001';
 const playerFixture = {
@@ -76,34 +75,5 @@ describe('account API transport', () => {
       issues: undefined,
       message: 'Not allowed.',
     });
-  });
-
-  test('attaches a guardian and resolves without a response body', async () => {
-    let lastRequest: Request | undefined;
-    let finishResponse: () => void = () => {};
-    const responseFinished = new Promise<ArrayBuffer>((resolve) => {
-      finishResponse = () => resolve(new ArrayBuffer(0));
-    });
-    const response = new Response(null, { status: 204 });
-    const completion = vi.spyOn(response, 'arrayBuffer').mockReturnValue(responseFinished);
-    const api = createAccountApi((input) => {
-      lastRequest = input as Request;
-      return Promise.resolve(response);
-    });
-
-    const attaching = api.attachGuardian(playerId, { guardianEmail: 'adult@example.com' });
-    await vi.waitFor(() => expect(completion).toHaveBeenCalledOnce());
-    let resolved = false;
-    void attaching.then(() => {
-      resolved = true;
-    });
-    await Promise.resolve();
-    expect(resolved).toBe(false);
-
-    finishResponse();
-    await expect(attaching).resolves.toBeUndefined();
-    expect(lastRequest?.url).toMatch(new RegExp(`/players/${playerId}/guardians$`));
-    expect(lastRequest?.method).toBe('POST');
-    expect(await lastRequest?.json()).toEqual({ guardianEmail: 'adult@example.com' });
   });
 });

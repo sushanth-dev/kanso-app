@@ -45,7 +45,6 @@ function meFixture(overrides: Partial<Me> = {}): Me {
     name: 'Player',
     tier: 'free',
     players: [player()],
-    guardedPlayers: [],
     ...overrides,
   };
 }
@@ -55,7 +54,6 @@ function accountApi(overrides: Partial<AccountApi> = {}): AccountApi {
     getMe: vi.fn(),
     createPlayer: vi.fn(),
     updatePlayer: vi.fn(),
-    attachGuardian: vi.fn(),
     ...overrides,
   };
 }

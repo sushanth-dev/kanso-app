@@ -1,7 +1,7 @@
 import type { Context } from 'hono';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { createApp } from '../app.ts';
-import { game, guardianLink, player, tournament } from '../db/schema.ts';
+import { game, player, tournament } from '../db/schema.ts';
 import { user } from '../db/auth-schema.ts';
 import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-harness.ts';
 
@@ -177,14 +177,6 @@ describe('GET /players/{playerId}/games', () => {
     // used to enumerate which player ids are real.
     const res = await list(OWNER, '00000000-0000-4000-8000-000000000000');
     expect(res.status).toBe(403);
-  });
-
-  test('lets a guardian read the games of a player they pay for', async () => {
-    const child = await makePlayer(OWNER);
-    await harness.db.insert(guardianLink).values({ guardianUserId: GUARDIAN, playerId: child });
-    const g1 = await insertGame(child, {});
-    const body = (await (await list(GUARDIAN, child)).json()) as GameListBody;
-    expect(body.games.map((game) => game.id)).toEqual([g1]);
   });
 
   test('scopes to one tournament and composes with the stream filter', async () => {

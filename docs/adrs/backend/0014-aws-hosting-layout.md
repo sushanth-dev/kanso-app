@@ -1,11 +1,15 @@
 # 0014. Host on AWS: API on a small always-on service, analysis on SQS and Lambda
 
-* Status: accepted
+* Status: accepted; API half superseded by [0033](0033-lambda-api-http-api.md)
 * Date: 2026-07-31
 * Supersedes: [ADR-0012](0012-pg-boss-stockfish-analysis.md) (the queue
   and worker choice; its Stockfish WASM choice was replaced later, by
   [ADR-0023](0023-stockfish-native-lambda-depth-21.md))
 * Builds on: [ADR-0007](0007-hono-http-framework.md), [ADR-0009](0009-drizzle-orm.md)
+
+> The API half of this record was replaced by ADR-0033, which runs the same Hono
+> app in Lambda behind an HTTP API instead of a Fargate task behind a load
+> balancer. The analysis half, and the one game per message design, still stands.
 
 ## Context
 
