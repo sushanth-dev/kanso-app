@@ -13,7 +13,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { user } from '../db/auth-schema.ts';
 import * as schema from '../db/schema.ts';
-import { player } from '../db/schema.ts';
+import { focusCatalogue, player } from '../db/schema.ts';
 import { importGames } from '../import/import-games.ts';
 import { parsePgn } from '../import/parse-pgn.ts';
 import { isLocalhostDatabaseUrl } from './localhost.ts';
@@ -55,6 +55,44 @@ try {
       email: 'st016-seed@example.com',
       emailVerified: true,
     })
+    .onConflictDoNothing();
+
+  // F10. The four focuses version one ships, seeded idempotently on `key`.
+  // The words are the work: a player reads these when deciding what to commit a
+  // month to, so they carry the product voice rather than filler.
+  await db
+    .insert(focusCatalogue)
+    .values([
+      {
+        key: 'converting_won_positions',
+        title: 'Converting won positions',
+        description: 'Winning the games the position already says are won.',
+        measureDescription:
+          'The rating leaked by evaluation swings that crossed a result boundary.',
+        measurableStreams: ['tournament', 'online'],
+      },
+      {
+        key: 'time_management',
+        title: 'Time management',
+        description: 'Using the clock so the position decides the game, not the flag.',
+        measureDescription: 'The move where time trouble begins.',
+        measurableStreams: ['online'],
+      },
+      {
+        key: 'opening_repertoire_results',
+        title: 'Opening repertoire results',
+        description: 'Which openings in the repertoire score, and which leak rating.',
+        measureDescription: 'Results by opening, grouped by ECO code.',
+        measurableStreams: ['tournament', 'online'],
+      },
+      {
+        key: 'tactical_alertness',
+        title: 'Tactical alertness',
+        description: 'Spotting the tactical motifs a position offers.',
+        measureDescription: 'The tactical motifs missed.',
+        measurableStreams: ['tournament', 'online'],
+      },
+    ])
     .onConflictDoNothing();
 
   const createdPlayer = (
