@@ -63,10 +63,10 @@ test('signs up and persists a player through sign-in', async ({ page }) => {
   await expectNoAxeViolations(page);
   await signUp(page, 'E2E Account', email, password);
 
-  await expect(page.getByRole('heading', { name: 'Your account' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
   await expectNoAxeViolations(page);
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'Your account' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
 
   await page.getByRole('link', { name: 'Create player' }).focus();
   await expect(page.getByRole('link', { name: 'Create player' })).toBeFocused();
@@ -98,7 +98,7 @@ test('signs up and persists a player through sign-in', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Create player' })).toBeFocused();
   await page.keyboard.press('Enter');
 
-  await expect(page.getByRole('heading', { name: 'Your account' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Mina' })).toBeVisible();
   await page.getByRole('link', { name: 'Edit' }).click();
   await page.getByLabel('Chess.com username').fill('mina-studies');
@@ -121,7 +121,7 @@ test('signs up and persists a player through sign-in', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Sign in' })).toBeFocused();
   await page.keyboard.press('Enter');
 
-  await expect(page.getByRole('heading', { name: 'Your account' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Mina' })).toBeVisible();
   await page.getByRole('link', { name: 'View report' }).click();
   await expect(page.getByRole('heading', { name: 'Tournament report' })).toBeVisible();
@@ -130,7 +130,7 @@ test('signs up and persists a player through sign-in', async ({ page }) => {
   ).toBeVisible();
   await expectNoAxeViolations(page);
   await page.getByRole('link', { name: 'Back to your account' }).click();
-  await expect(page.getByRole('heading', { name: 'Your account' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
   expect(externalRequests).toEqual([]);
   // The report returns 404 until a player has analyzed games, which is the
   // honest state Mina is in here, not a failed request.
