@@ -13,6 +13,7 @@
  */
 import { OpenAPIHono } from '@hono/zod-openapi';
 import type { Context, MiddlewareHandler } from 'hono';
+import { cors } from 'hono/cors';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { routes } from './contract/routes.ts';
 import { mountMe } from './account/me.ts';
@@ -181,6 +182,18 @@ export function createApp({
       return undefined;
     },
   });
+  // The browser's cross-origin session (ST-030 Part 2). The allowlist is read
+  // from CORS_ORIGINS rather than a literal, so an unknown origin gets no
+  // allow-origin header and the request fails closed rather than being
+  // answered with `*`. Unset - local dev through the Vite proxy - is a no-op,
+  // because the proxy never crosses an origin.
+  const corsOrigins = (process.env.CORS_ORIGINS ?? '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  if (corsOrigins.length > 0) {
+    app.use('*', cors({ origin: corsOrigins, credentials: true }));
+  }
 
   // The session reader: the caller's stub wins, otherwise the real reader when
   // an auth instance is mounted, otherwise nobody is signed in.

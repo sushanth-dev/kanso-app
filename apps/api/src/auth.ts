@@ -47,6 +47,14 @@ export function createAuth(db: PostgresJsDatabase<typeof schema>, deps: { mailer
     }),
     secret,
     basePath: '/api/auth',
+    // The origins better-auth accepts cross-origin requests from (ST-030 Part
+    // 2). Read from the same CORS_ORIGINS the Hono middleware uses, so there
+    // is one allowlist rather than two to drift. Unset in local dev, where the
+    // Vite proxy keeps everything same-origin.
+    trustedOrigins: (process.env.CORS_ORIGINS ?? '')
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean),
     emailAndPassword: {
       enabled: true,
     },

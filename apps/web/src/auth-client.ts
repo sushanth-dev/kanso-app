@@ -1,5 +1,6 @@
 import { createAuthClient } from 'better-auth/react';
 import { inferAdditionalFields } from 'better-auth/client/plugins';
+import { apiBaseUrl } from './api/base-url.ts';
 
 /**
  * The client mirrors the server's `user.additionalFields` so `signUp.email`
@@ -8,7 +9,7 @@ import { inferAdditionalFields } from 'better-auth/client/plugins';
  * sync the way a client and server contract always must.
  */
 export const authClient = createAuthClient({
-  baseURL: window.location.origin,
+  baseURL: apiBaseUrl,
   plugins: [
     inferAdditionalFields({
       user: {

@@ -1,6 +1,6 @@
 # Deploying to AWS
 
-The whole environment is described by `sst.config.ts` and the two files in
+The whole environment is described by `sst.config.ts` and the files in
 `infra/`, so bringing it up is one command and taking it down is one command.
 This guide is the second half of that promise: the things a command cannot
 carry, which are what the environment costs, how to migrate it, how to check it
@@ -23,6 +23,10 @@ them and does not repeat them.
 * An AWS account with a deploy identity and a budget alarm. Those are made once
   and are not part of a deploy, so they live in
   [AWS account setup](aws-account-setup.md).
+* A scoped Cloudflare API token and account ID in `.env`, for the web deploy.
+  The token is Workers Scripts (Edit) on the account, and Zone (Read) on the
+  `kansochess.app` zone. The custom-domain step auto-creates the web record, so
+  no DNS permission is needed.
 
 ## Getting a credential
 
@@ -52,7 +56,9 @@ for SST's own state.
 An account-level control, set once per account rather than once per deploy, so
 the command lives in [AWS account setup](aws-account-setup.md) rather than
 here. It has to exist before the first deploy. An environment that is meant to
-spend most of its life torn down is exactly the kind that gets left up.
+spend most of its life torn down is exactly the kind that gets left up. The
+threshold is $80 monthly with an alert at half of it, so one deliberate stage
+at about $30 sits under the alert while a second forgotten stage trips it.
 
 ## What gets created, and what it costs
 
@@ -76,6 +82,11 @@ public IP the way the Fargate task did, so it reaches the internet through a
 NAT from the private subnets. Two instances cost about $6 a month; the managed
 gateway would be about $64, which is more than the database. The single point
 of failure an instance is per zone is a launch concern, not a deployment one.
+
+The web half does not appear in the table because Cloudflare serves static
+assets inside its free tier. It does add one credential: a scoped
+`CLOUDFLARE_API_TOKEN` in `.env` for the Worker deploy, whose exact scope the
+prerequisites name.
 
 The total is why the teardown section below is a first-class step rather than a
 footnote.
@@ -112,6 +123,9 @@ set.
 ```sh
 npx sst deploy --stage dev
 ```
+
+The deploy also uploads the web bundle to a Cloudflare Worker, which needs the
+scoped `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_DEFAULT_ACCOUNT_ID` in `.env`.
 
 The first deploy of a stage took 11 minutes 13 seconds when the API ran on
 Fargate, and almost all of it was two resources: the RDS instance took 8 minutes
@@ -245,11 +259,11 @@ a domain whose DNS it controls. Ours is on Cloudflare and this repository holds
 no Cloudflare token, so `infra/api.ts` passes `dns: false` and the certificate
 ARN instead, and the records below are added by hand.
 
-### The two DNS records
+### The DNS records
 
-Both live in the Cloudflare dashboard for `kansochess.app`. They are added once
-and they survive every teardown, because neither of them names anything a
-teardown deletes.
+The API's two records live in the Cloudflare dashboard for `kansochess.app`.
+They are added once by hand and they survive every teardown, because neither of
+them names anything a teardown deletes.
 
 The **validation record** proves we own the domain, and ACM re-checks it at
 every renewal, so it stays forever. Its exact name and value come from:
@@ -287,6 +301,11 @@ This means the very first deploy of a stage has a gap between the API Gateway
 domain existing and the record pointing at it. Later deploys reuse the same
 domain name, so the record keeps working. A teardown and rebuild produces a new
 name and the service record has to be updated.
+
+The **web record** is not added by hand. The web deploys to a Cloudflare Worker,
+and the custom-domain step creates the proxied record for
+`dev-app.kansochess.app` itself, because the Worker and the zone live in the
+same account.
 
 ## Tear it down
 

@@ -1,5 +1,6 @@
 import createClient from 'openapi-fetch';
 import type { components, paths } from '../generated/api.ts';
+import { apiBaseUrl } from './base-url.ts';
 import { failure } from './account-api.ts';
 
 export type Stream = components['schemas']['Stream'];
@@ -24,9 +25,9 @@ export function createDiagnosisApi(
   fetcher: typeof globalThis.fetch = globalThis.fetch,
 ): DiagnosisApi {
   const client = createClient<paths>({
-    baseUrl: window.location.origin,
+    baseUrl: apiBaseUrl,
     fetch: fetcher,
-    credentials: 'same-origin',
+    credentials: 'include',
   });
   return {
     async getReport(playerId, stream) {

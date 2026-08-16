@@ -1,5 +1,6 @@
 import createClient from 'openapi-fetch';
 import type { components, paths } from '../generated/api.ts';
+import { apiBaseUrl } from './base-url.ts';
 import { failure } from './account-api.ts';
 
 export type ImportJob = components['schemas']['ImportJob'];
@@ -34,9 +35,9 @@ export interface ImportApi {
 
 export function createImportApi(fetcher: typeof globalThis.fetch = globalThis.fetch): ImportApi {
   const client = createClient<paths>({
-    baseUrl: window.location.origin,
+    baseUrl: apiBaseUrl,
     fetch: fetcher,
-    credentials: 'same-origin',
+    credentials: 'include',
   });
   return {
     async startImport(playerId, body) {

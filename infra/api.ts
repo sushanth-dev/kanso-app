@@ -18,24 +18,12 @@
  */
 import { analysisQueue } from './analysis.ts';
 import { database, vpc } from './database.ts';
-
-// Production owns `api`; every other stage gets its own name beside it, so a
-// second stage never collides with the first.
-//
-// One label rather than `<stage>.api`, which reads better but does not work:
-// Cloudflare's included certificate covers `kansochess.app` and
-// `*.kansochess.app` and stops there, so a name two levels deep has nothing to
-// present at the edge and the handshake fails before the request reaches us.
-// Covering deeper names is a paid Cloudflare add-on costing a quarter of what
-// this whole environment costs, which is a lot to pay for a dot.
-const hostname =
-  $app.stage === 'production' ? 'api.kansochess.app' : `${$app.stage}-api.kansochess.app`;
-
-// `*.kansochess.app`, DNS validated, which covers every stage name above. ACM
+import { apiHostname, webHostname } from './domains.ts';
+// `*.kansochess.app`, DNS validated, which covers every stage name. ACM
 // renews it on its own as long as the validation record stays in Cloudflare.
 // Created once by hand rather than by SST, because SST can only create and
 // validate a certificate for a domain whose DNS it controls, and ours is on
-// Cloudflare with no API token given to this repository.
+// Cloudflare with a deploy token that cannot edit DNS.
 const certificateArn =
   'arn:aws:acm:ap-south-2:082867428520:certificate/3490faff-7dac-4eb3-964c-1bf5de5e85c0';
 
@@ -61,6 +49,12 @@ const handler = new sst.aws.Function('ApiHandler', {
   environment: {
     DATABASE_URL: databaseUrl,
     ANALYSIS_QUEUE_URL: analysisQueue.url,
+    // The web origin the browser holds a session from. Both halves of the
+    // browser's access control read this: Hono CORS and better-auth's
+    // trustedOrigins (ST-030 Part 2).
+    CORS_ORIGINS: `https://${webHostname}`,
+    // The public origin the guardian consent link points at (ST-034).
+    APP_ORIGIN: `https://${webHostname}`,
   },
   // API Gateway caps a request at 30 seconds, so a longer function timeout is a
   // setting that never gets used.
@@ -71,7 +65,7 @@ const handler = new sst.aws.Function('ApiHandler', {
 
 export const api = new sst.aws.ApiGatewayV2('Api', {
   domain: {
-    name: hostname,
+    name: apiHostname,
     // Cloudflare holds the zone and this repository holds no token for it,
     // so the two records are added by hand. The deploy guide carries them.
     dns: false,
