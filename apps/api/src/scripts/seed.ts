@@ -67,8 +67,7 @@ try {
         key: 'converting_won_positions',
         title: 'Converting won positions',
         description: 'Winning the games the position already says are won.',
-        measureDescription:
-          'The rating leaked by evaluation swings that crossed a result boundary.',
+        measureDescription: 'The share of won positions converted to wins.',
         measurableStreams: ['tournament', 'online'],
       },
       {
