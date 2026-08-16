@@ -14,7 +14,7 @@
  * `analysis/clock.ts`.
  */
 import type { Context } from 'hono';
-import { and, eq, isNotNull, or, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, or, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { getPhases } from '../contract/routes.ts';
@@ -196,7 +196,11 @@ export function scoreTimeTrouble(
  * in SQL, so a large history is aggregated in the database rather than pulled
  * into JavaScript.
  */
-export async function timeTroubleCounts(db: Db, playerId: string): Promise<TimeTroubleCounts> {
+export async function timeTroubleCounts(
+  db: Db,
+  playerId: string,
+  gameIds?: string[],
+): Promise<TimeTroubleCounts> {
   const [gameRow] = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(game)
@@ -206,6 +210,7 @@ export async function timeTroubleCounts(db: Db, playerId: string): Promise<TimeT
         eq(game.stream, 'online'),
         eq(game.analysisStatus, 'complete'),
         eq(game.hasClockData, true),
+        gameIds === undefined ? undefined : inArray(game.id, gameIds),
       ),
     );
   const clockedGames = gameRow?.n ?? 0;
@@ -235,6 +240,7 @@ export async function timeTroubleCounts(db: Db, playerId: string): Promise<TimeT
         eq(game.stream, 'online'),
         eq(game.analysisStatus, 'complete'),
         eq(game.hasClockData, true),
+        gameIds === undefined ? undefined : inArray(game.id, gameIds),
         isNotNull(movePly.clockMs),
         playerPlies,
       ),

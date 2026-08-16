@@ -57,6 +57,13 @@
       "when": 1786868095748,
       "tag": "0007_seed_focus_catalogue",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1786880030000,
+      "tag": "0008_correct_converting_measure_description",
+      "breakpoints": true
     }
   ]
 }
