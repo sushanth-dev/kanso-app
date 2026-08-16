@@ -96,14 +96,6 @@ export const CreatePlayer = z
 
 export const UpdatePlayer = CreatePlayer.partial().openapi('UpdatePlayer');
 
-/** B4. The paying adult, attached to the playing child. */
-export const AttachGuardian = z
-  .object({
-    guardianEmail: z.email(),
-    relationship: z.string().max(40).optional(),
-  })
-  .openapi('AttachGuardian');
-
 export const Me = z
   .object({
     userId: z.string(),
@@ -112,8 +104,6 @@ export const Me = z
     tier: Tier,
     /** Players this login plays as. */
     players: z.array(Player),
-    /** Players this login pays for but does not play as. */
-    guardedPlayers: z.array(Player),
   })
   .openapi('Me');
 

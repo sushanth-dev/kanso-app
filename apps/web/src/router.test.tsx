@@ -17,7 +17,6 @@ vi.mock('./api/account-api.ts', async (importOriginal) => {
       getMe: vi.fn(),
       createPlayer: vi.fn(),
       updatePlayer: vi.fn(),
-      attachGuardian: vi.fn(),
     },
   };
 });
@@ -37,11 +36,8 @@ const signOut = vi.mocked(authClient.signOut);
 const createPlayer = vi.mocked(accountApi.createPlayer);
 // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() from the module mock.
 const updatePlayer = vi.mocked(accountApi.updatePlayer);
-// eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() from the module mock.
-const attachGuardian = vi.mocked(accountApi.attachGuardian);
 
 const ownedPlayerId = '00000000-0000-4000-8000-000000000001';
-const guardedPlayerId = '00000000-0000-4000-8000-000000000002';
 
 const ownedPlayer = {
   id: ownedPlayerId,
@@ -64,7 +60,6 @@ const meFixture = {
   name: 'Player',
   tier: 'free' as const,
   players: [ownedPlayer],
-  guardedPlayers: [{ ...ownedPlayer, id: guardedPlayerId, displayName: 'Theo' }],
 };
 
 function renderAt(path: string) {
@@ -86,7 +81,6 @@ describe('router', () => {
     signOut.mockResolvedValue({ data: { success: true }, error: null });
     createPlayer.mockReset();
     updatePlayer.mockReset();
-    attachGuardian.mockReset();
   });
 
   test('redirects / to /account', async () => {
@@ -177,42 +171,6 @@ describe('router', () => {
     expect(router.state.location.pathname).toBe('/account');
   });
 
-  test('shows guardian success once on /account and clears it across authentication', async () => {
-    const user = userEvent.setup();
-    getMe.mockResolvedValue(meFixture);
-    attachGuardian.mockResolvedValue(undefined);
-    const { router } = renderAt(`/account/players/${ownedPlayerId}/guardian`);
-
-    expect(await screen.findByRole('heading', { name: 'Add guardian' })).toBeVisible();
-    await user.type(screen.getByLabelText('Guardian email'), 'guardian@example.com');
-    await user.type(screen.getByLabelText('Relationship'), 'Parent');
-    await user.click(screen.getByRole('button', { name: 'Send invitation' }));
-
-    expect(await screen.findByRole('heading', { name: 'Your account' })).toBeVisible();
-    expect(screen.getByText('Guardian invitation sent.')).toHaveAttribute('role', 'status');
-    expect(attachGuardian).toHaveBeenCalledWith(ownedPlayerId, {
-      guardianEmail: 'guardian@example.com',
-      relationship: 'Parent',
-    });
-
-    await user.click(screen.getByRole('button', { name: 'Sign out' }));
-    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeVisible();
-    expect(screen.queryByText('Guardian invitation sent.')).not.toBeInTheDocument();
-
-    await router.navigate({ to: '/account' });
-    expect(await screen.findByRole('heading', { name: 'Your account' })).toBeVisible();
-    expect(screen.queryByText('Guardian invitation sent.')).not.toBeInTheDocument();
-  });
-
-  test('a guarded player id cannot be edited and triggers no mutation', async () => {
-    getMe.mockResolvedValue(meFixture);
-    updatePlayer.mockResolvedValue(ownedPlayer);
-    renderAt(`/account/players/${guardedPlayerId}/edit`);
-
-    expect(await screen.findByText('Not Found')).toBeVisible();
-    expect(updatePlayer).not.toHaveBeenCalled();
-  });
-
   test('an unknown player id cannot be edited and triggers no mutation', async () => {
     getMe.mockResolvedValue(meFixture);
     updatePlayer.mockResolvedValue(ownedPlayer);
@@ -222,24 +180,9 @@ describe('router', () => {
     expect(updatePlayer).not.toHaveBeenCalled();
   });
 
-  test('a guarded player id cannot attach a guardian and triggers no mutation', async () => {
-    getMe.mockResolvedValue(meFixture);
-    attachGuardian.mockResolvedValue(undefined);
-    renderAt(`/account/players/${guardedPlayerId}/guardian`);
-
-    expect(await screen.findByText('Not Found')).toBeVisible();
-    expect(attachGuardian).not.toHaveBeenCalled();
-  });
-
   test('an owned player id renders the import screen', async () => {
     getMe.mockResolvedValue(meFixture);
     renderAt(`/account/players/${ownedPlayerId}/import`);
-    expect(await screen.findByRole('heading', { name: 'Import games' })).toBeVisible();
-  });
-
-  test('a guarded player id renders the import screen', async () => {
-    getMe.mockResolvedValue(meFixture);
-    renderAt(`/account/players/${guardedPlayerId}/import`);
     expect(await screen.findByRole('heading', { name: 'Import games' })).toBeVisible();
   });
 

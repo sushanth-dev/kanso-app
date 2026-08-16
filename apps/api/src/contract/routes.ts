@@ -14,7 +14,6 @@ import { createRoute, z } from '@hono/zod-openapi';
 import {
   ActiveFocus,
   ApiError,
-  AttachGuardian,
   CreatePlayer,
   Explanation,
   FocusCatalogueEntry,
@@ -117,25 +116,6 @@ export const updatePlayer = createRoute({
     200: json(Player, 'Updated.'),
     ...authErrors,
     404: error('No such player.'),
-  },
-});
-
-export const attachGuardian = createRoute({
-  method: 'post',
-  path: '/players/{playerId}/guardians',
-  tags: ['Account'],
-  summary: 'Attach a paying adult to a playing child',
-  description:
-    'B4, N7. The consent mechanism this records is undecided and blocks launch, so the endpoint exists and the verification behind it does not yet.',
-  request: {
-    params: playerParams,
-    body: json(AttachGuardian, 'The adult to attach.'),
-  },
-  responses: {
-    204: { description: 'Attached.' },
-    ...authErrors,
-    404: error('No such player.'),
-    409: error('That adult is already attached to this player.'),
   },
 });
 
@@ -625,7 +605,6 @@ export const routes = [
   getMe,
   createPlayer,
   updatePlayer,
-  attachGuardian,
   confirmGuardian,
   startImport,
   getImport,

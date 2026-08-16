@@ -10,7 +10,7 @@
  *
  * The two-real-users test is the reason this story is first in the sprint.
  * `hasPlayerClaim` resolves the `userId` better-auth puts in a session against
- * `player.owner_user_id` and `guardian_link.guardian_user_id`. If the id
+ * `player.owner_user_id`. If the id
  * better-auth writes into `user.id` is not the id it puts in the session, the
  * second user reads the first's data. This test is the proof either way.
  */
@@ -40,7 +40,10 @@ beforeEach(async () => {
 
 /** The app with the real better-auth handler and the real session reader. */
 function app() {
-  return createApp({ db: harness.db, auth: createAuth(harness.db) });
+  return createApp({
+    db: harness.db,
+    auth: createAuth(harness.db, { mailer: { async sendConsentNotice() {} } }),
+  });
 }
 
 /** Sign up and sign in, returning the session cookie header value. */

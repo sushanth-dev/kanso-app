@@ -1,17 +1,16 @@
 /**
- * ST-017. Attach a guardian and record email-plus consent.
- *
- * The consent flow is exercised end to end against a real PostgreSQL with a
- * fake mailer: attach mails a signed token, confirm records consent exactly
- * once, and a tampered, expired, or unknown token records nothing. The fake
- * mailer keeps this suite off SES; the real sender is covered by
- * `mailer.integration.test.ts` against LocalStack.
+ * ST-034. Minor self-sign-up and guardian consent, exercised end to end against
+ * a real PostgreSQL with a fake mailer: a minor signs up with a date of birth
+ * and a guardian email, the notice is mailed with a signed token, the gate
+ * blocks the minor until the token is confirmed, and confirming records consent
+ * exactly once. The fake mailer keeps this suite off SES; the real sender is
+ * covered by `mailer.integration.test.ts` against LocalStack.
  */
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { createApp } from '../app.ts';
 import { createAuth } from '../auth.ts';
-import { guardianLink, player } from '../db/schema.ts';
+import { guardianConsent } from '../db/schema.ts';
 import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-harness.ts';
 import { signConsentToken } from './consent-token.ts';
 import type { Mailer } from './mailer.ts';
@@ -19,9 +18,11 @@ import type { Mailer } from './mailer.ts';
 let harness: IntegrationDatabase;
 
 const PASSWORD = 'correct horse battery staple';
-const PARENT = 'alice@example.com';
-const GUARDIAN = 'bob@example.com';
-const STRANGER = 'carol@example.com';
+const MINOR = 'minor@example.com';
+const GUARDIAN = 'parent@example.com';
+/** A date of birth under 13, and one that is not. */
+const MINOR_DOB = '2015-06-01';
+const ADULT_DOB = '2000-06-01';
 
 const sent: Array<{ to: string; confirmUrl: string }> = [];
 const mailer: Mailer = {
@@ -45,39 +46,48 @@ beforeEach(async () => {
 });
 
 function app() {
-  return createApp({ db: harness.db, auth: createAuth(harness.db), mailer });
+  return createApp({ db: harness.db, auth: createAuth(harness.db, { mailer }) });
 }
 
-async function signIn(email: string): Promise<string> {
-  const a = app();
-  await a.request('/api/auth/sign-up/email', {
+/** Sign up and return the response, whose `set-cookie` is the session. */
+async function signUp(
+  email: string,
+  dateOfBirth?: string,
+  guardianEmail?: string,
+): Promise<Response> {
+  return app().request('/api/auth/sign-up/email', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ name: email.split('@')[0], email, password: PASSWORD }),
+    body: JSON.stringify({
+      name: email.split('@')[0],
+      email,
+      password: PASSWORD,
+      dateOfBirth,
+      guardianEmail,
+    }),
   });
-  const res = await a.request('/api/auth/sign-in/email', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ email, password: PASSWORD }),
-  });
-  expect(res.status).toBe(200);
-  return res.headers.get('set-cookie') as string;
+}
+
+function cookieOf(res: Response): string {
+  const setCookie = res.headers.get('set-cookie');
+  expect(setCookie).toBeTruthy();
+  return setCookie as string;
 }
 
 async function whoAmI(cookie: string): Promise<string> {
-  const a = app();
-  const res = await a.request('/api/auth/get-session', { headers: { cookie } });
+  const res = await app().request('/api/auth/get-session', { headers: { cookie } });
+  expect(res.status).toBe(200);
   const body = (await res.json()) as { session: { userId: string } };
   expect(body.session).toBeTruthy();
   return body.session.userId;
 }
 
-async function makePlayer(ownerUserId: string): Promise<string> {
+async function consentFor(userId: string) {
   const [row] = await harness.db
-    .insert(player)
-    .values({ ownerUserId, displayName: 'The child' })
-    .returning({ id: player.id });
-  return row!.id;
+    .select()
+    .from(guardianConsent)
+    .where(eq(guardianConsent.userId, userId));
+  return row;
 }
 
 /** The token carried in the most recent notice the fake mailer recorded. */
@@ -86,113 +96,74 @@ function lastToken(): string {
   return confirmUrl.slice(confirmUrl.lastIndexOf('/') + 1);
 }
 
-async function attach(cookie: string, playerId: string, guardianEmail: string): Promise<Response> {
-  return app().request(`/players/${playerId}/guardians`, {
-    method: 'POST',
-    headers: { cookie, 'content-type': 'application/json' },
-    body: JSON.stringify({ guardianEmail }),
-  });
-}
+describe('minor self-sign-up and guardian consent', () => {
+  test('a minor with a guardian email signs up, mails a notice, and is gated', async () => {
+    const res = await signUp(MINOR, MINOR_DOB, GUARDIAN);
+    expect(res.status).toBe(200);
+    const cookie = cookieOf(res);
+    const userId = await whoAmI(cookie);
 
-describe('the guardian consent flow', () => {
-  test('attach mails a notice, confirm records consent once, re-confirm is a no-op', async () => {
-    const parentCookie = await signIn(PARENT);
-    const playerId = await makePlayer(await whoAmI(parentCookie));
-    await signIn(GUARDIAN); // the guardian must already be an account
-
-    const res = await attach(parentCookie, playerId, GUARDIAN);
-    expect(res.status).toBe(204);
+    const consent = await consentFor(userId);
+    expect(consent).toBeTruthy();
+    expect(consent!.consentGrantedAt).toBeNull();
     expect(sent).toHaveLength(1);
     expect(sent[0]!.to).toBe(GUARDIAN);
 
-    // Before confirm the link is pending: no consent recorded.
-    const [pending] = await harness.db
-      .select()
-      .from(guardianLink)
-      .where(eq(guardianLink.playerId, playerId));
-    expect(pending!.consentGrantedAt).toBeNull();
-    expect(pending!.consentMethod).toBeNull();
+    const me = await app().request('/me', { headers: { cookie } });
+    expect(me.status).toBe(403);
+    expect(await me.json()).toMatchObject({ code: 'consent_required' });
+  });
 
-    // Confirming records consent.
+  test('confirming through the link records consent once and lifts the gate', async () => {
+    const res = await signUp(MINOR, MINOR_DOB, GUARDIAN);
+    const cookie = cookieOf(res);
     const token = lastToken();
+
     expect((await app().request(`/guardians/confirm/${token}`)).status).toBe(204);
-    const [granted] = await harness.db
-      .select()
-      .from(guardianLink)
-      .where(eq(guardianLink.playerId, playerId));
-    expect(granted!.consentGrantedAt).not.toBeNull();
-    expect(granted!.consentMethod).toBe('email');
-
-    // Re-confirming the same link is a no-op and never double-records.
+    // Idempotent: a replayed confirm is a no-op.
     expect((await app().request(`/guardians/confirm/${token}`)).status).toBe(204);
-    const [still] = await harness.db
-      .select()
-      .from(guardianLink)
-      .where(eq(guardianLink.playerId, playerId));
-    expect(still!.consentGrantedAt).toEqual(granted!.consentGrantedAt);
+
+    const consent = await consentFor(await whoAmI(cookie));
+    expect(consent!.consentGrantedAt).not.toBeNull();
+    expect(consent!.consentMethod).toBe('email');
+
+    expect((await app().request('/me', { headers: { cookie } })).status).toBe(200);
   });
 
-  test('re-attaching the same guardian answers 409', async () => {
-    const parentCookie = await signIn(PARENT);
-    const playerId = await makePlayer(await whoAmI(parentCookie));
-    await signIn(GUARDIAN);
-
-    expect((await attach(parentCookie, playerId, GUARDIAN)).status).toBe(204);
-    expect((await attach(parentCookie, playerId, GUARDIAN)).status).toBe(409);
+  test('a minor without a guardian email is refused at sign-up', async () => {
+    const res = await signUp(MINOR, MINOR_DOB);
+    expect(res.status).not.toBe(200);
+    expect(sent).toHaveLength(0);
   });
 
-  test('a session with no claim on the player answers 403', async () => {
-    const parentCookie = await signIn(PARENT);
-    const playerId = await makePlayer(await whoAmI(parentCookie));
-    const strangerCookie = await signIn(STRANGER);
-
-    const res = await attach(strangerCookie, playerId, GUARDIAN);
-    expect(res.status).toBe(403);
+  test('a guardian email that equals the sign-up email is refused', async () => {
+    const res = await signUp(MINOR, MINOR_DOB, MINOR);
+    expect(res.status).not.toBe(200);
+    expect(sent).toHaveLength(0);
   });
 
-  test('an email with no account answers 404', async () => {
-    const parentCookie = await signIn(PARENT);
-    const playerId = await makePlayer(await whoAmI(parentCookie));
+  test('an adult signs up with no consent request and is not gated', async () => {
+    const res = await signUp('adult@example.com', ADULT_DOB);
+    expect(res.status).toBe(200);
+    const cookie = cookieOf(res);
 
-    const res = await attach(parentCookie, playerId, 'nobody@example.com');
-    expect(res.status).toBe(404);
-    expect(await res.json()).toMatchObject({ code: 'guardian_not_found' });
+    expect(await consentFor(await whoAmI(cookie))).toBeUndefined();
+    expect(sent).toHaveLength(0);
+
+    expect((await app().request('/me', { headers: { cookie } })).status).toBe(200);
   });
 
-  test('a tampered token records nothing and answers 404', async () => {
-    const parentCookie = await signIn(PARENT);
-    const playerId = await makePlayer(await whoAmI(parentCookie));
-    await signIn(GUARDIAN);
-    await attach(parentCookie, playerId, GUARDIAN);
+  test('a tampered or expired token records nothing and answers 404', async () => {
+    const res = await signUp(MINOR, MINOR_DOB, GUARDIAN);
+    const userId = await whoAmI(cookieOf(res));
+    const consent = await consentFor(userId);
+    expect(consent).toBeTruthy();
 
-    const token = lastToken();
-    const flipped = `${token.slice(0, -1)}${token.endsWith('a') ? 'b' : 'a'}`;
-    expect((await app().request(`/guardians/confirm/${flipped}`)).status).toBe(404);
+    expect((await app().request(`/guardians/confirm/${lastToken()}x`)).status).toBe(404);
 
-    const [link] = await harness.db
-      .select()
-      .from(guardianLink)
-      .where(eq(guardianLink.playerId, playerId));
-    expect(link!.consentGrantedAt).toBeNull();
-  });
-
-  test('an expired token records nothing and answers 404', async () => {
-    const parentCookie = await signIn(PARENT);
-    const playerId = await makePlayer(await whoAmI(parentCookie));
-    await signIn(GUARDIAN);
-    await attach(parentCookie, playerId, GUARDIAN);
-
-    const [link] = await harness.db
-      .select()
-      .from(guardianLink)
-      .where(eq(guardianLink.playerId, playerId));
-    const expired = signConsentToken(link!.id, -60);
+    const expired = signConsentToken(consent!.id, -60);
     expect((await app().request(`/guardians/confirm/${expired}`)).status).toBe(404);
 
-    const [still] = await harness.db
-      .select()
-      .from(guardianLink)
-      .where(eq(guardianLink.playerId, playerId));
-    expect(still!.consentGrantedAt).toBeNull();
+    expect((await consentFor(userId))!.consentGrantedAt).toBeNull();
   });
 });

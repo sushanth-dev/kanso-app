@@ -1,13 +1,12 @@
 /**
- * The endpoint that returns the signed-in user and the players they play as and
- * pay for (B4).
+ * The endpoint that returns the signed-in user and the players they own (B4).
  *
- * The person paying and the person playing are different people, so this
- * returns two lists rather than one: the players this login owns, and the
- * players it is a guardian of through `guardian_link`. The tier comes from the
- * user's `subscription` row, defaulting to `free` when there is none, which is
- * the schema's own default for a fresh sign-up rather than a value invented in
- * the handler.
+ * The person playing is the account owner now: a minor signs up themselves and
+ * a guardian is a bare email that confirms consent rather than a second account
+ * with its own players (ADR-0035), so there is one list, not two. The tier
+ * comes from the user's `subscription` row, defaulting to `free` when there is
+ * none, which is the schema's own default for a fresh sign-up rather than a
+ * value invented in the handler.
  */
 import type { Context } from 'hono';
 import { eq } from 'drizzle-orm';
@@ -15,7 +14,7 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { getMe } from '../contract/routes.ts';
 import * as schema from '../db/schema.ts';
-import { guardianLink, player, subscription } from '../db/schema.ts';
+import { player, subscription } from '../db/schema.ts';
 import { user } from '../db/auth-schema.ts';
 import { readSession } from '../session.ts';
 import { toPlayer } from './player-view.ts';
@@ -51,12 +50,6 @@ export function mountMe(
 
     const owned = await deps.db.select().from(player).where(eq(player.ownerUserId, session.userId));
 
-    const guarded = await deps.db
-      .select({ player: player })
-      .from(guardianLink)
-      .innerJoin(player, eq(player.id, guardianLink.playerId))
-      .where(eq(guardianLink.guardianUserId, session.userId));
-
     return c.json(
       {
         userId: account.id,
@@ -64,7 +57,6 @@ export function mountMe(
         name: account.name,
         tier: sub?.tier ?? 'free',
         players: owned.map(toPlayer),
-        guardedPlayers: guarded.map((g) => toPlayer(g.player)),
       },
       200,
     );

@@ -17,12 +17,25 @@ export const user = pgTable('user', {
   email: text('email').notNull().unique(),
   emailVerified: boolean('email_verified').default(false).notNull(),
   image: text('image'),
+  /**
+   * ST-034. The sign-up date of birth as an ISO `YYYY-MM-DD` string. Nullable
+   * because accounts that predate minor self-sign-up have none, and because an
+   * adult may sign up without one. A string rather than a date column because
+   * better-auth's `date` type takes a `Date` object, which JSON sign-up cannot
+   * carry; the age gate parses it.
+   */
+  dateOfBirth: text('date_of_birth'),
+  /**
+   * ST-034. The guardian email a minor names at sign-up, null for everyone
+   * else. The consent state that this email confirms lives in `guardian_consent`,
+   * not here.
+   */
+  guardianEmail: text('guardian_email'),
   // Reconciliation from the better-auth CLI output: the generator emits plain
   // `timestamp`, but every other timestamp in this schema uses
   // `withTimezone: true`. Keeping `user` consistent avoids a no-timezone
   // island and a perpetual ALTER loop on the next `db:generate`. The foreign
-  // keys `player.owner_user_id` and `guardian_link.guardian_user_id` take
-  // against `user.id`, which is unchanged.
+  // key `player.owner_user_id` takes against `user.id`, which is unchanged.
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .defaultNow()

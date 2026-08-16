@@ -60,7 +60,7 @@ export function sesMailer(config: SesConfig | null): Mailer {
             Subject: { Data: 'Confirm your consent' },
             Body: {
               Text: {
-                Data: `A chess identity was attached to your account. Open this link to confirm you are the child's guardian: ${confirmUrl}`,
+                Data: `A minor signed up for KansoChess and named you as their guardian. Open this link to confirm you give consent: ${confirmUrl}`,
               },
             },
           },
