@@ -3,13 +3,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node src/server.ts",
+    "start": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local src/server.ts",
     "typecheck": "tsc --noEmit",
     "openapi": "node src/contract/emit-openapi.ts",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "node src/db/migrate.ts",
-    "seed": "node src/scripts/seed.ts",
-    "backfill": "node src/scripts/backfill.ts"
+    "db:migrate": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local src/db/migrate.ts",
+    "seed": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local src/scripts/seed.ts",
+    "backfill": "node --env-file-if-exists=../../.env --env-file-if-exists=../../.env.local src/scripts/backfill.ts"
   },
   "dependencies": {
     "@aws-sdk/client-ses": "^3.1106.0",
