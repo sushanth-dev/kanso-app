@@ -50,6 +50,9 @@ const handler = new sst.aws.Function('ApiHandler', {
     CORS_ORIGINS: `https://${webHostname}`,
     // The public origin the guardian consent link points at (ST-034).
     APP_ORIGIN: `https://${webHostname}`,
+    // The session signing secret (better-auth). Read from .env at deploy time,
+    // so it lands in the function configuration rather than the repository.
+    BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET!,
   },
   // API Gateway caps a request at 30 seconds, so a longer function timeout is a
   // setting that never gets used.
