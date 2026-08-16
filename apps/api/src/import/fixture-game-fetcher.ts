@@ -40,12 +40,19 @@ function lichessGames(): ProviderGame[] {
   }));
 }
 
-const gamesBySource: Record<'chesscom' | 'lichess', ProviderGame[]> = {
-  chesscom: chesscomGames(),
-  lichess: lichessGames(),
+// Lazy, not a top-level const: this module is statically imported by the Lambda
+// entry, so reading fixtures at module load crashes production where the files
+// are not bundled. The read only runs when a caller uses the stubbed fetcher.
+let gamesBySource: Record<'chesscom' | 'lichess', ProviderGame[]> | undefined;
+const getGames = (): Record<'chesscom' | 'lichess', ProviderGame[]> => {
+  gamesBySource ??= {
+    chesscom: chesscomGames(),
+    lichess: lichessGames(),
+  };
+  return gamesBySource;
 };
 
 export const fixtureGameFetcher: GameFetcher = {
-  chesscom: () => Promise.resolve<FetchGamesOutcome>({ ok: true, games: gamesBySource.chesscom }),
-  lichess: () => Promise.resolve<FetchGamesOutcome>({ ok: true, games: gamesBySource.lichess }),
+  chesscom: () => Promise.resolve<FetchGamesOutcome>({ ok: true, games: getGames().chesscom }),
+  lichess: () => Promise.resolve<FetchGamesOutcome>({ ok: true, games: getGames().lichess }),
 };

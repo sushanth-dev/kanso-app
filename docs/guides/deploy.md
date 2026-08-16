@@ -47,7 +47,7 @@ rather than from guesswork: CloudTrail records every call a deploy actually
 made, so a later pass can read the real list off a completed deploy instead of
 assembling a policy by imagination and discovering the gaps one failure at a
 time. What the first deploy is known to have touched is EC2 for the VPC, the NAT
-instances, and the security groups, RDS, ECR, Lambda, API Gateway, WAFv2, IAM
+instances, and the security groups, RDS, ECR, Lambda, API Gateway, IAM
 for the function roles, Secrets Manager, CloudWatch Logs, ACM, and S3 and SSM
 for SST's own state.
 
@@ -58,7 +58,7 @@ the command lives in [AWS account setup](aws-account-setup.md) rather than
 here. It has to exist before the first deploy. An environment that is meant to
 spend most of its life torn down is exactly the kind that gets left up. The
 threshold is $80 monthly with an alert at half of it, so one deliberate stage
-at about $30 sits under the alert while a second forgotten stage trips it.
+at about $24 sits under the alert while a second forgotten stage trips it.
 
 ## What gets created, and what it costs
 
@@ -69,10 +69,9 @@ Per month, at list price for `ap-south-2`, with the stage up the whole month:
 | VPC, two public and two private subnets, with two NAT instances | about $6 |
 | RDS `db.t4g.micro`, single AZ, 20 GB gp3 | about $17 |
 | Lambda and API Gateway HTTP API | about $0 at this traffic |
-| WAF Web ACL and its allowlist rule | about $6 |
 | Secrets Manager secret for the database credential | $0.40 |
 | ECR repository holding the analysis image | about $0.05 |
-| **Total** | **about $30** |
+| **Total** | **about $24** |
 
 Two notes on that table. The first is that these are list prices rather than a
 bill: the stage this guide was written from lived for hours, not a month, so
@@ -204,11 +203,10 @@ curl -s -o /dev/null -w '%{http_code}\n' \
   "https://$API_ID.execute-api.ap-south-2.amazonaws.com/health"
 ```
 
-Expected is `403`. The WAF Web ACL allows Cloudflare's published ranges and
-blocks everything else, so a request straight to the API Gateway's own
-`execute-api` URL, which does not come through the proxied hostname, is refused.
-If it answers `200`, the WAF is not doing its job and every control Cloudflare
-applies can be skipped by anyone who learns the API id.
+Expected is `403`. The HTTP API has `disableExecuteApiEndpoint` set, so a
+request straight to the API Gateway's own `execute-api` URL is refused outright
+rather than routed. If it answers `200`, the endpoint was not disabled and every
+control Cloudflare applies can be skipped by anyone who learns the API id.
 
 ## HTTPS and DNS
 
@@ -220,11 +218,10 @@ encrypted, and the Cloudflare SSL/TLS mode for the zone must be **Full
 (strict)**, which is what makes Cloudflare actually check the second
 certificate rather than accept anything.
 
-A WAF Web ACL on the API Gateway stage accepts requests from Cloudflare's
-published address ranges and blocks everything else. `infra/api.ts` reads those
-ranges from Cloudflare's API at deploy time rather than keeping a pasted copy,
-because the list changes and a stale copy fails closed: the WAF would start
-refusing the edge it exists to serve.
+`infra/api.ts` sets `disableExecuteApiEndpoint` on the HTTP API, so the default
+`execute-api` URL is refused and the custom domain behind Cloudflare is the only
+public entry. An HTTP API cannot take a WAF Web ACL, so the endpoint is closed at
+the source instead of filtered by address range.
 
 The hostname is `api.kansochess.app` on the `production` stage and
 `<stage>-api.kansochess.app` everywhere else, so a second stage never collides
@@ -293,9 +290,9 @@ aws apigatewayv2 get-domain-names \
 ```
 
 It is a `CNAME` and it must be **Proxied**, the orange cloud. That is what puts
-Cloudflare in front, and it is also what makes the WAF rule above correct:
-unproxied, requests would come from the whole internet and the WAF would refuse
-them.
+Cloudflare in front, which is the only reason the custom domain is reachable:
+the default `execute-api` URL is disabled, so unproxied there is no direct path
+to the origin.
 
 This means the very first deploy of a stage has a gap between the API Gateway
 domain existing and the record pointing at it. Later deploys reuse the same
@@ -314,7 +311,7 @@ npx sst remove --stage dev
 ```
 
 That deletes everything the stage created: the VPC, the database and its data,
-the Lambda and API Gateway, the WAF, the NAT instances, and the ECR image. Two
+the Lambda and API Gateway, the NAT instances, and the ECR image.
 measured teardowns took 6 and 7 minutes 41 seconds, most of it the database and
 the VPC. The bill for the stage stops when the remove finishes. On `production` the `removal: 'retain'`
 setting keeps the database behind, deliberately, so the same command cannot
