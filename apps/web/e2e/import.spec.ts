@@ -39,7 +39,7 @@ test('imports a season by username against the stubbed provider', async ({ page 
   await page.getByLabel('Display name').fill('Mina');
   await page.getByLabel('Birth year').fill('2013');
   await page.getByRole('button', { name: 'Create player' }).click();
-  await expect(page.getByRole('heading', { name: 'Owned Mina' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Mina' })).toBeVisible();
 
   await page.getByRole('link', { name: 'Import games' }).click();
   await expect(page.getByRole('heading', { name: 'Import games' })).toBeVisible();
