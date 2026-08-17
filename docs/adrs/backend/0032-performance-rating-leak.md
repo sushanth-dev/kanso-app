@@ -30,6 +30,13 @@ against the season's rated opponents:
   perfect score to `R + 800`.
 - The leak for one weakness is `performanceRating(S + H) - performanceRating(S)`,
   where `H` is that weakness's half-points lost, clamped so `S + H <= N`.
+- When `S + H > N` the weakness claims more half-points than the season has
+  room for, so the clamp maps the recovered score to a perfect season and the
+  leak is the whole season's deficit, `performanceRating(N) - performanceRating(S)`,
+  flagged `saturated` and read as a floor rather than a marginal cost. Worked
+  example: the sprint-7 season `N = 12`, `S = 6`, `H = 8.5` clamps to a perfect
+  score, so the leak is `R + 800 - R = 800`, the whole deficit rather than the
+  cost of 8.5 half-points.
 
 The leak is computed over rated games only: a game whose opponent Elo is
 missing, whose result is undecided, or whose colour is unknown is not part of
@@ -59,6 +66,19 @@ Attribute each boundary crossing to its own game's opponent and apply
   not match F9's "performance rating" wording.
 - Rejected.
 
+### A bound below the perfect score
+
+Cap the recovered score at `N - 1`, one game below perfect, so the leak stays a
+finite point estimate inside the region where the formula measures a cost.
+
+- Pros: keeps a single figure, and the number is less dramatic.
+- Cons: the bound is a third arbitrary input, which is exactly what this record
+  set out to avoid. The only arguable inputs were meant to be the season window
+  and the minimum-game threshold. The saturated value is the whole season's
+  deficit, a real cost, and stating it as a floor is more honest than
+  redefining it under a new constant.
+- Rejected in favour of flagging the saturation (ST-036).
+
 ## Consequences
 
 - The leak is the number a coach reads, and it is now derived from a named,
@@ -67,6 +87,10 @@ Attribute each boundary crossing to its own game's opponent and apply
   both standard, so the only arguable inputs are the season window and the
   minimum-game threshold, each a named constant in
   `analysis/performance-rating.ts`.
+- A weakness whose half-points exceed the room the season has left is flagged
+  `saturated` and reported as a floor. This is a consequence of the clamp and
+  the 800 cap, documented rather than patched: the season window and the
+  minimum-game threshold remain the only arguable inputs.
 - A game without an opponent Elo is excluded from the season. A player whose
   season is mostly unrated games sees a refusal rather than an estimate, which
   is the honest answer but reads as sparse for uploads that drop the Elo tags.

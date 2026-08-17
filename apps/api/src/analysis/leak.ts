@@ -42,6 +42,8 @@ export interface WeaknessLeak {
   occurrences: number;
   gamesAffected: number;
   ratingLeak: number;
+  /** True when the weakness saturates the season; the leak is then a floor. */
+  saturated: boolean;
 }
 
 export type LeakResult =
@@ -259,7 +261,10 @@ function asRow(
  */
 export function scoreLeaks(baseline: SeasonBaseline, rows: LeakRow[]): WeaknessLeak[] {
   return rows
-    .map((r) => ({ ...r, ratingLeak: leakForWeakness(baseline, r.halfPointsLost) }))
+    .map((r) => {
+      const { ratingLeak, saturated } = leakForWeakness(baseline, r.halfPointsLost);
+      return { ...r, ratingLeak, saturated };
+    })
     .sort(
       (a, b) =>
         b.halfPointsLost - a.halfPointsLost ||

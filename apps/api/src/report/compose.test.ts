@@ -20,6 +20,7 @@ function leak(
     occurrences: 1,
     gamesAffected: 1,
     ratingLeak: 10,
+    saturated: false,
     ...over,
   };
 }

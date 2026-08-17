@@ -37,20 +37,39 @@ describe('leakForWeakness', () => {
   const nearPerfect = { games: 20, score: 18, avgOpponentElo: 1500 };
 
   test('the worked example: 2 half-points at mid-table is 70 points', () => {
-    expect(leakForWeakness(midTable, 2)).toBe(70);
+    expect(leakForWeakness(midTable, 2)).toEqual({ ratingLeak: 70, saturated: false });
   });
 
   test('the worked example: 1 half-point near a perfect season is 130 points', () => {
-    expect(leakForWeakness(nearPerfect, 1)).toBe(130);
+    expect(leakForWeakness(nearPerfect, 1)).toEqual({ ratingLeak: 130, saturated: false });
   });
 
   test('the same half-point costs more near the edges than at mid-table', () => {
-    expect(leakForWeakness(midTable, 1)).toBeLessThan(leakForWeakness(nearPerfect, 1));
+    expect(leakForWeakness(midTable, 1).ratingLeak).toBeLessThan(
+      leakForWeakness(nearPerfect, 1).ratingLeak,
+    );
   });
 
   test('clamps the recovered score to a perfect season', () => {
     // 3 half-points would push 18 past 20; both 2 and 3 clamp to a perfect 20.
-    expect(leakForWeakness(nearPerfect, 3)).toBe(leakForWeakness(nearPerfect, 2));
+    expect(leakForWeakness(nearPerfect, 3).ratingLeak).toBe(
+      leakForWeakness(nearPerfect, 2).ratingLeak,
+    );
+  });
+
+  test('flags a weakness that exceeds the season room as saturated', () => {
+    // ST-036's case: 8.5 half-points on a 6-of-12 season clamps to a perfect
+    // score, so the leak is the whole deficit and reads as a floor.
+    expect(leakForWeakness({ games: 12, score: 6, avgOpponentElo: 1500 }, 8.5)).toEqual({
+      ratingLeak: 800,
+      saturated: true,
+    });
+  });
+
+  test('the exact boundary is not saturated', () => {
+    // H fills the remaining room exactly: a perfect season, a real cost, not
+    // an over-counted floor.
+    expect(leakForWeakness(nearPerfect, 2).saturated).toBe(false);
   });
 
   test('the constants are the numbers the story decided', () => {

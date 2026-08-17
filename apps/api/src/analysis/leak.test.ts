@@ -42,6 +42,7 @@ describe('scoreLeaks', () => {
         occurrences: 4,
         gamesAffected: 3,
         ratingLeak: 70,
+        saturated: false,
       },
       {
         kind: 'motif',
@@ -52,6 +53,7 @@ describe('scoreLeaks', () => {
         occurrences: 2,
         gamesAffected: 2,
         ratingLeak: 35,
+        saturated: false,
       },
     ]);
   });
