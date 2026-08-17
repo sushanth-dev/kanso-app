@@ -22,6 +22,8 @@ export interface ComposedWeakness {
   label: string;
   eco: string | null;
   ratingLeak: number;
+  /** True when the weakness saturates the season; the leak is then a floor. */
+  saturated: boolean;
   halfPointsLost: number;
   gamesAffected: number;
   occurrences: number;
@@ -56,6 +58,7 @@ export function composeReport(
     label: w.label,
     eco: w.eco,
     ratingLeak: w.ratingLeak,
+    saturated: w.saturated,
     halfPointsLost: w.halfPointsLost,
     gamesAffected: w.gamesAffected,
     occurrences: w.occurrences,

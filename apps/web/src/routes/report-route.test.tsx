@@ -15,6 +15,7 @@ const motifWeakness = {
   label: 'Missed captures',
   eco: null,
   ratingLeak: 34,
+  saturated: false,
   halfPointsLost: 2.5,
   gamesAffected: 6,
   occurrences: 9,
@@ -27,6 +28,7 @@ const openingWeakness = {
   label: 'Sicilian, Alapin',
   eco: 'B22',
   ratingLeak: 21,
+  saturated: false,
   halfPointsLost: 1.5,
   gamesAffected: 4,
   occurrences: 5,
@@ -136,6 +138,7 @@ describe('ReportScreen', () => {
           label: 'Middlegame',
           eco: null,
           ratingLeak: 15,
+          saturated: false,
           halfPointsLost: 1,
           gamesAffected: 5,
           occurrences: 6,
@@ -149,5 +152,14 @@ describe('ReportScreen', () => {
     expect(
       await screen.findByText(/Time trouble is measured on online games only/),
     ).toBeInTheDocument();
+  });
+
+  test('states a saturated leak as a floor in words, not a bare number', () => {
+    renderReport(
+      reportFixture({
+        weaknesses: [{ ...motifWeakness, ratingLeak: 702, saturated: true }],
+      }),
+    );
+    expect(screen.getByText('at least 702')).toBeInTheDocument();
   });
 });

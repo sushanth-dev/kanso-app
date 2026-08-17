@@ -118,7 +118,14 @@ const weaknessColumns = weaknessHelper.columns([
   }),
   weaknessHelper.accessor('ratingLeak', {
     header: 'Rating leak',
-    cell: (info) => <span className="font-mono text-base">{info.getValue()}</span>,
+    cell: (info) => {
+      const weakness = info.row.original;
+      return (
+        <span className="font-mono text-base">
+          {weakness.saturated ? `at least ${info.getValue()}` : info.getValue()}
+        </span>
+      );
+    },
   }),
   weaknessHelper.accessor('gamesAffected', {
     header: 'Games',

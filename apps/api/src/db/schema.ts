@@ -507,6 +507,8 @@ export const weakness = pgTable(
     eco: text('eco'),
     /** F9. Rating points per season. The only currency the player cares about. */
     ratingLeak: integer('rating_leak').notNull(),
+    /** ST-036. True when the leak is the whole season's deficit, a floor. */
+    saturated: boolean('saturated').notNull().default(false),
     halfPointsLost: real('half_points_lost').notNull(),
     gamesAffected: integer('games_affected').notNull(),
     occurrences: integer('occurrences').notNull(),

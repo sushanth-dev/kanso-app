@@ -13,8 +13,11 @@
  * - `performanceRating(score) = R + 400 * log10(score / (N - score))`, with a
  *   zero score mapped to `R - 800` and a perfect score to `R + 800`.
  * - The leak for one weakness is `performanceRating(S + H) - performanceRating(S)`,
- *   where `H` is that weakness's half-points lost, clamped so `S + H <= N`.
- */
+ *   where `H` is that weakness's half-points lost, clamped so `S + H <= N`. When
+ *   `S + H > N` the weakness claims more half-points than the season has room
+ *   for, the clamp maps the recovered score to a perfect season, and the leak is
+ *   the whole season's deficit. That case is flagged `saturated` so the report
+ *   can state the floor rather than a bare number (ST-036).
 
 /** A season is one rolling year, matching ST-023's import default. */
 export const SEASON_WINDOW_MS = 365 * 24 * 60 * 60 * 1000;
@@ -42,13 +45,27 @@ export function performanceRating(score: number, games: number, avgOpponentElo: 
   return avgOpponentElo + ELO_SCALE * Math.log10(p / (1 - p));
 }
 
+/** The leak for one weakness: the rating cost, and whether that cost is a floor. */
+export interface LeakEstimate {
+  /** Rating points the weakness costs over the season. */
+  ratingLeak: number;
+  /**
+   * True when the weakness's half-points exceed the room the season has left
+   * (`score + halfPointsLost > games`). The recovered score clamps to a perfect
+   * season, so the leak is the whole season's deficit rather than a marginal
+   * cost, and reads as a floor rather than a figure.
+   */
+  saturated: boolean;
+}
+
 /** Rating points one weakness costs: the season rating with and without its half-points. */
-export function leakForWeakness(baseline: SeasonBaseline, halfPointsLost: number): number {
+export function leakForWeakness(baseline: SeasonBaseline, halfPointsLost: number): LeakEstimate {
+  const saturated = baseline.score + halfPointsLost > baseline.games;
   const actual = performanceRating(baseline.score, baseline.games, baseline.avgOpponentElo);
   const recovered = performanceRating(
     Math.min(baseline.score + halfPointsLost, baseline.games),
     baseline.games,
     baseline.avgOpponentElo,
   );
-  return Math.round(recovered - actual);
+  return { ratingLeak: Math.round(recovered - actual), saturated };
 }

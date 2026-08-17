@@ -1199,6 +1199,10 @@
             "example": 34,
             "description": "Rating points this weakness costs the player over a season."
           },
+          "saturated": {
+            "type": "boolean",
+            "description": "True when the weakness saturates the season, so the leak is a floor."
+          },
           "halfPointsLost": {
             "type": "number"
           },
@@ -1218,6 +1222,7 @@
           "label",
           "eco",
           "ratingLeak",
+          "saturated",
           "halfPointsLost",
           "gamesAffected",
           "occurrences",
