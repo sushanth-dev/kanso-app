@@ -38,6 +38,7 @@ function monthFromArchiveUrl(url: string): number | null {
 export async function fetchChesscomGames(
   username: string,
   since: Date,
+  maxGames: number,
 ): Promise<FetchGamesOutcome> {
   if (!isPlausibleChesscomUsername(username)) {
     return { ok: false, code: 'username_not_found' };
@@ -55,10 +56,14 @@ export async function fetchChesscomGames(
     const { archives } = (await archivesRes.json()) as { archives?: string[] };
     if (!Array.isArray(archives)) return { ok: false, code: 'upstream_error' };
 
-    const months = archives.filter((url) => {
-      const month = monthFromArchiveUrl(url);
-      return month !== null && month >= sinceMonth;
-    });
+    // Newest month first so the cap keeps the most recent games; the provider
+    // does not guarantee the archive list order.
+    const months = archives
+      .filter((url) => {
+        const month = monthFromArchiveUrl(url);
+        return month !== null && month >= sinceMonth;
+      })
+      .sort((a, b) => (monthFromArchiveUrl(b) ?? 0) - (monthFromArchiveUrl(a) ?? 0));
 
     const games: ProviderGame[] = [];
     for (const monthUrl of months) {
@@ -75,11 +80,13 @@ export async function fetchChesscomGames(
           externalId: raw.url ? gameIdFromUrl(raw.url) : null,
           pgn: raw.pgn,
         });
+        if (games.length >= maxGames) break;
       }
+      if (games.length >= maxGames) break;
       await sleep(CHESSCOM_REQUEST_DELAY_MS);
     }
 
-    return { ok: true, games };
+    return { ok: true, games: games.slice(0, maxGames) };
   } catch {
     return { ok: false, code: 'upstream_error' };
   }

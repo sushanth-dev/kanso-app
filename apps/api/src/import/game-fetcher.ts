@@ -27,9 +27,10 @@ export type FetchGamesOutcome =
   | { ok: false; code: 'username_not_found' }
   | { ok: false; code: 'upstream_error' };
 
+/** Each method fetches at most `maxGames`, newest first, bounding the import. */
 export interface GameFetcher {
-  chesscom(username: string, since: Date): Promise<FetchGamesOutcome>;
-  lichess(username: string, since: Date): Promise<FetchGamesOutcome>;
+  chesscom(username: string, since: Date, maxGames: number): Promise<FetchGamesOutcome>;
+  lichess(username: string, since: Date, maxGames: number): Promise<FetchGamesOutcome>;
 }
 
 export const httpGameFetcher: GameFetcher = {

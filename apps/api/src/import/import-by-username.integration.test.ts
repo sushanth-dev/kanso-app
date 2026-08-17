@@ -243,7 +243,51 @@ describe('POST /players/{playerId}/imports (username)', () => {
       stream: 'online',
       since: '2025-01-01',
     });
-    expect(gameFetcher.lichess).toHaveBeenCalledWith('onlinekid', new Date('2025-01-01'));
+    expect(gameFetcher.lichess).toHaveBeenCalledWith('onlinekid', new Date('2025-01-01'), 20);
+  });
+
+  test('answers 429 once the daily online cap is reached', async () => {
+    const playerId = await seedPlayer('Test Player');
+    const twenty = Array.from({ length: 20 }, (_, i) => ({
+      externalId: `g${i}`,
+      pgn: `[Event "Live Chess"]\n[Site "https://lichess.org/g${i}"]\n[Date "2026.08.01"]\n[White "onlinekid"]\n[Black "opponent"]\n[Result "1-0"]\n[TimeControl "180"]\n\n1. e4 {[%clk 0:03:00]} e5 {[%clk 0:02:59]} 2. Nf3 {[%clk 0:02:58]}`,
+    }));
+    gameFetcher.lichess.mockResolvedValue({ ok: true, games: twenty });
+
+    const first = await importByUsername(OWNER, playerId, {
+      source: 'lichess',
+      username: 'onlinekid',
+      stream: 'online',
+    });
+    expect(first.status).toBe(202);
+
+    const second = await importByUsername(OWNER, playerId, {
+      source: 'lichess',
+      username: 'onlinekid',
+      stream: 'online',
+    });
+    expect(second.status).toBe(429);
+    expect((await second.json()) as { code: string }).toMatchObject({ code: 'daily_import_cap' });
+    expect(gameFetcher.lichess).toHaveBeenCalledTimes(1);
+  });
+
+  test("bounds the fetch to the day's remaining allowance", async () => {
+    const playerId = await seedPlayer('Test Player');
+    gameFetcher.lichess.mockResolvedValue({ ok: true, games: [onlineGame('g0', 'onlinekid')] });
+    await importByUsername(OWNER, playerId, {
+      source: 'lichess',
+      username: 'onlinekid',
+      stream: 'online',
+    });
+
+    gameFetcher.lichess.mockResolvedValue({ ok: true, games: [] });
+    await importByUsername(OWNER, playerId, {
+      source: 'lichess',
+      username: 'onlinekid',
+      stream: 'online',
+    });
+
+    expect(gameFetcher.lichess).toHaveBeenLastCalledWith('onlinekid', expect.any(Date), 19);
   });
 
   test('answers 403 when the session has no claim', async () => {
