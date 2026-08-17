@@ -247,7 +247,7 @@ export const startImport = createRoute({
     ...authErrors,
     404: error('No such player.'),
     422: error('No Chess.com or Lichess account by that username.'),
-    429: error('The free tier import cap is reached.'),
+    429: error('The daily online import cap is reached.'),
     502: error('The provider fetch failed. Retry later.'),
   },
 });

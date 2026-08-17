@@ -13,7 +13,7 @@
  * not assemble the provider's page.
  */
 import type { Context } from 'hono';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, gte, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { startImport } from '../contract/routes.ts';
@@ -26,6 +26,7 @@ import { decidePlayerColor } from './player-color.ts';
 import { attachGames } from '../tournaments/attach.ts';
 import { readSession } from '../session.ts';
 import type { GameFetcher } from './game-fetcher.ts';
+import { ONLINE_IMPORT_DAILY_CAP_GAMES } from './game-fetch-constants.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
 
@@ -168,6 +169,30 @@ export async function importGames(db: Db, input: ImportGamesInput): Promise<Impo
  */
 const DEFAULT_PERIOD_MS = 365 * 24 * 60 * 60 * 1000;
 
+/**
+ * DEBT-011. Online games this player imported in the given rolling window,
+ * summed from the jobs the import path already writes. Counts `games_imported`
+ * rather than colour-known games, which slightly over-counts undetermined
+ * games and errs conservative against the day's analysis budget.
+ */
+async function countOnlineGamesImportedSince(
+  db: Db,
+  playerId: string,
+  since: Date,
+): Promise<number> {
+  const rows = await db
+    .select({ total: sql<number>`coalesce(sum(${importJob.gamesImported}), 0)` })
+    .from(importJob)
+    .where(
+      and(
+        eq(importJob.playerId, playerId),
+        eq(importJob.stream, 'online'),
+        gte(importJob.createdAt, since),
+      ),
+    );
+  return rows[0]?.total ?? 0;
+}
+
 export function mountImport(
   app: OpenAPIHono,
   deps: { db: Db; getSession: (c: Context) => unknown; gameFetcher: GameFetcher },
@@ -227,10 +252,30 @@ export function mountImport(
       const username = body.username;
       const since = body.since ? new Date(body.since) : new Date(Date.now() - DEFAULT_PERIOD_MS);
       const providerName = body.source === 'chesscom' ? 'Chess.com' : 'Lichess';
+
+      // DEBT-011. A username import is bounded by the day's remaining online
+      // allowance, so one request can never fetch a year of a 14,000-game
+      // account. The counter reads the jobs this import path already writes.
+      const importedToday = await countOnlineGamesImportedSince(
+        deps.db,
+        playerId,
+        new Date(Date.now() - 24 * 60 * 60 * 1000),
+      );
+      const remaining = ONLINE_IMPORT_DAILY_CAP_GAMES - importedToday;
+      if (remaining <= 0) {
+        return c.json(
+          {
+            code: 'daily_import_cap',
+            message: 'Daily online import cap reached. Try again tomorrow.',
+          },
+          429,
+        );
+      }
+
       const outcome =
         body.source === 'chesscom'
-          ? await deps.gameFetcher.chesscom(username, since)
-          : await deps.gameFetcher.lichess(username, since);
+          ? await deps.gameFetcher.chesscom(username, since, remaining)
+          : await deps.gameFetcher.lichess(username, since, remaining);
 
       if (!outcome.ok) {
         if (outcome.code === 'username_not_found') {

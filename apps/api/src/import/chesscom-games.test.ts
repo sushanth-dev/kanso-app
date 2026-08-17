@@ -25,7 +25,7 @@ afterEach(() => {
 
 describe('fetchChesscomGames', () => {
   test('returns username_not_found without calling fetch for an implausible username', async () => {
-    await expect(fetchChesscomGames('on/line', new Date(0))).resolves.toEqual({
+    await expect(fetchChesscomGames('on/line', new Date(0), 1000)).resolves.toEqual({
       ok: false,
       code: 'username_not_found',
     });
@@ -34,7 +34,7 @@ describe('fetchChesscomGames', () => {
 
   test('returns username_not_found for a 404', async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({}, 404));
-    await expect(fetchChesscomGames('onlinekid', new Date(0))).resolves.toEqual({
+    await expect(fetchChesscomGames('onlinekid', new Date(0), 1000)).resolves.toEqual({
       ok: false,
       code: 'username_not_found',
     });
@@ -42,7 +42,7 @@ describe('fetchChesscomGames', () => {
 
   test('returns upstream_error for a non-200 archives response', async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({}, 500));
-    await expect(fetchChesscomGames('onlinekid', new Date(0))).resolves.toEqual({
+    await expect(fetchChesscomGames('onlinekid', new Date(0), 1000)).resolves.toEqual({
       ok: false,
       code: 'upstream_error',
     });
@@ -50,7 +50,7 @@ describe('fetchChesscomGames', () => {
 
   test('returns upstream_error for a malformed archives body', async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ nope: true }));
-    await expect(fetchChesscomGames('onlinekid', new Date(0))).resolves.toEqual({
+    await expect(fetchChesscomGames('onlinekid', new Date(0), 1000)).resolves.toEqual({
       ok: false,
       code: 'upstream_error',
     });
@@ -58,7 +58,7 @@ describe('fetchChesscomGames', () => {
 
   test('returns upstream_error when the network fails', async () => {
     fetchMock.mockRejectedValue(new Error('boom'));
-    await expect(fetchChesscomGames('onlinekid', new Date(0))).resolves.toEqual({
+    await expect(fetchChesscomGames('onlinekid', new Date(0), 1000)).resolves.toEqual({
       ok: false,
       code: 'upstream_error',
     });
@@ -71,7 +71,7 @@ describe('fetchChesscomGames', () => {
       )
       .mockResolvedValueOnce(jsonResponse(JSON.parse(fixture('chesscom-games.json'))));
 
-    const outcome = await fetchChesscomGames('onlinekid', new Date(0));
+    const outcome = await fetchChesscomGames('onlinekid', new Date(0), 1000);
     expect(outcome.ok).toBe(true);
     if (!outcome.ok) return;
     expect(outcome.games).toHaveLength(3);
@@ -85,9 +85,35 @@ describe('fetchChesscomGames', () => {
       jsonResponse({ archives: ['https://api.chess.com/pub/player/onlinekid/games/2026/08'] }),
     );
 
-    const outcome = await fetchChesscomGames('onlinekid', new Date('2026-09-01'));
+    const outcome = await fetchChesscomGames('onlinekid', new Date('2026-09-01'), 1000);
     expect(outcome).toEqual({ ok: true, games: [] });
     // The archives list is fetched; no month archive is older than `since` is not.
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  test('bounds the fetch to maxGames from the newest month', async () => {
+    const game = (n: number) => ({
+      url: `https://www.chess.com/game/live/${n}`,
+      pgn: '[Event "Live Chess"]',
+    });
+    fetchMock
+      .mockResolvedValueOnce(
+        jsonResponse({
+          archives: [
+            'https://api.chess.com/pub/player/onlinekid/games/2026/07',
+            'https://api.chess.com/pub/player/onlinekid/games/2026/08',
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(jsonResponse({ games: [game(3), game(2), game(1)] }));
+
+    const outcome = await fetchChesscomGames('onlinekid', new Date(0), 2);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.games).toHaveLength(2);
+    // The newest month is fetched first despite being listed second, and the
+    // older month is never fetched.
+    expect(String(fetchMock.mock.calls[1]![0])).toContain('2026/08');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

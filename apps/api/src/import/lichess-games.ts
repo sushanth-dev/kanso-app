@@ -47,7 +47,11 @@ function gameTimestampMs(pgn: string): number | null {
   );
 }
 
-export async function fetchLichessGames(username: string, since: Date): Promise<FetchGamesOutcome> {
+export async function fetchLichessGames(
+  username: string,
+  since: Date,
+  maxGames: number,
+): Promise<FetchGamesOutcome> {
   if (!isPlausibleLichessUsername(username)) {
     return { ok: false, code: 'username_not_found' };
   }
@@ -58,10 +62,7 @@ export async function fetchLichessGames(username: string, since: Date): Promise<
 
   try {
     // Newest-first pages: each page moves the window back with the oldest
-    // game's start time, stopping at `since` or a short page. A single player
-    // starts one game at a time, so second-precision start times are unique
-    // and a page-boundary overlap is at most one game, which the store dedup
-    // absorbs. The progress guard is a safety net that never trips in practice.
+    // game's start time, stopping at `since`, `maxGames`, or a short page.
     while (untilMs > sinceMs) {
       const url = `${LICHESS_GAMES_URL}/${encodeURIComponent(username)}?since=${sinceMs}&until=${untilMs}&max=${LICHESS_PAGE_SIZE}&clocks=true`;
       const res = await fetch(url, {
@@ -86,13 +87,14 @@ export async function fetchLichessGames(username: string, since: Date): Promise<
         if (ts !== null && (oldestMs === null || ts < oldestMs)) oldestMs = ts;
       }
 
+      if (games.length >= maxGames) break;
       if (chunks.length < LICHESS_PAGE_SIZE) break;
       if (oldestMs === null || oldestMs >= untilMs) break;
       untilMs = oldestMs;
       await sleep(LICHESS_REQUEST_DELAY_MS);
     }
 
-    return { ok: true, games };
+    return { ok: true, games: games.slice(0, maxGames) };
   } catch {
     return { ok: false, code: 'upstream_error' };
   }
