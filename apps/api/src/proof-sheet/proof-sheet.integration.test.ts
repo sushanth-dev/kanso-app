@@ -206,3 +206,78 @@ describe('the proof sheet', () => {
     expect(res.status).toBe(403);
   });
 });
+
+describe('the proof sheet list', () => {
+  test('answers 401 without a session and 403 for a player the session does not own', async () => {
+    const alice = await signIn('alice@example.com');
+    const alicePlayer = await makePlayer(alice, 'Alice');
+
+    const anon = await app().request(`/players/${alicePlayer}/proof-sheets`);
+    expect(anon.status).toBe(401);
+
+    const bob = await signIn('bob@example.com');
+    const res = await app().request(`/players/${alicePlayer}/proof-sheets`, {
+      headers: { cookie: bob },
+    });
+    expect(res.status).toBe(403);
+  });
+
+  test('is empty before any sheet, lists a live sheet, and drops revoked and expired ones', async () => {
+    const cookie = await signIn('alice@example.com');
+    const playerId = await makePlayer(cookie, 'Alice');
+    await setFocus(cookie, playerId);
+
+    const empty = await app().request(`/players/${playerId}/proof-sheets`, {
+      headers: { cookie },
+    });
+    expect(empty.status).toBe(200);
+    expect(await empty.json()).toEqual([]);
+
+    const { id, token } = await createSheet(cookie, playerId);
+    const listed = await app().request(`/players/${playerId}/proof-sheets`, {
+      headers: { cookie },
+    });
+    expect(listed.status).toBe(200);
+    const rows = (await listed.json()) as Array<{
+      id: string;
+      token: string;
+      revokedAt: string | null;
+    }>;
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ id, token, revokedAt: null });
+
+    await app().request(`/proof-sheets/${id}`, { method: 'DELETE', headers: { cookie } });
+    const afterRevoke = await app().request(`/players/${playerId}/proof-sheets`, {
+      headers: { cookie },
+    });
+    expect(await afterRevoke.json()).toEqual([]);
+
+    const [focus] = await harness.db.select().from(playerFocus).limit(1);
+    await harness.db
+      .insert(proofSheet)
+      .values({
+        playerFocusId: focus!.id,
+        token: 'e'.repeat(43),
+        snapshot: {
+          playerDisplayName: 'x',
+          focusTitle: 'x',
+          coachInstruction: null,
+          stream: 'tournament',
+          unit: 'u',
+          beforeValue: null,
+          afterValue: null,
+          trend: 'insufficient_evidence',
+          gamesBefore: 0,
+          gamesAfter: 0,
+          periodStart: '2026-01-01T00:00:00.000Z',
+          periodEnd: '2026-01-01T00:00:00.000Z',
+        },
+        expiresAt: new Date(Date.now() - 1000),
+      })
+      .returning();
+    const withExpired = await app().request(`/players/${playerId}/proof-sheets`, {
+      headers: { cookie },
+    });
+    expect(await withExpired.json()).toEqual([]);
+  });
+});

@@ -2,7 +2,7 @@ import { queryOptions, QueryClient } from '@tanstack/react-query';
 import { accountApi } from './api/account-api.ts';
 import { diagnosisApi, type Stream } from './api/diagnosis-api.ts';
 import { focusApi } from './api/focus-api.ts';
-
+import { proofSheetApi } from './api/proof-sheet-api.ts';
 export const ME_QUERY_KEY = ['me'] as const;
 export const meQueryOptions = () =>
   queryOptions({
@@ -56,6 +56,14 @@ export const focusQueryOptions = (playerId: string) =>
   queryOptions({
     queryKey: ['focus', playerId] as const,
     queryFn: () => focusApi.getFocus(playerId),
+    retry: false,
+    staleTime: 30_000,
+  });
+
+export const proofSheetsQueryOptions = (playerId: string) =>
+  queryOptions({
+    queryKey: ['proof-sheets', playerId] as const,
+    queryFn: () => proofSheetApi.listProofSheets(playerId),
     retry: false,
     staleTime: 30_000,
   });
