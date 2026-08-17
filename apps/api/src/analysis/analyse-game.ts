@@ -62,9 +62,26 @@ interface Walk {
   positions: string[];
 }
 
+/**
+ * Merge adjacent brace comments so chess.js accepts the movetext.
+ *
+ * chess.js takes one comment after a move and throws on a second immediately
+ * after the first (`Expected ... but "{" found`). Provider and study exports
+ * write two (`5. b4 { 0.12/0 } { [%cal Gb4b5] }`). Merging the two into one
+ * comment keeps both texts, so `%clk` still reaches `getComments()` and then
+ * `clockMs`; stripping would make the game parse and silently drop the clock.
+ *
+ * The pattern is one linear pass with no nesting and no alternation, so it
+ * cannot backtrack. The input is attacker-supplied PGN, and the transform must
+ * stay linear, never a regex that revisits its input.
+ */
+export function mergeAdjacentComments(pgn: string): string {
+  return pgn.replace(/\}\s*\{/g, ' ');
+}
+
 function walkGame(pgn: string): Walk {
   const chess = new Chess();
-  chess.loadPgn(pgn);
+  chess.loadPgn(mergeAdjacentComments(pgn));
   const history = chess.history({ verbose: true });
   if (history.length === 0) throw new Error('game has no moves to analyse');
 
