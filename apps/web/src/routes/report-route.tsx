@@ -15,6 +15,7 @@ import type {
   WeaknessKind,
 } from '../api/diagnosis-api.ts';
 import { secondaryLinkClassName } from '../components/secondary-link.ts';
+import { StreamToggle } from '../components/stream-toggle.tsx';
 import {
   gamesQueryOptions,
   motifsQueryOptions,
@@ -155,7 +156,7 @@ function ReportHeader({
         Back to your account
       </Link>
       <Heading level={1}>{STREAM_HEADING[stream]}</Heading>
-      <StreamToggle stream={stream} onChange={onStreamChange} />
+      <StreamToggle stream={stream} onChange={onStreamChange} ariaLabel="Report stream" />
       {meta !== undefined ? <p className="text-sm text-muted">{meta}</p> : null}
     </header>
   );
@@ -171,41 +172,6 @@ export function ReportScreen({ stream, report, playerId, onStreamChange }: Repor
       ) : (
         <WeaknessTable weaknesses={report.weaknesses} playerId={playerId} stream={stream} />
       )}
-    </div>
-  );
-}
-
-function StreamToggle({
-  stream,
-  onChange,
-}: {
-  stream: Stream;
-  onChange: (stream: Stream) => void;
-}) {
-  return (
-    <div
-      role="group"
-      aria-label="Report stream"
-      className="inline-flex rounded-control border border-border-strong bg-raised p-0.5"
-    >
-      {(['tournament', 'online'] as const).map((option) => {
-        const selected = option === stream;
-        return (
-          <button
-            key={option}
-            type="button"
-            aria-pressed={selected}
-            onClick={() => onChange(option)}
-            className={
-              selected
-                ? 'press rounded-sm bg-accent px-4 py-2 font-ui text-sm text-on-accent'
-                : 'press rounded-sm px-4 py-2 font-ui text-sm text-muted hover:text-primary'
-            }
-          >
-            {option === 'tournament' ? 'Tournament' : 'Online'}
-          </button>
-        );
-      })}
     </div>
   );
 }

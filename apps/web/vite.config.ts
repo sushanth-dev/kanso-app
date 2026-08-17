@@ -9,6 +9,7 @@ export default defineConfig({
     proxy: {
       '/api': 'http://127.0.0.1:3000',
       '/me': 'http://127.0.0.1:3000',
+      '/focuses': 'http://127.0.0.1:3000',
       '/players': 'http://127.0.0.1:3000',
     },
   },

@@ -144,3 +144,45 @@ test('signs up and persists a player through sign-in', async ({ page }) => {
   );
   expect(unexpectedConsoleErrors).toEqual([]);
 });
+
+test('walks report to focus to the verification trend', async ({ page }) => {
+  const email = `focus-${randomUUID()}@example.com`;
+  const password = `E2e-${randomUUID()}-Aa1!`;
+
+  await page.goto('/sign-up');
+  await signUp(page, 'E2E Focus', email, password);
+  await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
+  await expectNoAxeViolations(page);
+
+  await page.getByRole('link', { name: 'Create player' }).click();
+  await expect(page.getByRole('heading', { name: 'New player' })).toBeVisible();
+  await page.getByLabel('Display name').fill('Mina');
+  await page.getByLabel('Birth year').fill('2013');
+  await page.getByRole('button', { name: 'Create player' }).click();
+  await expect(page.getByRole('heading', { name: 'Mina' })).toBeVisible();
+
+  // The report is the honest empty state before a focus exists.
+  await page.getByRole('link', { name: 'View report' }).click();
+  await expect(page.getByRole('heading', { name: 'Tournament report' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'No analyzed games in this stream yet' }),
+  ).toBeVisible();
+  await expectNoAxeViolations(page);
+  await page.getByRole('link', { name: 'Back to your account' }).click();
+
+  // The choice: the catalogue, with the ranking beside it.
+  await page.getByRole('link', { name: 'Set focus' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Set your focus' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { level: 3, name: 'Converting won positions' }),
+  ).toBeVisible();
+  await expectNoAxeViolations(page);
+
+  // The trend: set a focus and read the honest verdict over zero games.
+  await page.getByRole('button', { name: 'Set Converting won positions' }).click();
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Converting won positions' }),
+  ).toBeVisible();
+  await expect(page.getByText(/We cannot say yet whether this is working/).first()).toBeVisible();
+  await expectNoAxeViolations(page);
+});
