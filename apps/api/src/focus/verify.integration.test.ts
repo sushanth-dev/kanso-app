@@ -117,6 +117,7 @@ async function seedConvertedGame(
     playedAt: Date;
     won: boolean;
     analyzedAt?: Date;
+    timeControl?: string;
   },
 ): Promise<string> {
   const [row] = await harness.db
@@ -130,6 +131,7 @@ async function seedConvertedGame(
       result: fields.won ? '1-0' : '0-1',
       playerColor: 'white',
       playedAt: fields.playedAt,
+      timeControl: fields.timeControl ?? null,
       analyzedAt: fields.analyzedAt ?? new Date('2026-08-01T00:00:00Z'),
       analysisStatus: 'complete',
     })
@@ -331,5 +333,45 @@ describe('focus verification', () => {
     )!;
     expect(tournament.windowGames).toBe(10);
     expect(tournament.trend).toBe('flat');
+  });
+
+  test('the online window counts blitz games only, excluding bullet', async () => {
+    const cookie = await signIn(EMAIL_A);
+    const playerId = await makePlayer(cookie);
+    await seedFocus(playerId, {
+      catalogueId: await catalogueId('converting_won_positions'),
+      startedAt: STARTED,
+    });
+
+    for (let i = 1; i <= 10; i++) {
+      await seedConvertedGame(playerId, {
+        stream: 'online',
+        playedAt: d(`2026-07-${String(i).padStart(2, '0')}`),
+        won: true,
+        timeControl: '180+0',
+      });
+    }
+    for (let i = 1; i <= 9; i++) {
+      await seedConvertedGame(playerId, {
+        stream: 'online',
+        playedAt: d(`2026-08-${15 + i}`),
+        won: true,
+        timeControl: '180+0',
+      });
+    }
+    // The newest current game is bullet, and it must not enter the window.
+    await seedConvertedGame(playerId, {
+      stream: 'online',
+      playedAt: d('2026-08-30'),
+      won: true,
+      timeControl: '60+0',
+    });
+
+    const body = await getFocus(cookie, playerId);
+    const online = (body.measurements as Array<Record<string, unknown>>).find(
+      (m) => m.stream === 'online',
+    )!;
+    expect(online.windowGames).toBe(9);
+    expect(online.trend).toBe('insufficient_evidence');
   });
 });

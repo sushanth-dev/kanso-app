@@ -23,6 +23,12 @@ which the honest answer is a refusal, and what separates a trend from noise.
 * The baseline is two equal windows split at `focus.startedAt`: the 10 most
   recent analysed games in the stream since the commitment against the 10 most
   recent before it.
+* The online window counts blitz games only (ST-040). Bullet, rapid, and
+  classical online games are excluded before the window splits: bullet is too
+  fast to reflect understanding, and rapid and classical have no volume. The
+  online stream measures only the opening and endgame focuses
+  (`opening_repertoire_results` and `converting_won_positions`);
+  `tactical_alertness` is tournament-only and `time_management` is retired.
 * Minimum evidence is a stream floor (10 games per half) plus a per-focus floor
   that reuses the existing constants (`MIN_CLOCKED_GAMES`, `MIN_TROUBLE_MOVES`)
   or names a new one. Below either, the trend is `insufficient_evidence` with
@@ -79,6 +85,10 @@ which the honest answer is a refusal, and what separates a trend from noise.
   following `analysis/phase.ts` and `analysis/result-boundary.ts`.
 * `insufficient_evidence` is a first-class answer with `windowGames` stated,
   never zero-filled, so a thin verdict is visibly thin.
+* On the online stream, only blitz games and only the opening and endgame
+  focuses produce a number. `time_management`, previously online-only, loses
+  its stream and is retired from the catalogue; `tactical_alertness` is
+  tournament-only. The window size and floor are unchanged.
 * On the real data (12 analysed tournament games, zero online), the expected
   answer today is zero of eight focus-and-stream combinations producing a
   number. That is the finding, not a defect: the loop refuses honestly until the
