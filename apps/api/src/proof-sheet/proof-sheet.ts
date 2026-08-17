@@ -7,12 +7,17 @@
  * properties - frozen, token-only, and immediate revocation - are enforced by
  * the shape of these handlers rather than by a comment.
  */
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, gt, isNull, or } from 'drizzle-orm';
 import type { Context } from 'hono';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { z } from '@hono/zod-openapi';
-import { createProofSheet, getSharedProofSheet, revokeProofSheet } from '../contract/routes.ts';
+import {
+  createProofSheet,
+  getSharedProofSheet,
+  listProofSheets,
+  revokeProofSheet,
+} from '../contract/routes.ts';
 import { SharedProofSheet } from '../contract/schemas.ts';
 import * as schema from '../db/schema.ts';
 import { focusCatalogue, player, playerFocus, proofSheet } from '../db/schema.ts';
@@ -146,6 +151,51 @@ export function mountProofSheets(
         expiresAt: created!.expiresAt?.toISOString() ?? null,
       },
       201,
+    );
+  });
+
+  app.openapi(listProofSheets, async (c) => {
+    const session = await readSession(deps.getSession, c);
+    if (session === null) {
+      return c.json({ code: 'no_session', message: 'Sign in to use this endpoint.' }, 401);
+    }
+
+    const { playerId } = c.req.valid('param');
+    if (!(await hasPlayerClaim(deps.db, session.userId, playerId))) {
+      return c.json({ code: 'forbidden', message: 'Not your player.' }, 403);
+    }
+
+    // Live sheets only: revoked and expired links are gone, and a nonexistent
+    // player already answered 403 above, so an empty list is the honest "none".
+    const now = new Date();
+    const rows = await deps.db
+      .select({
+        id: proofSheet.id,
+        token: proofSheet.token,
+        createdAt: proofSheet.createdAt,
+        expiresAt: proofSheet.expiresAt,
+      })
+      .from(proofSheet)
+      .innerJoin(playerFocus, eq(proofSheet.playerFocusId, playerFocus.id))
+      .where(
+        and(
+          eq(playerFocus.playerId, playerId),
+          isNull(proofSheet.revokedAt),
+          or(isNull(proofSheet.expiresAt), gt(proofSheet.expiresAt, now)),
+        ),
+      )
+      .orderBy(desc(proofSheet.createdAt));
+
+    return c.json(
+      rows.map((row) => ({
+        id: row.id,
+        token: row.token,
+        url: shareUrlFor(row.token),
+        createdAt: row.createdAt.toISOString(),
+        revokedAt: null,
+        expiresAt: row.expiresAt?.toISOString() ?? null,
+      })),
+      200,
     );
   });
 

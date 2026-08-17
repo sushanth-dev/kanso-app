@@ -18,6 +18,7 @@ import {
   type FocusTrend,
   type SetFocus,
 } from '../api/focus-api.ts';
+import { proofSheetApi, type ProofSheet } from '../api/proof-sheet-api.ts';
 import { secondaryLinkClassName } from '../components/secondary-link.ts';
 import { StatusMessage } from '../components/status-message.tsx';
 import { StreamToggle } from '../components/stream-toggle.tsx';
@@ -25,6 +26,7 @@ import {
   focusQueryOptions,
   focusesQueryOptions,
   ME_QUERY_KEY,
+  proofSheetsQueryOptions,
   reportQueryOptions,
 } from '../query-client.ts';
 
@@ -170,13 +172,132 @@ function CatalogueFocusCard({ focus }: { focus: ActiveFocus }) {
   );
 }
 
+const createdFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+});
+
+function ShareSection({ playerId }: { playerId: string }) {
+  const queryClient = useQueryClient();
+  const sheetsQuery = useQuery(proofSheetsQueryOptions(playerId));
+  const [creating, setCreating] = useState(false);
+  const [revoking, setRevoking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [revoked, setRevoked] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const current = sheetsQuery.data?.[0];
+
+  async function handleCreate() {
+    setCreating(true);
+    setError(null);
+    setCopied(false);
+    try {
+      await proofSheetApi.createProofSheet(playerId);
+      setRevoked(false);
+      await queryClient.invalidateQueries({ queryKey: ['proof-sheets', playerId] });
+    } catch {
+      setError('The share link could not be created. Please try again.');
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function handleCopy(url: string) {
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function handleRevoke(sheet: ProofSheet) {
+    const confirmed = window.confirm(
+      'Revoke this link? Anyone holding it will no longer be able to open the page.',
+    );
+    if (!confirmed) return;
+    setRevoking(true);
+    setError(null);
+    try {
+      await proofSheetApi.revokeProofSheet(sheet.id);
+      setRevoked(true);
+      await queryClient.invalidateQueries({ queryKey: ['proof-sheets', playerId] });
+    } catch {
+      setError('The link could not be revoked. Please try again.');
+    } finally {
+      setRevoking(false);
+    }
+  }
+
+  return (
+    <Card>
+      <Heading level={2}>Share a proof sheet</Heading>
+      {error !== null ? (
+        <div className="mt-4">
+          <StatusMessage tone="error">{error}</StatusMessage>
+        </div>
+      ) : null}
+      {revoked ? (
+        <div className="mt-4">
+          <StatusMessage tone="info">This link is revoked. You can create a new one.</StatusMessage>
+        </div>
+      ) : null}
+      {sheetsQuery.isPending ? (
+        <div
+          role="status"
+          aria-label="Loading share link"
+          className="mt-4 h-4 w-64 rounded-control bg-sunken"
+        />
+      ) : sheetsQuery.isError ? (
+        <p className="mt-4 text-muted">Your share link could not be loaded.</p>
+      ) : revoked || current === undefined ? (
+        <div className="mt-4">
+          <p className="text-muted">Send a parent a before-and-after page for this focus.</p>
+          <Button
+            label={creating ? 'Creating...' : 'Create a share link'}
+            variant="primary"
+            onClick={() => void handleCreate()}
+            className="mt-3 press"
+            isDisabled={creating}
+          />
+        </div>
+      ) : (
+        <div className="mt-4 space-y-4">
+          <p className="text-muted">
+            Created on {createdFormatter.format(new Date(current.createdAt))}.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="min-w-0 flex-1 truncate font-mono text-sm text-primary">
+              {current.url}
+            </span>
+            <Button
+              label={copied ? 'Copied' : 'Copy'}
+              variant="secondary"
+              onClick={() => void handleCopy(current.url)}
+              className="press"
+            />
+          </div>
+          <Button
+            label={revoking ? 'Revoking...' : 'Revoke link'}
+            variant="secondary"
+            onClick={() => void handleRevoke(current)}
+            className="press"
+            isDisabled={revoking}
+          />
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export function ActiveFocusView({
   focus,
   catalogue,
+  playerId,
   onChange,
 }: {
   focus: ActiveFocus;
   catalogue: FocusCatalogueEntry[];
+  playerId: string;
   onChange: () => void;
 }) {
   return (
@@ -194,6 +315,7 @@ export function ActiveFocusView({
       ) : (
         <CatalogueFocusCard focus={focus} />
       )}
+      <ShareSection playerId={playerId} />
       <Button label="Change focus" variant="secondary" onClick={onChange} className="press" />
     </div>
   );
@@ -597,6 +719,11 @@ export function FocusRoute() {
   }
 
   return (
-    <ActiveFocusView focus={activeFocus} catalogue={catalogue} onChange={() => setChoosing(true)} />
+    <ActiveFocusView
+      focus={activeFocus}
+      catalogue={catalogue}
+      playerId={playerId}
+      onChange={() => setChoosing(true)}
+    />
   );
 }

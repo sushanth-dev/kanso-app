@@ -11,6 +11,15 @@ export default defineConfig({
       '/me': 'http://127.0.0.1:3000',
       '/focuses': 'http://127.0.0.1:3000',
       '/players': 'http://127.0.0.1:3000',
+      '/proof-sheets': 'http://127.0.0.1:3000',
+      '/shared': {
+        target: 'http://127.0.0.1:3000',
+        // The shared page and its JSON snapshot share one path. A browser
+        // navigation (Accept: text/html) is the page; a fetch is the API read.
+        bypass(req) {
+          if (req.headers.accept?.includes('text/html')) return '/index.html';
+        },
+      },
     },
   },
 });

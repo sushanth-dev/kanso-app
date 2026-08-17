@@ -558,6 +558,20 @@ export const createProofSheet = createRoute({
   },
 });
 
+export const listProofSheets = createRoute({
+  method: 'get',
+  path: '/players/{playerId}/proof-sheets',
+  tags: ['Proof sheet'],
+  summary: "A player's live share links",
+  description:
+    'F14. The current sheets, newest first, excluding revoked and expired ones. The focus screen renders the first so a link survives a reload and can still be revoked.',
+  request: { params: playerParams },
+  responses: {
+    200: json(z.array(ProofSheet), "The player's live sheets."),
+    ...authErrors,
+  },
+});
+
 export const revokeProofSheet = createRoute({
   method: 'delete',
   path: '/proof-sheets/{proofSheetId}',
@@ -625,6 +639,7 @@ export const routes = [
   listFocuses,
   getFocus,
   setFocus,
+  listProofSheets,
   createProofSheet,
   revokeProofSheet,
   getSharedProofSheet,

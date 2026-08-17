@@ -1,10 +1,11 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, RouterContextProvider } from '@tanstack/react-router';
-import { describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import type { Report } from '../api/diagnosis-api.ts';
 import type { ActiveFocus, FocusCatalogueEntry } from '../api/focus-api.ts';
+import { proofSheetApi, type ProofSheet } from '../api/proof-sheet-api.ts';
 import { createAppRouter } from '../router.tsx';
 import { ActiveFocusView, FocusChoiceView } from './focus-route.tsx';
 
@@ -124,7 +125,12 @@ function renderActiveFocus(
   render(
     <QueryClientProvider client={queryClient}>
       <RouterContextProvider router={router}>
-        <ActiveFocusView focus={focus} catalogue={catalogue} onChange={vi.fn()} />
+        <ActiveFocusView
+          focus={focus}
+          catalogue={catalogue}
+          playerId={playerId}
+          onChange={vi.fn()}
+        />
       </RouterContextProvider>
     </QueryClientProvider>,
   );
@@ -253,5 +259,70 @@ describe('ActiveFocusView', () => {
     renderActiveFocus(focus, [tacticalAlertness]);
     expect(screen.getByText(instruction)).toBeInTheDocument();
     expect(document.querySelector('script')).toBeNull();
+  });
+});
+
+const sheetFixture: ProofSheet = {
+  id: '44444444-4444-4444-8444-444444444444',
+  token: 't'.repeat(43),
+  url: `http://localhost:3000/shared/proof-sheets/${'t'.repeat(43)}`,
+  createdAt: '2026-08-17T00:00:00.000Z',
+  revokedAt: null,
+  expiresAt: null,
+};
+
+describe('ShareSection', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  test('offers an explicit create act, never a toggle', async () => {
+    vi.spyOn(proofSheetApi, 'listProofSheets').mockResolvedValue([]);
+    renderActiveFocus(activeFocusFixture());
+
+    expect(await screen.findByRole('button', { name: 'Create a share link' })).toBeInTheDocument();
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument();
+  });
+
+  test('shows the link, when it was made, and a revoke action once a sheet exists', async () => {
+    vi.spyOn(proofSheetApi, 'listProofSheets').mockResolvedValue([sheetFixture]);
+    renderActiveFocus(activeFocusFixture());
+
+    expect(await screen.findByText(/Created on/)).toBeInTheDocument();
+    expect(screen.getByText(sheetFixture.url)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Revoke link' })).toBeInTheDocument();
+  });
+
+  test('revokes only after confirmation and shows it as revoked', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(proofSheetApi, 'listProofSheets').mockResolvedValue([sheetFixture]);
+    const revoke = vi.spyOn(proofSheetApi, 'revokeProofSheet').mockResolvedValue();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    renderActiveFocus(activeFocusFixture());
+
+    await user.click(await screen.findByRole('button', { name: 'Revoke link' }));
+    await waitFor(() => expect(revoke).toHaveBeenCalledWith(sheetFixture.id));
+    expect(await screen.findByText(/This link is revoked/)).toBeInTheDocument();
+  });
+
+  test('does not revoke when the confirmation is refused', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(proofSheetApi, 'listProofSheets').mockResolvedValue([sheetFixture]);
+    const revoke = vi.spyOn(proofSheetApi, 'revokeProofSheet').mockResolvedValue();
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    renderActiveFocus(activeFocusFixture());
+
+    await user.click(await screen.findByRole('button', { name: 'Revoke link' }));
+    expect(revoke).not.toHaveBeenCalled();
+  });
+
+  test('copies the link to the clipboard', async () => {
+    const user = userEvent.setup();
+    const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
+    vi.spyOn(proofSheetApi, 'listProofSheets').mockResolvedValue([sheetFixture]);
+    renderActiveFocus(activeFocusFixture());
+
+    await user.click(await screen.findByRole('button', { name: 'Copy' }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(sheetFixture.url));
   });
 });
