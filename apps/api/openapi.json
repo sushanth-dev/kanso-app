@@ -2220,7 +2220,7 @@
             }
           },
           "429": {
-            "description": "The free tier import cap is reached.",
+            "description": "The daily online import cap is reached.",
             "content": {
               "application/json": {
                 "schema": {

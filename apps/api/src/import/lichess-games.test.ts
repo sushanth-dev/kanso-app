@@ -21,7 +21,7 @@ afterEach(() => {
 
 describe('fetchLichessGames', () => {
   test('returns username_not_found without calling fetch for an implausible username', async () => {
-    await expect(fetchLichessGames('on/line', new Date(0))).resolves.toEqual({
+    await expect(fetchLichessGames('on/line', new Date(0), 1000)).resolves.toEqual({
       ok: false,
       code: 'username_not_found',
     });
@@ -30,7 +30,7 @@ describe('fetchLichessGames', () => {
 
   test('returns username_not_found for a 404', async () => {
     fetchMock.mockResolvedValueOnce(new Response('not found', { status: 404 }));
-    await expect(fetchLichessGames('onlinekid', new Date(0))).resolves.toEqual({
+    await expect(fetchLichessGames('onlinekid', new Date(0), 1000)).resolves.toEqual({
       ok: false,
       code: 'username_not_found',
     });
@@ -38,7 +38,7 @@ describe('fetchLichessGames', () => {
 
   test('returns upstream_error for a non-200', async () => {
     fetchMock.mockResolvedValueOnce(new Response('boom', { status: 500 }));
-    await expect(fetchLichessGames('onlinekid', new Date(0))).resolves.toEqual({
+    await expect(fetchLichessGames('onlinekid', new Date(0), 1000)).resolves.toEqual({
       ok: false,
       code: 'upstream_error',
     });
@@ -46,7 +46,7 @@ describe('fetchLichessGames', () => {
 
   test('returns upstream_error when the network fails', async () => {
     fetchMock.mockRejectedValue(new Error('boom'));
-    await expect(fetchLichessGames('onlinekid', new Date(0))).resolves.toEqual({
+    await expect(fetchLichessGames('onlinekid', new Date(0), 1000)).resolves.toEqual({
       ok: false,
       code: 'upstream_error',
     });
@@ -55,7 +55,7 @@ describe('fetchLichessGames', () => {
   test('splits a PGN page into games with ids and clock data', async () => {
     fetchMock.mockResolvedValueOnce(new Response(fixture('lichess-games.pgn'), { status: 200 }));
 
-    const outcome = await fetchLichessGames('onlinekid', new Date(0));
+    const outcome = await fetchLichessGames('onlinekid', new Date(0), 1000);
     expect(outcome.ok).toBe(true);
     if (!outcome.ok) return;
     expect(outcome.games).toHaveLength(3);
@@ -76,12 +76,31 @@ describe('fetchLichessGames', () => {
       }),
     );
 
-    const outcome = await fetchLichessGames('onlinekid', new Date(0));
+    const outcome = await fetchLichessGames('onlinekid', new Date(0), 1000);
     expect(outcome.ok).toBe(true);
     if (!outcome.ok) return;
     expect(outcome.games).toHaveLength(501);
     expect(fetchMock).toHaveBeenCalledTimes(2);
     // The second request's window starts at the oldest first-page game.
     expect(fetchMock.mock.calls[1]![0]).toContain(`until=${Date.UTC(2000, 0, 1)}`);
+  });
+
+  test('bounds the fetch to maxGames, newest first', async () => {
+    const page = Array.from(
+      { length: 30 },
+      (_, i) =>
+        `[Event "Test"]\n[Site "https://lichess.org/g${i}"]\n[UTCDate "2026.08.01"]\n[UTCTime "10:00:00"]\n\n1. e4 e5`,
+    ).join('\n\n');
+    fetchMock.mockResolvedValueOnce(new Response(page, { status: 200 }));
+
+    const outcome = await fetchLichessGames('onlinekid', new Date(0), 20);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.games).toHaveLength(20);
+    expect(outcome.games[0]!.externalId).toBe('g0');
+    expect(outcome.games[19]!.externalId).toBe('g19');
+    // The request itself is bounded to the cap, not padded to a full page.
+    expect(String(fetchMock.mock.calls[0]![0])).toContain('max=20');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
