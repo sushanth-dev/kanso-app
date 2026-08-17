@@ -13,6 +13,7 @@ import { and, desc, eq, isNotNull } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import * as schema from '../db/schema.ts';
 import { game } from '../db/schema.ts';
+import { classifyTimeControl } from '../chess/time-control.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
 type Stream = (typeof schema.streamEnum.enumValues)[number];
@@ -104,9 +105,11 @@ export interface FocusMeasurementDraft {
 }
 
 /**
- * Measure one focus over one stream. A window thinner than the floor refuses
- * without computing, and a focus that refuses its own half returns null for it;
- * both surface as `insufficient_evidence` through {@link trendFor}.
+ * Measure one focus over one stream. The online stream counts blitz games
+ * only (ST-040): bullet, rapid, and classical online games are excluded before
+ * the window splits. A window thinner than the floor refuses without
+ * computing, and a focus that refuses its own half returns null for it; both
+ * surface as `insufficient_evidence` through {@link trendFor}.
  */
 export async function measureFocusStream(
   db: Db,
@@ -115,8 +118,8 @@ export async function measureFocusStream(
   startedAt: Date,
   computeValue: FocusValueFn,
 ): Promise<FocusMeasurementDraft> {
-  const games = await db
-    .select({ id: game.id, playedAt: game.playedAt })
+  const rows = await db
+    .select({ id: game.id, playedAt: game.playedAt, timeControl: game.timeControl })
     .from(game)
     .where(
       and(
@@ -127,6 +130,9 @@ export async function measureFocusStream(
       ),
     )
     .orderBy(desc(game.playedAt));
+
+  const games =
+    stream === 'online' ? rows.filter((g) => classifyTimeControl(g.timeControl) === 'blitz') : rows;
 
   const { baselineIds, currentIds, periodStart, periodEnd } = splitWindow(startedAt, games);
   const windowGames = currentIds.length;

@@ -48,8 +48,9 @@ One claim, three parts (from `project/main/docs/positioning.md`):
    and it is how a junior, a coach, and a parent already think.
 2. **Games arrive without typing** where possible: PGN upload first, then
    harvest of published tournament results, eventually scoresheet capture.
-3. **Verification is two-speed and says which speed it is**: the online
-   stream is the fast signal, the next tournament is the proof.
+3. **Verification is two-speed and says which speed it is**: online blitz is
+   the fast signal, on the opening and endgame; the next tournament is the
+   proof for everything else.
 
 The market is niche on purpose: tens of thousands of players in the US, too
 small for Chess.com to chase, which is the moat.
