@@ -19,3 +19,11 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: () => false,
   }),
 });
+
+// jsdom does not implement the async clipboard; the share section's copy
+// affordance reads it. A real browser provides writeText.
+Object.defineProperty(window.navigator, 'clipboard', {
+  writable: true,
+  configurable: true,
+  value: { writeText: () => Promise.resolve() },
+});

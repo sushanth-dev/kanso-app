@@ -329,6 +329,27 @@ verbatim as text, marked "Unverified", with the paired focus named and its
 numbers labelled as the paired number rather than a measurement of the
 instruction.
 
+### Proof sheet
+
+The proof sheet is the first surface built for someone who does not play
+chess: a parent who opens a forwarded link and answers, in about a minute,
+whether the focus is helping. It renders outside the authenticated shell as a
+single quiet centered column (narrower than the app's 48rem), no wordmark, no
+navigation, no sign-in hint. The one-sentence verdict leads, in plain English,
+with the arrow glyph as the second channel, never hue. The before-to-after
+numbers follow in IBM Plex Mono with their unit, each labelled "Before the
+focus" or "Since the focus" and carrying its games count beside it, so five
+reads as five. The stream and period are one muted line; a coach instruction
+is shown verbatim as text. `insufficient_evidence` is a sentence, never a blank
+or a zero. A revoked, expired, or unknown link shows one plain "This link is no
+longer available." page. The reader's fetch carries no credentials.
+
+The share act lives on the focus screen as a `Card`. It is an explicit create
+button, never a toggle; after creation it shows the link with a copy action and
+the creation date, and a revoke action that confirms before it removes the
+link. Revocation reflects the server's answer and reads as "revoked" rather
+than silently disappearing.
+
 ## Do's and Don'ts
 
 ### Do:

@@ -9,6 +9,7 @@ import {
   notFound,
   Outlet,
   redirect,
+  useLocation,
   useRouter,
   type RouterHistory,
 } from '@tanstack/react-router';
@@ -22,12 +23,19 @@ import { FocusRoute } from './routes/focus-route.tsx';
 import { ImportRoute } from './routes/import-route.tsx';
 import { PlayerEditRoute, PlayerNewRoute } from './routes/player-routes.tsx';
 import { ReportRoute } from './routes/report-route.tsx';
+import { SharedProofSheetRoute } from './routes/shared-proof-sheet-route.tsx';
 
 interface RouterContext {
   queryClient: QueryClient;
 }
 
 function RootComponent() {
+  const pathname = useLocation({ select: (location) => location.pathname });
+  // The shared page is public and renders outside the authenticated shell: no
+  // wordmark, no navigation, no credential-carrying chrome.
+  if (pathname.startsWith('/shared/proof-sheets/')) {
+    return <Outlet />;
+  }
   return (
     <StatusMessageProvider>
       <PageFrame>
@@ -174,6 +182,12 @@ const importRoute = createRoute({
   component: ImportRoute,
 });
 
+const sharedProofSheetRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/shared/proof-sheets/$token',
+  component: SharedProofSheetRoute,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   signInRoute,
@@ -186,6 +200,7 @@ const routeTree = rootRoute.addChildren([
     focusRoute,
     importRoute,
   ]),
+  sharedProofSheetRoute,
 ]);
 
 export interface CreateAppRouterOptions {
