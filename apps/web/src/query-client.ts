@@ -1,6 +1,7 @@
 import { queryOptions, QueryClient } from '@tanstack/react-query';
 import { accountApi } from './api/account-api.ts';
 import { diagnosisApi, type Stream } from './api/diagnosis-api.ts';
+import { focusApi } from './api/focus-api.ts';
 
 export const ME_QUERY_KEY = ['me'] as const;
 export const meQueryOptions = () =>
@@ -39,6 +40,22 @@ export const gamesQueryOptions = (playerId: string, stream: Stream) =>
   queryOptions({
     queryKey: ['games', playerId, stream] as const,
     queryFn: () => diagnosisApi.listGames(playerId, stream),
+    retry: false,
+    staleTime: 30_000,
+  });
+
+export const focusesQueryOptions = () =>
+  queryOptions({
+    queryKey: ['focuses'] as const,
+    queryFn: () => focusApi.listFocuses(),
+    retry: false,
+    staleTime: 30_000,
+  });
+
+export const focusQueryOptions = (playerId: string) =>
+  queryOptions({
+    queryKey: ['focus', playerId] as const,
+    queryFn: () => focusApi.getFocus(playerId),
     retry: false,
     staleTime: 30_000,
   });

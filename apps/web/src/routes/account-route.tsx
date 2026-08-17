@@ -38,6 +38,14 @@ function PlayerCard({ player }: { player: Player }) {
             Import games
           </Link>
           <Link
+            to="/account/players/$playerId/focus"
+            params={{ playerId: player.id }}
+            search={{ stream: 'tournament' }}
+            className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline transition-control"
+          >
+            Set focus
+          </Link>
+          <Link
             to="/account/players/$playerId/edit"
             params={{ playerId: player.id }}
             className="inline-flex min-h-11 min-w-11 items-center justify-center font-ui text-sm text-accent underline transition-control"

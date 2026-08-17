@@ -304,6 +304,31 @@ an `info` message ("this usually takes about a minute"); there is no polling.
 `StatusMessage` carries an `info` tone for the first time here, backed by the
 teal informational role with an "i" icon as its second channel.
 
+### Focus
+
+The focus surface is one route with two states decided by the active focus:
+the choice, when none is set, and the verification trend, when one is. The
+choice offers the catalogue from `GET /focuses` alongside a condensed form of
+the report's ranking (rank, label, and `ratingLeak` in mono, with a link to the
+full report), so a focus is chosen against evidence rather than from a bare
+list. Each catalogue entry states which streams it is measured in, and the one
+online-only entry says why. A coach instruction is a second path on the same
+surface: an instruction textarea paired with a required measurable focus, with
+the pairing explained in prose rather than a bare validation error.
+
+The trend is not a chart. The contract carries a baseline and a current value,
+two points, and a chart of two points is decoration (ADR-0028 defers TanStack
+Charts). Each stream is a `Card` named "Tournament" or "Online". The direction
+is a word plus an arrow glyph, never hue: "Improving", "Declining", "Flat",
+each with its arrow, so meaning never travels by hue alone. The numbers are
+`baselineValue` to `currentValue` in IBM Plex Mono with the measurement's
+`unit`, and `windowGames` sits beside every figure so five games reads as five,
+not fifty. `insufficient_evidence` is prose, never a zero or an empty chart:
+what cannot be said yet, and what would change it. A coach instruction is shown
+verbatim as text, marked "Unverified", with the paired focus named and its
+numbers labelled as the paired number rather than a measurement of the
+instruction.
+
 ## Do's and Don'ts
 
 ### Do:

@@ -18,6 +18,7 @@ import { StatusMessageProvider } from './components/status-message.tsx';
 import { meQueryOptions, queryClient } from './query-client.ts';
 import { AccountRoute } from './routes/account-route.tsx';
 import { SignInRoute, SignUpRoute } from './routes/auth-routes.tsx';
+import { FocusRoute } from './routes/focus-route.tsx';
 import { ImportRoute } from './routes/import-route.tsx';
 import { PlayerEditRoute, PlayerNewRoute } from './routes/player-routes.tsx';
 import { ReportRoute } from './routes/report-route.tsx';
@@ -144,6 +145,21 @@ const reportRoute = createRoute({
   component: ReportRoute,
 });
 
+const focusRoute = createRoute({
+  getParentRoute: () => accountRoute,
+  path: '/players/$playerId/focus',
+  validateSearch: (search: Record<string, unknown>) =>
+    search.stream === 'online' ? { stream: 'online' as const } : { stream: 'tournament' as const },
+  beforeLoad: async ({ context, params }) => {
+    const me = await context.queryClient.ensureQueryData(meQueryOptions());
+    if (!me.players.some((player) => player.id === params.playerId)) {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error -- notFound() returns a router not-found error, not an Error.
+      throw notFound();
+    }
+  },
+  component: FocusRoute,
+});
+
 const importRoute = createRoute({
   getParentRoute: () => accountRoute,
   path: '/players/$playerId/import',
@@ -167,6 +183,7 @@ const routeTree = rootRoute.addChildren([
     playersNewRoute,
     playerEditRoute,
     reportRoute,
+    focusRoute,
     importRoute,
   ]),
 ]);
