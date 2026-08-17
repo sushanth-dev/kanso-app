@@ -57,19 +57,35 @@ export function trendFor(
  * Split a stream's analysed games, newest first, at `startedAt` into two
  * equal-sized windows: the games since the commitment and the games before it.
  * Each half is capped at {@link FOCUS_WINDOW_GAMES}; the caller decides refusal.
+ * `periodStart` is the oldest baseline game and `periodEnd` the newest current
+ * game, null when that half is empty.
  */
 export function splitWindow(
   startedAt: Date,
   games: { id: string; playedAt: Date | null }[],
-): { baselineIds: string[]; currentIds: string[] } {
+): {
+  baselineIds: string[];
+  currentIds: string[];
+  periodStart: Date | null;
+  periodEnd: Date | null;
+} {
   const baselineIds: string[] = [];
   const currentIds: string[] = [];
+  let periodStart: Date | null = null;
+  let periodEnd: Date | null = null;
   for (const g of games) {
     if (g.playedAt === null) continue;
-    const target = g.playedAt.getTime() >= startedAt.getTime() ? currentIds : baselineIds;
-    if (target.length < FOCUS_WINDOW_GAMES) target.push(g.id);
+    if (g.playedAt.getTime() >= startedAt.getTime()) {
+      if (currentIds.length < FOCUS_WINDOW_GAMES) {
+        if (periodEnd === null) periodEnd = g.playedAt;
+        currentIds.push(g.id);
+      }
+    } else if (baselineIds.length < FOCUS_WINDOW_GAMES) {
+      baselineIds.push(g.id);
+      periodStart = g.playedAt;
+    }
   }
-  return { baselineIds, currentIds };
+  return { baselineIds, currentIds, periodStart, periodEnd };
 }
 
 /** Computes one focus's value over a window of games, or null when it refuses. */
@@ -78,8 +94,13 @@ export type FocusValueFn = (gameIds: string[]) => Promise<number | null>;
 export interface FocusMeasurementDraft {
   /** The current window's size: how many recent games sit behind the verdict. */
   windowGames: number;
+  /** The baseline window's size: how many games sit behind the "before". */
+  gamesBefore: number;
   baselineValue: number | null;
   currentValue: number | null;
+  /** The span of the evidence: oldest baseline game to newest current game. */
+  periodStart: Date | null;
+  periodEnd: Date | null;
 }
 
 /**
@@ -107,11 +128,19 @@ export async function measureFocusStream(
     )
     .orderBy(desc(game.playedAt));
 
-  const { baselineIds, currentIds } = splitWindow(startedAt, games);
+  const { baselineIds, currentIds, periodStart, periodEnd } = splitWindow(startedAt, games);
   const windowGames = currentIds.length;
+  const gamesBefore = baselineIds.length;
 
   if (baselineIds.length < FOCUS_WINDOW_GAMES || currentIds.length < FOCUS_WINDOW_GAMES) {
-    return { windowGames, baselineValue: null, currentValue: null };
+    return {
+      windowGames,
+      gamesBefore,
+      baselineValue: null,
+      currentValue: null,
+      periodStart,
+      periodEnd,
+    };
   }
 
   const [baselineValue, currentValue] = await Promise.all([
@@ -119,5 +148,5 @@ export async function measureFocusStream(
     computeValue(currentIds),
   ]);
 
-  return { windowGames, baselineValue, currentValue };
+  return { windowGames, gamesBefore, baselineValue, currentValue, periodStart, periodEnd };
 }
