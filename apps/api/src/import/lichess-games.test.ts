@@ -99,6 +99,8 @@ describe('fetchLichessGames', () => {
     expect(outcome.games).toHaveLength(20);
     expect(outcome.games[0]!.externalId).toBe('g0');
     expect(outcome.games[19]!.externalId).toBe('g19');
+    // The request itself is bounded to the cap, not padded to a full page.
+    expect(String(fetchMock.mock.calls[0]![0])).toContain('max=20');
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

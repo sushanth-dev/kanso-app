@@ -64,7 +64,10 @@ export async function fetchLichessGames(
     // Newest-first pages: each page moves the window back with the oldest
     // game's start time, stopping at `since`, `maxGames`, or a short page.
     while (untilMs > sinceMs) {
-      const url = `${LICHESS_GAMES_URL}/${encodeURIComponent(username)}?since=${sinceMs}&until=${untilMs}&max=${LICHESS_PAGE_SIZE}&clocks=true`;
+      // Ask Lichess for the cap's worth of games, not a full 500-game page, so
+      // a 20-game import does not download and discard a season's first page.
+      const max = Math.min(LICHESS_PAGE_SIZE, maxGames);
+      const url = `${LICHESS_GAMES_URL}/${encodeURIComponent(username)}?since=${sinceMs}&until=${untilMs}&max=${max}&clocks=true`;
       const res = await fetch(url, {
         headers: {
           Accept: 'application/x-chess-pgn',
@@ -88,7 +91,7 @@ export async function fetchLichessGames(
       }
 
       if (games.length >= maxGames) break;
-      if (chunks.length < LICHESS_PAGE_SIZE) break;
+      if (chunks.length < max) break;
       if (oldestMs === null || oldestMs >= untilMs) break;
       untilMs = oldestMs;
       await sleep(LICHESS_REQUEST_DELAY_MS);
