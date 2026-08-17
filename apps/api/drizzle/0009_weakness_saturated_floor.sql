@@ -1,0 +1,1 @@
+ALTER TABLE "weakness" ADD COLUMN "saturated" boolean DEFAULT false NOT NULL;

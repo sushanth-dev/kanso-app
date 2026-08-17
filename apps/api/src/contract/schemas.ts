@@ -482,6 +482,9 @@ export const Weakness = z
       example: 34,
       description: 'Rating points this weakness costs the player over a season.',
     }),
+    saturated: z.boolean().openapi({
+      description: 'True when the weakness saturates the season, so the leak is a floor.',
+    }),
     halfPointsLost: z.number(),
     gamesAffected: z.number().int(),
     occurrences: z.number().int(),

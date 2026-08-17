@@ -240,7 +240,9 @@ function RankingSection({
               <li key={weakness.id} className="flex items-baseline gap-3">
                 <span className="w-8 shrink-0 font-mono text-sm text-muted">#{weakness.rank}</span>
                 <span className="flex-1">{weakness.label}</span>
-                <span className="font-mono">{weakness.ratingLeak}</span>
+                <span className="font-mono">
+                  {weakness.saturated ? `at least ${weakness.ratingLeak}` : weakness.ratingLeak}
+                </span>
               </li>
             ))}
           </ol>
