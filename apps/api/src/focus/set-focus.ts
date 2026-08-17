@@ -39,7 +39,7 @@ export function mountSetFocus(
       const rows = await deps.db
         .select({ id: focusCatalogue.id })
         .from(focusCatalogue)
-        .where(eq(focusCatalogue.key, key))
+        .where(and(eq(focusCatalogue.key, key), isNull(focusCatalogue.retiredAt)))
         .limit(1);
       return rows[0]?.id ?? null;
     };
