@@ -39,6 +39,7 @@ import { mountReport } from './report/report.ts';
 import { mountListFocuses } from './focus/list-focuses.ts';
 import { mountGetFocus } from './focus/get-focus.ts';
 import { mountSetFocus } from './focus/set-focus.ts';
+import { mountProofSheets } from './proof-sheet/proof-sheet.ts';
 
 /** The shape of every error the API emits, from `ApiError` in the contract. */
 export interface ErrorBody {
@@ -241,6 +242,7 @@ export function createApp({
     mountListFocuses(app, { db });
     mountGetFocus(app, { db, getSession: effectiveGetSession });
     mountSetFocus(app, { db, getSession: effectiveGetSession });
+    mountProofSheets(app, { db, getSession: effectiveGetSession });
   }
 
   app.notFound((c) => c.json<ErrorBody>({ code: 'not_found', message: 'No such endpoint.' }, 404));
