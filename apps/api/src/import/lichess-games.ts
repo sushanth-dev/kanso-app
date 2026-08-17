@@ -65,7 +65,12 @@ export async function fetchLichessGames(username: string, since: Date): Promise<
     while (untilMs > sinceMs) {
       const url = `${LICHESS_GAMES_URL}/${encodeURIComponent(username)}?since=${sinceMs}&until=${untilMs}&max=${LICHESS_PAGE_SIZE}&clocks=true`;
       const res = await fetch(url, {
-        headers: { Accept: 'application/x-chess-pgn' },
+        headers: {
+          Accept: 'application/x-chess-pgn',
+          // Lichess soft-blocks the default curl/undici User-Agent with a 404,
+          // so the fetch identifies the app rather than presenting a bot UA.
+          'User-Agent': 'kansochess/1.0',
+        },
         signal: AbortSignal.timeout(GAME_FETCH_TIMEOUT_MS),
       });
       if (res.status === 404) return { ok: false, code: 'username_not_found' };

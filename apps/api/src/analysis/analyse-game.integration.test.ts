@@ -135,6 +135,22 @@ describe('analyseGame', () => {
     expect(rows.map((p) => p.phase)).toEqual(['opening', 'opening', 'opening']);
   });
 
+  test('a game with two consecutive comments after one move analyses', async () => {
+    // ST-035: chess.js rejects `{ ... } { ... }` after one move. The merged
+    // game must analyse, not just parse.
+    const TWO_COMMENTS_PGN =
+      '[Event "Live Chess"]\n[Result "1-0"]\n\n1. e4 { 0.12/0 } { [%cal Ge2e4] } e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O 1-0';
+    const gameId = await seedGame(TWO_COMMENTS_PGN, 'white');
+
+    const outcome = await analyseGame(harness.db, gameId, options);
+
+    expect(outcome.status).toBe('complete');
+    expect(outcome.plies).toBe(9);
+    const [row] = await harness.db.select().from(game).where(eq(game.id, gameId));
+    expect(row!.analysisStatus).toBe('complete');
+    expect(row!.analysisError).toBeNull();
+  });
+
   test('records mistakes for the player’s own moves and nobody else’s', async () => {
     // The opening-leak aggregation counts every mistake row on a game with no
     // filter on colour, so an opponent's blunder stored here would be read as
@@ -177,6 +193,8 @@ describe('analyseGame', () => {
     expect(row!.analysisError).toBeTruthy();
     // A stack trace in a column people read is our internals on their screen.
     expect(row!.analysisError).not.toContain('at ');
+    // The reason names the offending token, not just "analysis failed".
+    expect(row!.analysisError).toContain('"a"');
     expect(await plies(gameId)).toHaveLength(0);
     expect(await mistakes(gameId)).toHaveLength(0);
   });
