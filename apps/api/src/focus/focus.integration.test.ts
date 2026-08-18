@@ -9,7 +9,7 @@ import { eq } from 'drizzle-orm';
 import { createApp } from '../app.ts';
 import { createAuth } from '../auth.ts';
 import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-harness.ts';
-import { focusCatalogue, playerFocus } from '../db/schema.ts';
+import { focusCatalogue, playerFocus, subscription } from '../db/schema.ts';
 
 let harness: IntegrationDatabase;
 
@@ -78,7 +78,12 @@ async function signIn(email: string): Promise<string> {
   expect(res.status).toBe(200);
   const setCookie = res.headers.get('set-cookie');
   expect(setCookie).toBeTruthy();
-  return setCookie as string;
+  const cookie = setCookie as string;
+  // ST-044. Focus and proof sheets are paid surfaces; grant the tier.
+  const session = await a.request('/api/auth/get-session', { headers: { cookie } });
+  const who = (await session.json()) as { session: { userId: string } };
+  await harness.db.insert(subscription).values({ userId: who.session.userId, tier: 'paid' });
+  return cookie;
 }
 
 async function makePlayer(cookie: string): Promise<string> {

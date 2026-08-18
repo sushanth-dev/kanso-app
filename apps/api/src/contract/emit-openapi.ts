@@ -44,6 +44,7 @@ const document = app.getOpenAPI31Document({
     { name: 'Coaching', description: 'Prose over engine-verified facts.' },
     { name: 'Focus', description: 'What to work on, and whether it worked.' },
     { name: 'Proof sheet', description: 'The page a coach sends a parent.' },
+    { name: 'Billing', description: 'Creating orders and confirming payments with Razorpay.' },
   ],
 });
 

@@ -27,9 +27,7 @@ import { Badge } from '@astryxdesign/core/Badge';
 import { Card } from '@astryxdesign/core/Card';
 import { Link } from '@tanstack/react-router';
 import { secondaryLinkClassName } from '../components/secondary-link.ts';
-
-const primaryLinkClassName =
-  'press inline-flex min-h-11 items-center justify-center rounded-control bg-accent px-6 font-ui text-on-accent transition-control hover:bg-accent-hover';
+import { primaryLinkClassName } from '../components/primary-link.ts';
 
 const textLinkClassName =
   'inline-flex min-h-11 items-center font-ui text-accent underline underline-offset-2 transition-control hover:text-accent-hover';
