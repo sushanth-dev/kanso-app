@@ -224,7 +224,7 @@ describe('GET /players/{playerId}/report', () => {
     expect(thirdBody.gamesCovered).toBe(11);
   });
 
-  test('never blends streams, and time trouble is null on a tournament report', async () => {
+  test('never blends streams, and time trouble is null without clock data', async () => {
     const playerId = await makePlayer(OWNER);
     for (let i = 0; i < 10; i++) {
       const id = await seedRatedGame(playerId, { stream: 'online', eco: 'B22' });
@@ -243,7 +243,7 @@ describe('GET /players/{playerId}/report', () => {
     expect(tournament.weaknesses.map((w) => w.eco)).toContain('B20');
     expect(tournament.weaknesses.map((w) => w.eco)).not.toContain('B22');
 
-    // F6: time trouble is online-only; null on a tournament report by design.
+    // F6: no clock data in either stream, so no time trouble on either report.
     expect(online.timeTroubleFromMove).toBeNull(); // no clock data on these games
     expect(tournament.timeTroubleFromMove).toBeNull();
   });
@@ -262,6 +262,28 @@ describe('GET /players/{playerId}/report', () => {
     }
 
     const res = await get(OWNER, playerId, 'online');
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as ReportBody;
+
+    // The earliest move under the threshold is ply 1, so the full move is 1.
+    expect(body.timeTroubleFromMove).toBe(1);
+    expect(body.weaknesses.some((w) => w.kind === 'time_trouble')).toBe(true);
+  });
+
+  test('timeTroubleFromMove is populated on a tournament report with clock data', async () => {
+    const playerId = await makePlayer(OWNER);
+    const clocked: string[] = [];
+    for (let i = 0; i < 10; i++) {
+      const id = await seedRatedGame(playerId, { stream: 'tournament' });
+      if (i < 3) clocked.push(id);
+    }
+    for (const id of clocked) {
+      await harness.db.update(game).set({ hasClockData: true }).where(eq(game.id, id));
+      for (let ply = 1; ply <= 7; ply += 2) await addClockMove(id, ply, 20_000);
+      await addMistake(id, { halfPointsLost: 1, phase: 'middlegame' });
+    }
+
+    const res = await get(OWNER, playerId, 'tournament');
     expect(res.status).toBe(200);
     const body = (await res.json()) as ReportBody;
 

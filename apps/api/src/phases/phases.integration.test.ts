@@ -111,9 +111,13 @@ interface ClockedMove {
  * player's odd plies only and a `mistake` row where `isMistake` is true. The
  * opponent's plies are irrelevant: the query filters by colour parity.
  */
-async function seedClockedGame(playerId: string, moves: ClockedMove[]): Promise<string> {
+async function seedClockedGame(
+  playerId: string,
+  moves: ClockedMove[],
+  stream: 'online' | 'tournament' = 'online',
+): Promise<string> {
   const gameId = await seedGame(playerId, {
-    stream: 'online',
+    stream,
     hasClockData: true,
     playerColor: 'white',
   });
@@ -186,7 +190,7 @@ interface PhaseReportBody {
 }
 
 describe('GET /players/{playerId}/phase', () => {
-  test('aggregates loss by phase, zero-fills empty phases, and says not_online for tournament', async () => {
+  test('aggregates loss by phase, zero-fills empty phases, and says no_clock_data for tournament', async () => {
     const playerId = await makePlayer(OWNER);
     await addMistakes(await seedGame(playerId), [
       { phase: 'opening', cpLoss: 100, ply: 3 },
@@ -205,7 +209,7 @@ describe('GET /players/{playerId}/phase', () => {
       { phase: 'endgame', totalCpLoss: 0, games: 0 },
     ]);
     expect(body.mistakeCount).toBe(5);
-    expect(body.timeTrouble).toEqual({ status: 'unavailable', reason: 'not_online' });
+    expect(body.timeTrouble).toEqual({ status: 'unavailable', reason: 'no_clock_data' });
   });
 
   test('never blends streams', async () => {
@@ -249,6 +253,28 @@ describe('GET /players/{playerId}/phase', () => {
     }
 
     const res = await get(OWNER, playerId, 'online');
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as PhaseReportBody;
+    expect(body.timeTrouble).toEqual({
+      status: 'reported',
+      clockedGames: 3,
+      fromMove: 4,
+      troubleMoves: 15,
+      troubleMistakeRate: 0.6,
+      calmMoves: 9,
+      calmMistakeRate: 0,
+    });
+  });
+
+  test('reports time trouble for classical games that carry clock data, apart from online', async () => {
+    const playerId = await makePlayer(OWNER);
+    for (let g = 0; g < 3; g++) {
+      await seedClockedGame(playerId, clockedMoves(15, 7, [7, 9, 11]), 'tournament');
+    }
+    // An online clocked game that the tournament query must not count.
+    await seedClockedGame(playerId, clockedMoves(15, 999, []));
+
+    const res = await get(OWNER, playerId, 'tournament');
     expect(res.status).toBe(200);
     const body = (await res.json()) as PhaseReportBody;
     expect(body.timeTrouble).toEqual({

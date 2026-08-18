@@ -65,7 +65,7 @@ const phaseReportFixture: PhaseReport = {
   stream: 'tournament',
   phases: [{ phase: 'middlegame', totalCpLoss: 96, games: 7 }],
   mistakeCount: 11,
-  timeTrouble: { status: 'unavailable', reason: 'not_online' },
+  timeTrouble: { status: 'unavailable', reason: 'no_clock_data' },
 };
 
 function renderReport(report: Report, onStreamChange = vi.fn()) {
@@ -149,9 +149,7 @@ describe('ReportScreen', () => {
     const { user, queryClient } = renderReport(report);
     queryClient.setQueryData(['phases', playerId, 'tournament'], phaseReportFixture);
     await user.click(screen.getByRole('button', { name: 'Show evidence' }));
-    expect(
-      await screen.findByText(/Time trouble is measured on online games only/),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/These games do not carry clock data/)).toBeInTheDocument();
   });
 
   test('states a saturated leak as a floor in words, not a bare number', () => {

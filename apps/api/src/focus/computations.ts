@@ -187,13 +187,13 @@ export async function tacticalAlertnessValue(
 
 // ─── Time management ──────────────────────────────────────────────────────────
 
-/** The time-trouble onset move, reusing ST-025's parse and refusal unchanged. */
+/** The time-trouble onset move, online only. Reuses ST-025's computation. */
 export async function timeManagementValue(
   db: Db,
   playerId: string,
   gameIds: string[],
 ): Promise<number | null> {
-  const result = scoreTimeTrouble('online', await timeTroubleCounts(db, playerId, gameIds));
+  const result = scoreTimeTrouble(await timeTroubleCounts(db, playerId, 'online', gameIds));
   return result.status === 'reported' ? result.fromMove : null;
 }
 
