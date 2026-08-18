@@ -22,3 +22,4 @@ frontend decisions. The format and rules are in
 * [0028. Defer TanStack Charts until stable](0028-tanstack-charts-deferral.md)
 * [0031. Refine frontend surfaces with the Impeccable
   plugin](0031-impeccable-frontend-refinement.md)
+* [0038. Record product events with PostHog](0038-record-product-events-posthog.md)
