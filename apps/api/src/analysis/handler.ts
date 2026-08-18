@@ -24,11 +24,13 @@ import {
   ANALYSIS_NODE_CEILING,
 } from './budget.ts';
 import type { EngineOptions } from './engine.ts';
+import { log } from '../logging.ts';
 
 export interface SqsRecord {
-  /** The game id. Nothing else is in the message. */
+  /** The game id; the body is unchanged, the request id rides an attribute. */
   body: string;
   attributes?: { ApproximateReceiveCount?: string };
+  messageAttributes?: { requestId?: { stringValue?: string } };
 }
 
 export interface SqsEvent {
@@ -64,13 +66,14 @@ export async function handler(event: SqsEvent): Promise<void> {
   for (const record of event.Records) {
     const gameId = record.body;
     const attempt = Number(record.attributes?.ApproximateReceiveCount ?? '1');
+    const requestId = record.messageAttributes?.requestId?.stringValue;
 
     try {
       const outcome = await analyseGame(db, gameId, options);
       // A constant message with the values beside it, rather than interpolated
       // into it. The message body arrives from the queue, and a log line an
       // attacker can shape is a log line nobody can trust.
-      console.log('analysed a game', { gameId, ...outcome });
+      log('info', 'game_analysed', { requestId, gameId, ...outcome });
     } catch (error) {
       // `analyseGame` has already written `failed` with the reason. That is the
       // right answer on the last attempt and the wrong one before it: a game a
@@ -78,9 +81,19 @@ export async function handler(event: SqsEvent): Promise<void> {
       // so it goes back to `queued` and the message comes back with it.
       if (attempt < MAX_ATTEMPTS) {
         await db.update(game).set({ analysisStatus: 'queued' }).where(eq(game.id, gameId));
-        console.warn('analysis failed, retrying', { gameId, attempt }, error);
+        log('warn', 'analysis_retrying', {
+          requestId,
+          gameId,
+          attempt,
+          error: error instanceof Error ? error.message : String(error),
+        });
       } else {
-        console.error('analysis failed on its last attempt', { gameId, attempt }, error);
+        log('error', 'analysis_failed', {
+          requestId,
+          gameId,
+          attempt,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
       // Rethrow either way: SQS decides between a retry and the dead-letter
       // queue, and it decides by the message coming back.

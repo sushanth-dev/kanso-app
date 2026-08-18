@@ -21,6 +21,7 @@ import {
 import { proofSheetApi, type ProofSheet } from '../api/proof-sheet-api.ts';
 import { secondaryLinkClassName } from '../components/secondary-link.ts';
 import { primaryLinkClassName } from '../components/primary-link.ts';
+import { track } from '../analytics.ts';
 import { StatusMessage } from '../components/status-message.tsx';
 import { StreamToggle } from '../components/stream-toggle.tsx';
 import {
@@ -660,6 +661,10 @@ export function FocusRoute() {
     setFormError(null);
     try {
       await focusApi.setFocus(playerId, body);
+      track('focus_set', {
+        source: body.source,
+        ...(body.source === 'coach' ? {} : { catalogueKey: body.catalogueKey }),
+      });
       await queryClient.invalidateQueries({ queryKey: ['focus', playerId] });
       setChoosing(false);
     } catch (error) {

@@ -15,6 +15,7 @@ import * as schema from '../db/schema.ts';
 import { processedPayment, subscription } from '../db/schema.ts';
 import { periodEndFor } from './plans.ts';
 import type { RazorpayClient } from './razorpay.ts';
+import { log } from '../logging.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
 
@@ -101,7 +102,8 @@ export function mountRazorpayWebhook(
         });
     });
 
-    console.log('payment captured', {
+    log('info', 'payment_captured', {
+      requestId: c.get('requestId'),
       userId: row.userId,
       plan: row.plan,
       orderId,

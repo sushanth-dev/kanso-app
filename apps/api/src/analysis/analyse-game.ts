@@ -28,6 +28,7 @@ import { evaluatePositions, type EngineOptions, type EvaluatedPosition } from '.
 import { toMistakeRow, type MistakeInsert } from './to-mistake.ts';
 import { parseClockMs } from './clock.ts';
 import { phaseFor } from './phase.ts';
+import { costMicrosFor, DEFAULT_MEMORY_MB } from './cost.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
 type MovePlyInsert = typeof movePly.$inferInsert;
@@ -38,6 +39,7 @@ export interface AnalysisOutcome {
   mistakes: number;
   nodes: number;
   durationMs: number;
+  costMicros: number;
 }
 
 /** `analysis_error` is read by people. Long enough to diagnose, short enough to read. */
@@ -244,6 +246,8 @@ async function analyse(db: Db, gameId: string, options: EngineOptions): Promise<
   }
 
   const durationMs = Math.round(performance.now() - startedAt);
+  const memoryMb = Number(process.env.AWS_LAMBDA_FUNCTION_MEMORY_SIZE ?? DEFAULT_MEMORY_MB);
+  const costMicros = costMicrosFor(durationMs, memoryMb);
 
   await db.transaction(async (tx) => {
     // Delete then insert, inside the transaction: this is the idempotency
@@ -261,6 +265,7 @@ async function analyse(db: Db, gameId: string, options: EngineOptions): Promise<
         analysisError: null,
         analysisNodes: nodes,
         analysisDurationMs: durationMs,
+        analysisCostMicros: costMicros,
       })
       .where(eq(game.id, gameId));
   });
@@ -271,6 +276,7 @@ async function analyse(db: Db, gameId: string, options: EngineOptions): Promise<
     mistakes: mistakeRows.length,
     nodes,
     durationMs,
+    costMicros,
   };
 }
 
