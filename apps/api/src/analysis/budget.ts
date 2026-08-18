@@ -25,3 +25,27 @@ export const ANALYSIS_ENGINES = 2;
 
 /** Transposition table per engine process, not per invocation. */
 export const ANALYSIS_HASH_MB = 128;
+
+/**
+ * The engine release the evaluations were produced by. This is the cache key's
+ * version, and it must move with the `STOCKFISH_RELEASE` arg in
+ * `Dockerfile.analysis`: two values that disagree would serve one version's
+ * evaluation under another's key, which is the cache lying the way ADR-0022
+ * says a gate lies.
+ */
+export const ANALYSIS_ENGINE_VERSION = 'sf_18';
+
+/**
+ * ST-047. The two-pass scan re-searches a swinging ply at
+ * `ANALYSIS_DEPTH + DEEP_PASS_EXTRA_DEPTH`. Three plies past the depth-21
+ * contract reaches depth 24, still under the 15,000,000-node ceiling for the
+ * mean position.
+ */
+export const DEEP_PASS_EXTRA_DEPTH = 3;
+
+/**
+ * A ply swings when the mover's win probability drops by more than this, on
+ * the `winProbDrop` [0, 1] scale. 0.085 is the classifier's inaccuracy
+ * threshold, so exactly the plies worth a deeper look are re-searched.
+ */
+export const SWING_WIN_PROB_EPSILON = 0.085;

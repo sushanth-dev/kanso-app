@@ -18,6 +18,7 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
   real,
   smallint,
   text,
@@ -412,6 +413,34 @@ export const movePly = pgTable(
     moveTimeMs: integer('move_time_ms'),
   },
   (t) => [uniqueIndex('move_ply_unique').on(t.gameId, t.ply)],
+);
+
+/**
+ * ST-047, O4. The shared evaluation cache.
+ *
+ * One row per position the engine has searched to the requested depth, keyed
+ * by the full FEN, the engine version, and the depth. A fixed-depth search is
+ * deterministic (ADR-0023), so a hit is the same evaluation a fresh search
+ * would produce. Only full-depth results are stored: a search stopped by the
+ * node ceiling is never cached, which is what keeps the ceiling out of the key
+ * and the entry trustworthy.
+ *
+ * No player or game columns: a FEN is a board position, not a person, and two
+ * players sharing an opening share one evaluation without sharing data.
+ */
+export const evaluationCache = pgTable(
+  'evaluation_cache',
+  {
+    fen: text('fen').notNull(),
+    engineVersion: text('engine_version').notNull(),
+    depth: smallint('depth').notNull(),
+    evalCp: integer('eval_cp'),
+    evalMate: smallint('eval_mate'),
+    bestMoveUci: text('best_move_uci'),
+    nodes: integer('nodes').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.fen, t.engineVersion, t.depth] })],
 );
 
 // ─── Diagnosis ───────────────────────────────────────────────────────────────
