@@ -83,10 +83,13 @@ describe('router', () => {
     updatePlayer.mockReset();
   });
 
-  test('redirects / to /account', async () => {
-    getMe.mockResolvedValue(meFixture);
+  test('renders the landing page at /', async () => {
     renderAt('/');
-    expect(await screen.findByRole('heading', { name: 'Your account' })).toBeVisible();
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Know the one thing to fix after every tournament.',
+      }),
+    ).toBeVisible();
   });
 
   test('redirects /account to /sign-in when getMe returns 401', async () => {
