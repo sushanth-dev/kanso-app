@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Badge } from '@astryxdesign/core/Badge';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Heading } from '@astryxdesign/core/Heading';
@@ -22,6 +22,7 @@ import {
   phasesQueryOptions,
   reportQueryOptions,
 } from '../query-client.ts';
+import { track } from '../analytics.ts';
 
 const STREAM_HEADING: Record<Stream, string> = {
   tournament: 'Tournament report',
@@ -420,6 +421,9 @@ export function ReportRoute() {
   const { stream } = useSearch({ from: '/account/players/$playerId/report' });
 
   const reportQuery = useQuery(reportQueryOptions(playerId, stream));
+  useEffect(() => {
+    if (reportQuery.data !== undefined) track('report_viewed', { stream });
+  }, [reportQuery.data, stream]);
   const gamesQuery = useQuery({
     ...gamesQueryOptions(playerId, stream),
     enabled:

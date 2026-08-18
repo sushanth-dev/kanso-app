@@ -11,6 +11,7 @@
  * running, with no queue and no branch in the calling code.
  */
 import { SendMessageBatchCommand, SQSClient } from '@aws-sdk/client-sqs';
+import { log } from '../logging.ts';
 import { localstackClientOptions } from '../localstack.ts';
 
 export interface QueueConfig {
@@ -43,7 +44,8 @@ function clientFor(config: QueueConfig): SQSClient {
 }
 
 /**
- * Queue one analysis job per game id.
+ * Queue one analysis job per game id, carrying the import request's id as a
+ * message attribute so the worker's log lines tie back to the request.
  *
  * Throws if the queue rejected any message. A partial send that returns quietly
  * would leave games sitting `pending` with nothing to explain it, and the
@@ -52,12 +54,13 @@ function clientFor(config: QueueConfig): SQSClient {
 export async function enqueueAnalysis(
   gameIds: string[],
   config: QueueConfig | null = queueConfigFromEnv(),
+  requestId?: string,
 ): Promise<void> {
   if (gameIds.length === 0) return;
   if (config === null) {
     if (!warnedAboutNoQueue) {
       warnedAboutNoQueue = true;
-      console.info('ANALYSIS_QUEUE_URL is not set: games are imported but not queued for analysis');
+      log('info', 'analysis_queue_unset');
     }
     return;
   }
@@ -68,7 +71,17 @@ export async function enqueueAnalysis(
     const result = await sqs.send(
       new SendMessageBatchCommand({
         QueueUrl: config.queueUrl,
-        Entries: batch.map((id, index) => ({ Id: String(index), MessageBody: id })),
+        Entries: batch.map((id, index) => ({
+          Id: String(index),
+          MessageBody: id,
+          ...(requestId === undefined
+            ? {}
+            : {
+                MessageAttributes: {
+                  requestId: { DataType: 'String', StringValue: requestId },
+                },
+              }),
+        })),
       }),
     );
     if (result.Failed !== undefined && result.Failed.length > 0) {

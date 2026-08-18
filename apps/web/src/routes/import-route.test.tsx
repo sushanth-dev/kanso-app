@@ -7,6 +7,13 @@ import { ApiRequestError, type Me, type Player } from '../api/account-api.ts';
 import type { ImportApi, ImportJob } from '../api/import-api.ts';
 import { createAppRouter } from '../router.tsx';
 import { ImportScreen, type ImportScreenProps } from './import-route.tsx';
+import { track } from '../analytics.ts';
+
+vi.mock('../analytics.ts', () => ({
+  track: vi.fn(),
+}));
+
+const trackMock = vi.mocked(track);
 
 const ownedPlayerId = '00000000-0000-4000-8000-000000000001';
 
@@ -175,6 +182,20 @@ describe('ImportScreen', () => {
     expect(startImport).toHaveBeenCalledWith(ownedPlayerId, {
       source: 'lichess',
       username: 'hi',
+    });
+  });
+
+  test('fires game_imported with counts, never game or child data', async () => {
+    const user = userEvent.setup();
+    startImport.mockResolvedValue(makeJob({ gamesFound: 3, gamesImported: 3 }));
+    renderScreen();
+    await user.type(screen.getByLabelText('Username'), 'mina123');
+    await user.click(screen.getByRole('button', { name: 'Import games' }));
+    await screen.findByText('Imported 3 games.');
+    expect(trackMock).toHaveBeenCalledWith('game_imported', {
+      source: 'chesscom',
+      gamesFound: 3,
+      gamesImported: 3,
     });
   });
 });

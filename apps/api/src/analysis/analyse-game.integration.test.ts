@@ -108,6 +108,10 @@ describe('analyseGame', () => {
     // These columns are what turn it from an estimate into a measurement.
     expect(row!.analysisNodes).toBeGreaterThan(0);
     expect(row!.analysisDurationMs).toBeGreaterThan(0);
+    // ST-045: the cost is the duration converted at the deployed rate, so O4
+    // is a query over this column, not a re-measurement.
+    expect(row!.analysisCostMicros).toBeGreaterThan(0);
+    expect(outcome.costMicros).toBe(row!.analysisCostMicros);
 
     const plyRows = await plies(gameId);
     expect(plyRows).toHaveLength(7);

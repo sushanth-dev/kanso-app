@@ -14,6 +14,7 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import type { Context, MiddlewareHandler } from 'hono';
 import { cors } from 'hono/cors';
+import { requestId } from 'hono/request-id';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { routes } from './contract/routes.ts';
 import { mountMe } from './account/me.ts';
@@ -48,6 +49,7 @@ import {
   type RazorpayClient,
 } from './billing/razorpay.ts';
 import { mountRazorpayWebhook } from './billing/webhook.ts';
+import { log } from './logging.ts';
 
 /** The shape of every error the API emits, from `ApiError` in the contract. */
 export interface ErrorBody {
@@ -236,6 +238,10 @@ export function createApp({
       return undefined;
     },
   });
+  // One request id per request, generated or accepted, echoed on the response
+  // and readable by every handler as `c.get('requestId')`. It is what ties an
+  // import request to its analysis jobs (ST-045).
+  app.use('*', requestId());
   // The browser's cross-origin session (ST-030 Part 2). The allowlist is read
   // from CORS_ORIGINS rather than a literal, so an unknown origin gets no
   // allow-origin header and the request fails closed rather than being
@@ -313,7 +319,10 @@ export function createApp({
    * for us and routinely carries a query, a path, or a connection string.
    */
   app.onError((error, c) => {
-    console.error('Unhandled error', error);
+    log('error', 'unhandled_error', {
+      requestId: c.get('requestId'),
+      error: error instanceof Error ? error.message : String(error),
+    });
     return c.json<ErrorBody>({ code: 'internal_error', message: 'Something went wrong.' }, 500);
   });
 
