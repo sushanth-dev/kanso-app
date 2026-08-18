@@ -14,7 +14,7 @@ import { createRequire } from 'node:module';
 import { and, asc, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { user } from '../db/auth-schema.ts';
-import { game, mistake, movePly, player } from '../db/schema.ts';
+import { evaluationCache, game, mistake, movePly, player } from '../db/schema.ts';
 import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-harness.ts';
 import { analyseGame } from './analyse-game.ts';
 import type { EngineOptions } from './engine.ts';
@@ -215,6 +215,26 @@ describe('analyseGame', () => {
     expect(forced!.evalMate).toBe(before!.evalMate);
     // The only legal move is also the best one there was.
     expect(forced!.bestMoveSan).toBe('Kg8');
+  });
+
+  test('caches evaluations and re-searches swings at the deeper depth', async () => {
+    const gameId = await seedGame(BLUNDER_PGN, 'black');
+
+    await analyseGame(harness.db, gameId, options);
+
+    const cached = await harness.db.select().from(evaluationCache);
+    const depths = new Set(cached.map((r) => r.depth));
+    // The first pass wrote depth-12 entries; the hung-queen swing wrote
+    // depth-15 entries on the deep pass. Both prove the two passes ran.
+    expect(depths).toContain(12);
+    expect(depths).toContain(15);
+
+    // A second analysis of the same game searches nothing new: every
+    // non-forced position is now cached at both depths.
+    const [first] = await harness.db.select().from(game).where(eq(game.id, gameId));
+    await analyseGame(harness.db, gameId, options);
+    const [second] = await harness.db.select().from(game).where(eq(game.id, gameId));
+    expect(second!.analysisNodes!).toBeLessThan(first!.analysisNodes!);
   });
 
   test('refuses a game with no player colour instead of analysing nobody', async () => {
