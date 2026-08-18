@@ -40,6 +40,14 @@ import { mountListFocuses } from './focus/list-focuses.ts';
 import { mountGetFocus } from './focus/get-focus.ts';
 import { mountSetFocus } from './focus/set-focus.ts';
 import { mountProofSheets } from './proof-sheet/proof-sheet.ts';
+import { mountCheckout } from './billing/checkout.ts';
+import { tierFor } from './billing/entitlement.ts';
+import {
+  httpRazorpayClient,
+  razorpayConfigFromEnv,
+  type RazorpayClient,
+} from './billing/razorpay.ts';
+import { mountRazorpayWebhook } from './billing/webhook.ts';
 
 /** The shape of every error the API emits, from `ApiError` in the contract. */
 export interface ErrorBody {
@@ -66,6 +74,22 @@ export function publicPaths(): string[] {
   return routes
     .filter((route) => 'security' in route && route.security.length === 0)
     .map((route) => route.path);
+}
+
+/**
+ * The routes a free account cannot reach: the Focus and Proof sheet surfaces,
+ * minus the public shared proof sheet. Taken from the contract tags rather than
+ * a second hand-maintained list, so a new paid route is gated by default.
+ */
+export function paidPaths(): string[] {
+  const public_ = new Set(publicPaths());
+  return routes
+    .filter((route) => {
+      const tags = route.tags as readonly string[];
+      return tags.includes('Focus') || tags.includes('Proof sheet');
+    })
+    .map((route) => route.path)
+    .filter((path) => !public_.has(path));
 }
 
 /**
@@ -116,6 +140,26 @@ export function requireConsent(
   };
 }
 
+/**
+ * The tier gate (ST-044): a free account is refused every paid route. It runs
+ * after `requireSession` and `requireConsent`, so it can assume a session and
+ * does one database read in the shared path. The response is the upgrade
+ * signal, not a hidden UI element, so a direct request refuses too.
+ */
+export function requirePaid(
+  db: PostgresJsDatabase<typeof schema>,
+  getSession: (c: Context) => unknown,
+): MiddlewareHandler {
+  return async (c, next) => {
+    const session = await readSession(getSession, c);
+    if (session === null || (await tierFor(db, session.userId)) === 'paid') {
+      await next();
+      return;
+    }
+    return c.json<ErrorBody>({ code: 'upgrade_required', message: 'Upgrade to unlock this.' }, 403);
+  };
+}
+
 export interface AppOptions {
   /**
    * Reads the session off the request. Returns null or undefined when there is
@@ -153,6 +197,11 @@ export interface AppOptions {
    * HTTP fetchers; tests pass a fake so no test makes a real outbound call.
    */
   gameFetcher?: GameFetcher;
+  /**
+   * Creates Razorpay orders and verifies webhooks. Defaults to the real client
+   * read from the environment; tests pass a fake so no test calls Razorpay.
+   */
+  razorpay?: RazorpayClient;
 }
 
 export function createApp({
@@ -161,6 +210,7 @@ export function createApp({
   db,
   ratingFetcher: ratingFetcherOption,
   gameFetcher: gameFetcherOption,
+  razorpay: razorpayOption,
 }: AppOptions = {}) {
   const app = new OpenAPIHono({
     /**
@@ -211,6 +261,7 @@ export function createApp({
   }
 
   const open = new Set(publicPaths());
+  const paid = new Set(paidPaths());
   const guarded = new Set<string>();
   for (const route of routes) {
     if (open.has(route.path) || guarded.has(route.path)) continue;
@@ -218,12 +269,17 @@ export function createApp({
     app.use(toHonoPath(route.path), requireSession(effectiveGetSession));
     if (db) {
       app.use(toHonoPath(route.path), requireConsent(db, effectiveGetSession));
+      if (paid.has(route.path)) {
+        app.use(toHonoPath(route.path), requirePaid(db, effectiveGetSession));
+      }
     }
   }
 
   if (db) {
     const ratingFetcher = ratingFetcherOption ?? httpRatingFetcher;
     const gameFetcher = gameFetcherOption ?? httpGameFetcher;
+    const razorpayConfig = razorpayConfigFromEnv();
+    const razorpay = razorpayOption ?? (razorpayConfig ? httpRazorpayClient(razorpayConfig) : null);
     mountHealth(app, { db });
     mountMe(app, { db, getSession: effectiveGetSession });
     mountCreatePlayer(app, { db, getSession: effectiveGetSession });
@@ -243,6 +299,10 @@ export function createApp({
     mountGetFocus(app, { db, getSession: effectiveGetSession });
     mountSetFocus(app, { db, getSession: effectiveGetSession });
     mountProofSheets(app, { db, getSession: effectiveGetSession });
+    if (razorpay) {
+      mountCheckout(app, { db, getSession: effectiveGetSession, razorpay });
+      mountRazorpayWebhook(app, { db, razorpay });
+    }
   }
 
   app.notFound((c) => c.json<ErrorBody>({ code: 'not_found', message: 'No such endpoint.' }, 404));

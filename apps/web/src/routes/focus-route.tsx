@@ -20,6 +20,7 @@ import {
 } from '../api/focus-api.ts';
 import { proofSheetApi, type ProofSheet } from '../api/proof-sheet-api.ts';
 import { secondaryLinkClassName } from '../components/secondary-link.ts';
+import { primaryLinkClassName } from '../components/primary-link.ts';
 import { StatusMessage } from '../components/status-message.tsx';
 import { StreamToggle } from '../components/stream-toggle.tsx';
 import {
@@ -619,6 +620,21 @@ function FocusError() {
   );
 }
 
+function UpgradePrompt() {
+  return (
+    <Card className="p-6">
+      <Heading level={2}>Your focus is part of the paid loop</Heading>
+      <p className="mt-2 text-muted">
+        Your first diagnosis is free. A focus, verification afterwards, and the proof sheet you send
+        a parent are paid.
+      </p>
+      <Link to="/account/upgrade" className={`${primaryLinkClassName} mt-6`}>
+        See plans
+      </Link>
+    </Card>
+  );
+}
+
 export function FocusRoute() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -678,6 +694,24 @@ export function FocusRoute() {
           <Heading level={1}>Your focus</Heading>
         </header>
         <FocusSkeleton />
+      </div>
+    );
+  }
+
+  if (
+    focusQuery.isError &&
+    focusQuery.error instanceof ApiRequestError &&
+    focusQuery.error.code === 'upgrade_required'
+  ) {
+    return (
+      <div className="space-y-6">
+        <header className="space-y-4">
+          <Link to="/account" className={secondaryLinkClassName}>
+            Back to your account
+          </Link>
+          <Heading level={1}>Your focus</Heading>
+        </header>
+        <UpgradePrompt />
       </div>
     );
   }

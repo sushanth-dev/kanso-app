@@ -14,6 +14,8 @@ import { createRoute, z } from '@hono/zod-openapi';
 import {
   ActiveFocus,
   ApiError,
+  CheckoutRequest,
+  CheckoutResponse,
   CreatePlayer,
   Explanation,
   FocusCatalogueEntry,
@@ -614,6 +616,41 @@ export const getSharedProofSheet = createRoute({
   },
 });
 
+// ─── Billing ────────────────────────────────────────────────────────────────
+
+export const createCheckout = createRoute({
+  method: 'post',
+  path: '/payments/checkout',
+  tags: ['Billing'],
+  summary: 'Create a Razorpay order for a plan',
+  description:
+    'ST-044. Creates a Razorpay order and records the checkout. The client opens Razorpay Checkout with the returned order id; confirmation arrives by webhook.',
+  request: {
+    body: json(CheckoutRequest, 'The plan to purchase.'),
+  },
+  responses: {
+    200: json(CheckoutResponse, 'The order to pay.'),
+    400: error('The request body failed validation.'),
+    401: error('No session.'),
+    502: error('The payment provider could not create an order.'),
+  },
+});
+
+export const razorpayWebhook = createRoute({
+  method: 'post',
+  path: '/payments/webhook',
+  tags: ['Billing'],
+  summary: 'Confirm a payment',
+  description:
+    'ST-044. Razorpay confirms a capture here. The signature is verified against the raw body before anything is trusted; the response is acknowledged so Razorpay stops retrying.',
+  security: [],
+  responses: {
+    204: { description: 'Recorded, or already recorded.' },
+    401: error('The webhook signature did not verify.'),
+    404: error('No checkout for this order.'),
+  },
+});
+
 export const routes = [
   getHealth,
   getMe,
@@ -643,4 +680,6 @@ export const routes = [
   createProofSheet,
   revokeProofSheet,
   getSharedProofSheet,
+  createCheckout,
+  razorpayWebhook,
 ] as const;

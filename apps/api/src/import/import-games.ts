@@ -20,6 +20,7 @@ import { startImport } from '../contract/routes.ts';
 import * as schema from '../db/schema.ts';
 import { game, importJob, player } from '../db/schema.ts';
 import { enqueueAnalysis } from '../analysis/queue.ts';
+import { freeAnalysisRemaining, tierFor } from '../billing/entitlement.ts';
 import { hasPlayerClaim } from '../players/claim.ts';
 import { parseOne, parsePgn, type ParsedGame } from './parse-pgn.ts';
 import { decidePlayerColor } from './player-color.ts';
@@ -401,8 +402,13 @@ export function mountImport(
     // they keep `analysis_status = 'pending'`, which is a state someone can see
     // and re-queue. Failing the import would instead ask the player to re-send
     // games that are already safely in the database.
+    // The free tier is capped at thirty analysed games a month; paid accounts
+    // queue everything. Games past the cap stay pending for next month.
+    const tier = await tierFor(deps.db, session.userId);
+    const budget = tier === 'paid' ? null : await freeAnalysisRemaining(deps.db, session.userId);
+    const toQueue = budget === null ? queued : queued.slice(0, budget);
     try {
-      await enqueueAnalysis(queued);
+      await enqueueAnalysis(toQueue);
     } catch (error) {
       console.error('import stored its games but could not queue them for analysis', error);
     }
