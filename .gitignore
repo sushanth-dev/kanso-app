@@ -50,3 +50,6 @@ apps/web/test-results/
 
 # graphify knowledge graph output; regenerated from the repo, not a source of record
 graphify-out/
+
+# Impeccable working artifacts (review screenshots, mocks, decision comps)
+.impeccable/
