@@ -19,7 +19,9 @@ export const Stream = z.enum(['tournament', 'online']).openapi('Stream', {
     'Tournament games and online games describe different players and are never aggregated together.',
 });
 
-export const GameSource = z.enum(['chesscom', 'lichess', 'pgn_upload']).openapi('GameSource');
+export const GameSource = z
+  .enum(['chesscom', 'lichess', 'pgn_upload', 'uscf'])
+  .openapi('GameSource');
 export const Color = z.enum(['white', 'black']).openapi('Color');
 export const GameResult = z.enum(['1-0', '0-1', '1/2-1/2', '*']).openapi('GameResult');
 export const Phase = z.enum(['opening', 'middlegame', 'endgame']).openapi('Phase');
@@ -151,6 +153,14 @@ export const StartImport = z
       /** One or more games in a single PGN text. F2 rejects malformed games at this boundary. */
       pgn: z.string().min(1).max(5_000_000),
       stream: Stream,
+    }),
+    z.object({
+      source: z.literal('uscf'),
+      /** The event name, resolved to one USCF tournament by the provider's search. */
+      tournamentName: z.string().min(1).max(200),
+      /** The player's real name, matched against the crosstable by the ST-003/ST-010 matcher. */
+      playerName: z.string().min(1).max(80),
+      stream: z.literal('tournament'),
     }),
   ])
   .openapi('StartImport');

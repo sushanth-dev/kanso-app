@@ -235,9 +235,9 @@ export const startImport = createRoute({
   method: 'post',
   path: '/players/{playerId}/imports',
   tags: ['Import'],
-  summary: 'Import games by site username, or from an uploaded PGN',
+  summary: 'Import games by username, uploaded PGN, or USCF tournament name',
   description:
-    'S1, F1, F2, T1. Every game is tagged with its stream at import. An upload rejects the whole file on one malformed game; a username import rejects one malformed game and keeps the rest.',
+    'S1, F1, F2, T1. Every game is tagged with its stream at import. An upload rejects the whole file on one malformed game; a username or tournament import rejects one malformed game and keeps the rest.',
   request: {
     params: playerParams,
     body: json(StartImport, 'What to import.'),
@@ -246,8 +246,8 @@ export const startImport = createRoute({
     202: json(ImportJob, 'Queued. Poll the job or watch the event stream.'),
     ...authErrors,
     404: error('No such player.'),
-    422: error('No Chess.com or Lichess account by that username.'),
-    429: error('The daily online import cap is reached.'),
+    422: error('No matching account, tournament, or player name for the source.'),
+    429: error('The daily import cap is reached.'),
     502: error('The provider fetch failed. Retry later.'),
   },
 });

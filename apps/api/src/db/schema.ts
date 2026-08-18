@@ -36,7 +36,7 @@ import { user } from './auth-schema.ts';
  */
 export const streamEnum = pgEnum('stream', ['tournament', 'online']);
 
-export const gameSourceEnum = pgEnum('game_source', ['chesscom', 'lichess', 'pgn_upload']);
+export const gameSourceEnum = pgEnum('game_source', ['chesscom', 'lichess', 'pgn_upload', 'uscf']);
 
 export const colorEnum = pgEnum('color', ['white', 'black']);
 
