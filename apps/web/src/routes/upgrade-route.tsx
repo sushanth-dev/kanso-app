@@ -34,6 +34,7 @@ import { checkoutApi, type Plan } from '../api/checkout-api.ts';
 import { secondaryLinkClassName } from '../components/secondary-link.ts';
 import { StatusMessage } from '../components/status-message.tsx';
 import { ME_QUERY_KEY, meQueryOptions } from '../query-client.ts';
+import { track } from '../analytics.ts';
 
 interface PlanOption {
   key: Plan;
@@ -130,12 +131,13 @@ export function UpgradeRoute() {
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<'idle' | 'confirming' | 'processing'>('idle');
 
-  async function confirmUpgrade() {
+  async function confirmUpgrade(plan: Plan) {
     setStatus('confirming');
     for (let attempt = 0; attempt < 10; attempt += 1) {
       await queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY });
       const me = await queryClient.fetchQuery(meQueryOptions());
       if (me.tier === 'paid') {
+        track('converted_to_paid', { plan });
         await navigate({ to: '/account' });
         return;
       }
@@ -161,7 +163,7 @@ export function UpgradeRoute() {
         name: 'Kanso Chess',
         order_id: checkout.orderId,
         handler: () => {
-          void confirmUpgrade();
+          void confirmUpgrade(plan);
         },
         theme: { color: accentColor() },
       });

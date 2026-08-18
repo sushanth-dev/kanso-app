@@ -12,6 +12,7 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { getHealth } from './contract/routes.ts';
 import type * as schema from './db/schema.ts';
+import { log } from './logging.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
 
@@ -23,7 +24,10 @@ export function mountHealth(app: OpenAPIHono, deps: { db: Db }): void {
       // The message is not passed on. A driver error routinely carries the
       // host, the user, and sometimes the whole connection string, and this
       // route is public.
-      console.error('Health check could not reach the database', error);
+      log('error', 'health_check_failed', {
+        requestId: c.get('requestId'),
+        error: error instanceof Error ? error.message : String(error),
+      });
       return c.json({ code: 'database_unavailable', message: 'The database did not answer.' }, 503);
     }
     return c.json({ status: 'ok', database: 'ok' } as const, 200);

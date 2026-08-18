@@ -76,6 +76,24 @@ describe.skipIf(endpoint === undefined)('enqueueAnalysis', () => {
     expect((await drain()).sort()).toEqual([...ids].sort());
   });
 
+  test('carries the request id as a message attribute', async () => {
+    const gameId = crypto.randomUUID();
+    const requestId = crypto.randomUUID();
+    await enqueueAnalysis([gameId], config, requestId);
+
+    const received = await sqs.send(
+      new ReceiveMessageCommand({
+        QueueUrl: config.queueUrl,
+        MaxNumberOfMessages: 1,
+        MessageAttributeNames: ['requestId'],
+        WaitTimeSeconds: 1,
+      }),
+    );
+    const message = received.Messages?.[0];
+    expect(message?.Body).toBe(gameId);
+    expect(message?.MessageAttributes?.requestId?.StringValue).toBe(requestId);
+  });
+
   test('does nothing, and does not throw, when no queue is configured', async () => {
     // The local API and every other integration test run on this path.
     await expect(enqueueAnalysis([crypto.randomUUID()], null)).resolves.toBeUndefined();

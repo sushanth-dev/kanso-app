@@ -26,6 +26,7 @@ import { parseOne, parsePgn, type ParsedGame } from './parse-pgn.ts';
 import { decidePlayerColor } from './player-color.ts';
 import { attachGames } from '../tournaments/attach.ts';
 import { readSession } from '../session.ts';
+import { log } from '../logging.ts';
 import type { GameFetcher } from './game-fetcher.ts';
 import { ONLINE_IMPORT_DAILY_CAP_GAMES } from './game-fetch-constants.ts';
 
@@ -408,9 +409,12 @@ export function mountImport(
     const budget = tier === 'paid' ? null : await freeAnalysisRemaining(deps.db, session.userId);
     const toQueue = budget === null ? queued : queued.slice(0, budget);
     try {
-      await enqueueAnalysis(toQueue);
+      await enqueueAnalysis(toQueue, undefined, c.get('requestId'));
     } catch (error) {
-      console.error('import stored its games but could not queue them for analysis', error);
+      log('error', 'import_queue_failed', {
+        requestId: c.get('requestId'),
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
 
     return c.json(
