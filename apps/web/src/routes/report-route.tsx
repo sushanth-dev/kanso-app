@@ -52,8 +52,7 @@ const TIME_TROUBLE_UNAVAILABLE: Record<
   Extract<PhaseReport['timeTrouble'], { status: 'unavailable' }>['reason'],
   string
 > = {
-  not_online: 'Time trouble is measured on online games only.',
-  no_clock_data: 'Your online games do not carry clock data.',
+  no_clock_data: 'These games do not carry clock data.',
   not_enough_evidence: 'Not enough clocked games to measure time trouble yet.',
 };
 

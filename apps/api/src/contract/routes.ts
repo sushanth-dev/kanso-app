@@ -215,7 +215,7 @@ export const getPhases = createRoute({
   tags: ['Diagnosis'],
   summary: 'A player’s evaluation loss by phase, and where time trouble starts',
   description:
-    'ST-025. A player’s centipawn loss attributed to opening, middlegame, and endgame for one stream, with the games behind each phase. For online games with clock data, the time-trouble half reports the move where the remaining clock starts driving mistakes; it is unavailable rather than guessed on tournament games or games without a clock.',
+    'ST-025. A player’s centipawn loss attributed to opening, middlegame, and endgame for one stream, with the games behind each phase. For games with clock data, the time-trouble half reports the move where the remaining clock starts driving mistakes; it is unavailable rather than guessed when no games carry a clock.',
   request: {
     params: playerParams,
     query: z.object({

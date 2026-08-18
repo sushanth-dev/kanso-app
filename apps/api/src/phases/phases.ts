@@ -154,7 +154,7 @@ export type TimeTroubleResult =
       calmMoves: number;
       calmMistakeRate: number;
     }
-  | { status: 'unavailable'; reason: 'not_online' | 'no_clock_data' | 'not_enough_evidence' };
+  | { status: 'unavailable'; reason: 'no_clock_data' | 'not_enough_evidence' };
 
 function rate(mistakes: number, moves: number): number {
   if (moves === 0) return 0;
@@ -164,16 +164,12 @@ function rate(mistakes: number, moves: number): number {
 /**
  * Score and refuse the time-trouble counts. Pure: no database, no clock.
  *
- * The tournament stream is answered with a reason, not a number. No clocked
- * games is `no_clock_data`; a thin history is `not_enough_evidence`, following
- * the ST-019 precedent of refusing rather than drawing a trend through noise.
+ * No clocked games is `no_clock_data`; a thin history is `not_enough_evidence`,
+ * following the ST-019 precedent of refusing rather than drawing a trend
+ * through noise.
  */
-export function scoreTimeTrouble(
-  stream: Stream,
-  counts: TimeTroubleCounts | null,
-): TimeTroubleResult {
-  if (stream === 'tournament') return { status: 'unavailable', reason: 'not_online' };
-  if (counts === null || counts.clockedGames === 0) {
+export function scoreTimeTrouble(counts: TimeTroubleCounts): TimeTroubleResult {
+  if (counts.clockedGames === 0) {
     return { status: 'unavailable', reason: 'no_clock_data' };
   }
   if (counts.clockedGames < MIN_CLOCKED_GAMES || counts.troubleMoves < MIN_TROUBLE_MOVES) {
@@ -192,13 +188,14 @@ export function scoreTimeTrouble(
 }
 
 /**
- * Bucket the player's clocked online moves at the trouble threshold, entirely
- * in SQL, so a large history is aggregated in the database rather than pulled
- * into JavaScript.
+ * Bucket the player's clocked moves in one stream at the trouble threshold,
+ * entirely in SQL, so a large history is aggregated in the database rather
+ * than pulled into JavaScript.
  */
 export async function timeTroubleCounts(
   db: Db,
   playerId: string,
+  stream: Stream,
   gameIds?: string[],
 ): Promise<TimeTroubleCounts> {
   const [gameRow] = await db
@@ -207,7 +204,7 @@ export async function timeTroubleCounts(
     .where(
       and(
         eq(game.playerId, playerId),
-        eq(game.stream, 'online'),
+        eq(game.stream, stream),
         eq(game.analysisStatus, 'complete'),
         eq(game.hasClockData, true),
         gameIds === undefined ? undefined : inArray(game.id, gameIds),
@@ -237,7 +234,7 @@ export async function timeTroubleCounts(
     .where(
       and(
         eq(game.playerId, playerId),
-        eq(game.stream, 'online'),
+        eq(game.stream, stream),
         eq(game.analysisStatus, 'complete'),
         eq(game.hasClockData, true),
         gameIds === undefined ? undefined : inArray(game.id, gameIds),
@@ -285,12 +282,7 @@ export function mountPhases(
       );
     }
 
-    // The clock half is online-only: for the tournament stream it is answered
-    // as unavailable rather than queried and returned empty.
-    const timeTrouble = scoreTimeTrouble(
-      stream,
-      stream === 'tournament' ? null : await timeTroubleCounts(deps.db, playerId),
-    );
+    const timeTrouble = scoreTimeTrouble(await timeTroubleCounts(deps.db, playerId, stream));
 
     return c.json(
       {

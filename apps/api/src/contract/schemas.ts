@@ -231,7 +231,7 @@ export const MovePly = z
     phase: Phase.nullable(),
     evaluation: Evaluation.nullable(),
     bestMoveSan: z.string().nullable(),
-    /** F6. Online games only, and null rather than guessed everywhere else. */
+    /** Present when the stored PGN carried clock data; null otherwise. */
     clockMs: z.number().int().nullable(),
     moveTimeMs: z.number().int().nullable(),
   })
@@ -455,7 +455,7 @@ export const TimeTrouble = z
     }),
     z.object({
       status: z.literal('unavailable'),
-      reason: z.enum(['not_online', 'no_clock_data', 'not_enough_evidence']),
+      reason: z.enum(['no_clock_data', 'not_enough_evidence']),
     }),
   ])
   .openapi('TimeTrouble');
@@ -511,7 +511,7 @@ export const Report = z
     gamesCovered: z.number().int(),
     windowStart: z.iso.datetime().nullable(),
     windowEnd: z.iso.datetime().nullable(),
-    /** F6. Present on an online report, null on a tournament report by design. */
+    /** F6. Present when the stream has enough clocked games; null otherwise. */
     timeTroubleFromMove: z.number().int().nullable(),
     /** S2. Ranked by cost to the player, not by recency. */
     weaknesses: z.array(Weakness),

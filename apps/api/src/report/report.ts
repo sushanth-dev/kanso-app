@@ -189,12 +189,7 @@ export function mountReport(
 
     const rows = await weaknessLeakRows(deps.db, playerId, stream, baseline.windowStart);
     const leaks = scoreLeaks(baseline.baseline, rows);
-    // The clock half is online-only: for the tournament stream it is answered
-    // as unavailable rather than queried and returned empty.
-    const timeTrouble = scoreTimeTrouble(
-      stream,
-      stream === 'tournament' ? null : await timeTroubleCounts(deps.db, playerId),
-    );
+    const timeTrouble = scoreTimeTrouble(await timeTroubleCounts(deps.db, playerId, stream));
     const composed = composeReport(leaks, timeTrouble);
 
     const response = await storeReport(deps.db, {

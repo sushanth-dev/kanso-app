@@ -69,36 +69,29 @@ describe('scoreTimeTrouble', () => {
     fromMove: 22,
   };
 
-  test('the tournament stream is unavailable, with the reason', () => {
-    expect(scoreTimeTrouble('tournament', counts)).toEqual({
-      status: 'unavailable',
-      reason: 'not_online',
-    });
-  });
-
   test('no clocked games is no_clock_data', () => {
-    expect(scoreTimeTrouble('online', { ...counts, clockedGames: 0 })).toEqual({
+    expect(scoreTimeTrouble({ ...counts, clockedGames: 0 })).toEqual({
       status: 'unavailable',
       reason: 'no_clock_data',
     });
   });
 
   test('too few clocked games refuses rather than reports', () => {
-    expect(scoreTimeTrouble('online', { ...counts, clockedGames: 2 })).toEqual({
+    expect(scoreTimeTrouble({ ...counts, clockedGames: 2 })).toEqual({
       status: 'unavailable',
       reason: 'not_enough_evidence',
     });
   });
 
   test('too few trouble moves refuses rather than reports', () => {
-    expect(scoreTimeTrouble('online', { ...counts, troubleMoves: 5 })).toEqual({
+    expect(scoreTimeTrouble({ ...counts, troubleMoves: 5 })).toEqual({
       status: 'unavailable',
       reason: 'not_enough_evidence',
     });
   });
 
   test('reports the rates and the move number once the evidence holds', () => {
-    expect(scoreTimeTrouble('online', counts)).toEqual({
+    expect(scoreTimeTrouble(counts)).toEqual({
       status: 'reported',
       clockedGames: 5,
       fromMove: 22,
