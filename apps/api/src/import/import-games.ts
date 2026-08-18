@@ -37,7 +37,7 @@ export interface ImportGame extends ParsedGame {
 
 export interface ImportGamesInput {
   playerId: string;
-  source: 'chesscom' | 'lichess' | 'pgn_upload';
+  source: 'chesscom' | 'lichess' | 'pgn_upload' | 'uscf';
   /** The provider account a username import reads; null for a PGN upload. */
   username: string | null;
   stream: 'tournament' | 'online';
@@ -123,6 +123,8 @@ export async function importGames(db: Db, input: ImportGamesInput): Promise<Impo
                 opening: g.opening,
                 timeControl: g.timeControl,
                 hasClockData: g.hasClockData,
+                analysisStatus: g.moveCount === 0 ? ('failed' as const) : ('pending' as const),
+                analysisError: g.moveCount === 0 ? 'no moves' : null,
               })),
             )
             .onConflictDoNothing(conflictTarget)
@@ -133,11 +135,16 @@ export async function importGames(db: Db, input: ImportGamesInput): Promise<Impo
               event: game.event,
               site: game.site,
               playedAt: game.playedAt,
+              moveCount: game.moveCount,
             });
 
     const undetermined = inserted.filter((row) => row.playerColor === null).length;
 
-    queued.push(...inserted.filter((row) => row.playerColor !== null).map((row) => row.id));
+    queued.push(
+      ...inserted
+        .filter((row) => row.playerColor !== null && (row.moveCount ?? 0) > 0)
+        .map((row) => row.id),
+    );
 
     await attachGames(
       tx,
@@ -170,14 +177,15 @@ export async function importGames(db: Db, input: ImportGamesInput): Promise<Impo
 const DEFAULT_PERIOD_MS = 365 * 24 * 60 * 60 * 1000;
 
 /**
- * DEBT-011. Online games this player imported in the given rolling window,
- * summed from the jobs the import path already writes. Counts `games_imported`
- * rather than colour-known games, which slightly over-counts undetermined
- * games and errs conservative against the day's analysis budget.
+ * DEBT-011. Games of one stream this player imported in the given rolling
+ * window, summed from the jobs the import path already writes. Counts
+ * `games_imported` rather than colour-known games, which slightly over-counts
+ * undetermined games and errs conservative against the day's budget.
  */
-async function countOnlineGamesImportedSince(
+async function countGamesImportedSince(
   db: Db,
   playerId: string,
+  stream: 'online' | 'tournament',
   since: Date,
 ): Promise<number> {
   const rows = await db
@@ -186,7 +194,7 @@ async function countOnlineGamesImportedSince(
     .where(
       and(
         eq(importJob.playerId, playerId),
-        eq(importJob.stream, 'online'),
+        eq(importJob.stream, stream),
         gte(importJob.createdAt, since),
       ),
     );
@@ -248,6 +256,74 @@ export function mountImport(
         games: parsed.games.map((g) => ({ ...g, externalId: null })),
         gamesRejected: 0,
       }));
+    } else if (body.source === 'uscf') {
+      // DEBT-011, counted on the tournament stream: a crosstable import is
+      // bounded by the same daily allowance, so one request cannot pull a year
+      // of a large event.
+      const importedToday = await countGamesImportedSince(
+        deps.db,
+        playerId,
+        'tournament',
+        new Date(Date.now() - 24 * 60 * 60 * 1000),
+      );
+      const remaining = ONLINE_IMPORT_DAILY_CAP_GAMES - importedToday;
+      if (remaining <= 0) {
+        return c.json(
+          {
+            code: 'daily_import_cap',
+            message: 'Daily tournament import cap reached. Try again tomorrow.',
+          },
+          429,
+        );
+      }
+
+      const outcome = await deps.gameFetcher.uscf(body.tournamentName, body.playerName, remaining);
+
+      if (!outcome.ok) {
+        if (outcome.code === 'tournament_not_found') {
+          return c.json(
+            { code: 'tournament_not_found', message: 'No USCF tournament found by that name.' },
+            422,
+          );
+        }
+        if (outcome.code === 'name_mismatch') {
+          return c.json(
+            {
+              code: 'name_mismatch',
+              message: outcome.detail ?? 'No matching player name in that tournament.',
+            },
+            422,
+          );
+        }
+        return c.json(
+          { code: 'upstream_error', message: 'USCF is unreachable; try again later.' },
+          502,
+        );
+      }
+
+      // A crosstable is results, not game scores: each round is a header-only
+      // PGN the same `parseOne` boundary parses, and the zero-move games are
+      // stored without analysis.
+      const games: ImportGame[] = [];
+      let gamesRejected = 0;
+      outcome.games.forEach((providerGame, index) => {
+        const parsed = parseOne(providerGame.pgn, index);
+        if ('reason' in parsed) {
+          gamesRejected += 1;
+          return;
+        }
+        games.push({ ...parsed, externalId: providerGame.externalId });
+      });
+
+      ({ job, queued } = await importGames(deps.db, {
+        playerId,
+        source: 'uscf',
+        username: null,
+        stream: 'tournament',
+        matchName: body.playerName,
+        games,
+        gamesRejected,
+      }));
     } else {
       const username = body.username;
       const since = body.since ? new Date(body.since) : new Date(Date.now() - DEFAULT_PERIOD_MS);
@@ -256,9 +332,10 @@ export function mountImport(
       // DEBT-011. A username import is bounded by the day's remaining online
       // allowance, so one request can never fetch a year of a 14,000-game
       // account. The counter reads the jobs this import path already writes.
-      const importedToday = await countOnlineGamesImportedSince(
+      const importedToday = await countGamesImportedSince(
         deps.db,
         playerId,
+        'online',
         new Date(Date.now() - 24 * 60 * 60 * 1000),
       );
       const remaining = ONLINE_IMPORT_DAILY_CAP_GAMES - importedToday;

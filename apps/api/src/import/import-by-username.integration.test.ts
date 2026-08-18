@@ -24,6 +24,7 @@ const sessionFor = (userId: string) => () => ({ userId });
 const gameFetcher = {
   chesscom: vi.fn<GameFetcher['chesscom']>(),
   lichess: vi.fn<GameFetcher['lichess']>(),
+  uscf: vi.fn<GameFetcher['uscf']>(),
 };
 
 beforeAll(async () => {
