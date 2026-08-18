@@ -110,7 +110,6 @@ Undecided product facts:
 
 - COPPA approach for under-13 players (blocks launch; needs verifiable
   parental consent).
-- Season price versus monthly price.
 - What coaches pay, if anything, once coach accounts exist.
 - What the first coaches get for helping (a permanent early free tier is
   hard to withdraw).
