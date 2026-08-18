@@ -25,6 +25,7 @@ import { LandingRoute } from './routes/landing-route.tsx';
 import { PlayerEditRoute, PlayerNewRoute } from './routes/player-routes.tsx';
 import { ReportRoute } from './routes/report-route.tsx';
 import { SharedProofSheetRoute } from './routes/shared-proof-sheet-route.tsx';
+import { UpgradeRoute } from './routes/upgrade-route.tsx';
 
 interface RouterContext {
   queryClient: QueryClient;
@@ -180,6 +181,12 @@ const importRoute = createRoute({
   component: ImportRoute,
 });
 
+const upgradeRoute = createRoute({
+  getParentRoute: () => accountRoute,
+  path: '/upgrade',
+  component: UpgradeRoute,
+});
+
 const sharedProofSheetRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/shared/proof-sheets/$token',
@@ -197,6 +204,7 @@ const routeTree = rootRoute.addChildren([
     reportRoute,
     focusRoute,
     importRoute,
+    upgradeRoute,
   ]),
   sharedProofSheetRoute,
 ]);

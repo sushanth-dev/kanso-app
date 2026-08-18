@@ -85,6 +85,9 @@ export const jobStatusEnum = pgEnum('job_status', ['queued', 'running', 'complet
 
 export const tierEnum = pgEnum('tier', ['free', 'paid']);
 
+/** ADR-0039, ST-044. The three plans `pricing.md` sets: $15, $130, $150. */
+export const planEnum = pgEnum('plan', ['monthly', 'season', 'yearly']);
+
 // ─── Identity ────────────────────────────────────────────────────────────────
 
 /**
@@ -176,6 +179,26 @@ export const subscription = pgTable('subscription', {
   providerRef: text('provider_ref'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * ADR-0039, ST-044. One row per checkout. Created when the order is placed
+ * with a null payment id, completed when Razorpay confirms the payment by
+ * webhook. The payment id is unique, so a replayed webhook finds the row
+ * already paid and is a no-op; we never see a card number.
+ */
+export const processedPayment = pgTable('processed_payment', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  plan: planEnum('plan').notNull(),
+  /** Minor units: cents for USD. */
+  amount: integer('amount').notNull(),
+  currency: text('currency').notNull().default('USD'),
+  razorpayOrderId: text('razorpay_order_id').notNull().unique(),
+  razorpayPaymentId: text('razorpay_payment_id').unique(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 // ─── Import and games ────────────────────────────────────────────────────────

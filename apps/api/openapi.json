@@ -46,6 +46,10 @@
     {
       "name": "Proof sheet",
       "description": "The page a coach sends a parent."
+    },
+    {
+      "name": "Billing",
+      "description": "Creating orders and confirming payments with Razorpay."
     }
   ],
   "components": {
@@ -1917,6 +1921,48 @@
           "gamesAfter",
           "periodStart",
           "periodEnd"
+        ]
+      },
+      "CheckoutResponse": {
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "keyId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "orderId",
+          "amount",
+          "currency",
+          "keyId"
+        ]
+      },
+      "CheckoutRequest": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "$ref": "#/components/schemas/Plan"
+          }
+        },
+        "required": [
+          "plan"
+        ]
+      },
+      "Plan": {
+        "type": "string",
+        "enum": [
+          "monthly",
+          "season",
+          "yearly"
         ]
       }
     },
@@ -3810,6 +3856,102 @@
           },
           "404": {
             "description": "No such page, or it was revoked or has expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments/checkout": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Create a Razorpay order for a plan",
+        "description": "ST-044. Creates a Razorpay order and records the checkout. The client opens Razorpay Checkout with the returned order id; confirmation arrives by webhook.",
+        "requestBody": {
+          "description": "The plan to purchase.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The order to pay.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The payment provider could not create an order.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments/webhook": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Confirm a payment",
+        "description": "ST-044. Razorpay confirms a capture here. The signature is verified against the raw body before anything is trusted; the response is acknowledged so Razorpay stops retrying.",
+        "security": [],
+        "responses": {
+          "204": {
+            "description": "Recorded, or already recorded."
+          },
+          "401": {
+            "description": "The webhook signature did not verify.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No checkout for this order.",
             "content": {
               "application/json": {
                 "schema": {

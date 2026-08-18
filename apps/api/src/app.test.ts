@@ -33,18 +33,19 @@ describe('toHonoPath', () => {
 
 describe('publicPaths', () => {
   test('is derived from the contract rather than restated', () => {
-    // Three routes are public, and each is deliberate. The shared proof sheet
-    // is designed to be read by someone with no account (F14, S6). The guardian
-    // consent confirm route is reached from an email link, so it has no session
-    // (N7). `/health` is called by a load balancer, which has no session, and
-    // it exposes nothing but whether the process can reach its database (E3). A
-    // fourth public route declares itself with `security: []` and appears here
-    // without this file being touched. If this assertion fails, read the new
-    // route before changing the list.
+    // Four routes are public, and each is deliberate. The shared proof sheet
+    // is read by someone with no account (F14, S6); the guardian consent
+    // confirm route is reached from an email link (N7); `/health` is called by
+    // a load balancer (E3); and the Razorpay webhook is called by Razorpay and
+    // verifies the signature instead of a session (ST-044). A new public route
+    // declares itself with `security: []` and appears here without this file
+    // being touched. If this assertion fails, read the new route before
+    // changing the list.
     expect(publicPaths()).toEqual([
       '/health',
       '/guardians/confirm/{token}',
       '/shared/proof-sheets/{token}',
+      '/payments/webhook',
     ]);
   });
 });

@@ -31,6 +31,7 @@ export const AnalysisStatus = z
   .openapi('AnalysisStatus');
 export const JobStatus = z.enum(['queued', 'running', 'complete', 'failed']).openapi('JobStatus');
 export const Tier = z.enum(['free', 'paid']).openapi('Tier');
+export const Plan = z.enum(['monthly', 'season', 'yearly']).openapi('Plan');
 export const WeaknessKind = z
   .enum(['opening', 'motif', 'phase', 'time_trouble'])
   .openapi('WeaknessKind');
@@ -656,3 +657,19 @@ export const Health = z
     database: z.literal('ok'),
   })
   .openapi('Health');
+
+// ─── Billing ────────────────────────────────────────────────────────────────
+
+/** ST-044. The body that starts a checkout for one of the three plans. */
+export const CheckoutRequest = z.object({ plan: Plan }).openapi('CheckoutRequest');
+
+/** ST-044. What the client needs to open Razorpay Checkout for the order. */
+export const CheckoutResponse = z
+  .object({
+    orderId: z.string(),
+    /** Minor units: cents. */
+    amount: z.number().int(),
+    currency: z.string(),
+    keyId: z.string(),
+  })
+  .openapi('CheckoutResponse');
