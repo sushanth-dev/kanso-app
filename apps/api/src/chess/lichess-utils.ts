@@ -94,11 +94,10 @@ export function winProbDrop(color: Color, prevEval: EvalScore, currEval: EvalSco
   return Math.max(0, drop / 100);
 }
 
-// TODO(DEBT-001): refine the thresholding below for signal-to-noise. Carried
-// over from the prototype. The six correction guards were each added against a
-// specific game and the set as a whole has never been reviewed. Tracked on the
-// product backlog in the `delivery` repository; the guards are pinned by tests
-// (ADR-0019), so a retune changes the code and the tests together.
+// Reviewed for signal-to-noise in ST-048. The six guards folded to five: the
+// equality deadzone and noise floor merged into one swing-keyed guard, and the
+// dead drop > 0.25 clause dropped from the blunder floor. The thresholds are
+// pinned by golden tests (ADR-0019), so a retune changes code and tests together.
 export function classifyMove(
   movingColor: Color,
   prevEval: EvalScore,
@@ -108,18 +107,21 @@ export function classifyMove(
   if (mateAdvice !== null) return mateAdvice;
 
   if (prevEval.cp !== undefined && currEval.cp !== undefined) {
-    // 1. Equality Deadzone: both evals within ±50 CP — kills sigmoid noise near zero.
-    //    (Fixes Move 25 +0.3→-0.3 and Game 6 phantoms.)
-    if (Math.abs(prevEval.cp) <= 50 && Math.abs(currEval.cp) <= 50) return null;
-
-    // 2. Noise Floor: raw CP swing < 55 → pure engine noise, discard.
+    // 1. Engine-noise deadzone: a swing under 55 CP is noise anywhere. Near
+    //    equality (both evals within ±50 CP) the sigmoid is steepest, so the
+    //    floor widens to a full pawn. A sub-pawn swing there is the engine
+    //    changing its mind about a roughly equal position, and a full-pawn
+    //    swing is material a coach cares about, so it is classified rather than
+    //    dropped. Folds the old equality deadzone and noise floor into one
+    //    swing-keyed guard. (Fixes Move 25 +0.3→-0.3 and the Game 6 phantoms.)
     const cpChange = Math.abs(currEval.cp - prevEval.cp);
-    if (cpChange < 55) return null;
+    const nearEquality = Math.abs(prevEval.cp) <= 50 && Math.abs(currEval.cp) <= 50;
+    if (cpChange < 55 || (nearEquality && cpChange < 100)) return null;
   }
 
   const drop = winProbDrop(movingColor, prevEval, currEval);
 
-  // 3. High-Sensitivity Inaccuracy: lower threshold to 8.5% in equal/near-equal
+  // 2. High-Sensitivity Inaccuracy: lower threshold to 8.5% in equal/near-equal
   //    positions (both evals within ±200 CP). Catches Game 5/6 missed inaccuracies.
   const inEqualZone =
     prevEval.cp !== undefined &&
@@ -139,21 +141,22 @@ export function classifyMove(
   if (prevEval.cp !== undefined && currEval.cp !== undefined) {
     const cpLoss = movingColor === 'white' ? prevEval.cp - currEval.cp : currEval.cp - prevEval.cp;
 
-    // 4a. Blunder Floor: a Blunder MUST have > 200 CP loss AND drop > 0.25.
-    //     High WP drop alone (e.g. sigmoid cliff in equal position) is insufficient.
-    //     (Fixes Move 44: 190 CP < 200 → downgrade to Mistake.)
-    if (judgement === 'Blunder' && !(cpLoss > 200 && drop > 0.25)) {
+    // 3a. Blunder Floor: a Blunder MUST have > 200 CP loss. High WP drop alone
+    //     (e.g. sigmoid cliff in an equal position) is insufficient. The old
+    //     drop > 0.25 clause was dead: Blunder already implies drop ≥ 0.30.
+    //     (Fixes Move 44: 190 CP < 200 → Mistake.)
+    if (judgement === 'Blunder' && cpLoss <= 200) {
       judgement = 'Mistake';
     }
 
-    // 4b. Mistake Upgrade: clear WP drop + meaningful CP loss → upgrade Inaccuracy.
+    // 3b. Mistake Upgrade: clear WP drop + meaningful CP loss → upgrade Inaccuracy.
     //     (Correctly catches Move 20 +1.1→+0.0 as Mistake.)
     if (judgement === 'Inaccuracy' && drop > 0.16 && cpLoss > 90) {
       judgement = 'Mistake';
     }
   }
 
-  // 5. Advantage Leniency: suppress Inaccuracy when the player was winning BEFORE
+  // 4. Advantage Leniency: suppress Inaccuracy when the player was winning BEFORE
   //    the move AND is still winning AFTER. Both conditions required — avoids
   //    silencing genuine errors near the edge of a winning position.
   //    (Fixes Move 18 +1.5→+0.8 phantom.)

@@ -2,7 +2,7 @@
  * Golden coverage for the mistake classifier.
  *
  * This file is the reason the test setup exists. `classifyMove` is a port of
- * Lichess's Advice.scala with six correction layers stacked on top, each one
+ * Lichess's Advice.scala with correction layers stacked on top, each one
  * added after a real game produced a false positive, over nineteen commits and
  * about a month. Every one of those guards is a small conditional that a
  * refactor can silently undo, and the failure mode is not a crash: it is a
@@ -65,37 +65,42 @@ describe('winProbDrop', () => {
   });
 });
 
-describe('classifyMove: guard 1, the equality deadzone', () => {
+describe('classifyMove: guard 1, the engine-noise deadzone', () => {
   /**
-   * Both evaluations inside a half pawn of equal. The sigmoid is steepest here,
-   * so a swing worth nothing turns into a double-digit win-probability drop and
-   * the classifier flags a move that no coach would look at twice.
+   * Two floors folded into one swing-keyed guard. A swing under 55 centipawns
+   * is noise anywhere, and near equality (both evals within half a pawn) the
+   * sigmoid is steepest, so the floor widens to a full pawn. A sub-pawn swing
+   * there is the engine changing its mind about a roughly equal position, and
+   * a full-pawn swing is material a coach cares about, so it is classified
+   * rather than dropped.
    */
-  test('says nothing about a swing between two equal positions', () => {
+  test('says nothing about a sub-pawn swing near equality', () => {
     expect(classifyMove('white', { cp: 40 }, { cp: -40 })).toBeNull();
   });
 
-  test('the same swing outside the deadzone is still classified', () => {
-    // 51 is one centipawn past the guard, and nothing else about the move changed.
+  test('drops a swing just under a full pawn near equality', () => {
+    expect(classifyMove('white', { cp: 49 }, { cp: -49 })).toBeNull();
+  });
+
+  test('classifies a full-pawn swing near equality rather than dropping it', () => {
+    expect(classifyMove('white', { cp: 50 }, { cp: -50 })).toEqual({ judgement: 'Mistake' });
+  });
+
+  test('classifies a swing once one position leaves the equality window', () => {
+    // 91 CP is outside the half-pawn window, so the widened floor does not apply.
     expect(classifyMove('white', { cp: 91 }, { cp: -9 })).not.toBeNull();
   });
-});
 
-describe('classifyMove: guard 2, the noise floor', () => {
-  /**
-   * Under 55 centipawns of movement is the engine changing its mind, not the
-   * player changing the game.
-   */
-  test('ignores a swing smaller than the engine noise floor', () => {
+  test('ignores a small swing that stays under the raw noise floor', () => {
     expect(classifyMove('white', { cp: 51 }, { cp: -3 })).toBeNull();
   });
 
-  test('a swing one centipawn past the floor is classified', () => {
+  test('classifies a swing one centipawn past the raw noise floor', () => {
     expect(classifyMove('white', { cp: 52 }, { cp: -3 })).not.toBeNull();
   });
 });
 
-describe('classifyMove: guard 3, the lowered inaccuracy threshold near equality', () => {
+describe('classifyMove: guard 2, the lowered inaccuracy threshold near equality', () => {
   /**
    * Lichess flags an inaccuracy at a 10 percent win-probability drop. In a
    * near-equal position we flag at 8.5, because that is where real inaccuracies
@@ -111,7 +116,7 @@ describe('classifyMove: guard 3, the lowered inaccuracy threshold near equality'
   });
 });
 
-describe('classifyMove: guard 4a, the blunder floor', () => {
+describe('classifyMove: guard 3a, the blunder floor', () => {
   /**
    * A blunder has to be expensive in centipawns as well as in win probability.
    * Near equality the sigmoid alone can manufacture a 30 percent drop out of
@@ -126,7 +131,7 @@ describe('classifyMove: guard 4a, the blunder floor', () => {
   });
 });
 
-describe('classifyMove: guard 4b, the inaccuracy upgrade', () => {
+describe('classifyMove: guard 3b, the inaccuracy upgrade', () => {
   /**
    * The mirror of the floor. A drop short of the mistake threshold that still
    * cost real material is a mistake, not an inaccuracy.
@@ -140,7 +145,7 @@ describe('classifyMove: guard 4b, the inaccuracy upgrade', () => {
   });
 });
 
-describe('classifyMove: guard 5, advantage leniency', () => {
+describe('classifyMove: guard 4, advantage leniency', () => {
   /**
    * A player who was winning before the move and is still winning after it did
    * not make an inaccuracy worth telling them about. Both halves are required,
