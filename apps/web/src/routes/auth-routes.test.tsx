@@ -234,4 +234,29 @@ describe('AuthScreen sign-up', () => {
       );
     });
   });
+
+  test('explains the guardian email for minors and rejects a guardian email matching the sign-up email', async () => {
+    const { user } = renderSignUp();
+
+    fireEvent.change(screen.getByLabelText('Date of birth'), {
+      target: { value: '2015-06-01' },
+    });
+    expect(
+      screen.getByText(
+        "A guardian's email is required for players under 13, so a parent or guardian can confirm consent.",
+      ),
+    ).toBeVisible();
+
+    await user.type(screen.getByLabelText('Name'), 'Player');
+    await user.type(screen.getByLabelText('Email'), 'player@example.com');
+    await user.type(screen.getByLabelText('Password'), 'a-secure-password');
+    await user.type(screen.getByLabelText('Confirm password'), 'a-secure-password');
+    await user.type(screen.getByLabelText('Guardian email'), 'player@example.com');
+    await user.click(screen.getByRole('button', { name: 'Sign up' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The guardian email must be different from the sign-up email.',
+    );
+    expect(signUpEmail).not.toHaveBeenCalled();
+  });
 });

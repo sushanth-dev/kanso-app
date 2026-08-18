@@ -28,9 +28,14 @@ alone, or shipping without them.
 ## Decision
 
 Adopt Canvas UI for decorative motion on a named, closed list of
-surfaces: the marketing landing page, the post-game result reveal, and
-the puzzle-streak celebration. Adding a fourth surface is a new
-decision, not a judgment call at implementation time.
+surfaces: the marketing landing page, the post-game result reveal, the
+puzzle-streak celebration, and the entry surface (sign-in and sign-up).
+Adding another surface is a new decision, not a judgment call at
+implementation time.
+
+The entry surface joined the list in ST-053 (sprint 12). Sign-up already
+rendered a `Clouds` ambient behind the forms; Sushanth chose to keep it
+rather than the ADR's default of removal, so the list now names it.
 
 Canvas UI does not enter the functional interface. The board, the move
 list, the evaluation bar, the puzzle card, and every form control stay
@@ -45,7 +50,7 @@ tokens rather than left on its own hardcoded colors.
 
 ## Consequences
 
-Three surfaces get atmosphere for the cost of copied source rather than
+Four surfaces get atmosphere for the cost of copied source rather than
 custom shader work. Canvas UI itself is never a dependency - there is
 nothing to bump, and equally nothing that upstream will fix for us.
 Every copied component is ours to maintain, including its bugs. What a

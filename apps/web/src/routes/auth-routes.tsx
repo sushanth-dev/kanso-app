@@ -24,6 +24,7 @@ export interface AuthScreenProps {
 const REJECTION_COPY = 'Email or password was not accepted.';
 const RATE_LIMIT_COPY = 'Too many attempts. Try again later.';
 const MISMATCH_COPY = 'Passwords do not match.';
+const GUARDIAN_MISMATCH_COPY = 'The guardian email must be different from the sign-up email.';
 
 function readText(data: FormData, key: string): string {
   const value = data.get(key);
@@ -82,6 +83,11 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
 
       if (confirmation !== password) {
         setErrorMessage(MISMATCH_COPY);
+        return;
+      }
+
+      if (showGuardianEmail && guardianEmail.toLowerCase() === email.toLowerCase()) {
+        setErrorMessage(GUARDIAN_MISMATCH_COPY);
         return;
       }
     }
@@ -151,16 +157,23 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
               </Field>
             ) : null}
             {showGuardianEmail ? (
-              <Field label="Guardian email" inputID="guardianEmail">
-                <TextInput
-                  id="guardianEmail"
-                  name="guardianEmail"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  maxLength={254}
-                />
-              </Field>
+              <>
+                <p id="guardianEmail-help" className="text-muted">
+                  A guardian's email is required for players under 13, so a parent or guardian can
+                  confirm consent.
+                </p>
+                <Field label="Guardian email" inputID="guardianEmail">
+                  <TextInput
+                    id="guardianEmail"
+                    name="guardianEmail"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    maxLength={254}
+                    aria-describedby="guardianEmail-help"
+                  />
+                </Field>
+              </>
             ) : null}
             <Field label="Email" inputID="email">
               <TextInput
