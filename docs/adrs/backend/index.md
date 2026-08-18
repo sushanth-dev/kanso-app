@@ -30,7 +30,4 @@ number sequence is shared with the frontend records.
 * [0033. Move the API from Fargate and ALB to Lambda](0033-lambda-api-http-api.md)
 * [0035. Minor self-sign-up with guardian consent by email](0035-minor-self-signup-consent.md)
 * [0036. Verify a focus over a rolling window of games](0036-verify-focus-rolling-window.md)
-
-Still open, to be recorded when the work starts: frontend routing and data
-fetching (once the app shell exists), and observability (once there is
-something running to observe).
+* [0039. Process payments with Razorpay](0039-process-payments-razorpay.md)
