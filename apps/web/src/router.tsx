@@ -20,6 +20,8 @@ import { meQueryOptions, queryClient } from './query-client.ts';
 import { AccountRoute } from './routes/account-route.tsx';
 import { SignInRoute, SignUpRoute } from './routes/auth-routes.tsx';
 import { FocusRoute } from './routes/focus-route.tsx';
+import { GuardianConfirmRoute } from './routes/guardian-confirm-route.tsx';
+import { GuardianWaitingRoute } from './routes/guardian-waiting-route.tsx';
 import { ImportRoute } from './routes/import-route.tsx';
 import { LandingRoute } from './routes/landing-route.tsx';
 import { PlayerEditRoute, PlayerNewRoute } from './routes/player-routes.tsx';
@@ -35,7 +37,11 @@ function RootComponent() {
   const pathname = useLocation({ select: (location) => location.pathname });
   // The landing page and the shared page are public and render outside the
   // authenticated shell. The landing page carries its own header and footer.
-  if (pathname === '/' || pathname.startsWith('/shared/proof-sheets/')) {
+  if (
+    pathname === '/' ||
+    pathname.startsWith('/shared/proof-sheets/') ||
+    pathname.startsWith('/guardians/')
+  ) {
     return <Outlet />;
   }
   return (
@@ -105,6 +111,10 @@ const accountRoute = createRoute({
       if (error instanceof ApiRequestError && error.status === 401) {
         // eslint-disable-next-line @typescript-eslint/only-throw-error -- redirect() throws a Response, not an Error.
         throw redirect({ to: '/sign-in' });
+      }
+      if (error instanceof ApiRequestError && error.code === 'consent_required') {
+        // eslint-disable-next-line @typescript-eslint/only-throw-error -- redirect() throws a Response, not an Error.
+        throw redirect({ to: '/guardians/waiting' });
       }
       throw error;
     }
@@ -193,6 +203,34 @@ const sharedProofSheetRoute = createRoute({
   component: SharedProofSheetRoute,
 });
 
+const guardianConfirmRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/guardians/confirm/$token',
+  component: GuardianConfirmRoute,
+});
+
+const guardianWaitingRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/guardians/waiting',
+  beforeLoad: async ({ context }) => {
+    try {
+      await context.queryClient.ensureQueryData(meQueryOptions());
+    } catch (error) {
+      if (error instanceof ApiRequestError && error.status === 401) {
+        // eslint-disable-next-line @typescript-eslint/only-throw-error -- redirect() throws a Response, not an Error.
+        throw redirect({ to: '/sign-in' });
+      }
+      if (error instanceof ApiRequestError && error.code === 'consent_required') {
+        return;
+      }
+      throw error;
+    }
+    // eslint-disable-next-line @typescript-eslint/only-throw-error -- redirect() throws a Response, not an Error.
+    throw redirect({ to: '/account' });
+  },
+  component: GuardianWaitingRoute,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   signInRoute,
@@ -207,6 +245,8 @@ const routeTree = rootRoute.addChildren([
     upgradeRoute,
   ]),
   sharedProofSheetRoute,
+  guardianConfirmRoute,
+  guardianWaitingRoute,
 ]);
 
 export interface CreateAppRouterOptions {

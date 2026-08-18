@@ -329,6 +329,30 @@ verbatim as text, marked "Unverified", with the paired focus named and its
 numbers labelled as the paired number rather than a measurement of the
 instruction.
 
+### Entry and guardian consent
+
+Sign-in and sign-up render as one centered `Card` (`max-w-sm`) inside the
+column, on semantic tokens and Astryx primitives. Each shows a pristine form,
+a submitting state (the primary button is disabled and loading), and distinct
+errors: rejected credentials, a rate-limit retry-later message, a local
+password mismatch, and a local guardian-email mismatch. Sign-up collects date
+of birth; when the date makes the person under 13, the guardian email field
+and a plain-words explanation reveal together ("A guardian's email is required
+for players under 13, so a parent or guardian can confirm consent."), driven
+by the same age check the server applies. A `Clouds` ambient renders behind
+the entry cards, named by ADR-0017 as the fourth Canvas UI surface.
+
+The two consent surfaces render outside the authenticated shell, like the
+proof sheet: no wordmark, no navigation, no sign-in hint. The confirm page
+(`/guardians/confirm/$token`) calls the public confirm endpoint with no
+credentials and renders exactly two outcomes: "Consent recorded." on a 204,
+and the one indistinguishable "This link is no longer available." page for a
+tampered, expired, or unknown link. The waiting state (`/guardians/waiting`)
+is reached when `/me` answers `consent_required`: it states in plain words
+that a guardian has been emailed and must confirm by opening the link, names
+no guardian email, and offers a Sign out action so a gated minor is never
+trapped.
+
 ### Proof sheet
 
 The proof sheet is the first surface built for someone who does not play
