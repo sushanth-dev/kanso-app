@@ -12,6 +12,9 @@
  * rather than v2, because LocalStack's community image emulates v1 only, and a
  * sender that cannot be exercised locally is a sender that cannot be trusted.
  */
+import { appendFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { SendEmailCommand, SESClient } from '@aws-sdk/client-ses';
 import { localstackClientOptions } from '../localstack.ts';
 
@@ -66,6 +69,24 @@ export function sesMailer(config: SesConfig | null): Mailer {
           },
         }),
       );
+    },
+  };
+}
+
+/** Where the stubbed mailer records consent links; shared with the e2e spec. */
+const STUB_DESTINATION = join(tmpdir(), 'kanso-consent-links.log');
+
+/**
+ * The stubbed mailer for the Playwright consent journey (ST-053). A minor
+ * sign-up under `MAILER_STUB=1` records the consent link to a file instead of
+ * sending through SES, so the browser journey can read the link back and open
+ * the confirm page. It is test infrastructure: the flag is never set in a
+ * deployed environment.
+ */
+export function stubMailer(): Mailer {
+  return {
+    async sendConsentNotice({ confirmUrl }) {
+      await appendFile(STUB_DESTINATION, `${confirmUrl}\n`);
     },
   };
 }

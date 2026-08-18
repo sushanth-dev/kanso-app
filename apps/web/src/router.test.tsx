@@ -194,4 +194,34 @@ describe('router', () => {
     renderAt('/account/players/00000000-0000-4000-8000-999999999999/import');
     expect(await screen.findByText('Not Found')).toBeVisible();
   });
+
+  test('redirects /account to the guardian waiting screen when consent is required', async () => {
+    getMe.mockRejectedValue(
+      new ApiRequestError(
+        403,
+        'consent_required',
+        undefined,
+        'A guardian must confirm consent before you can use KansoChess.',
+      ),
+    );
+    renderAt('/account');
+    expect(
+      await screen.findByRole('heading', { name: 'Waiting for guardian consent' }),
+    ).toBeVisible();
+  });
+
+  test('renders the guardian waiting screen directly when consent is required', async () => {
+    getMe.mockRejectedValue(
+      new ApiRequestError(
+        403,
+        'consent_required',
+        undefined,
+        'A guardian must confirm consent before you can use KansoChess.',
+      ),
+    );
+    renderAt('/guardians/waiting');
+    expect(
+      await screen.findByRole('heading', { name: 'Waiting for guardian consent' }),
+    ).toBeVisible();
+  });
 });
