@@ -398,7 +398,8 @@
         "enum": [
           "chesscom",
           "lichess",
-          "pgn_upload"
+          "pgn_upload",
+          "uscf"
         ]
       },
       "Stream": {
@@ -503,6 +504,39 @@
             "required": [
               "source",
               "pgn",
+              "stream"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string",
+                "enum": [
+                  "uscf"
+                ]
+              },
+              "tournamentName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "playerName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "stream": {
+                "type": "string",
+                "enum": [
+                  "tournament"
+                ]
+              }
+            },
+            "required": [
+              "source",
+              "tournamentName",
+              "playerName",
               "stream"
             ]
           }
@@ -2135,8 +2169,8 @@
         "tags": [
           "Import"
         ],
-        "summary": "Import games by site username, or from an uploaded PGN",
-        "description": "S1, F1, F2, T1. Every game is tagged with its stream at import. An upload rejects the whole file on one malformed game; a username import rejects one malformed game and keeps the rest.",
+        "summary": "Import games by username, uploaded PGN, or USCF tournament name",
+        "description": "S1, F1, F2, T1. Every game is tagged with its stream at import. An upload rejects the whole file on one malformed game; a username or tournament import rejects one malformed game and keeps the rest.",
         "parameters": [
           {
             "schema": {
@@ -2210,7 +2244,7 @@
             }
           },
           "422": {
-            "description": "No Chess.com or Lichess account by that username.",
+            "description": "No matching account, tournament, or player name for the source.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2220,7 +2254,7 @@
             }
           },
           "429": {
-            "description": "The daily online import cap is reached.",
+            "description": "The daily import cap is reached.",
             "content": {
               "application/json": {
                 "schema": {
