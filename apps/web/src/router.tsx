@@ -21,6 +21,7 @@ import { AccountRoute } from './routes/account-route.tsx';
 import { SignInRoute, SignUpRoute } from './routes/auth-routes.tsx';
 import { FocusRoute } from './routes/focus-route.tsx';
 import { ImportRoute } from './routes/import-route.tsx';
+import { LandingRoute } from './routes/landing-route.tsx';
 import { PlayerEditRoute, PlayerNewRoute } from './routes/player-routes.tsx';
 import { ReportRoute } from './routes/report-route.tsx';
 import { SharedProofSheetRoute } from './routes/shared-proof-sheet-route.tsx';
@@ -31,9 +32,9 @@ interface RouterContext {
 
 function RootComponent() {
   const pathname = useLocation({ select: (location) => location.pathname });
-  // The shared page is public and renders outside the authenticated shell: no
-  // wordmark, no navigation, no credential-carrying chrome.
-  if (pathname.startsWith('/shared/proof-sheets/')) {
+  // The landing page and the shared page are public and render outside the
+  // authenticated shell. The landing page carries its own header and footer.
+  if (pathname === '/' || pathname.startsWith('/shared/proof-sheets/')) {
     return <Outlet />;
   }
   return (
@@ -78,10 +79,7 @@ const rootRoute = createRootRouteWithContext<RouterContext>()({
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  beforeLoad: () => {
-    // eslint-disable-next-line @typescript-eslint/only-throw-error -- redirect() throws a Response, not an Error.
-    throw redirect({ to: '/account' });
-  },
+  component: LandingRoute,
 });
 
 const signInRoute = createRoute({

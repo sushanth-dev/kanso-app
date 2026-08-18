@@ -350,6 +350,32 @@ the creation date, and a revoke action that confirms before it removes the
 link. Revocation reflects the server's answer and reads as "revoked" rather
 than silently disappearing.
 
+### Landing
+
+The landing page is the public marketing surface at `/`, the first thing a
+new visitor meets. It renders outside the authenticated shell with its own
+wordmark, a sign-in link, and a footer. It refuses the category default of a
+headline over three feature cards: the hero is the free output, not a claim
+about it. The first viewport is two columns. Left: the display headline
+("Know the one thing to fix after every tournament."), the free-promise
+subhead, the parent line ("For parents, it makes every lesson you already pay
+for work harder."), and the primary call to action. Right: a raised `Card`
+labelled "Synthetic example" holding a named tournament and a three-row
+ranked weakness list, rank and `ratingLeak` in IBM Plex Mono, mirroring the
+report's ranked list without a real player behind it.
+
+Three sections in all: the hero, a value proposition with the free/paid
+boundary, and a closing call to action. The value proposition states the
+three positioning claims as plain headings, never icon-and-heading cards. The
+board is absent by design: the proof is the ranked diagnosis, so the raised
+sample card is the brightest object on the screen. The boundary is fact-only
+from `pricing.md`: free is the diagnosis, paid is the loop, at $15 a month,
+$130 a season, or $150 a year. The join call to action routes to `/sign-up`;
+a secondary link routes to `/sign-in`. Copy states only facts, and the sample
+carries a visible "Synthetic example" label so no visitor mistakes it for a
+real diagnosis. One authored reveal eases the sample card in on load,
+collapsing to zero under reduced motion; there are no other effects.
+
 ## Do's and Don'ts
 
 ### Do:
