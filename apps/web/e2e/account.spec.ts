@@ -101,6 +101,9 @@ test('signs up and persists a player through sign-in', async ({ page }) => {
 
   await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Mina' })).toBeVisible();
+  await expect(
+    page.getByText('No diagnosis yet. Import games to get a ranked report.'),
+  ).toBeVisible();
   await page.getByRole('link', { name: 'Edit' }).click();
   await page.getByLabel('Chess.com username').fill('mina-studies');
   await page.getByRole('button', { name: 'Save changes' }).click();
