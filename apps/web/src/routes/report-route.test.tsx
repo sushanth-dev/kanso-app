@@ -149,7 +149,7 @@ describe('ReportScreen', () => {
     const { user, queryClient } = renderReport(report);
     queryClient.setQueryData(['phases', playerId, 'tournament'], phaseReportFixture);
     await user.click(screen.getByRole('button', { name: 'Show evidence' }));
-    expect(await screen.findByText(/These games do not carry clock data/)).toBeInTheDocument();
+    expect(await screen.findAllByText(/These games do not carry clock data/)).toHaveLength(2);
   });
 
   test('states a saturated leak as a floor in words, not a bare number', () => {
@@ -159,5 +159,23 @@ describe('ReportScreen', () => {
       }),
     );
     expect(screen.getByText('at least 702')).toBeInTheDocument();
+  });
+
+  test('shows the time-trouble move on an online report', () => {
+    renderReport(reportFixture({ stream: 'online', timeTroubleFromMove: 28 }));
+    expect(screen.getByText(/Time trouble starts around move/)).toBeInTheDocument();
+    expect(screen.getByText('28')).toHaveClass('font-mono');
+  });
+
+  test('states the reason when time trouble data is absent', () => {
+    renderReport(reportFixture());
+    expect(screen.getByText('These games do not carry clock data.')).toBeInTheDocument();
+  });
+
+  test('labels the evidence figures on a ranked report', () => {
+    renderReport(reportFixture({ weaknesses: [motifWeakness] }));
+    expect(screen.getByText('games')).toBeInTheDocument();
+    expect(screen.getByText('occurrences')).toBeInTheDocument();
+    expect(screen.getByText('half-points lost')).toBeInTheDocument();
   });
 });
