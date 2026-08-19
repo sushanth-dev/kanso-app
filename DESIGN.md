@@ -337,6 +337,10 @@ carries its evidence on the row and does not expand, because no opening
 endpoint exists. The report has three states: the ranked list, an honest empty
 statement ("could not identify a defensible weakness"), and a not-ready state
 that separates "still being analyzed" from "no analyzed games."
+The header states how current the report is and how much is behind it
+(`generatedAt` and `gamesCovered`). The time-trouble figure leads on the online
+report; on the tournament report it is replaced by a stated reason, never a
+blank or a zero.
 
 ### Import
 
