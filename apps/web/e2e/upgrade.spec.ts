@@ -40,9 +40,9 @@ test('states the fact-only boundary and the three prices at the 320px floor', as
   await expect(page.getByText('$15', { exact: true })).toBeVisible();
   await expect(page.getByText('$130', { exact: true })).toBeVisible();
   await expect(page.getByText('$150', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Pay $15' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Pay $130' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Pay $150' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Pay $15', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Pay $130', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Pay $150', exact: true })).toBeVisible();
   await expectNoAxeViolations(page);
 
   // The smallest phone does not scroll sideways and stays axe-clean.
