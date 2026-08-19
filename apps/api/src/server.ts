@@ -16,6 +16,7 @@ import { createAuth } from './auth.ts';
 import * as schema from './db/schema.ts';
 import { sesConfigFromEnv, sesMailer, stubMailer } from './account/mailer.ts';
 import { fixtureGameFetcher } from './import/fixture-game-fetcher.ts';
+import { stubRazorpayClient } from './billing/razorpay.ts';
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
@@ -42,8 +43,13 @@ const auth = createAuth(db, { mailer });
 // fixtures; production never sets this flag and keeps the real HTTP fetcher.
 const gameFetcher = process.env.IMPORT_PROVIDER_STUB === '1' ? fixtureGameFetcher : undefined;
 
+// The Playwright paid-tier journey (ST-060) stubs Razorpay so checkout and the
+// webhook flip an account to paid without a real payment; production never
+// sets this flag and keeps the real client from the environment.
+const razorpay = process.env.RAZORPAY_STUB === '1' ? stubRazorpayClient() : undefined;
+
 const server = serve(
-  { fetch: createApp({ db, auth, gameFetcher }).fetch, port, hostname: '0.0.0.0' },
+  { fetch: createApp({ db, auth, gameFetcher, razorpay }).fetch, port, hostname: '0.0.0.0' },
   (info) => {
     console.log(`API listening on ${info.address}:${info.port}`);
   },

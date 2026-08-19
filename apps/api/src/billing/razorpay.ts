@@ -69,3 +69,22 @@ export function httpRazorpayClient(config: RazorpayConfig): RazorpayClient {
     },
   };
 }
+
+/**
+ * The stubbed Razorpay client for the Playwright journey (ST-060). Under
+ * `RAZORPAY_STUB=1` the checkout returns a synthetic order and the webhook
+ * signature check accepts anything, so the e2e drives the real
+ * checkout-then-webhook path and flips an account to paid without Razorpay.
+ * It is test infrastructure: the flag is never set in a deployed environment.
+ */
+export function stubRazorpayClient(): RazorpayClient {
+  return {
+    keyId: 'stub',
+    createOrder({ receipt }): Promise<CreateOrderOutcome> {
+      return Promise.resolve({ ok: true, orderId: `stub-${receipt}` });
+    },
+    verifyWebhookSignature() {
+      return true;
+    },
+  };
+}

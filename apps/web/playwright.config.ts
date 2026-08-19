@@ -20,6 +20,7 @@ export default defineConfig({
         SES_FROM_ADDRESS: 'sender@example.com',
         IMPORT_PROVIDER_STUB: '1',
         MAILER_STUB: '1',
+        RAZORPAY_STUB: '1',
       },
     },
     {
