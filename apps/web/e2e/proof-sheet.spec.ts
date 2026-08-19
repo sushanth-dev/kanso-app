@@ -29,12 +29,6 @@ async function createPlayerAndSetFocus(page: Page) {
   ).toBeVisible();
 }
 
-async function readShareUrl(page: Page): Promise<string> {
-  const urlText = await page.getByText(/shared\/proof-sheets\//).textContent();
-  if (urlText === null) throw new Error('share link not found');
-  return urlText.trim();
-}
-
 async function openWithoutSession(browser: Browser, url: string): Promise<Page> {
   const context = await browser.newContext();
   const page = await context.newPage();
@@ -55,26 +49,33 @@ test('creates, shares, reads, and revokes a proof sheet', async ({ page, browser
   await upgradeToPaid(page);
   await createPlayerAndSetFocus(page);
 
-  // The share act is explicit: a create button, never a toggle.
-  await page.getByRole('button', { name: 'Create a share link' }).click();
-  await expect(page.getByText(/Created on/)).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Revoke link' })).toBeVisible();
-  await expectNoAxeViolations(page);
-
-  const shareUrl = await readShareUrl(page);
+  // The share act is an explicit create, driven through the API seam: the
+  // create button left the focus flow in ST-058, and the surface that owns the
+  // share act is ST-059's reader.
+  const me = (await (await page.request.get('/me')).json()) as {
+    players: { id: string }[];
+  };
+  const player = me.players[0];
+  if (player === undefined) throw new Error('expected a player after sign-up');
+  const created = await page.request.post(`/players/${player.id}/proof-sheets`);
+  if (!created.ok()) {
+    throw new Error(`create proof sheet failed: ${created.status()} ${await created.text()}`);
+  }
+  const sheet = (await created.json()) as { id: string; url: string };
 
   // The forwarded link opens in a context with no session and no chrome.
-  const reader = await openWithoutSession(browser, shareUrl);
+  const reader = await openWithoutSession(browser, sheet.url);
   await expect(reader.getByRole('heading', { name: 'Converting won positions' })).toBeVisible();
   await expect(
     reader.getByText('There is not enough evidence yet to say whether it is helping.'),
   ).toBeVisible();
   await expectNoAxeViolations(reader);
 
-  // Revocation is confirmed, then the link stops working.
-  page.once('dialog', (dialog) => dialog.accept());
-  await page.getByRole('button', { name: 'Revoke link' }).click();
-  await expect(page.getByText(/This link is revoked/)).toBeVisible();
+  // Revocation stops the link working immediately.
+  const revoked = await page.request.delete(`/proof-sheets/${sheet.id}`);
+  if (!revoked.ok()) {
+    throw new Error(`revoke proof sheet failed: ${revoked.status()} ${await revoked.text()}`);
+  }
 
   await reader.reload();
   await expect(
