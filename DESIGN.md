@@ -271,6 +271,37 @@ in the Study Room.
   column is the whole navigation model at this stage; no persistent side or
   top nav exists yet.
 
+### Account
+
+The account dashboard is the signed-in hub at `/account`: the identity block
+(name, email, tier) and a list of player cards. Each card states where that
+player stands with their diagnosis before its four actions are reached, so a
+parent reads the account at a glance rather than opening each player in turn.
+The four actions, view report, import games, set focus, and edit, keep their
+ST-020 targets and sit under the diagnosis line.
+
+The last-diagnosis state is read from the existing per-player report and games
+endpoints over the tournament stream, the same stream the "View report" link
+opens, so the card agrees with the report it links to. No figure is computed
+in the browser; every number is the API's own, and the empty and in-progress
+states are prose rather than a zero or a spinner. The card resolves to one of
+six states:
+
+- **Diagnosis:** the top weakness label, with the `gamesCovered` count behind
+  it in IBM Plex Mono.
+- **Honest empty:** "Could not identify a defensible weakness yet."
+- **Still analyzing:** "Analysis in progress. Come back in a couple of
+  minutes."
+- **No diagnosis yet:** "No diagnosis yet. Import games to get a ranked
+  report."
+- **Unavailable:** "Diagnosis unavailable right now.", the player and actions
+  still shown.
+- **Pending:** a two-line skeleton, never a spinner.
+
+An account with no players renders the honest empty state with the create
+action, and a gated minor never reaches this surface because the router
+redirects the `consent_required` answer to the waiting screen.
+
 ### Report and ranked lists
 
 The ranked weakness report composes from existing primitives rather than a new
