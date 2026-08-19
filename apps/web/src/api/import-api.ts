@@ -2,9 +2,10 @@ import createClient from 'openapi-fetch';
 import type { components, paths } from '../generated/api.ts';
 import { apiBaseUrl } from './base-url.ts';
 import { failure } from './account-api.ts';
+import type { Stream } from './diagnosis-api.ts';
 
 export type ImportJob = components['schemas']['ImportJob'];
-export type ImportSource = 'chesscom' | 'lichess';
+export type ImportSource = 'chesscom' | 'lichess' | 'pgn_upload' | 'uscf';
 
 /**
  * The username shapes the API already enforces at its own boundary; mirror
@@ -23,11 +24,16 @@ export function isPlausibleLichessUsername(username: string): boolean {
   return LICHESS_USERNAME_PATTERN.test(username);
 }
 
-/** The shape the form submits; the stream is always online for a username import. */
-export interface StartImportBody {
-  source: ImportSource;
-  username: string;
-}
+/**
+ * The shape the form submits. One branch per import method; `stream` is
+ * stated by the form only for a PGN upload because a username import is always
+ * online and a tournament is always tournament.
+ */
+export type StartImportBody =
+  | { source: 'chesscom'; username: string }
+  | { source: 'lichess'; username: string }
+  | { source: 'pgn_upload'; pgn: string; stream: Stream }
+  | { source: 'uscf'; tournamentName: string; playerName: string };
 
 export interface ImportApi {
   startImport(playerId: string, body: StartImportBody): Promise<ImportJob>;
@@ -44,7 +50,16 @@ export function createImportApi(fetcher: typeof globalThis.fetch = globalThis.fe
       const payload: components['schemas']['StartImport'] =
         body.source === 'chesscom'
           ? { source: 'chesscom', username: body.username, stream: 'online' }
-          : { source: 'lichess', username: body.username, stream: 'online' };
+          : body.source === 'lichess'
+            ? { source: 'lichess', username: body.username, stream: 'online' }
+            : body.source === 'pgn_upload'
+              ? { source: 'pgn_upload', pgn: body.pgn, stream: body.stream }
+              : {
+                  source: 'uscf',
+                  tournamentName: body.tournamentName,
+                  playerName: body.playerName,
+                  stream: 'tournament',
+                };
       const result = await client.POST('/players/{playerId}/imports', {
         params: { path: { playerId } },
         body: payload,
