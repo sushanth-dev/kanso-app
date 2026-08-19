@@ -277,3 +277,24 @@ describe('PlayerFormScreen edit', () => {
     expect(screen.getByLabelText('Birth year')).toHaveValue(2013);
   });
 });
+
+describe('PlayerFormScreen consent and grouping', () => {
+  const consent =
+    'Consent is confirmed from the guardian email entered at sign-up. This form records a birth year, never a full date of birth.';
+
+  test('create renders the consent line and the three grouped legends', () => {
+    renderScreen();
+    expect(screen.getByText(consent)).toBeVisible();
+    expect(screen.getByRole('group', { name: 'Identity' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Federation' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Platforms' })).toBeInTheDocument();
+  });
+
+  test('edit renders the consent line and the three grouped legends', () => {
+    renderScreen({ mode: 'edit', playerId });
+    expect(screen.getByText(consent)).toBeVisible();
+    expect(screen.getByRole('group', { name: 'Identity' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Federation' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Platforms' })).toBeInTheDocument();
+  });
+});

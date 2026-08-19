@@ -302,6 +302,28 @@ An account with no players renders the honest empty state with the create
 action, and a gated minor never reaches this surface because the router
 redirects the `consent_required` answer to the waiting screen.
 
+### Player
+
+The player form is one `Card` at `/account/players/new` and
+`/account/players/$playerId/edit`, built from `FormLayout`, `Field`, and
+`TextInput`. It renders exactly the `CreatePlayer` and `UpdatePlayer` fields,
+grouped into three labelled sections: Identity (display name, birth year),
+Federation (FIDE and USCF ids and ratings), and Platforms (Chess.com and
+Lichess usernames). The owner is the session, never a field.
+
+A muted line under the heading states the consent model: consent is confirmed
+from the guardian email entered at sign-up, and the form records a birth year,
+never a full date of birth. It adds no field and no path.
+
+The create screen opens on the fresh form, every optional field empty and the
+one required field marked, so a first-time parent sees the shape of the profile
+without noise. The edit screen pre-fills from `/me` and answers not-found for a
+player the session does not own. The `/me` load renders the router's pending
+skeleton, submitting disables the primary button, and failures stay honest: a
+400 maps per-field issues back to their fields, a 401 goes to sign-in, a 403
+shows the cannot-be-changed message, and any other failure shows a retryable
+message rather than a silent reset.
+
 ### Report and ranked lists
 
 The ranked weakness report composes from existing primitives rather than a new
