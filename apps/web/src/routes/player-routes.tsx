@@ -151,6 +151,10 @@ export function PlayerFormScreen({
   return (
     <Card>
       <Heading level={1}>{heading}</Heading>
+      <p className="mt-2 text-sm text-muted">
+        Consent is confirmed from the guardian email entered at sign-up. This form records a birth
+        year, never a full date of birth.
+      </p>
       {formError !== null ? (
         <div className="mt-4">
           <StatusMessage tone="error">{formError}</StatusMessage>
@@ -162,130 +166,143 @@ export function PlayerFormScreen({
         }}
       >
         <FormLayout>
-          <Field
-            label="Display name"
-            inputID="displayName"
-            status={fieldStatus(fieldErrors.displayName)}
-          >
-            <TextInput
-              id="displayName"
-              name="displayName"
-              type="text"
-              required
-              maxLength={80}
-              defaultValue={player?.displayName}
-              aria-invalid={fieldErrors.displayName === undefined ? undefined : true}
-              aria-describedby={
-                fieldErrors.displayName === undefined ? undefined : 'displayName-status'
-              }
-            />
-          </Field>
-          <Field label="Birth year" inputID="birthYear" status={fieldStatus(fieldErrors.birthYear)}>
-            <TextInput
-              id="birthYear"
-              name="birthYear"
-              type="number"
-              min={1900}
-              max={2100}
-              defaultValue={player === undefined ? undefined : numberDefault(player.birthYear)}
-              aria-invalid={fieldErrors.birthYear === undefined ? undefined : true}
-              aria-describedby={
-                fieldErrors.birthYear === undefined ? undefined : 'birthYear-status'
-              }
-            />
-          </Field>
-          <Field label="FIDE ID" inputID="fideId" status={fieldStatus(fieldErrors.fideId)}>
-            <TextInput
-              id="fideId"
-              name="fideId"
-              type="text"
-              maxLength={20}
-              defaultValue={player?.fideId ?? undefined}
-              aria-invalid={fieldErrors.fideId === undefined ? undefined : true}
-              aria-describedby={fieldErrors.fideId === undefined ? undefined : 'fideId-status'}
-            />
-          </Field>
-          <Field
-            label="FIDE rating"
-            inputID="fideRating"
-            status={fieldStatus(fieldErrors.fideRating)}
-          >
-            <TextInput
-              id="fideRating"
-              name="fideRating"
-              type="number"
-              min={0}
-              max={3500}
-              defaultValue={player === undefined ? undefined : numberDefault(player.fideRating)}
-              aria-invalid={fieldErrors.fideRating === undefined ? undefined : true}
-              aria-describedby={
-                fieldErrors.fideRating === undefined ? undefined : 'fideRating-status'
-              }
-            />
-          </Field>
-          <Field label="USCF ID" inputID="uscfId" status={fieldStatus(fieldErrors.uscfId)}>
-            <TextInput
-              id="uscfId"
-              name="uscfId"
-              type="text"
-              maxLength={20}
-              defaultValue={player?.uscfId ?? undefined}
-              aria-invalid={fieldErrors.uscfId === undefined ? undefined : true}
-              aria-describedby={fieldErrors.uscfId === undefined ? undefined : 'uscfId-status'}
-            />
-          </Field>
-          <Field
-            label="USCF rating"
-            inputID="uscfRating"
-            status={fieldStatus(fieldErrors.uscfRating)}
-          >
-            <TextInput
-              id="uscfRating"
-              name="uscfRating"
-              type="number"
-              min={0}
-              max={3500}
-              defaultValue={player === undefined ? undefined : numberDefault(player.uscfRating)}
-              aria-invalid={fieldErrors.uscfRating === undefined ? undefined : true}
-              aria-describedby={
-                fieldErrors.uscfRating === undefined ? undefined : 'uscfRating-status'
-              }
-            />
-          </Field>
-          <Field
-            label="Chess.com username"
-            inputID="chesscomUsername"
-            status={fieldStatus(fieldErrors.chesscomUsername)}
-          >
-            <TextInput
-              id="chesscomUsername"
-              name="chesscomUsername"
-              type="text"
-              maxLength={60}
-              defaultValue={player?.chesscomUsername ?? undefined}
-              aria-invalid={fieldErrors.chesscomUsername === undefined ? undefined : true}
-              aria-describedby={
-                fieldErrors.chesscomUsername === undefined ? undefined : 'chesscomUsername-status'
-              }
-            />
-          </Field>
-          <Field
-            label="Lichess username"
-            inputID="lichessUsername"
-            status={fieldStatus(fieldErrors.lichessUsername)}
-          >
-            <TextInput
-              id="lichessUsername"
-              name="lichessUsername"
-              type="text"
-              maxLength={60}
-              defaultValue={player?.lichessUsername ?? undefined}
-              aria-invalid={fieldErrors.lichessUsername === undefined ? undefined : true}
-              aria-describedby={
-                fieldErrors.lichessUsername === undefined ? undefined : 'lichessUsername-status'
-              }
-            />
-          </Field>
+          <fieldset className="flex flex-col gap-4">
+            <legend className="text-sm text-muted">Identity</legend>
+            <Field
+              label="Display name"
+              inputID="displayName"
+              status={fieldStatus(fieldErrors.displayName)}
+            >
+              <TextInput
+                id="displayName"
+                name="displayName"
+                type="text"
+                required
+                maxLength={80}
+                defaultValue={player?.displayName}
+                aria-invalid={fieldErrors.displayName === undefined ? undefined : true}
+                aria-describedby={
+                  fieldErrors.displayName === undefined ? undefined : 'displayName-status'
+                }
+              />
+            </Field>
+            <Field
+              label="Birth year"
+              inputID="birthYear"
+              status={fieldStatus(fieldErrors.birthYear)}
+            >
+              <TextInput
+                id="birthYear"
+                name="birthYear"
+                type="number"
+                min={1900}
+                max={2100}
+                defaultValue={player === undefined ? undefined : numberDefault(player.birthYear)}
+                aria-invalid={fieldErrors.birthYear === undefined ? undefined : true}
+                aria-describedby={
+                  fieldErrors.birthYear === undefined ? undefined : 'birthYear-status'
+                }
+              />
+            </Field>
+          </fieldset>
+          <fieldset className="flex flex-col gap-4">
+            <legend className="text-sm text-muted">Federation</legend>
+            <Field label="FIDE ID" inputID="fideId" status={fieldStatus(fieldErrors.fideId)}>
+              <TextInput
+                id="fideId"
+                name="fideId"
+                type="text"
+                maxLength={20}
+                defaultValue={player?.fideId ?? undefined}
+                aria-invalid={fieldErrors.fideId === undefined ? undefined : true}
+                aria-describedby={fieldErrors.fideId === undefined ? undefined : 'fideId-status'}
+              />
+            </Field>
+            <Field
+              label="FIDE rating"
+              inputID="fideRating"
+              status={fieldStatus(fieldErrors.fideRating)}
+            >
+              <TextInput
+                id="fideRating"
+                name="fideRating"
+                type="number"
+                min={0}
+                max={3500}
+                defaultValue={player === undefined ? undefined : numberDefault(player.fideRating)}
+                aria-invalid={fieldErrors.fideRating === undefined ? undefined : true}
+                aria-describedby={
+                  fieldErrors.fideRating === undefined ? undefined : 'fideRating-status'
+                }
+              />
+            </Field>
+            <Field label="USCF ID" inputID="uscfId" status={fieldStatus(fieldErrors.uscfId)}>
+              <TextInput
+                id="uscfId"
+                name="uscfId"
+                type="text"
+                maxLength={20}
+                defaultValue={player?.uscfId ?? undefined}
+                aria-invalid={fieldErrors.uscfId === undefined ? undefined : true}
+                aria-describedby={fieldErrors.uscfId === undefined ? undefined : 'uscfId-status'}
+              />
+            </Field>
+            <Field
+              label="USCF rating"
+              inputID="uscfRating"
+              status={fieldStatus(fieldErrors.uscfRating)}
+            >
+              <TextInput
+                id="uscfRating"
+                name="uscfRating"
+                type="number"
+                min={0}
+                max={3500}
+                defaultValue={player === undefined ? undefined : numberDefault(player.uscfRating)}
+                aria-invalid={fieldErrors.uscfRating === undefined ? undefined : true}
+                aria-describedby={
+                  fieldErrors.uscfRating === undefined ? undefined : 'uscfRating-status'
+                }
+              />
+            </Field>
+          </fieldset>
+          <fieldset className="flex flex-col gap-4">
+            <legend className="text-sm text-muted">Platforms</legend>
+            <Field
+              label="Chess.com username"
+              inputID="chesscomUsername"
+              status={fieldStatus(fieldErrors.chesscomUsername)}
+            >
+              <TextInput
+                id="chesscomUsername"
+                name="chesscomUsername"
+                type="text"
+                maxLength={60}
+                defaultValue={player?.chesscomUsername ?? undefined}
+                aria-invalid={fieldErrors.chesscomUsername === undefined ? undefined : true}
+                aria-describedby={
+                  fieldErrors.chesscomUsername === undefined ? undefined : 'chesscomUsername-status'
+                }
+              />
+            </Field>
+            <Field
+              label="Lichess username"
+              inputID="lichessUsername"
+              status={fieldStatus(fieldErrors.lichessUsername)}
+            >
+              <TextInput
+                id="lichessUsername"
+                name="lichessUsername"
+                type="text"
+                maxLength={60}
+                defaultValue={player?.lichessUsername ?? undefined}
+                aria-invalid={fieldErrors.lichessUsername === undefined ? undefined : true}
+                aria-describedby={
+                  fieldErrors.lichessUsername === undefined ? undefined : 'lichessUsername-status'
+                }
+              />
+            </Field>
+          </fieldset>
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button
               type="submit"
