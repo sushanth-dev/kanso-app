@@ -438,14 +438,20 @@ numbers follow in IBM Plex Mono with their unit, each labelled "Before the
 focus" or "Since the focus" and carrying its games count beside it, so five
 reads as five. The stream and period are one muted line; a coach instruction
 is shown verbatim as text. `insufficient_evidence` is a sentence, never a blank
-or a zero. A revoked, expired, or unknown link shows one plain "This link is no
-longer available." page. The reader's fetch carries no credentials.
+or a zero. The reader's fetch carries no credentials.
 
-The share act lives on the focus screen as a `Card`. It is an explicit create
-button, never a toggle; after creation it shows the link with a copy action and
-the creation date, and a revoke action that confirms before it removes the
-link. Revocation reflects the server's answer and reads as "revoked" rather
-than silently disappearing.
+The route has four states, all in the same centered column with no chrome: a
+two-line skeleton while loading, the loaded sheet, one indistinguishable
+unavailable page, and one unreachable page. A revoked, expired, or unknown link
+(the API's one 404) shows the plain "This link is no longer available." page.
+Anything that never reached the server — a network failure or a 5xx — shows a
+distinct "This page could not be reached." page with a "Try again" action that
+refetches, never the verdict or a partial sheet, and never the words "no longer
+available".
+
+The share act (an explicit create, copy, and confirm-then-revoke) no longer
+lives on the focus screen; its next home is not yet placed. It stays out of
+this reader surface regardless.
 
 ### Landing
 

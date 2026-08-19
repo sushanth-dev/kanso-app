@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
+import { Button } from '@astryxdesign/core/Button';
 import { Heading } from '@astryxdesign/core/Heading';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from '@tanstack/react-router';
+import { ApiRequestError } from '../api/account-api.ts';
 import { sharedProofSheetApi, type SharedProofSheet } from '../api/proof-sheet-api.ts';
 
 const STREAM_LABEL: Record<SharedProofSheet['stream'], string> = {
@@ -138,10 +140,30 @@ export function SharedProofSheetRoute() {
 
   // Revoked, expired, and unknown links are the API's one indistinguishable 404;
   // the page says the same thing for all of them rather than naming which case.
-  if (query.isError) {
+  if (query.isError && query.error instanceof ApiRequestError && query.error.status === 404) {
     return (
       <main className="mx-auto w-full max-w-2xl px-4 py-16 font-ui">
         <Heading level={1}>This link is no longer available.</Heading>
+      </main>
+    );
+  }
+
+  // A fetch that never reached the server (a network failure or a 5xx) is a
+  // different state from a revoked link: the reader may still be able to reach
+  // the page, so offer a retry rather than a dead end.
+  if (query.isError) {
+    return (
+      <main className="mx-auto w-full max-w-2xl px-4 py-16 font-ui">
+        <Heading level={1}>This page could not be reached.</Heading>
+        <p className="mt-4 text-muted">Check your connection and try again.</p>
+        <Button
+          label="Try again"
+          variant="primary"
+          clickAction={() => {
+            void query.refetch();
+          }}
+          className="mt-6 press"
+        />
       </main>
     );
   }

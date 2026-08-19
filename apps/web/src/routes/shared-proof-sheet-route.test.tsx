@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
 import { afterEach, describe, expect, test, vi } from 'vitest';
@@ -91,5 +92,73 @@ describe('SharedProofSheetRoute', () => {
     expect(
       await screen.findByRole('heading', { name: 'This link is no longer available.' }),
     ).toBeInTheDocument();
+  });
+
+  test('renders the unreachable page for a server error, never "no longer available" or a verdict', async () => {
+    vi.spyOn(sharedProofSheetApi, 'getShared').mockRejectedValue(
+      new ApiRequestError(500, 'server_error', undefined, 'Boom.'),
+    );
+
+    const history = createMemoryHistory({ initialEntries: ['/shared/proof-sheets/dead'] });
+    const queryClient = new QueryClient();
+    const router = createAppRouter({ history, queryClient });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>,
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'This page could not be reached.' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Check your connection and try again.')).toBeInTheDocument();
+    expect(screen.queryByText('This link is no longer available.')).not.toBeInTheDocument();
+    expect(screen.queryByText('It is improving.')).not.toBeInTheDocument();
+  });
+
+  test('renders the same unreachable page for a network failure', async () => {
+    vi.spyOn(sharedProofSheetApi, 'getShared').mockRejectedValue(new TypeError('Failed to fetch'));
+
+    const history = createMemoryHistory({ initialEntries: ['/shared/proof-sheets/dead'] });
+    const queryClient = new QueryClient();
+    const router = createAppRouter({ history, queryClient });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>,
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'This page could not be reached.' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('This link is no longer available.')).not.toBeInTheDocument();
+  });
+
+  test('clicking "Try again" refetches', async () => {
+    const user = userEvent.setup();
+    const getShared = vi
+      .spyOn(sharedProofSheetApi, 'getShared')
+      .mockRejectedValue(new TypeError('Failed to fetch'));
+
+    const history = createMemoryHistory({ initialEntries: ['/shared/proof-sheets/dead'] });
+    const queryClient = new QueryClient();
+    const router = createAppRouter({ history, queryClient });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>,
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'This page could not be reached.' }),
+    ).toBeInTheDocument();
+
+    getShared.mockResolvedValue(sharedFixture());
+    await user.click(screen.getByRole('button', { name: 'Try again' }));
+
+    expect(
+      await screen.findByRole('heading', { name: 'Converting won positions' }),
+    ).toBeInTheDocument();
+    expect(getShared).toHaveBeenCalledTimes(2);
   });
 });
