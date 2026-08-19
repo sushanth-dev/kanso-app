@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
+import { upgradeToPaid } from './helpers.ts';
 
 async function expectNoAxeViolations(page: Page) {
   const { violations } = await new AxeBuilder({ page }).analyze();
@@ -48,6 +49,10 @@ test('creates, shares, reads, and revokes a proof sheet', async ({ page, browser
   await page.goto('/sign-up');
   await signUp(page, 'E2E Proof', email, password);
   await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
+
+  // The proof sheet and the focus behind it are paid (ST-044); flip the
+  // account through the checkout and webhook seams before the share act.
+  await upgradeToPaid(page);
   await createPlayerAndSetFocus(page);
 
   // The share act is explicit: a create button, never a toggle.

@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
+import { upgradeToPaid } from './helpers.ts';
 
 async function expectNoAxeViolations(page: Page) {
   const { violations } = await new AxeBuilder({ page }).analyze();
@@ -169,6 +170,10 @@ test('walks report to focus to the verification trend', async ({ page }) => {
   ).toBeVisible();
   await expectNoAxeViolations(page);
   await page.getByRole('link', { name: 'Back to your account' }).click();
+
+  // Focus and verification are paid (ST-044); flip the account through the
+  // checkout and webhook seams before the catalogue is reached.
+  await upgradeToPaid(page);
 
   // The choice: the catalogue, with the ranking beside it.
   await page.getByRole('link', { name: 'Set focus' }).click();
