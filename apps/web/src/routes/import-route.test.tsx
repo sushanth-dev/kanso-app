@@ -87,10 +87,33 @@ describe('ImportScreen', () => {
   test('renders the form and states the import period', () => {
     renderScreen();
     expect(screen.getByRole('heading', { name: 'Import games' })).toBeVisible();
-    expect(screen.getByLabelText('Provider')).toBeVisible();
+    expect(screen.getByLabelText('Method')).toBeVisible();
     expect(screen.getByLabelText('Username')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Import games' })).toBeVisible();
     expect(screen.getByText('Imports the last 12 months of online games.')).toBeVisible();
+  });
+
+  test('offers all four import methods in order', () => {
+    renderScreen();
+    const options = screen.getAllByRole('option').map((option) => option.textContent);
+    expect(options).toEqual([
+      'Chess.com username',
+      'Lichess username',
+      'PGN upload',
+      'Tournament by name',
+    ]);
+  });
+
+  test('states the stream per method', async () => {
+    const user = userEvent.setup();
+    renderScreen();
+    expect(screen.getByText('Imports the last 12 months of online games.')).toBeVisible();
+
+    await user.selectOptions(screen.getByLabelText('Method'), 'pgn_upload');
+    expect(screen.getByRole('group', { name: 'Where were these games played?' })).toBeVisible();
+
+    await user.selectOptions(screen.getByLabelText('Method'), 'uscf');
+    expect(screen.getByText('Imports tournament results, not moves.')).toBeVisible();
   });
 
   test('rejects an implausible Chess.com username before any request', async () => {
@@ -125,6 +148,18 @@ describe('ImportScreen', () => {
     expect(
       await screen.findByText('Imported 3 games. 2 games were rejected and not imported.'),
     ).toBeVisible();
+  });
+
+  test('shows the analysis note and report link on a username success', async () => {
+    const user = userEvent.setup();
+    startImport.mockResolvedValue(makeJob({ gamesFound: 3, gamesImported: 3 }));
+    renderScreen();
+    await user.type(screen.getByLabelText('Username'), 'mina123');
+    await user.click(screen.getByRole('button', { name: 'Import games' }));
+    expect(await screen.findByText('Imported 3 games.')).toBeVisible();
+    expect(screen.getByText('Analysis runs next and arrives asynchronously.')).toBeVisible();
+    const reportLink = screen.getByRole('link', { name: 'View report' });
+    expect(reportLink).toHaveAttribute('href', expect.stringContaining('stream=online'));
   });
 
   test('reports no games found for a valid username with an empty period', async () => {
@@ -175,7 +210,7 @@ describe('ImportScreen', () => {
     const user = userEvent.setup();
     startImport.mockResolvedValue(makeJob({ source: 'lichess', gamesImported: 1 }));
     renderScreen();
-    await user.selectOptions(screen.getByLabelText('Provider'), 'lichess');
+    await user.selectOptions(screen.getByLabelText('Method'), 'lichess');
     await user.type(screen.getByLabelText('Username'), 'hi');
     await user.click(screen.getByRole('button', { name: 'Import games' }));
     expect(await screen.findByText('Imported 1 game.')).toBeVisible();
@@ -183,6 +218,153 @@ describe('ImportScreen', () => {
       source: 'lichess',
       username: 'hi',
     });
+  });
+
+  test('imports a PGN upload and states the chosen stream', async () => {
+    const user = userEvent.setup();
+    const pgn = '[Event "Test"]\n1. e4 e5 1-0';
+    startImport.mockResolvedValue(
+      makeJob({ source: 'pgn_upload', stream: 'online', gamesFound: 2, gamesImported: 2 }),
+    );
+    renderScreen();
+    await user.selectOptions(screen.getByLabelText('Method'), 'pgn_upload');
+    await user.upload(
+      screen.getByLabelText('PGN file'),
+      new File([pgn], 'games.pgn', { type: 'application/x-chess-pgn' }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Import games' }));
+    expect(await screen.findByText('Imported 2 games.')).toBeVisible();
+    expect(startImport).toHaveBeenCalledWith(ownedPlayerId, {
+      source: 'pgn_upload',
+      pgn,
+      stream: 'online',
+    });
+    expect(screen.getByText('Analysis runs next and arrives asynchronously.')).toBeVisible();
+    expect(screen.getByRole('link', { name: 'View report' })).toBeVisible();
+  });
+
+  test('requires a PGN file before any request', async () => {
+    const user = userEvent.setup();
+    renderScreen();
+    await user.selectOptions(screen.getByLabelText('Method'), 'pgn_upload');
+    await user.click(screen.getByRole('button', { name: 'Import games' }));
+    expect(await screen.findByText('Choose a PGN file.')).toBeVisible();
+    expect(startImport).not.toHaveBeenCalled();
+  });
+
+  test('names the unparseable game on an invalid_pgn upload', async () => {
+    const user = userEvent.setup();
+    startImport.mockRejectedValue(
+      new ApiRequestError(
+        400,
+        'invalid_pgn',
+        [{ path: 'game 3', message: 'missing result header' }],
+        'The upload contains a game that could not be parsed.',
+      ),
+    );
+    renderScreen();
+    await user.selectOptions(screen.getByLabelText('Method'), 'pgn_upload');
+    await user.upload(
+      screen.getByLabelText('PGN file'),
+      new File(['[Event "Test"]\n1. e4'], 'games.pgn', { type: 'application/x-chess-pgn' }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Import games' }));
+    expect(
+      await screen.findByText('The upload contains a game that could not be parsed.'),
+    ).toBeVisible();
+    expect(screen.getByText('game 3: missing result header')).toBeVisible();
+  });
+
+  test('imports a tournament and notes results carry no moves', async () => {
+    const user = userEvent.setup();
+    startImport.mockResolvedValue(
+      makeJob({ source: 'uscf', stream: 'tournament', gamesFound: 3, gamesImported: 3 }),
+    );
+    renderScreen();
+    await user.selectOptions(screen.getByLabelText('Method'), 'uscf');
+    await user.type(screen.getByLabelText('Tournament name'), 'State Champs');
+    expect(screen.getByLabelText('Player name')).toHaveValue('Mina');
+    await user.click(screen.getByRole('button', { name: 'Import games' }));
+    expect(await screen.findByText('Imported 3 games.')).toBeVisible();
+    expect(
+      screen.getByText('These games carry results, not moves, so no analysis follows.'),
+    ).toBeVisible();
+    expect(startImport).toHaveBeenCalledWith(ownedPlayerId, {
+      source: 'uscf',
+      tournamentName: 'State Champs',
+      playerName: 'Mina',
+    });
+    expect(screen.queryByRole('link', { name: 'View report' })).toBeNull();
+  });
+
+  test('reports no games found for a tournament with an empty crosstable', async () => {
+    const user = userEvent.setup();
+    startImport.mockResolvedValue(
+      makeJob({ source: 'uscf', stream: 'tournament', gamesFound: 0, gamesImported: 0 }),
+    );
+    renderScreen();
+    await user.selectOptions(screen.getByLabelText('Method'), 'uscf');
+    await user.type(screen.getByLabelText('Tournament name'), 'State Champs');
+    await user.click(screen.getByRole('button', { name: 'Import games' }));
+    expect(await screen.findByText('No games found for Mina in State Champs.')).toBeVisible();
+  });
+
+  test('reports an unknown tournament name on 422', async () => {
+    const user = userEvent.setup();
+    startImport.mockRejectedValue(
+      new ApiRequestError(
+        422,
+        'tournament_not_found',
+        undefined,
+        'No USCF tournament found by that name.',
+      ),
+    );
+    renderScreen();
+    await user.selectOptions(screen.getByLabelText('Method'), 'uscf');
+    await user.type(screen.getByLabelText('Tournament name'), 'Not A Real Event');
+    await user.click(screen.getByRole('button', { name: 'Import games' }));
+    expect(
+      await screen.findByText('No USCF tournament found by the name "Not A Real Event".'),
+    ).toBeVisible();
+  });
+
+  test('renders the name-mismatch detail verbatim on 422', async () => {
+    const user = userEvent.setup();
+    startImport.mockRejectedValue(
+      new ApiRequestError(
+        422,
+        'name_mismatch',
+        undefined,
+        'This tournament lists a Kamabathula but not Sushanth Kamabathula; check the spelling.',
+      ),
+    );
+    renderScreen();
+    await user.selectOptions(screen.getByLabelText('Method'), 'uscf');
+    await user.type(screen.getByLabelText('Tournament name'), 'State Champs');
+    await user.click(screen.getByRole('button', { name: 'Import games' }));
+    expect(
+      await screen.findByText(
+        'This tournament lists a Kamabathula but not Sushanth Kamabathula; check the spelling.',
+      ),
+    ).toBeVisible();
+  });
+
+  test('renders the daily import cap message on 429', async () => {
+    const user = userEvent.setup();
+    startImport.mockRejectedValue(
+      new ApiRequestError(
+        429,
+        'daily_import_cap',
+        undefined,
+        'Daily online import cap reached. Try again tomorrow.',
+      ),
+    );
+    renderScreen();
+    await user.type(screen.getByLabelText('Username'), 'mina123');
+    await user.click(screen.getByRole('button', { name: 'Import games' }));
+    expect(
+      await screen.findByText('Daily online import cap reached. Try again tomorrow.'),
+    ).toBeVisible();
   });
 
   test('fires game_imported with counts, never game or child data', async () => {
@@ -197,5 +379,10 @@ describe('ImportScreen', () => {
       gamesFound: 3,
       gamesImported: 3,
     });
+  });
+
+  test('throws not-found for a player not owned by the signed-in account', () => {
+    const unownedPlayerId = '00000000-0000-4000-8000-000000000099';
+    expect(() => renderScreen({ playerId: unownedPlayerId })).toThrow();
   });
 });

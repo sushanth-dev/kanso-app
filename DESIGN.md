@@ -340,22 +340,33 @@ that separates "still being analyzed" from "no analyzed games."
 
 ### Import
 
-The import form is one `Card` with a provider `select` (Chess.com or Lichess)
-and a username `TextInput`, both through the existing `Field` wrapper. The
-period is stated rather than implied: "Imports the last 12 months of online
-games." The submit is a primary `Button`, with a secondary "Back to account"
-link. The username is validated client-side against the provider's charset
-before any request.
+The import form is one `Card` at `/account/players/$playerId/import` with a
+method `select` of four explicit options: Chess.com username, Lichess
+username, PGN upload, and tournament by name. The fields below switch with the
+method, and the stream is stated per method before any request, never a hidden
+default. A username import states the 12-month online period; a PGN upload
+asks for the stream explicitly through the `StreamToggle`; tournament by name
+states "Imports tournament results, not moves." The username is validated
+client-side against the provider's charset before any request; a PGN file is
+read as text, never rendered; the tournament player name is prefilled from the
+player.
 
-The import has six outcomes, never one generic failure. A successful import is
-a success `StatusMessage` naming the count, with a rejected-games sentence
-appended when any game was rejected. A valid username with no games in the
-period, and a re-import that found only duplicates, are both `info` messages:
-neutral facts, not errors. An unresolved username (422) and an unreachable
-provider (502) are `error` messages naming the provider. The waiting state is
-an `info` message ("this usually takes about a minute"); there is no polling.
-`StatusMessage` carries an `info` tone for the first time here, backed by the
-teal informational role with an "i" icon as its second channel.
+The import has six outcomes, never one generic failure. A username success
+names the count with a rejected-games sentence appended when any game was
+rejected; a PGN success names the count; a tournament success names the count
+and states these games carry results, not moves, so no analysis follows. A
+successful username or PGN import adds the note that analysis runs next and
+arrives asynchronously, pointing to the report rather than promising instant
+results. A valid username with no games in the period, and a re-import that
+found only duplicates, are both `info` messages: neutral facts, not errors. An
+unresolved username (422), an unreachable provider (502), an unmatched
+tournament (422), a name mismatch (422, naming the closest surname), a
+malformed upload (400, naming which game failed), and the reserved daily cap
+(429) are each an `error` naming themselves. The waiting state names the method
+and its rough duration ("about a minute" for a season, "a few seconds" for a
+file or crosstable); there is no polling. `StatusMessage` carries an `info`
+tone, backed by the teal informational role with an "i" icon as its second
+channel.
 
 ### Focus
 
