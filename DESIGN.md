@@ -479,6 +479,46 @@ carries a visible "Synthetic example" label so no visitor mistakes it for a
 real diagnosis. One authored reveal eases the sample card in on load,
 collapsing to zero under reduced motion; there are no other effects.
 
+### Upgrade
+
+The upgrade surface is the one screen where money changes hands, and it
+renders that fact as a fact sheet rather than a pitch. At `/account/upgrade`, a
+free account sees the boundary stated in plain words: a "What free gives" list
+(import by Chess.com or Lichess username plus PGN upload, one diagnosis ranked
+by rating cost, and the rating leak number for the top weakness), a "What paid
+gives" list of four (a focus with verification, the proof sheet, history across
+seasons, and unlimited imports and re-analysis), and three plan cards priced at
+exactly $15 a month, $130 a season (September to May), and $150 a year (twelve
+months for the price of ten). No discount, no other price, no invented feature;
+the copy states facts, never persuasion.
+
+The tier is read from `/me` on load. While it resolves, a skeleton renders in
+the page frame (`aria-busy`, `role="status"`), never the pay buttons, so a
+paying account never sees the pay action flash before its tier is known. A paid
+account renders the already-paid state instead of the pay cards: it names the
+paid tier and links back to `/account` where the loop lives, and it never
+offers to charge a paying account again.
+
+The pay action on each card routes through the existing Razorpay checkout
+unchanged; no card number is handled by us. The four post-pay states are
+distinct and truthful, each carried by `StatusMessage` tone and text, never hue
+alone:
+
+- **Confirming** (success): "Payment received. Confirming your upgrade..."
+  renders only after the Razorpay handler fires.
+- **Processing** (success): "Payment received. Your account has not updated
+  yet. Refresh to see your paid tier." renders only after the confirmation poll
+  exhausts without a tier flip.
+- **Provider unreachable** (error): "Checkout could not open. The payment
+  provider could not be reached. Please try again." when the checkout script
+  never loaded, so checkout never opened.
+- **Checkout failure** (error): "The payment could not be started. Please try
+  again." when creating the order failed.
+
+None of the four claims a payment that did not start. Prices render in IBM Plex
+Mono (the tabular rule), and the single terracotta accent stays on the pay
+action only.
+
 ## Do's and Don'ts
 
 ### Do:
