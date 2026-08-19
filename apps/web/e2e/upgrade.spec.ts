@@ -37,9 +37,9 @@ test('states the fact-only boundary and the three prices at the 320px floor', as
   await expect(page.getByText('The proof sheet')).toBeVisible();
 
   // Three prices, exactly as decided, each with a pay button.
-  await expect(page.getByText('$15')).toBeVisible();
-  await expect(page.getByText('$130')).toBeVisible();
-  await expect(page.getByText('$150')).toBeVisible();
+  await expect(page.getByText('$15', { exact: true })).toBeVisible();
+  await expect(page.getByText('$130', { exact: true })).toBeVisible();
+  await expect(page.getByText('$150', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Pay $15' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Pay $130' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Pay $150' })).toBeVisible();
@@ -65,7 +65,7 @@ test('shows the already-paid state and never offers to charge again', async ({ p
   await page.goto('/account/upgrade');
 
   await expect(page.getByRole('heading', { name: 'Your account is already paid' })).toBeVisible();
-  await expect(page.getByText('Paid')).toBeVisible();
+  await expect(page.getByText('Paid', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: /Pay \$/ })).toHaveCount(0);
   await expectNoAxeViolations(page);
 });
