@@ -1,9 +1,9 @@
-import { Fragment, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Badge } from '@astryxdesign/core/Badge';
+import { Card } from '@astryxdesign/core/Card';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Heading } from '@astryxdesign/core/Heading';
 import { useQuery } from '@tanstack/react-query';
-import { createColumnHelper, metaHelper, tableFeatures, useTable } from '@tanstack/react-table';
 import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router';
 import { ApiRequestError } from '../api/account-api.ts';
 import type {
@@ -70,77 +70,6 @@ const rateFormatter = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 0,
 });
 
-interface WeaknessTableMeta {
-  expandedId: string | null;
-  onToggle: (id: string) => void;
-}
-
-const weaknessFeatures = tableFeatures({
-  tableMeta: metaHelper<WeaknessTableMeta>(),
-});
-
-const weaknessHelper = createColumnHelper<typeof weaknessFeatures, Weakness>();
-
-const weaknessColumns = weaknessHelper.columns([
-  weaknessHelper.accessor('rank', {
-    header: 'Rank',
-    cell: (info) => <span className="font-mono text-sm text-muted">#{info.getValue()}</span>,
-  }),
-  weaknessHelper.display({
-    id: 'weakness',
-    header: 'Weakness',
-    cell: (info) => {
-      const weakness = info.row.original;
-      const expanded = info.table.options.meta?.expandedId === weakness.id;
-      const expandable = weakness.kind !== 'opening';
-      return (
-        <div className="space-y-1">
-          <span className="font-display text-base">{weakness.label}</span>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge label={KIND_LABEL[weakness.kind]} variant="neutral" />
-            {weakness.eco !== null ? (
-              <span className="font-mono text-sm text-muted">{weakness.eco}</span>
-            ) : null}
-          </div>
-          {expandable ? (
-            <button
-              type="button"
-              onClick={() => info.table.options.meta?.onToggle(weakness.id)}
-              aria-expanded={expanded}
-              className="press inline-flex min-h-11 items-center font-ui text-sm text-accent underline hover:text-accent-hover"
-            >
-              {expanded ? 'Hide evidence' : 'Show evidence'}
-            </button>
-          ) : null}
-        </div>
-      );
-    },
-  }),
-  weaknessHelper.accessor('ratingLeak', {
-    header: 'Rating leak',
-    cell: (info) => {
-      const weakness = info.row.original;
-      return (
-        <span className="font-mono text-base">
-          {weakness.saturated ? `at least ${info.getValue()}` : info.getValue()}
-        </span>
-      );
-    },
-  }),
-  weaknessHelper.accessor('gamesAffected', {
-    header: 'Games',
-    cell: (info) => <span className="font-mono">{info.getValue()}</span>,
-  }),
-  weaknessHelper.accessor('occurrences', {
-    header: 'Occurrences',
-    cell: (info) => <span className="font-mono">{info.getValue()}</span>,
-  }),
-  weaknessHelper.accessor('halfPointsLost', {
-    header: 'Half-points lost',
-    cell: (info) => <span className="font-mono">{info.getValue()}</span>,
-  }),
-]);
-
 export interface ReportScreenProps {
   stream: Stream;
   report: Report;
@@ -174,76 +103,89 @@ export function ReportScreen({ stream, report, playerId, onStreamChange }: Repor
   return (
     <div className="space-y-6">
       <ReportHeader stream={stream} onStreamChange={onStreamChange} meta={meta} />
+      {report.timeTroubleFromMove !== null ? (
+        <p className="text-sm">
+          Time trouble starts around move{' '}
+          <span className="font-mono">{report.timeTroubleFromMove}</span>.
+        </p>
+      ) : (
+        <p className="text-sm text-muted">{TIME_TROUBLE_UNAVAILABLE.no_clock_data}</p>
+      )}
       {isEmpty ? (
         <EmptyReport report={report} />
       ) : (
-        <WeaknessTable weaknesses={report.weaknesses} playerId={playerId} stream={stream} />
+        <WeaknessList weaknesses={report.weaknesses} playerId={playerId} stream={stream} />
       )}
     </div>
   );
 }
 
-interface WeaknessTableProps {
+interface WeaknessListProps {
   weaknesses: Weakness[];
   playerId: string;
   stream: Stream;
 }
 
-function WeaknessTable({ weaknesses, playerId, stream }: WeaknessTableProps) {
+function WeaknessList({ weaknesses, playerId, stream }: WeaknessListProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const onToggle = (id: string) => setExpandedId((current) => (current === id ? null : id));
-  const table = useTable({
-    features: weaknessFeatures,
-    columns: weaknessColumns,
-    data: weaknesses,
-    meta: { expandedId, onToggle },
-  });
 
   return (
-    <table className="reveal-in w-full border-collapse">
-      <thead>
-        {table.getHeaderGroups().map((group) => (
-          <tr key={group.id}>
-            {group.headers.map((header) => (
-              <th
-                key={header.id}
-                scope="col"
-                className="border-b border-border-subtle px-3 py-2 text-left font-ui text-xs text-muted"
-              >
-                {header.isPlaceholder ? null : <table.FlexRender header={header} />}
-              </th>
-            ))}
-          </tr>
-        ))}
-      </thead>
-      <tbody>
-        {table.getRowModel().rows.map((row) => {
-          const weakness = row.original;
-          const expanded = expandedId === weakness.id;
-          return (
-            <Fragment key={row.id}>
-              <tr>
-                {row.getAllCells().map((cell) => (
-                  <td key={cell.id} className="border-b border-border-subtle px-3 py-3 align-top">
-                    <table.FlexRender cell={cell} />
-                  </td>
-                ))}
-              </tr>
-              {expanded && weakness.kind !== 'opening' ? (
-                <tr>
-                  <td
-                    colSpan={row.getAllCells().length}
-                    className="border-b border-border-subtle bg-sunken px-3 py-4"
+    <ol className="reveal-in space-y-4">
+      {weaknesses.map((weakness) => {
+        const expanded = expandedId === weakness.id;
+        return (
+          <li key={weakness.id}>
+            <Card>
+              <div className="space-y-2">
+                <div className="flex items-baseline justify-between gap-3">
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                    <span className="font-mono text-sm text-muted">#{weakness.rank}</span>
+                    <span className="font-display text-base">{weakness.label}</span>
+                  </div>
+                  <span className="font-mono text-base">
+                    {weakness.saturated ? `at least ${weakness.ratingLeak}` : weakness.ratingLeak}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge label={KIND_LABEL[weakness.kind]} variant="neutral" />
+                  {weakness.eco !== null ? (
+                    <span className="font-mono text-sm text-muted">{weakness.eco}</span>
+                  ) : null}
+                </div>
+                <dl className="flex flex-wrap gap-x-6 gap-y-2">
+                  <div>
+                    <dt className="font-ui text-xs text-muted">games</dt>
+                    <dd className="font-mono">{weakness.gamesAffected}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-ui text-xs text-muted">occurrences</dt>
+                    <dd className="font-mono">{weakness.occurrences}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-ui text-xs text-muted">half-points lost</dt>
+                    <dd className="font-mono">{weakness.halfPointsLost}</dd>
+                  </div>
+                </dl>
+                {weakness.kind !== 'opening' ? (
+                  <button
+                    type="button"
+                    onClick={() => onToggle(weakness.id)}
+                    aria-expanded={expanded}
+                    className="press inline-flex min-h-11 items-center font-ui text-sm text-accent underline hover:text-accent-hover"
                   >
-                    <AggregateDetail kind={weakness.kind} playerId={playerId} stream={stream} />
-                  </td>
-                </tr>
+                    {expanded ? 'Hide evidence' : 'Show evidence'}
+                  </button>
+                ) : null}
+              </div>
+              {expanded && weakness.kind !== 'opening' ? (
+                <AggregateDetail kind={weakness.kind} playerId={playerId} stream={stream} />
               ) : null}
-            </Fragment>
-          );
-        })}
-      </tbody>
-    </table>
+            </Card>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
