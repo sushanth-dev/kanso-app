@@ -11,12 +11,14 @@
  * IBM Plex Mono for every number. Restrained: the accent lives on the primary
  * action only.
  *
- * STORY: a free user lands on a paid surface, is told the loop is paid, sees
- * the three prices, picks one, and pays through Razorpay.
+ * STORY: a free user lands on a paid surface, is told what free gives, what
+ * paid gives, and the three prices, picks one, and pays through Razorpay. A
+ * paid user is told the loop is already open and sent back to it, never asked
+ * to pay again.
  *
- * FIRST VIEWPORT: a heading, one line on what paid gives, then three plan
+ * FIRST VIEWPORT: a heading, one line on the boundary, then the three plan
  * cards - monthly, season (September to May), year - each with its price in
- * display type and a pay button.
+ * mono type and a pay button.
  *
  * FORM: a whole surface inside an established world, shaped directly because
  * the task and content are precisely specified; no concept tournament.
@@ -25,12 +27,14 @@
  * finish review, the verdict, and DESIGN.md.
  */
 import { useState } from 'react';
+import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { Heading } from '@astryxdesign/core/Heading';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { checkoutApi, type Plan } from '../api/checkout-api.ts';
+import { checkoutApi, type CheckoutResponse, type Plan } from '../api/checkout-api.ts';
+import { primaryLinkClassName } from '../components/primary-link.ts';
 import { secondaryLinkClassName } from '../components/secondary-link.ts';
 import { StatusMessage } from '../components/status-message.tsx';
 import { ME_QUERY_KEY, meQueryOptions } from '../query-client.ts';
@@ -50,16 +54,22 @@ const PLANS: PlanOption[] = [
     key: 'season',
     name: 'Season',
     price: '$130',
-    period: 'September to May',
-    note: 'The term scholastic chess runs.',
+    period: 'a season',
+    note: 'September to May',
   },
   {
     key: 'yearly',
     name: 'Year',
     price: '$150',
-    period: 'twelve months',
+    period: 'a year',
     note: 'Twelve months for the price of ten.',
   },
+];
+
+const WHAT_FREE_GIVES = [
+  'Import from Chess.com or Lichess by username, plus PGN upload for tournament games.',
+  'One diagnosis, ranked by what is costing the most rating.',
+  'The rating leak number for the top weakness.',
 ];
 
 const WHAT_PAID_GIVES = [
@@ -72,10 +82,16 @@ const WHAT_PAID_GIVES = [
     body: 'The before-and-after page a coach sends a parent.',
   },
   {
-    title: 'History and unlimited analysis',
-    body: 'Compare this season to the last, and import and re-analyse without a cap.',
+    title: 'History across seasons',
+    body: 'Compare this season to the last.',
+  },
+  {
+    title: 'Unlimited imports and re-analysis',
+    body: 'Import and re-analyse without a cap.',
   },
 ];
+
+type PayError = 'provider-unreachable' | 'checkout-failed';
 
 interface RazorpayCheckout {
   open(): void;
@@ -124,11 +140,45 @@ function loadRazorpayCheckout(): Promise<boolean> {
   });
 }
 
+function UpgradeSkeleton() {
+  return (
+    <div role="status" aria-label="Loading upgrade" aria-busy="true" className="space-y-8">
+      <div className="space-y-4">
+        <div className="h-4 w-40 rounded-control bg-sunken" />
+        <div className="h-8 w-64 rounded-control bg-sunken" />
+        <div className="h-4 w-72 rounded-control bg-sunken" />
+      </div>
+      <div className="h-32 rounded-surface bg-sunken" />
+      <div className="h-32 rounded-surface bg-sunken" />
+    </div>
+  );
+}
+
+function AlreadyPaid() {
+  return (
+    <div className="space-y-8">
+      <header className="space-y-4">
+        <Heading level={1}>Your account is already paid</Heading>
+        <Badge label="Paid" variant="neutral" />
+        <p className="text-muted">
+          The full loop is already open: a focus, verification, the proof sheet, history across
+          seasons, and unlimited imports and re-analysis. Set a focus and check on it from your
+          account.
+        </p>
+      </header>
+      <Link to="/account" className={primaryLinkClassName}>
+        Back to your account
+      </Link>
+    </div>
+  );
+}
+
 export function UpgradeRoute() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const meQuery = useQuery(meQueryOptions());
   const [paying, setPaying] = useState<Plan | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [payError, setPayError] = useState<PayError | null>(null);
   const [status, setStatus] = useState<'idle' | 'confirming' | 'processing'>('idle');
 
   async function confirmUpgrade(plan: Plan) {
@@ -148,14 +198,25 @@ export function UpgradeRoute() {
 
   async function handlePay(plan: Plan) {
     setPaying(plan);
-    setError(null);
+    setPayError(null);
+
+    let checkout: CheckoutResponse;
     try {
-      const checkout = await checkoutApi.checkout(plan);
-      const loaded = await loadRazorpayCheckout();
-      if (!loaded || !window.Razorpay) {
-        setError('The payment provider could not be reached. Please try again.');
-        return;
-      }
+      checkout = await checkoutApi.checkout(plan);
+    } catch {
+      setPaying(null);
+      setPayError('checkout-failed');
+      return;
+    }
+
+    const loaded = await loadRazorpayCheckout();
+    if (!loaded || !window.Razorpay) {
+      setPaying(null);
+      setPayError('provider-unreachable');
+      return;
+    }
+
+    try {
       const rzp = new window.Razorpay({
         key: checkout.keyId,
         amount: checkout.amount,
@@ -168,15 +229,19 @@ export function UpgradeRoute() {
         theme: { color: accentColor() },
       });
       rzp.open();
-    } catch (paymentError) {
-      setError(
-        paymentError instanceof Error && paymentError.message.length > 0
-          ? paymentError.message
-          : 'The payment could not be started. Please try again.',
-      );
+    } catch {
+      setPayError('provider-unreachable');
     } finally {
       setPaying(null);
     }
+  }
+
+  if (meQuery.isPending) {
+    return <UpgradeSkeleton />;
+  }
+
+  if (meQuery.data?.tier === 'paid') {
+    return <AlreadyPaid />;
   }
 
   return (
@@ -189,11 +254,22 @@ export function UpgradeRoute() {
         <p className="text-muted">Your first diagnosis is free. The loop after it is paid.</p>
       </header>
 
+      <section aria-labelledby="free-heading">
+        <Heading level={2} id="free-heading">
+          What free gives
+        </Heading>
+        <ul className="mt-4 space-y-2">
+          {WHAT_FREE_GIVES.map((fact) => (
+            <li key={fact}>{fact}</li>
+          ))}
+        </ul>
+      </section>
+
       <section aria-labelledby="paid-heading">
         <Heading level={2} id="paid-heading">
           What paid gives
         </Heading>
-        <ul className="mt-4 grid gap-6 md:grid-cols-3">
+        <ul className="mt-4 grid gap-6 md:grid-cols-2">
           {WHAT_PAID_GIVES.map((item) => (
             <li key={item.title}>
               <Heading level={3}>{item.title}</Heading>
@@ -207,9 +283,18 @@ export function UpgradeRoute() {
         <Heading level={2} id="plans-heading">
           Choose a plan
         </Heading>
-        {error !== null ? (
+        {payError === 'provider-unreachable' ? (
           <div className="mt-4">
-            <StatusMessage tone="error">{error}</StatusMessage>
+            <StatusMessage tone="error">
+              Checkout could not open. The payment provider could not be reached. Please try again.
+            </StatusMessage>
+          </div>
+        ) : null}
+        {payError === 'checkout-failed' ? (
+          <div className="mt-4">
+            <StatusMessage tone="error">
+              The payment could not be started. Please try again.
+            </StatusMessage>
           </div>
         ) : null}
         {status === 'confirming' ? (
@@ -222,7 +307,7 @@ export function UpgradeRoute() {
         {status === 'processing' ? (
           <div className="mt-4">
             <StatusMessage tone="success">
-              Payment received. Your account will upgrade shortly. Refresh to see it.
+              Payment received. Your account has not updated yet. Refresh to see your paid tier.
             </StatusMessage>
           </div>
         ) : null}
@@ -230,9 +315,7 @@ export function UpgradeRoute() {
           {PLANS.map((plan) => (
             <Card key={plan.key} className="flex flex-col p-6">
               <Heading level={3}>{plan.name}</Heading>
-              <p className="mt-3 font-display text-3xl leading-tight tracking-tight">
-                {plan.price}
-              </p>
+              <p className="mt-3 font-mono text-3xl leading-tight tracking-tight">{plan.price}</p>
               <p className="mt-1 text-sm text-muted">{plan.period}</p>
               {plan.note !== undefined ? (
                 <p className="mt-2 text-sm text-muted">{plan.note}</p>
@@ -241,7 +324,7 @@ export function UpgradeRoute() {
                 label={paying === plan.key ? 'Opening checkout...' : `Pay ${plan.price}`}
                 variant="primary"
                 onClick={() => void handlePay(plan.key)}
-                isDisabled={paying !== null || status === 'confirming'}
+                isDisabled={paying !== null || status !== 'idle'}
                 className="mt-6 min-h-11 press"
               />
             </Card>
