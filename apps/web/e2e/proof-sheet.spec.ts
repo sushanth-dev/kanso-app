@@ -99,10 +99,13 @@ test('shows the unreachable state for a network failure and recovers on retry', 
 
   // A fetch that never reaches the server must not read as a revoked link.
   // Abort only the API fetch; the document navigation still loads the shell.
+  // The token is well-formed (>= 32 chars) so the retry below reaches the
+  // 404 that an unknown token answers, not a 400 from path validation.
+  const token = 'x'.repeat(43);
   await page.route('**/shared/proof-sheets/**', (route) =>
     route.request().resourceType() === 'fetch' ? route.abort() : route.continue(),
   );
-  await page.goto('/shared/proof-sheets/any-token');
+  await page.goto(`/shared/proof-sheets/${token}`);
   await expect(
     page.getByRole('heading', { name: 'This page could not be reached.' }),
   ).toBeVisible();
