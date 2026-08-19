@@ -29,8 +29,12 @@ async function createPlayerAndSetFocus(page: Page) {
   ).toBeVisible();
 }
 
-async function openWithoutSession(browser: Browser, url: string): Promise<Page> {
-  const context = await browser.newContext();
+async function openWithoutSession(
+  browser: Browser,
+  url: string,
+  viewport: { width: number; height: number } = { width: 390, height: 844 },
+): Promise<Page> {
+  const context = await browser.newContext({ viewport });
   const page = await context.newPage();
   await page.goto(url);
   return page;
@@ -63,12 +67,16 @@ test('creates, shares, reads, and revokes a proof sheet', async ({ page, browser
   }
   const sheet = (await created.json()) as { id: string; url: string };
 
-  // The forwarded link opens in a context with no session and no chrome.
-  const reader = await openWithoutSession(browser, sheet.url);
+  // The forwarded link opens in a context with no session and no chrome, at a
+  // 320px phone floor, so five games reads as five on the smallest screen.
+  const reader = await openWithoutSession(browser, sheet.url, { width: 320, height: 640 });
   await expect(reader.getByRole('heading', { name: 'Converting won positions' })).toBeVisible();
   await expect(
     reader.getByText('There is not enough evidence yet to say whether it is helping.'),
   ).toBeVisible();
+  const scrollWidth = await reader.evaluate(() => document.documentElement.scrollWidth);
+  const clientWidth = await reader.evaluate(() => document.documentElement.clientWidth);
+  expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
   await expectNoAxeViolations(reader);
 
   // Revocation stops the link working immediately.
@@ -80,5 +88,33 @@ test('creates, shares, reads, and revokes a proof sheet', async ({ page, browser
   await reader.reload();
   await expect(
     reader.getByRole('heading', { name: 'This link is no longer available.' }),
+  ).toBeVisible();
+});
+
+test('shows the unreachable state for a network failure and recovers on retry', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ viewport: { width: 320, height: 640 } });
+  const page = await context.newPage();
+
+  // A fetch that never reaches the server must not read as a revoked link.
+  // Abort only the API fetch; the document navigation still loads the shell.
+  await page.route('**/shared/proof-sheets/**', (route) =>
+    route.request().resourceType() === 'fetch' ? route.abort() : route.continue(),
+  );
+  await page.goto('/shared/proof-sheets/any-token');
+  await expect(
+    page.getByRole('heading', { name: 'This page could not be reached.' }),
+  ).toBeVisible();
+  await expect(page.getByText('Check your connection and try again.')).toBeVisible();
+  await expect(page.getByText('This link is no longer available.')).not.toBeVisible();
+  await expectNoAxeViolations(page);
+
+  // Once the network is back, retrying reaches the real answer: an unknown
+  // token is the indistinguishable 404, never a stuck error page.
+  await page.unroute('**/shared/proof-sheets/**');
+  await page.getByRole('button', { name: 'Try again' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'This link is no longer available.' }),
   ).toBeVisible();
 });
