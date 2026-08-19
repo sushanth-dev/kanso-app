@@ -396,6 +396,11 @@ what cannot be said yet, and what would change it. A coach instruction is shown
 verbatim as text, marked "Unverified", with the paired focus named and its
 numbers labelled as the paired number rather than a measurement of the
 instruction.
+The choice and the active-focus view each carry an explicit loading and error
+state, matching the import and report surfaces rather than one generic
+failure. The surface carries no share affordance (that is the proof sheet's,
+F14) and no recommendation: a player chooses from the ranking, and the system
+does not pick (F8).
 
 ### Entry and guardian consent
 
