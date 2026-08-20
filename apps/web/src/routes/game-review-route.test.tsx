@@ -86,6 +86,7 @@ function gameFixture(overrides: Partial<GameDetail> = {}): GameDetail {
         phase: 'opening',
         evaluation: { cp: 30, mate: null },
         bestMoveSan: 'Nc6',
+        bestMoveUci: 'b8c6',
         clockMs: null,
         moveTimeMs: null,
       },
@@ -97,6 +98,7 @@ function gameFixture(overrides: Partial<GameDetail> = {}): GameDetail {
         phase: 'opening',
         evaluation: { cp: -200, mate: null },
         bestMoveSan: 'd6',
+        bestMoveUci: 'd7d6',
         clockMs: null,
         moveTimeMs: null,
       },
@@ -140,5 +142,27 @@ describe('GameReviewScreen', () => {
   test('says honestly when the game has no recorded mistakes', () => {
     renderScreen(gameFixture({ mistakes: [], plies: [] }));
     expect(screen.getByText('No recorded mistakes in this game.')).toBeInTheDocument();
+  });
+  test('shows each mistake cost in the list', () => {
+    renderScreen(gameFixture());
+    expect(screen.getByText('-2.3')).toBeInTheDocument();
+    expect(screen.getByText('-4.2')).toBeInTheDocument();
+  });
+
+  test("labels the evaluation as White's advantage", () => {
+    renderScreen(gameFixture());
+    expect(screen.getByText(/White's advantage/)).toBeInTheDocument();
+  });
+
+  test("glosses the result from the player's side", () => {
+    renderScreen(gameFixture());
+    expect(screen.getByText('You won.')).toBeInTheDocument();
+    renderScreen(gameFixture({ playerColor: 'white', result: '0-1' }));
+    expect(screen.getByText('You lost.')).toBeInTheDocument();
+  });
+
+  test('reconstructs the position in the board label', () => {
+    renderScreen(gameFixture());
+    expect(screen.getByRole('img', { name: /white king e1/ })).toBeInTheDocument();
   });
 });

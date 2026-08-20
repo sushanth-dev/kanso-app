@@ -232,7 +232,8 @@ export const MovePly = z
     phase: Phase.nullable(),
     evaluation: Evaluation.nullable(),
     bestMoveSan: z.string().nullable(),
-    /** Present when the stored PGN carried clock data; null otherwise. */
+    /** The engine's recommended move as from/to UCI, e.g. "g8f6"; null in a finished position. */
+    bestMoveUci: z.string().nullable(),
     clockMs: z.number().int().nullable(),
     moveTimeMs: z.number().int().nullable(),
   })

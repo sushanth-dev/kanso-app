@@ -780,6 +780,12 @@
               "null"
             ]
           },
+          "bestMoveUci": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "clockMs": {
             "type": [
               "integer",
@@ -801,6 +807,7 @@
           "phase",
           "evaluation",
           "bestMoveSan",
+          "bestMoveUci",
           "clockMs",
           "moveTimeMs"
         ]

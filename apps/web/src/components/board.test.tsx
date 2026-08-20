@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, test } from 'vitest';
-import { Board } from './board.tsx';
+import { Board, describePosition } from './board.tsx';
 
 const START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
@@ -27,5 +27,16 @@ describe('Board', () => {
     render(<Board fen="8/8/8/8/8/8/8/K7 w - - 0 1" label="Lone king" />);
     expect(screen.getAllByText('\u2654')).toHaveLength(1);
     expect(screen.queryAllByText('\u265A')).toHaveLength(0);
+  });
+  test('draws the best-move arrow from bestFrom to bestTo', () => {
+    const { container } = render(<Board fen={START} bestFrom="e2" bestTo="e4" label="Best move" />);
+    expect(container.querySelectorAll('line')).toHaveLength(1);
+    expect(container.querySelector('polygon')).not.toBeNull();
+  });
+
+  test('describePosition names the pieces by colour and square', () => {
+    expect(describePosition(START)).toBe(
+      'white king e1, queen d1, rooks a1 h1, bishops c1 f1, knights b1 g1, pawns a2 b2 c2 d2 e2 f2 g2 h2. black king e8, queen d8, rooks a8 h8, bishops c8 f8, knights b8 g8, pawns a7 b7 c7 d7 e7 f7 g7 h7.',
+    );
   });
 });
