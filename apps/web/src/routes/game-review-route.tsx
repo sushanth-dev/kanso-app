@@ -7,7 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from '@tanstack/react-router';
 import type { GameDetail, Mistake } from '../api/diagnosis-api.ts';
 import { ParticleReveal } from '../components/canvas-ui/ParticleReveal.tsx';
-import { Board } from '../components/board.tsx';
+import { Board, describePosition } from '../components/board.tsx';
 import { EvalBar, evalLabel } from '../components/eval-bar.tsx';
 import { secondaryLinkClassName } from '../components/secondary-link.ts';
 import { gameQueryOptions } from '../query-client.ts';
@@ -25,6 +25,18 @@ const MOTIF_LABEL: Record<string, string> = {
   missed_threat: 'Missed a threat',
 };
 
+/** "won", "lost" or "drew" from the player's side, or null when neither is known. */
+function resultGloss(
+  result: GameDetail['result'],
+  playerColor: GameDetail['playerColor'],
+): 'won' | 'lost' | 'drew' | null {
+  if (result === '1/2-1/2') return 'drew';
+  if (playerColor === null) return null;
+  if (result === '1-0') return playerColor === 'white' ? 'won' : 'lost';
+  if (result === '0-1') return playerColor === 'black' ? 'won' : 'lost';
+  return null;
+}
+
 function GameSkeleton() {
   return (
     <div role="status" aria-label="Loading game review" aria-busy="true" className="space-y-4">
@@ -40,6 +52,9 @@ export function GameReviewScreen({ game, playerId }: { game: GameDetail; playerI
   const mistakes = game.mistakes;
   const selected = mistakes.find((mistake) => mistake.id === selectedId) ?? mistakes[0];
   const opponent = game.playerColor === 'white' ? game.blackName : game.whiteName;
+  const gloss = resultGloss(game.result, game.playerColor);
+  const selectedPly =
+    selected === undefined ? undefined : game.plies.find((ply) => ply.ply === selected.ply);
 
   return (
     <div className="space-y-6">
@@ -61,6 +76,7 @@ export function GameReviewScreen({ game, playerId }: { game: GameDetail; playerI
         <ParticleReveal background="#f7f2ea" className="max-w-fit">
           <span className="font-mono text-lg text-primary">{game.result}</span>
         </ParticleReveal>
+        {gloss !== null ? <p>You {gloss}.</p> : null}
       </header>
 
       {selected === undefined ? (
@@ -73,14 +89,16 @@ export function GameReviewScreen({ game, playerId }: { game: GameDetail; playerI
             <div className="flex max-w-md items-stretch gap-4">
               <EvalBar
                 evaluation={selected.evalAfter}
-                label={`Evaluation after move ${selected.moveNumber}: ${evalLabel(selected.evalAfter)}`}
+                label={`Evaluation after move ${selected.moveNumber}, White's advantage: ${evalLabel(selected.evalAfter)}`}
               />
               <Board
                 fen={selected.fen}
-                from={game.plies.find((ply) => ply.ply === selected.ply)?.uci.slice(0, 2)}
-                to={game.plies.find((ply) => ply.ply === selected.ply)?.uci.slice(2, 4)}
+                from={selectedPly?.uci.slice(0, 2)}
+                to={selectedPly?.uci.slice(2, 4)}
+                bestFrom={selectedPly?.bestMoveUci?.slice(0, 2)}
+                bestTo={selectedPly?.bestMoveUci?.slice(2, 4)}
                 flipped={selected.movingColor === 'black'}
-                label={`Position before move ${selected.moveNumber}, ${selected.movingColor} to move`}
+                label={`Position before move ${selected.moveNumber}, ${selected.movingColor} to move. ${describePosition(selected.fen)}`}
               />
             </div>
             <Card className="space-y-2">
@@ -96,7 +114,8 @@ export function GameReviewScreen({ game, playerId }: { game: GameDetail; playerI
                 <span className="font-mono">{selected.bestMoveSan}</span>.
               </p>
               <p className="font-mono text-sm text-muted">
-                {evalLabel(selected.evalBefore)} → {evalLabel(selected.evalAfter)}
+                White's advantage: {evalLabel(selected.evalBefore)} →{' '}
+                {evalLabel(selected.evalAfter)}
               </p>
               {selected.motif !== null ? (
                 <p className="text-sm text-muted">
@@ -131,6 +150,9 @@ export function GameReviewScreen({ game, playerId }: { game: GameDetail; playerI
                       <span className="ml-3 font-mono">{mistake.moveSan}</span>
                       <span className="ml-3 text-sm text-muted">
                         {JUDGEMENT_LABEL[mistake.judgement]}
+                      </span>
+                      <span className="ml-3 font-mono text-sm text-muted">
+                        -{(mistake.cpLoss / 100).toFixed(1)}
                       </span>
                     </button>
                   </li>
