@@ -41,7 +41,7 @@ function isMinorDob(dateOfBirth: string): boolean {
 
 const AMBIENT_CLOUD_COLOR: [number, number, number] = [0.937, 0.902, 0.847];
 
-function AuthAmbient() {
+export function AuthAmbient() {
   return (
     <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10">
       <Clouds
@@ -195,6 +195,16 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
                 minLength={8}
               />
             </Field>
+            {!isSignUp ? (
+              <p className="text-right">
+                <Link
+                  to="/forgot-password"
+                  className="inline-flex min-h-11 items-center font-ui text-accent underline press hover:text-accent-hover"
+                >
+                  Forgot password?
+                </Link>
+              </p>
+            ) : null}
             {isSignUp ? (
               <Field label="Confirm password" inputID="passwordConfirmation">
                 <TextInput
