@@ -114,9 +114,12 @@ a {
   animation-delay: 225ms;
 }
 .glass {
-  background-color: color-mix(in srgb, var(--kanso-color-surface-page) 64%, transparent);
-  backdrop-filter: blur(14px) saturate(1.05);
-  -webkit-backdrop-filter: blur(14px) saturate(1.05);
+  background-color: color-mix(in srgb, var(--kanso-color-surface-page) 40%, transparent);
+  backdrop-filter: blur(6px) saturate(1.08);
+  -webkit-backdrop-filter: blur(6px) saturate(1.08);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 250, 240, 0.45),
+    0 12px 32px -20px rgba(61, 40, 20, 0.35);
 }
 
 @media (prefers-reduced-motion: reduce) {
