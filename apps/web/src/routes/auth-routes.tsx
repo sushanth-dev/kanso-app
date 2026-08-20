@@ -39,7 +39,7 @@ function isMinorDob(dateOfBirth: string): boolean {
   return new Date() < thirteenthBirthday;
 }
 
-const AMBIENT_CLOUD_COLOR: [number, number, number] = [0.937, 0.902, 0.847];
+const AMBIENT_CLOUD_COLOR: [number, number, number] = [1, 1, 1];
 
 export function AuthAmbient() {
   return (
@@ -47,9 +47,12 @@ export function AuthAmbient() {
       <Clouds
         className="h-full w-full"
         color={AMBIENT_CLOUD_COLOR}
-        opacity={0.32}
+        opacity={0.55}
         density={1.2}
         speed={0.35}
+        cover={0.32}
+        shading={0.7}
+        shadow={0.12}
       >
         <div className="h-full w-full bg-page" />
       </Clouds>

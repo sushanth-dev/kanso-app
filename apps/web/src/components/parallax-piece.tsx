@@ -4,9 +4,8 @@ import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 
-// Board theme colours, tinting the glass instead of the prototype's white.
+// Board theme colour, tinting the glass instead of the prototype's white.
 const WOOD_DARK = '#8f5e38';
-const WOOD_LIGHT = '#ead9b7';
 
 /** Premium clear-glass material, matching the prototype's transmission setup. */
 function glassMaterial(color: string): THREE.MeshPhysicalMaterial {
@@ -21,15 +20,15 @@ function glassMaterial(color: string): THREE.MeshPhysicalMaterial {
 }
 
 /** The prototype's clean three-part pawn: base, body, head. No collar or finial. */
-function buildPawn(dark: THREE.Material, light: THREE.Material): THREE.Group {
+function buildPawn(material: THREE.Material): THREE.Group {
   const g = new THREE.Group();
-  g.add(new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.5, 32), dark));
+  g.add(new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.5, 32), material));
 
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.8, 2, 32), dark);
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.8, 2, 32), material);
   body.position.y = 1.25;
   g.add(body);
 
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.6, 32, 32), light);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.6, 32, 32), material);
   head.position.y = 2.5;
   g.add(head);
 
@@ -82,11 +81,10 @@ export function ParallaxPiece() {
     rim.position.set(-4, 2, -3);
     scene.add(rim);
 
-    const dark = glassMaterial(WOOD_DARK);
-    const light = glassMaterial(WOOD_LIGHT);
-    const materials = [dark, light];
+    const material = glassMaterial(WOOD_DARK);
+    const materials = [material];
 
-    const pawn = buildPawn(dark, light);
+    const pawn = buildPawn(material);
     pawn.position.set(0, -1, 0);
     scene.add(pawn);
 

@@ -28,7 +28,7 @@ export function PageFrame({ children }: PageFrameProps) {
       >
         Skip to main content
       </a>
-      <header className="border-b border-border-subtle">
+      <header className="glass sticky top-0 z-20 border-b border-border-subtle">
         <div className="mx-auto w-full max-w-3xl px-4 py-4">
           <div className="flex items-center gap-2">
             <span aria-hidden="true" className="size-2.5 shrink-0 rounded-control bg-accent" />

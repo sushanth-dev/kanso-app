@@ -235,7 +235,7 @@ void main () {
     rgb = layer * aF;
   } else {
     a = cloudA + shadowA * (1.0 - cloudA);
-    rgb = cloudRGB * cloudA;
+    rgb = cloudRGB * a;
   }
   outColor = vec4(rgb, a);
 }`;
