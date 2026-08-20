@@ -27,6 +27,7 @@ import { GuardianWaitingRoute } from './routes/guardian-waiting-route.tsx';
 import { ImportRoute } from './routes/import-route.tsx';
 import { LandingRoute } from './routes/landing-route.tsx';
 import { PlayerEditRoute, PlayerNewRoute } from './routes/player-routes.tsx';
+import { ProofSheetRoute } from './routes/proof-sheet-route.tsx';
 import { ReportRoute } from './routes/report-route.tsx';
 import { SharedProofSheetRoute } from './routes/shared-proof-sheet-route.tsx';
 import { UpgradeRoute } from './routes/upgrade-route.tsx';
@@ -184,6 +185,20 @@ const focusRoute = createRoute({
   component: FocusRoute,
 });
 
+const proofSheetRoute = createRoute({
+  getParentRoute: () => accountRoute,
+  path: '/players/$playerId/proof-sheet',
+  beforeLoad: async ({ context, params }) => {
+    const me = await context.queryClient.ensureQueryData(meQueryOptions());
+    const owned = me.players.some((player) => player.id === params.playerId);
+    if (!owned) {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error -- notFound() returns a router not-found error, not an Error.
+      throw notFound();
+    }
+  },
+  component: ProofSheetRoute,
+});
+
 const importRoute = createRoute({
   getParentRoute: () => accountRoute,
   path: '/players/$playerId/import',
@@ -288,6 +303,7 @@ const routeTree = rootRoute.addChildren([
     playerEditRoute,
     reportRoute,
     focusRoute,
+    proofSheetRoute,
     importRoute,
     gamesRoute,
     gameReviewRoute,

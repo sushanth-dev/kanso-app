@@ -141,6 +141,13 @@ export function PlayerCard({ player, state }: { player: Player; state: PlayerDia
             Set focus
           </Link>
           <Link
+            to="/account/players/$playerId/proof-sheet"
+            params={{ playerId: player.id }}
+            className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline press"
+          >
+            Share proof sheet
+          </Link>
+          <Link
             to="/account/players/$playerId/games"
             params={{ playerId: player.id }}
             search={{ stream: 'tournament' }}
