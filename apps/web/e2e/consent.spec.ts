@@ -4,6 +4,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
+
+// Axe scans a settled page; reduced motion collapses the reveal animations so
+// it never measures mid-fade text, and exercises the reduced-motion collapse.
+test.beforeEach(async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+});
 async function expectNoAxeViolations(page: Page) {
   const { violations } = await new AxeBuilder({ page }).analyze();
   expect(violations, JSON.stringify(violations, null, 2)).toEqual([]);

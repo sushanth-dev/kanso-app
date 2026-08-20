@@ -1,15 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
-
 import {
-  createClouds,
+  createParticleReveal,
   supportsHtmlInCanvas,
-  type CloudsInstance,
-  type CloudsOptions,
-} from './CloudsVanilla';
+  type ParticleRevealInstance,
+  type ParticleRevealOptions,
+} from './ParticleRevealVanilla';
 
-export interface CloudsProps extends CloudsOptions {
+export interface ParticleRevealProps extends ParticleRevealOptions {
   children: ReactNode;
   className?: string;
   style?: React.CSSProperties;
@@ -17,35 +16,29 @@ export interface CloudsProps extends CloudsOptions {
 
 const emptySubscribe = () => () => {};
 
-export function Clouds({ children, className, style, ...options }: CloudsProps) {
+export function ParticleReveal({ children, className, style, ...options }: ParticleRevealProps) {
   const sourceRef = useRef<HTMLCanvasElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const outputRef = useRef<HTMLCanvasElement>(null);
-  const instanceRef = useRef<CloudsInstance | null>(null);
+  const instanceRef = useRef<ParticleRevealInstance | null>(null);
   const [initialOptions] = useState(options);
   const [failed, setFailed] = useState(false);
 
   const supported = useSyncExternalStore(emptySubscribe, supportsHtmlInCanvas, () => false);
-  const prefersReducedMotion = useSyncExternalStore(
-    emptySubscribe,
-    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-    () => false,
-  );
-  const native = supported && !failed && !prefersReducedMotion;
+  const native = supported && !failed;
 
   useEffect(() => {
-    if (prefersReducedMotion) return;
     const source = sourceRef.current;
     const content = contentRef.current;
     const output = outputRef.current;
     if (!source || !content || !output) return;
-    instanceRef.current = createClouds({ source, content, output }, initialOptions);
+    instanceRef.current = createParticleReveal({ source, content, output }, initialOptions);
     if (native && !instanceRef.current) setFailed(true);
     return () => {
       instanceRef.current?.destroy();
       instanceRef.current = null;
     };
-  }, [initialOptions, native, prefersReducedMotion]);
+  }, [initialOptions, native]);
 
   useEffect(() => {
     instanceRef.current?.setOptions(options);
@@ -67,12 +60,7 @@ export function Clouds({ children, className, style, ...options }: CloudsProps) 
         {native ? (
           <div
             ref={contentRef}
-            style={{
-              position: 'relative',
-              width: '100%',
-              height: '100%',
-              overflow: 'auto',
-            }}
+            style={{ position: 'relative', width: '100%', height: '100%', overflow: 'auto' }}
           >
             {children}
           </div>
@@ -81,12 +69,7 @@ export function Clouds({ children, className, style, ...options }: CloudsProps) 
       {!native ? (
         <div
           ref={contentRef}
-          style={{
-            position: 'relative',
-            width: '100%',
-            height: '100%',
-            overflow: 'auto',
-          }}
+          style={{ position: 'relative', width: '100%', height: '100%', overflow: 'auto' }}
         >
           {children}
         </div>
@@ -106,6 +89,4 @@ export function Clouds({ children, className, style, ...options }: CloudsProps) 
   );
 }
 
-export type { CloudsInstance, CloudsOptions };
-
-export default Clouds;
+export default ParticleReveal;

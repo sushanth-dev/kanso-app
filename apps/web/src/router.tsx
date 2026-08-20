@@ -19,6 +19,8 @@ import { StatusMessageProvider } from './components/status-message.tsx';
 import { meQueryOptions, queryClient } from './query-client.ts';
 import { AccountRoute } from './routes/account-route.tsx';
 import { SignInRoute, SignUpRoute } from './routes/auth-routes.tsx';
+import { GameReviewRoute } from './routes/game-review-route.tsx';
+import { GamesRoute } from './routes/games-route.tsx';
 import { FocusRoute } from './routes/focus-route.tsx';
 import { GuardianConfirmRoute } from './routes/guardian-confirm-route.tsx';
 import { GuardianWaitingRoute } from './routes/guardian-waiting-route.tsx';
@@ -35,6 +37,11 @@ interface RouterContext {
 
 function RootComponent() {
   const pathname = useLocation({ select: (location) => location.pathname });
+  // The route transition was dropped: the `motion` AnimatePresence exit left
+  // the entering surface stuck at near-zero opacity, and a keyed CSS wrapper
+  // remounts the outlet and fires a spurious `/me` 401 during sign-out. The
+  // surface-level motion (`.stagger-in`, `.press`, `.reveal-in`) remains.
+  const outlet = <Outlet />;
   // The landing page and the shared page are public and render outside the
   // authenticated shell. The landing page carries its own header and footer.
   if (
@@ -42,13 +49,11 @@ function RootComponent() {
     pathname.startsWith('/shared/proof-sheets/') ||
     pathname.startsWith('/guardians/')
   ) {
-    return <Outlet />;
+    return outlet;
   }
   return (
     <StatusMessageProvider>
-      <PageFrame>
-        <Outlet />
-      </PageFrame>
+      <PageFrame>{outlet}</PageFrame>
     </StatusMessageProvider>
   );
 }
@@ -197,6 +202,34 @@ const upgradeRoute = createRoute({
   component: UpgradeRoute,
 });
 
+const gamesRoute = createRoute({
+  getParentRoute: () => accountRoute,
+  path: '/players/$playerId/games',
+  validateSearch: (search: Record<string, unknown>) =>
+    search.stream === 'online' ? { stream: 'online' as const } : { stream: 'tournament' as const },
+  beforeLoad: async ({ context, params }) => {
+    const me = await context.queryClient.ensureQueryData(meQueryOptions());
+    if (!me.players.some((player) => player.id === params.playerId)) {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error -- notFound() returns a router not-found error, not an Error.
+      throw notFound();
+    }
+  },
+  component: GamesRoute,
+});
+
+const gameReviewRoute = createRoute({
+  getParentRoute: () => accountRoute,
+  path: '/players/$playerId/games/$gameId',
+  beforeLoad: async ({ context, params }) => {
+    const me = await context.queryClient.ensureQueryData(meQueryOptions());
+    if (!me.players.some((player) => player.id === params.playerId)) {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error -- notFound() returns a router not-found error, not an Error.
+      throw notFound();
+    }
+  },
+  component: GameReviewRoute,
+});
+
 const sharedProofSheetRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/shared/proof-sheets/$token',
@@ -242,6 +275,8 @@ const routeTree = rootRoute.addChildren([
     reportRoute,
     focusRoute,
     importRoute,
+    gamesRoute,
+    gameReviewRoute,
     upgradeRoute,
   ]),
   sharedProofSheetRoute,

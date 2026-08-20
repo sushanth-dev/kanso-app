@@ -37,6 +37,12 @@ The entry surface joined the list in ST-053 (sprint 12). Sign-up already
 rendered a `Clouds` ambient behind the forms; Sushanth chose to keep it
 rather than the ADR's default of removal, so the list now names it.
 
+The post-game result reveal joined the built set in ST-061 (sprint 12). The
+game-review route reveals the game result through `ParticleReveal`, vendored
+like `Clouds`: a still frame under `prefers-reduced-motion`, `aria-hidden`, and
+a static fallback where WebGL is unavailable. The puzzle-streak celebration
+stays unbuilt because no puzzle surface exists.
+
 Canvas UI does not enter the functional interface. The board, the move
 list, the evaluation bar, the puzzle card, and every form control stay
 on Astryx primitives and in-house chess components. An effect never

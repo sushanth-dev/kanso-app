@@ -259,7 +259,7 @@ function RankingSection({
         to="/account/players/$playerId/report"
         params={{ playerId }}
         search={{ stream }}
-        className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline transition-control"
+        className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline press"
       >
         View full report
       </Link>
@@ -281,7 +281,7 @@ function CatalogueList({
       <Heading level={2} id="catalogue-heading">
         Choose a focus
       </Heading>
-      <ul className="grid grid-cols-1 gap-4">
+      <ul className="grid grid-cols-1 gap-4 stagger-in">
         {catalogue.map((entry) => (
           <li key={entry.id}>
             <Card>
