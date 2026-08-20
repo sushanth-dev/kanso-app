@@ -28,6 +28,7 @@ import { Card } from '@astryxdesign/core/Card';
 import { Link } from '@tanstack/react-router';
 import { secondaryLinkClassName } from '../components/secondary-link.ts';
 import { primaryLinkClassName } from '../components/primary-link.ts';
+import { ParallaxPiece } from '../components/parallax-piece.tsx';
 
 const textLinkClassName =
   'inline-flex min-h-11 items-center font-ui text-accent underline underline-offset-2 transition-control hover:text-accent-hover';
@@ -90,104 +91,107 @@ function SampleDiagnosis() {
 
 export function LandingRoute() {
   return (
-    <div className="flex min-h-screen flex-col bg-page font-ui text-primary">
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-control focus:bg-accent focus:px-3 focus:py-2 focus:text-on-accent focus:outline-none focus:ring-2 focus:ring-focus"
-      >
-        Skip to main content
-      </a>
+    <div className="flex min-h-screen flex-col font-ui text-primary">
+      <ParallaxPiece />
+      <div className="relative z-10 flex min-h-screen flex-col">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-control focus:bg-accent focus:px-3 focus:py-2 focus:text-on-accent focus:outline-none focus:ring-2 focus:ring-focus"
+        >
+          Skip to main content
+        </a>
 
-      <header className="border-b border-border-subtle">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-4">
-          <span className="flex items-center gap-2">
-            <span aria-hidden="true" className="size-2.5 shrink-0 rounded-control bg-accent" />
-            <span className="font-display text-xl leading-tight tracking-tight">Kanso Chess</span>
-          </span>
-          <Link to="/sign-in" className={textLinkClassName}>
-            Sign in
-          </Link>
-        </div>
-      </header>
+        <header className="border-b border-border-subtle bg-page">
+          <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-4">
+            <span className="flex items-center gap-2">
+              <span aria-hidden="true" className="size-2.5 shrink-0 rounded-control bg-accent" />
+              <span className="font-display text-xl leading-tight tracking-tight">Kanso Chess</span>
+            </span>
+            <Link to="/sign-in" className={textLinkClassName}>
+              Sign in
+            </Link>
+          </div>
+        </header>
 
-      <main id="main-content" tabIndex={-1} className="flex-1">
-        <section className="mx-auto w-full max-w-5xl px-4 py-16 md:py-24">
-          <div className="grid gap-10 md:grid-cols-2 md:items-center md:gap-12">
-            <div>
-              <h1 className="font-display text-3xl leading-tight tracking-tight md:text-4xl">
-                Know the one thing to fix after every tournament.
-              </h1>
-              <p className="mt-4 text-lg leading-base text-muted">
-                Your first diagnosis is free. Import your games and get a ranked list of what is
-                costing you rating, starting with the one thing to fix.
-              </p>
-              <p className="mt-4 text-muted">
-                For parents, it makes every lesson you already pay for work harder.
-              </p>
-              <div className="mt-8">
+        <main id="main-content" tabIndex={-1} className="flex-1">
+          <section className="mx-auto w-full max-w-5xl px-4 py-16 md:py-24">
+            <div className="grid gap-10 md:grid-cols-2 md:items-center md:gap-12">
+              <div>
+                <h1 className="font-display text-3xl leading-tight tracking-tight md:text-4xl">
+                  Know the one thing to fix after every tournament.
+                </h1>
+                <p className="mt-4 text-lg leading-base text-muted">
+                  Your first diagnosis is free. Import your games and get a ranked list of what is
+                  costing you rating, starting with the one thing to fix.
+                </p>
+                <p className="mt-4 text-muted">
+                  For parents, it makes every lesson you already pay for work harder.
+                </p>
+                <div className="mt-8">
+                  <Link to="/sign-up" className={primaryLinkClassName}>
+                    Get your free diagnosis
+                  </Link>
+                </div>
+              </div>
+              <SampleDiagnosis />
+            </div>
+          </section>
+
+          <section className="border-t border-border-subtle bg-page">
+            <div className="mx-auto w-full max-w-5xl px-4 py-16">
+              <h2 className="font-display text-2xl tracking-tight">What Kanso does</h2>
+              <div className="mt-8 grid gap-8 md:grid-cols-3">
+                {VALUE_PROPS.map((prop) => (
+                  <div key={prop.title}>
+                    <h3 className="font-display text-lg leading-snug">{prop.title}</h3>
+                    <p className="mt-2 text-muted">{prop.body}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-14 grid gap-8 border-t border-border-subtle pt-8 md:grid-cols-2">
+                <div>
+                  <h3 className="font-display text-lg leading-snug">Free today</h3>
+                  <p className="mt-2 text-muted">
+                    Import from Chess.com or Lichess by username, or upload a PGN. Get one ranked
+                    diagnosis, with the rating-leak number for your top weakness.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="font-display text-lg leading-snug">Paid for the loop</h3>
+                  <p className="mt-2 text-muted">
+                    Everything after the diagnosis: a focus, verification of whether it worked, a
+                    proof sheet to send your parents, history across seasons, and unlimited imports.
+                    $15 a month, $130 a season, or $150 a year.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="border-t border-border-subtle bg-page">
+            <div className="mx-auto w-full max-w-5xl px-4 py-16 text-center">
+              <h2 className="font-display text-2xl tracking-tight">
+                See what is actually costing you rating
+              </h2>
+              <div className="mt-8 flex flex-col items-center gap-3">
                 <Link to="/sign-up" className={primaryLinkClassName}>
                   Get your free diagnosis
                 </Link>
+                <Link to="/sign-in" className={secondaryLinkClassName}>
+                  Already have an account? Sign in
+                </Link>
               </div>
             </div>
-            <SampleDiagnosis />
+          </section>
+        </main>
+
+        <footer className="border-t border-border-subtle bg-page">
+          <div className="mx-auto w-full max-w-5xl px-4 py-6 text-sm text-muted">
+            Kanso Chess is tournament-first chess improvement for junior players and their coaches.
           </div>
-        </section>
-
-        <section className="border-t border-border-subtle">
-          <div className="mx-auto w-full max-w-5xl px-4 py-16">
-            <h2 className="font-display text-2xl tracking-tight">What Kanso does</h2>
-            <div className="mt-8 grid gap-8 md:grid-cols-3">
-              {VALUE_PROPS.map((prop) => (
-                <div key={prop.title}>
-                  <h3 className="font-display text-lg leading-snug">{prop.title}</h3>
-                  <p className="mt-2 text-muted">{prop.body}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-14 grid gap-8 border-t border-border-subtle pt-8 md:grid-cols-2">
-              <div>
-                <h3 className="font-display text-lg leading-snug">Free today</h3>
-                <p className="mt-2 text-muted">
-                  Import from Chess.com or Lichess by username, or upload a PGN. Get one ranked
-                  diagnosis, with the rating-leak number for your top weakness.
-                </p>
-              </div>
-              <div>
-                <h3 className="font-display text-lg leading-snug">Paid for the loop</h3>
-                <p className="mt-2 text-muted">
-                  Everything after the diagnosis: a focus, verification of whether it worked, a
-                  proof sheet to send your parents, history across seasons, and unlimited imports.
-                  $15 a month, $130 a season, or $150 a year.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="border-t border-border-subtle">
-          <div className="mx-auto w-full max-w-5xl px-4 py-16 text-center">
-            <h2 className="font-display text-2xl tracking-tight">
-              See what is actually costing you rating
-            </h2>
-            <div className="mt-8 flex flex-col items-center gap-3">
-              <Link to="/sign-up" className={primaryLinkClassName}>
-                Get your free diagnosis
-              </Link>
-              <Link to="/sign-in" className={secondaryLinkClassName}>
-                Already have an account? Sign in
-              </Link>
-            </div>
-          </div>
-        </section>
-      </main>
-
-      <footer className="border-t border-border-subtle">
-        <div className="mx-auto w-full max-w-5xl px-4 py-6 text-sm text-muted">
-          Kanso Chess is tournament-first chess improvement for junior players and their coaches.
-        </div>
-      </footer>
+        </footer>
+      </div>
     </div>
   );
 }
