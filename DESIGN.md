@@ -481,9 +481,12 @@ distinct "This page could not be reached." page with a "Try again" action that
 refetches, never the verdict or a partial sheet, and never the words "no longer
 available".
 
-The share act (an explicit create, copy, and confirm-then-revoke) no longer
-lives on the focus screen; its next home is not yet placed. It stays out of
-this reader surface regardless.
+The share act (an explicit create, copy, and confirm-then-revoke) lives on its
+own player-scoped surface at `/account/players/$playerId/proof-sheet`, reached
+from the account card's "Share proof sheet" link. It lists every live link,
+creates a new one, copies it, and revokes after an inline confirm; a free
+account is refused with the shared paid-boundary prompt, and a player with no
+active focus is sent to set one. It stays out of this reader surface regardless.
 
 ### Landing
 
