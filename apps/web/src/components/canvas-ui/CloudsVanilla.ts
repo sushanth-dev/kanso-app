@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment -- vendored Canvas UI (canvasui.dev) source; assignments match the upstream WebGL code. */
+/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unsafe-assignment, no-empty -- vendored Canvas UI (canvasui.dev) source using the experimental html-in-canvas API; casts add the not-yet-typed drawElementImage/requestPaint methods */
 
 export interface CloudsOptions {
   scale?: number;
@@ -20,6 +20,7 @@ export interface CloudsOptions {
 }
 
 export interface CloudsElements {
+  source: HTMLCanvasElement;
   content: HTMLElement;
   output: HTMLCanvasElement;
 }
@@ -29,6 +30,15 @@ export interface CloudsInstance {
   resize: () => void;
   destroy: () => void;
 }
+
+type PaintableCanvas = HTMLCanvasElement & {
+  requestPaint?: () => void;
+  onpaint: (() => void) | null;
+};
+
+type ElementImageContext = CanvasRenderingContext2D & {
+  drawElementImage?: (element: Element, x: number, y: number) => void;
+};
 
 const DEFAULTS: Required<CloudsOptions> = {
   scale: 1,
@@ -235,17 +245,26 @@ void main () {
     rgb = layer * aF;
   } else {
     a = cloudA + shadowA * (1.0 - cloudA);
-    rgb = cloudRGB * a;
+    rgb = cloudRGB * cloudA;
   }
   outColor = vec4(rgb, a);
 }`;
+
+export function supportsHtmlInCanvas(): boolean {
+  if (typeof document === 'undefined') return false;
+  const probe = document.createElement('canvas') as PaintableCanvas;
+  const ctx = probe.getContext('2d') as ElementImageContext | null;
+  return Boolean(
+    ctx && typeof ctx.drawElementImage === 'function' && typeof probe.requestPaint === 'function',
+  );
+}
 
 export function createClouds(
   elements: CloudsElements,
   options: CloudsOptions = {},
 ): CloudsInstance | null {
   const config = { ...DEFAULTS, ...options };
-  const { content, output } = elements;
+  const { source, content, output } = elements;
 
   const gl = output.getContext('webgl2', {
     alpha: true,
@@ -255,6 +274,28 @@ export function createClouds(
     premultipliedAlpha: true,
   });
   if (!gl || gl.isContextLost()) return null;
+
+  const sourceCtx = source.getContext('2d') as ElementImageContext | null;
+  const paintable = source as PaintableCanvas;
+  const htmlInCanvas = Boolean(
+    sourceCtx &&
+    typeof sourceCtx.drawElementImage === 'function' &&
+    typeof paintable.requestPaint === 'function',
+  );
+
+  let contentDirty = false;
+  let wake = () => {};
+
+  if (htmlInCanvas) {
+    paintable.onpaint = () => {
+      try {
+        sourceCtx!.reset();
+        sourceCtx!.drawElementImage!(content, 0, 0);
+        contentDirty = true;
+        wake();
+      } catch {}
+    };
+  }
 
   function compile(type: number, text: string): WebGLShader {
     const shader = gl!.createShader(type)!;
@@ -334,6 +375,9 @@ export function createClouds(
 
   let fieldW = 0;
   let fieldH = 0;
+  let contentScaleX = 1;
+  let contentScaleY = 1;
+
   let baseColor: [number, number, number] = [1, 1, 1];
   const probe = document.createElement('canvas');
   probe.width = probe.height = 1;
@@ -379,6 +423,8 @@ export function createClouds(
       output.width = width;
       output.height = height;
     }
+    contentScaleX = htmlInCanvas ? Math.min(1, cw / Math.max(source.clientWidth, 1)) : 1;
+    contentScaleY = htmlInCanvas ? Math.min(1, ch / Math.max(source.clientHeight, 1)) : 1;
     const quality = Math.min(Math.max(config.quality, 0.2), 1);
     const cap = 1440 / Math.max(output.clientWidth, 1);
     const q = Math.min(quality, cap);
@@ -415,10 +461,27 @@ export function createClouds(
         );
       }
     }
+    if (htmlInCanvas) {
+      const cssWidth = Math.max(1, Math.round(source.clientWidth));
+      const cssHeight = Math.max(1, Math.round(source.clientHeight));
+      if (source.width !== cssWidth * dpr || source.height !== cssHeight * dpr) {
+        source.width = cssWidth * dpr;
+        source.height = cssHeight * dpr;
+      }
+      paintable.requestPaint!();
+    }
   }
 
   syncCanvasSize();
   syncBaseColor();
+
+  function uploadContent() {
+    if (!htmlInCanvas || !contentDirty) return;
+    contentDirty = false;
+    gl!.bindTexture(gl!.TEXTURE_2D, contentTexture);
+    gl!.texImage2D(gl!.TEXTURE_2D, 0, gl!.RGBA, gl!.RGBA, gl!.UNSIGNED_BYTE, source);
+    gl!.generateMipmap(gl!.TEXTURE_2D);
+  }
 
   let pointerX = 0.5;
   let pointerY = 0.5;
@@ -430,6 +493,8 @@ export function createClouds(
   let time = Math.random() * 64;
 
   function render(delta: number) {
+    uploadContent();
+
     gl!.bindFramebuffer(gl!.FRAMEBUFFER, fbo);
     gl!.framebufferTexture2D(
       gl!.FRAMEBUFFER,
@@ -491,7 +556,7 @@ export function createClouds(
     gl!.bindTexture(gl!.TEXTURE_2D, nextWind);
     gl!.uniform1i(composite.uniforms.uWind!, 2);
     gl!.uniform2f(composite.uniforms.uResolution!, output.width, output.height);
-    gl!.uniform2f(composite.uniforms.uContentScale!, 1, 1);
+    gl!.uniform2f(composite.uniforms.uContentScale!, contentScaleX, contentScaleY);
     gl!.uniform3f(composite.uniforms.uBase!, baseColor[0], baseColor[1], baseColor[2]);
     gl!.uniform1f(composite.uniforms.uOpacity!, Math.min(Math.max(config.opacity, 0), 1));
     gl!.uniform1f(composite.uniforms.uShading!, Math.max(config.shading, 0));
@@ -511,7 +576,7 @@ export function createClouds(
       Math.max(config.refraction, 0) / Math.max(output.clientWidth, 1),
     );
     gl!.uniform1f(composite.uniforms.uFogBlur!, Math.min(Math.max(config.fogBlur, 0), 1));
-    gl!.uniform1f(composite.uniforms.uHasContent!, 0);
+    gl!.uniform1f(composite.uniforms.uHasContent!, htmlInCanvas ? 1 : 0);
     gl!.drawArrays(gl!.TRIANGLE_STRIP, 0, 4);
   }
 
@@ -535,7 +600,7 @@ export function createClouds(
     if (!reducedMotion) time += delta * config.speed * 0.03;
     render(delta);
     const windActive = now - lastPointerMove < 3000;
-    if (reducedMotion && !windActive) {
+    if (reducedMotion && !windActive && !contentDirty) {
       running = false;
       return;
     }
@@ -548,6 +613,8 @@ export function createClouds(
     lastTime = performance.now();
     raf = requestAnimationFrame(frame);
   }
+
+  wake = start;
 
   start();
 
@@ -639,6 +706,7 @@ export function createClouds(
       content.removeEventListener('pointermove', onPointerMove);
       content.removeEventListener('pointerleave', onPointerLeave);
       content.removeEventListener('scroll', start);
+      if (htmlInCanvas) paintable.onpaint = null;
       gl.deleteTexture(fieldTexture);
       gl.deleteTexture(contentTexture);
       gl.deleteTexture(windTextures[0]!);

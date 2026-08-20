@@ -1,7 +1,13 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { createClouds, type CloudsInstance, type CloudsOptions } from './CloudsVanilla';
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
+
+import {
+  createClouds,
+  supportsHtmlInCanvas,
+  type CloudsInstance,
+  type CloudsOptions,
+} from './CloudsVanilla';
 
 export interface CloudsProps extends CloudsOptions {
   children: ReactNode;
@@ -9,27 +15,37 @@ export interface CloudsProps extends CloudsOptions {
   style?: React.CSSProperties;
 }
 
-/**
- * Drifts procedural clouds over the child content in a transparent WebGL
- * overlay. The content stays live in the DOM (interactive and styled) and the
- * clouds render on top, so no experimental `html-in-canvas` API is needed.
- */
+const emptySubscribe = () => () => {};
+
 export function Clouds({ children, className, style, ...options }: CloudsProps) {
+  const sourceRef = useRef<HTMLCanvasElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const outputRef = useRef<HTMLCanvasElement>(null);
   const instanceRef = useRef<CloudsInstance | null>(null);
   const [initialOptions] = useState(options);
+  const [failed, setFailed] = useState(false);
+
+  const supported = useSyncExternalStore(emptySubscribe, supportsHtmlInCanvas, () => false);
+  const prefersReducedMotion = useSyncExternalStore(
+    emptySubscribe,
+    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    () => false,
+  );
+  const native = supported && !failed && !prefersReducedMotion;
 
   useEffect(() => {
+    if (prefersReducedMotion) return;
+    const source = sourceRef.current;
     const content = contentRef.current;
     const output = outputRef.current;
-    if (!content || !output) return;
-    instanceRef.current = createClouds({ content, output }, initialOptions);
+    if (!source || !content || !output) return;
+    instanceRef.current = createClouds({ source, content, output }, initialOptions);
+    if (native && !instanceRef.current) setFailed(true);
     return () => {
       instanceRef.current?.destroy();
       instanceRef.current = null;
     };
-  }, [initialOptions]);
+  }, [initialOptions, native, prefersReducedMotion]);
 
   useEffect(() => {
     instanceRef.current?.setOptions(options);
@@ -37,9 +53,44 @@ export function Clouds({ children, className, style, ...options }: CloudsProps) 
 
   return (
     <div className={className} style={{ position: 'relative', ...style }}>
-      <div ref={contentRef} style={{ position: 'absolute', inset: 0 }}>
-        {children}
-      </div>
+      <canvas
+        ref={sourceRef}
+        // @ts-expect-error experimental html-in-canvas attribute
+        layoutsubtree="true"
+        suppressHydrationWarning
+        style={
+          native
+            ? { position: 'absolute', inset: 0, width: '100%', height: '100%' }
+            : { display: 'none' }
+        }
+      >
+        {native ? (
+          <div
+            ref={contentRef}
+            style={{
+              position: 'relative',
+              width: '100%',
+              height: '100%',
+              overflow: 'auto',
+            }}
+          >
+            {children}
+          </div>
+        ) : null}
+      </canvas>
+      {!native ? (
+        <div
+          ref={contentRef}
+          style={{
+            position: 'relative',
+            width: '100%',
+            height: '100%',
+            overflow: 'auto',
+          }}
+        >
+          {children}
+        </div>
+      ) : null}
       <canvas
         ref={outputRef}
         aria-hidden

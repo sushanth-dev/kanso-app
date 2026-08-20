@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unsafe-assignment -- vendored Canvas UI (canvasui.dev) source; assertions match the upstream WebGL code. */
+/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unsafe-assignment, no-empty -- vendored Canvas UI (canvasui.dev) source using the experimental html-in-canvas API; assertions and the empty catch match the upstream source. */
 
 export interface ParticleRevealOptions {
   /** Reveal radius around the cursor in CSS pixels. */
@@ -26,7 +26,9 @@ export interface ParticleRevealOptions {
 }
 
 export interface ParticleRevealElements {
-  /** The element holding the text to reveal; its first child's font and color are read. */
+  /** Canvas with layoutsubtree that hosts the HTML content. */
+  source: HTMLCanvasElement;
+  /** The element inside the source canvas that gets captured. */
   content: HTMLElement;
   /** Canvas the WebGL effect renders to. */
   output: HTMLCanvasElement;
@@ -50,6 +52,15 @@ const DEFAULTS: Required<ParticleRevealOptions> = {
   threshold: 0.1,
   background: '#000000',
   smoothing: 0.25,
+};
+
+type PaintableCanvas = HTMLCanvasElement & {
+  onpaint?: (() => void) | null;
+  requestPaint?: () => void;
+};
+
+type ElementImageContext = CanvasRenderingContext2D & {
+  drawElementImage?: (element: Element, x: number, y: number) => void;
 };
 
 const VERT = `#version 300 es
@@ -185,6 +196,15 @@ function parseColor(input: string): [number, number, number] {
   return [(data[0] ?? 0) / 255, (data[1] ?? 0) / 255, (data[2] ?? 0) / 255];
 }
 
+export function supportsHtmlInCanvas(): boolean {
+  if (typeof document === 'undefined') return false;
+  const probe = document.createElement('canvas') as PaintableCanvas;
+  const ctx = probe.getContext('2d') as ElementImageContext | null;
+  return Boolean(
+    ctx && typeof ctx.drawElementImage === 'function' && typeof probe.requestPaint === 'function',
+  );
+}
+
 interface RectCache {
   get current(): DOMRect;
   destroy: () => void;
@@ -219,7 +239,7 @@ export function createParticleReveal(
   options: ParticleRevealOptions = {},
 ): ParticleRevealInstance | null {
   const config = { ...DEFAULTS, ...options };
-  const { content, output } = elements;
+  const { source, content, output } = elements;
 
   const gl = output.getContext('webgl2', {
     alpha: true,
@@ -230,37 +250,26 @@ export function createParticleReveal(
   });
   if (!gl || gl.isContextLost()) return null;
 
-  // The text is rasterized here with fillText instead of the experimental
-  // drawElementImage, so the reveal works in every browser. The source canvas
-  // is internal; the wrapper supplies only the content and the output canvas.
-  const source = document.createElement('canvas');
-  const sourceCtx = source.getContext('2d', { willReadFrequently: true });
+  const sourceCtx = source.getContext('2d') as ElementImageContext | null;
+  const paintable = source as PaintableCanvas;
+  const htmlInCanvas = Boolean(
+    sourceCtx &&
+    typeof sourceCtx.drawElementImage === 'function' &&
+    typeof paintable.requestPaint === 'function',
+  );
 
   let contentDirty = false;
   let wake = () => {};
 
-  function rasterizeContent(): boolean {
-    if (!sourceCtx) return false;
-    const target = (content.firstElementChild as HTMLElement | null) ?? content;
-    const style = getComputedStyle(target);
-    const text = content.textContent ?? '';
-    const w = Math.max(1, content.clientWidth);
-    const h = Math.max(1, content.clientHeight);
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const pw = Math.max(1, Math.round(w * dpr));
-    const ph = Math.max(1, Math.round(h * dpr));
-    if (source.width !== pw || source.height !== ph) {
-      source.width = pw;
-      source.height = ph;
-    }
-    sourceCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    sourceCtx.clearRect(0, 0, w, h);
-    sourceCtx.font = style.font;
-    sourceCtx.fillStyle = style.color;
-    sourceCtx.textAlign = 'left';
-    sourceCtx.textBaseline = 'middle';
-    sourceCtx.fillText(text, 0, h / 2);
-    return true;
+  if (htmlInCanvas) {
+    paintable.onpaint = () => {
+      try {
+        sourceCtx!.reset();
+        sourceCtx!.drawElementImage!(content, 0, 0);
+        contentDirty = true;
+        wake();
+      } catch {}
+    };
   }
 
   function compile(type: number, text: string): WebGLShader {
@@ -325,9 +334,14 @@ export function createParticleReveal(
       1,
       Math.max(0.05, content.clientWidth / Math.max(output.clientWidth, 1)),
     );
-    if (rasterizeContent()) {
-      contentDirty = true;
-      wake();
+    if (htmlInCanvas) {
+      const cssWidth = Math.max(1, Math.round(source.clientWidth));
+      const cssHeight = Math.max(1, Math.round(source.clientHeight));
+      if (source.width !== cssWidth * dpr || source.height !== cssHeight * dpr) {
+        source.width = cssWidth * dpr;
+        source.height = cssHeight * dpr;
+      }
+      paintable.requestPaint!();
     }
   }
 
@@ -342,7 +356,7 @@ export function createParticleReveal(
   syncCanvasSize();
 
   function uploadContent() {
-    if (!contentDirty) return;
+    if (!htmlInCanvas || !contentDirty) return;
     contentDirty = false;
     gl!.bindTexture(gl!.TEXTURE_2D, contentTexture);
     gl!.texImage2D(gl!.TEXTURE_2D, 0, gl!.RGBA, gl!.RGBA, gl!.UNSIGNED_BYTE, source);
@@ -377,7 +391,7 @@ export function createParticleReveal(
     gl!.uniform3f(uniforms.uBg!, bg[0], bg[1], bg[2]);
     gl!.uniform1f(uniforms.uTime!, time);
     gl!.uniform1f(uniforms.uMaxX!, contentMaxX);
-    gl!.uniform1f(uniforms.uCrisp!, reducedMotion ? 1 : 0);
+    gl!.uniform1f(uniforms.uCrisp!, reducedMotion || !htmlInCanvas ? 1 : 0);
     gl!.bindFramebuffer(gl!.FRAMEBUFFER, null);
     gl!.viewport(0, 0, output.width, output.height);
     gl!.drawArrays(gl!.TRIANGLE_STRIP, 0, 4);
@@ -408,7 +422,7 @@ export function createParticleReveal(
       Math.abs(pointer.tx - pointer.x) < 0.1 &&
       Math.abs(pointer.ty - pointer.y) < 0.1 &&
       Math.abs(pointer.target - pointer.active) < 1e-3;
-    if (settled && !contentDirty && (reducedMotion || config.drift <= 0)) {
+    if (settled && !contentDirty && (reducedMotion || !htmlInCanvas || config.drift <= 0)) {
       pointer.x = pointer.tx;
       pointer.y = pointer.ty;
       pointer.active = pointer.target;
@@ -501,6 +515,7 @@ export function createParticleReveal(
       gl!.deleteShader(vertexShader);
       gl!.deleteShader(fragmentShader);
       gl!.deleteBuffer(quad);
+      if (htmlInCanvas) paintable.onpaint = null;
     },
   };
 }
