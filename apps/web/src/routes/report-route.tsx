@@ -131,7 +131,7 @@ function WeaknessList({ weaknesses, playerId, stream }: WeaknessListProps) {
   const onToggle = (id: string) => setExpandedId((current) => (current === id ? null : id));
 
   return (
-    <ol className="reveal-in space-y-4">
+    <ol className="stagger-in space-y-4">
       {weaknesses.map((weakness) => {
         const expanded = expandedId === weakness.id;
         return (

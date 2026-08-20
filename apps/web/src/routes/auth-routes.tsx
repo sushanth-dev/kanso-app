@@ -221,7 +221,7 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
           {isSignUp ? 'Already have an account? ' : 'Need an account? '}
           <Link
             to={isSignUp ? '/sign-in' : '/sign-up'}
-            className="inline-flex min-h-11 items-center font-ui text-accent underline transition-control hover:text-accent-hover"
+            className="inline-flex min-h-11 items-center font-ui text-accent underline press hover:text-accent-hover"
           >
             {isSignUp ? 'Sign in' : 'Sign up'}
           </Link>

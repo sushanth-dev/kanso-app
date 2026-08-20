@@ -13,12 +13,17 @@ export type TimeTrouble = components['schemas']['TimeTrouble'];
 export type GameList = components['schemas']['GameList'];
 export type GameSummary = components['schemas']['GameSummary'];
 export type AnalysisStatus = components['schemas']['AnalysisStatus'];
+export type GameDetail = components['schemas']['GameDetail'];
+export type Mistake = components['schemas']['Mistake'];
+export type MovePly = components['schemas']['MovePly'];
+export type Evaluation = components['schemas']['Evaluation'];
 
 export interface DiagnosisApi {
   getReport(playerId: string, stream: Stream): Promise<Report>;
   getMotifs(playerId: string, stream: Stream): Promise<MotifReport>;
   getPhases(playerId: string, stream: Stream): Promise<PhaseReport>;
   listGames(playerId: string, stream: Stream): Promise<GameList>;
+  getGame(gameId: string): Promise<GameDetail>;
 }
 
 export function createDiagnosisApi(
@@ -56,6 +61,13 @@ export function createDiagnosisApi(
       // analyzing"; the report is the source of truth for coverage.
       const result = await client.GET('/players/{playerId}/games', {
         params: { path: { playerId }, query: { stream, limit: 100 } },
+      });
+      if (result.data !== undefined) return result.data;
+      throw failure(result.response.status, result.error);
+    },
+    async getGame(gameId) {
+      const result = await client.GET('/games/{gameId}', {
+        params: { path: { gameId } },
       });
       if (result.data !== undefined) return result.data;
       throw failure(result.response.status, result.error);

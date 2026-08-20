@@ -44,6 +44,14 @@ export const gamesQueryOptions = (playerId: string, stream: Stream) =>
     staleTime: 30_000,
   });
 
+export const gameQueryOptions = (gameId: string) =>
+  queryOptions({
+    queryKey: ['game', gameId] as const,
+    queryFn: () => diagnosisApi.getGame(gameId),
+    retry: false,
+    staleTime: 30_000,
+  });
+
 export const focusesQueryOptions = () =>
   queryOptions({
     queryKey: ['focuses'] as const,
