@@ -55,6 +55,25 @@ describe.skipIf(endpoint === undefined)('sesMailer', () => {
     expect(notice).toBeDefined();
   });
 
+  test('sends the password reset notice with the reset link', async () => {
+    const config: SesConfig = { fromAddress: SENDER, endpoint };
+    const mailer = sesMailer(config);
+    const resetUrl = 'http://localhost:3000/reset-password/some-token';
+
+    await expect(mailer.sendPasswordReset({ to: RECIPIENT, resetUrl })).resolves.toBeUndefined();
+
+    const response = await fetch(`${endpoint}/_aws/ses`);
+    const body = (await response.json()) as {
+      messages: Array<{ Destination?: { ToAddresses?: string[] }; Body?: { text_part?: string } }>;
+    };
+    const notice = body.messages.find(
+      (message) =>
+        message.Destination?.ToAddresses?.includes(RECIPIENT) &&
+        message.Body?.text_part?.includes(resetUrl),
+    );
+    expect(notice).toBeDefined();
+  });
+
   test('reads its configuration from the environment', () => {
     const before = process.env.SES_FROM_ADDRESS;
     try {

@@ -20,6 +20,7 @@ import { localstackClientOptions } from '../localstack.ts';
 
 export interface Mailer {
   sendConsentNotice(input: { to: string; confirmUrl: string }): Promise<void>;
+  sendPasswordReset(input: { to: string; resetUrl: string }): Promise<void>;
 }
 
 export interface SesConfig {
@@ -70,11 +71,35 @@ export function sesMailer(config: SesConfig | null): Mailer {
         }),
       );
     },
+    async sendPasswordReset({ to, resetUrl }) {
+      if (config === null) {
+        throw new Error(
+          'SES_FROM_ADDRESS is not set: a password reset link cannot be sent. See .env.example.',
+        );
+      }
+      const ses = clientFor(config);
+      await ses.send(
+        new SendEmailCommand({
+          Source: config.fromAddress,
+          Destination: { ToAddresses: [to] },
+          Message: {
+            Subject: { Data: 'Reset your KansoChess password' },
+            Body: {
+              Text: {
+                Data: `Open this link to reset your KansoChess password: ${resetUrl}`,
+              },
+            },
+          },
+        }),
+      );
+    },
   };
 }
 
 /** Where the stubbed mailer records consent links; shared with the e2e spec. */
 const STUB_DESTINATION = join(tmpdir(), 'kanso-consent-links.log');
+/** Where the stubbed mailer records reset links; shared with the e2e spec. */
+const RESET_STUB_DESTINATION = join(tmpdir(), 'kanso-reset-links.log');
 
 /**
  * The stubbed mailer for the Playwright consent journey (ST-053). A minor
@@ -87,6 +112,9 @@ export function stubMailer(): Mailer {
   return {
     async sendConsentNotice({ confirmUrl }) {
       await appendFile(STUB_DESTINATION, `${confirmUrl}\n`);
+    },
+    async sendPasswordReset({ resetUrl }) {
+      await appendFile(RESET_STUB_DESTINATION, `${resetUrl}\n`);
     },
   };
 }

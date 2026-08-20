@@ -15,6 +15,7 @@ import {
   reportQueryOptions,
 } from '../query-client.ts';
 import { StatusMessage } from '../components/status-message.tsx';
+import { ChangePasswordForm } from '../components/change-password-form.tsx';
 
 export interface AccountScreenProps {
   me: Me;
@@ -194,6 +195,8 @@ export function AccountScreen({ me, signOut }: AccountScreenProps) {
           className="press"
         />
       </section>
+
+      <ChangePasswordForm />
 
       <section aria-labelledby="owned-heading" className="mt-8">
         <Heading level={2} id="owned-heading">

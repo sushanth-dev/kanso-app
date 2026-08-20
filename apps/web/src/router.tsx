@@ -30,6 +30,8 @@ import { PlayerEditRoute, PlayerNewRoute } from './routes/player-routes.tsx';
 import { ReportRoute } from './routes/report-route.tsx';
 import { SharedProofSheetRoute } from './routes/shared-proof-sheet-route.tsx';
 import { UpgradeRoute } from './routes/upgrade-route.tsx';
+import { ForgotPasswordRoute } from './routes/forgot-password-route.tsx';
+import { ResetPasswordRoute } from './routes/reset-password-route.tsx';
 
 interface RouterContext {
   queryClient: QueryClient;
@@ -242,6 +244,18 @@ const guardianConfirmRoute = createRoute({
   component: GuardianConfirmRoute,
 });
 
+const forgotPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/forgot-password',
+  component: ForgotPasswordRoute,
+});
+
+const resetPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/reset-password/$token',
+  component: ResetPasswordRoute,
+});
+
 const guardianWaitingRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/guardians/waiting',
@@ -282,6 +296,8 @@ const routeTree = rootRoute.addChildren([
   sharedProofSheetRoute,
   guardianConfirmRoute,
   guardianWaitingRoute,
+  forgotPasswordRoute,
+  resetPasswordRoute,
 ]);
 
 export interface CreateAppRouterOptions {
