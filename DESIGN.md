@@ -228,9 +228,11 @@ The shipped surfaces layer concrete moves over the tokens. A `.press` utility
 scales controls to 0.98 on `:active`, merging the color transition with a
 transform so a button feels tactile. A `.stagger-in` list reveals its items in
 order, capped at six steps of 45ms, and is used for the report's ranked
-weakness list and the focus choice. The route transition is a 320ms fade and
-6px rise on enter with a matching fade on exit, applied once in the shared
-shell through `motion`. The evaluation bar's fill transitions over the slow
+weakness list and the focus choice. No route transition ships: the `motion`
+AnimatePresence exit left the entering surface stuck at near-zero opacity, so
+it was dropped and each surface mounts statically in the shared shell.
+Surface-level motion (`.stagger-in`, `.press`, `.reveal-in`) remains. The
+evaluation bar's fill transitions over the slow
 320ms board transition, and the proof sheet's verdict reveals with the base
 200ms fade and rise. The game result on the review surface reveals through
 Canvas UI's Particle Reveal, a still frame under reduced motion. Browser
@@ -502,8 +504,12 @@ from `pricing.md`: free is the diagnosis, paid is the loop, at $15 a month,
 $130 a season, or $150 a year. The join call to action routes to `/sign-up`;
 a secondary link routes to `/sign-in`. Copy states only facts, and the sample
 carries a visible "Synthetic example" label so no visitor mistakes it for a
-real diagnosis. One authored reveal eases the sample card in on load,
-collapsing to zero under reduced motion; there are no other effects.
+real diagnosis. One authored reveal eases the sample card in on load through the shared
+`.reveal-in` utility (base 200ms), collapsing to zero under reduced motion;
+there are no other effects. The sprint 12 coherence pass confirmed the sample
+ranked list, wordmark, sign-in link, footer, and free/paid boundary already
+matched the surfaces around it, and that no route transition ships, so `/`
+mounts statically like every other surface.
 
 ### Upgrade
 
