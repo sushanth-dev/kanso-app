@@ -1192,6 +1192,17 @@
               "null"
             ]
           },
+          "timeTroubleReason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "no_clock_data",
+              "not_enough_evidence",
+              null
+            ]
+          },
           "weaknesses": {
             "type": "array",
             "items": {
@@ -1214,6 +1225,7 @@
           "windowStart",
           "windowEnd",
           "timeTroubleFromMove",
+          "timeTroubleReason",
           "weaknesses",
           "narrative"
         ]

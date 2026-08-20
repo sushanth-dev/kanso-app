@@ -16,6 +16,7 @@ import {
 import { ApiRequestError } from './api/account-api.ts';
 import { PageFrame } from './components/page-frame.tsx';
 import { StatusMessageProvider } from './components/status-message.tsx';
+import { RouteError } from './components/route-error.tsx';
 import { meQueryOptions, queryClient } from './query-client.ts';
 import { AccountRoute } from './routes/account-route.tsx';
 import { SignInRoute, SignUpRoute } from './routes/auth-routes.tsx';
@@ -112,6 +113,7 @@ const signUpRoute = createRoute({
 const accountRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/account',
+  errorComponent: RouteError,
   beforeLoad: async ({ context }) => {
     try {
       await context.queryClient.ensureQueryData(meQueryOptions());

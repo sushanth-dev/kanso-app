@@ -109,7 +109,9 @@ export function ReportScreen({ stream, report, playerId, onStreamChange }: Repor
           <span className="font-mono">{report.timeTroubleFromMove}</span>.
         </p>
       ) : (
-        <p className="text-sm text-muted">{TIME_TROUBLE_UNAVAILABLE.no_clock_data}</p>
+        <p className="text-sm text-muted">
+          {TIME_TROUBLE_UNAVAILABLE[report.timeTroubleReason ?? 'no_clock_data']}
+        </p>
       )}
       {isEmpty ? (
         <EmptyReport report={report} />

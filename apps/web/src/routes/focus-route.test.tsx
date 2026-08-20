@@ -82,6 +82,7 @@ const emptyReport: Report = {
   windowStart: '2025-09-01T00:00:00.000Z',
   windowEnd: '2026-05-31T00:00:00.000Z',
   timeTroubleFromMove: null,
+  timeTroubleReason: null,
   weaknesses: [],
   narrative: null,
 };

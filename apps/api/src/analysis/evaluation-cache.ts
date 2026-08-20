@@ -9,7 +9,7 @@
  * The batch shapes exist because a game is tens of positions, and one query
  * over tens of rows beats tens of queries.
  */
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { EvalScore } from '../chess/lichess-utils.ts';
 import * as schema from '../db/schema.ts';
@@ -21,6 +21,32 @@ type Db = PostgresJsDatabase<typeof schema>;
 export interface CachedEvaluation {
   score: EvalScore;
   bestMoveUci: string | null;
+}
+
+// ponytail: one global ceiling for the whole table, evicted oldest-first. 50k
+// rows is ~5 MB and roughly a month of 20-games-a-day analysis; make it
+// per-account or configurable only if growth ever matters.
+export const EVALUATION_CACHE_MAX_ROWS = 50_000;
+
+/**
+ * DEBT-014. Keep the cache from growing without bound: delete every row
+ * outside the newest `maxRows`, ordered by `created_at`. Entries never go
+ * stale while the engine version is frozen, so a size ceiling is the right
+ * bound; a TTL would evict a valid deterministic result and force a re-search.
+ */
+export async function evictEvaluationCache(
+  db: Db,
+  maxRows: number = EVALUATION_CACHE_MAX_ROWS,
+): Promise<void> {
+  await db.execute(sql`
+    DELETE FROM evaluation_cache
+    WHERE (fen, engine_version, depth) NOT IN (
+      SELECT fen, engine_version, depth
+      FROM evaluation_cache
+      ORDER BY created_at DESC
+      LIMIT ${maxRows}
+    )
+  `);
 }
 
 /**
@@ -90,4 +116,5 @@ export async function storeEvaluations(
       })),
     )
     .onConflictDoNothing();
+  await evictEvaluationCache(db);
 }

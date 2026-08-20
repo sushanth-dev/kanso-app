@@ -33,11 +33,16 @@ export interface ComposedWeakness {
 export function composeReport(
   leaks: WeaknessLeak[],
   timeTrouble: TimeTroubleResult,
-): { weaknesses: ComposedWeakness[]; timeTroubleFromMove: number | null } {
+): {
+  weaknesses: ComposedWeakness[];
+  timeTroubleFromMove: number | null;
+  timeTroubleReason: 'no_clock_data' | 'not_enough_evidence' | null;
+} {
   // The onset move is a fact about the player's clock, reported whenever
   // ST-025's clock half reports, independent of whether the trouble-window
   // mistakes crossed a result boundary.
   const timeTroubleFromMove = timeTrouble.status === 'reported' ? timeTrouble.fromMove : null;
+  const timeTroubleReason = timeTrouble.status === 'reported' ? null : timeTrouble.reason;
 
   const defensible = leaks.filter((w) => {
     if (w.halfPointsLost <= 0) return false;
@@ -65,5 +70,5 @@ export function composeReport(
     rank: i + 1,
   }));
 
-  return { weaknesses, timeTroubleFromMove };
+  return { weaknesses, timeTroubleFromMove, timeTroubleReason };
 }

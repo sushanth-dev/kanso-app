@@ -89,6 +89,12 @@ export const tierEnum = pgEnum('tier', ['free', 'paid']);
 /** ADR-0039, ST-044. The three plans `pricing.md` sets: $15, $130, $150. */
 export const planEnum = pgEnum('plan', ['monthly', 'season', 'yearly']);
 
+/** DEBT-016. Why a report has no time-trouble onset: no clocks, or a clocked history too thin to measure. */
+export const timeTroubleReasonEnum = pgEnum('time_trouble_reason', [
+  'no_clock_data',
+  'not_enough_evidence',
+]);
+
 // ─── Identity ────────────────────────────────────────────────────────────────
 
 /**
@@ -532,6 +538,12 @@ export const report = pgTable(
      * Null on a tournament report by design rather than by accident.
      */
     timeTroubleFromMove: smallint('time_trouble_from_move'),
+    /**
+     * DEBT-016. Why `timeTroubleFromMove` is null: `no_clock_data` when no
+     * game carries a clock, `not_enough_evidence` when the clocked history is
+     * too thin. Null when the onset move is present.
+     */
+    timeTroubleReason: timeTroubleReasonEnum('time_trouble_reason'),
     narrative: text('narrative'),
     narrativeGeneratedAt: timestamp('narrative_generated_at', { withTimezone: true }),
   },
