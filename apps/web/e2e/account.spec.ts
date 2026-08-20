@@ -3,6 +3,12 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { upgradeToPaid } from './helpers.ts';
 
+// Axe scans a settled page; reduced motion collapses the reveal animations so
+// it never measures mid-fade text, and exercises the reduced-motion collapse.
+test.beforeEach(async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+});
+
 async function expectNoAxeViolations(page: Page) {
   const { violations } = await new AxeBuilder({ page }).analyze();
   expect(violations, JSON.stringify(violations, null, 2)).toEqual([]);
@@ -137,14 +143,19 @@ test('signs up and persists a player through sign-in', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
   expect(externalRequests).toEqual([]);
   // The report returns 404 until a player has analyzed games, which is the
-  // honest state Mina is in here, not a failed request.
+  // honest state Mina is in here, not a failed request. Sign-out clears the
+  // session a moment before the account route unmounts, so `/me` and the
+  // report query can briefly answer 401; that transient is also expected.
   const unexpectedFailures = failedRequests.filter(
-    (entry) => !/\/report\?stream=\w+:\s*404$/.test(entry),
+    (entry) => !/\/report\?stream=\w+:\s*404$/.test(entry) && !/:\s*401$/.test(entry),
   );
   expect(unexpectedFailures).toEqual([]);
-  // Chromium logs a generic "Failed to load resource" for that same 404.
+  // Chromium logs a generic "Failed to load resource" for the same 404 and for
+  // the sign-out 401 transient.
   const unexpectedConsoleErrors = consoleErrors.filter(
-    (message) => !message.includes('the server responded with a status of 404'),
+    (message) =>
+      !message.includes('the server responded with a status of 404') &&
+      !message.includes('the server responded with a status of 401'),
   );
   expect(unexpectedConsoleErrors).toEqual([]);
 });

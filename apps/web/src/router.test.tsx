@@ -111,7 +111,7 @@ describe('router', () => {
     expect(router.state.location.pathname).toBe('/account');
   });
 
-  test('sign-out clears the me query before navigating away, then lands on /sign-in', async () => {
+  test('sign-out navigates away before clearing the me query, then lands on /sign-in', async () => {
     const user = userEvent.setup();
     getMe.mockResolvedValue(meFixture);
     signOut.mockResolvedValue({ data: { success: true }, error: null });
@@ -135,7 +135,7 @@ describe('router', () => {
     expect(signOut.mock.invocationCallOrder[0]).toBeLessThan(
       removeSpy.mock.invocationCallOrder[0] ?? 0,
     );
-    expect(pathAtRemoval).toBe('/account');
+    expect(pathAtRemoval).toBe('/sign-in');
     expect(queryClient.getQueryData(ME_QUERY_KEY)).toBeUndefined();
     expect(router.state.location.pathname).toBe('/sign-in');
   });

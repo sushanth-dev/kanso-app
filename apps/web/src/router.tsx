@@ -13,7 +13,6 @@ import {
   useRouter,
   type RouterHistory,
 } from '@tanstack/react-router';
-import { AnimatePresence, motion, useReducedMotion, type Transition } from 'motion/react';
 import { ApiRequestError } from './api/account-api.ts';
 import { PageFrame } from './components/page-frame.tsx';
 import { StatusMessageProvider } from './components/status-message.tsx';
@@ -38,27 +37,11 @@ interface RouterContext {
 
 function RootComponent() {
   const pathname = useLocation({ select: (location) => location.pathname });
-  const reduceMotion = useReducedMotion() ?? false;
-  // The route transition is applied once, here, keyed on the pathname so a
-  // navigation remounts the outlet and replays the 320ms enter; a search-only
-  // change (the stream toggle) keeps the same path and does not replay. The
-  // slow 320ms token and standard ease are DESIGN.md's motion values.
-  const transition: Transition = reduceMotion
-    ? { duration: 0 }
-    : { duration: 0.32, ease: [0.2, 0, 0, 1] };
-  const outlet = (
-    <AnimatePresence mode="wait" initial={false}>
-      <motion.div
-        key={pathname}
-        initial={reduceMotion ? false : { opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={reduceMotion ? undefined : { opacity: 0 }}
-        transition={transition}
-      >
-        <Outlet />
-      </motion.div>
-    </AnimatePresence>
-  );
+  // The route transition was dropped: the `motion` AnimatePresence exit left
+  // the entering surface stuck at near-zero opacity, and a keyed CSS wrapper
+  // remounts the outlet and fires a spurious `/me` 401 during sign-out. The
+  // surface-level motion (`.stagger-in`, `.press`, `.reveal-in`) remains.
+  const outlet = <Outlet />;
   // The landing page and the shared page are public and render outside the
   // authenticated shell. The landing page carries its own header and footer.
   if (

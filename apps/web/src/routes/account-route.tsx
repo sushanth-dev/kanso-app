@@ -231,8 +231,11 @@ export function AccountRoute() {
   const signOut = async () => {
     const { error } = await authClient.signOut();
     if (error !== null) throw new Error('Sign out failed.');
-    queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
+    // Navigate first, then clear: removing `/me` while this route is still
+    // mounted suspends it and re-fetches with the session already cleared,
+    // which surfaces a spurious 401.
     await navigate({ to: '/sign-in' });
+    queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
   };
 
   return <AccountScreen me={me} signOut={signOut} />;
