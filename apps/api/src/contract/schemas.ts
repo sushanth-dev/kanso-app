@@ -515,6 +515,8 @@ export const Report = z
     windowEnd: z.iso.datetime().nullable(),
     /** F6. Present when the stream has enough clocked games; null otherwise. */
     timeTroubleFromMove: z.number().int().nullable(),
+    /** DEBT-016. Why `timeTroubleFromMove` is null; null when the onset move is present. */
+    timeTroubleReason: z.enum(['no_clock_data', 'not_enough_evidence']).nullable(),
     /** S2. Ranked by cost to the player, not by recency. */
     weaknesses: z.array(Weakness),
     /** ADR-0018. Prose over the numbers above, cached against this aggregation. */

@@ -218,11 +218,13 @@ selection.
 
 Motion is purposeful and subtle, never decorative. The tokens are fast
 (120ms) for control states (hover, press, focus), base (200ms) for reveals and
-state changes, and slow (320ms) for route and board transitions, all on the
-standard ease `cubic-bezier(0.2, 0, 0, 1)`. Control transitions move color,
-border, and box-shadow; reveals fade and rise 6px. Every duration collapses to
-zero under `prefers-reduced-motion`, both in the token theme and in a CSS
-override, so no motion runs when reduced motion is requested.
+state changes, and slow (320ms) for route and board transitions. Control
+transitions run on the standard ease `cubic-bezier(0.2, 0, 0, 1)`, and reveals
+run on the decelerate ease `cubic-bezier(0, 0, 0, 1)`, the cleaner entrance
+curve the `.reveal-in` and `.stagger-in` utilities ship. Control transitions
+move color, border, and box-shadow; reveals fade and rise 6px. Every duration
+collapses to zero under `prefers-reduced-motion`, both in the token theme and
+in a CSS override, so no motion runs when reduced motion is requested.
 
 The shipped surfaces layer concrete moves over the tokens. A `.press` utility
 scales controls to 0.98 on `:active`, merging the color transition with a

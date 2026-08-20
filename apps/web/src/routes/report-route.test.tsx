@@ -45,6 +45,7 @@ function reportFixture(overrides: Partial<Report> = {}): Report {
     windowStart: '2025-09-01T00:00:00.000Z',
     windowEnd: '2026-05-31T00:00:00.000Z',
     timeTroubleFromMove: null,
+    timeTroubleReason: null,
     weaknesses: [motifWeakness, openingWeakness],
     narrative: null,
     ...overrides,
@@ -170,6 +171,13 @@ describe('ReportScreen', () => {
   test('states the reason when time trouble data is absent', () => {
     renderReport(reportFixture());
     expect(screen.getByText('These games do not carry clock data.')).toBeInTheDocument();
+  });
+
+  test('states the thin-history reason when the clocked games do not hold', () => {
+    renderReport(reportFixture({ timeTroubleReason: 'not_enough_evidence' }));
+    expect(
+      screen.getByText('Not enough clocked games to measure time trouble yet.'),
+    ).toBeInTheDocument();
   });
 
   test('labels the evidence figures on a ranked report', () => {

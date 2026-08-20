@@ -83,6 +83,7 @@ function toResponse(r: ReportRow, ws: WeaknessRow[]): ReportResponse {
     windowStart: r.windowStart ? r.windowStart.toISOString() : null,
     windowEnd: r.windowEnd ? r.windowEnd.toISOString() : null,
     timeTroubleFromMove: r.timeTroubleFromMove,
+    timeTroubleReason: r.timeTroubleReason,
     weaknesses: ws.map((w) => ({
       id: w.id,
       kind: w.kind,
@@ -109,6 +110,7 @@ async function storeReport(
     windowStart: Date;
     windowEnd: Date;
     timeTroubleFromMove: number | null;
+    timeTroubleReason: 'no_clock_data' | 'not_enough_evidence' | null;
     weaknesses: ComposedWeakness[];
   },
 ): Promise<ReportResponse> {
@@ -122,6 +124,7 @@ async function storeReport(
         windowStart: input.windowStart,
         windowEnd: input.windowEnd,
         timeTroubleFromMove: input.timeTroubleFromMove,
+        timeTroubleReason: input.timeTroubleReason,
       })
       .returning();
 
@@ -201,6 +204,7 @@ export function mountReport(
       // season back recovers that latest date exactly.
       windowEnd: new Date(baseline.windowStart.getTime() + SEASON_WINDOW_MS),
       timeTroubleFromMove: composed.timeTroubleFromMove,
+      timeTroubleReason: composed.timeTroubleReason,
       weaknesses: composed.weaknesses,
     });
 
