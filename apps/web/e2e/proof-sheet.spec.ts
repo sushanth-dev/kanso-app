@@ -59,9 +59,9 @@ test('creates, shares, reads, and revokes a proof sheet', async ({ page, browser
   await upgradeToPaid(page);
   await createPlayerAndSetFocus(page);
 
-  // The share act is an explicit create, driven through the API seam: the
-  // create button left the focus flow in ST-058, and the surface that owns the
-  // share act is ST-059's reader.
+  // The share act is an explicit create. It lives on its own surface
+  // (ST-067), but this journey drives the API seam so the reader
+  // verification stays independent of the create/revoke UI.
   const me = (await (await page.request.get('/me')).json()) as {
     players: { id: string }[];
   };
