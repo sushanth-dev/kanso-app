@@ -138,6 +138,7 @@ interface ReportBody {
   windowStart: string | null;
   windowEnd: string | null;
   timeTroubleFromMove: number | null;
+  timeTroubleReason: 'no_clock_data' | 'not_enough_evidence' | null;
   weaknesses: WeaknessBody[];
   narrative: string | null;
 }
@@ -245,7 +246,9 @@ describe('GET /players/{playerId}/report', () => {
 
     // F6: no clock data in either stream, so no time trouble on either report.
     expect(online.timeTroubleFromMove).toBeNull(); // no clock data on these games
+    expect(online.timeTroubleReason).toBe('no_clock_data');
     expect(tournament.timeTroubleFromMove).toBeNull();
+    expect(tournament.timeTroubleReason).toBe('no_clock_data');
   });
 
   test('timeTroubleFromMove is populated on an online report with clock data', async () => {
@@ -267,6 +270,7 @@ describe('GET /players/{playerId}/report', () => {
 
     // The earliest move under the threshold is ply 1, so the full move is 1.
     expect(body.timeTroubleFromMove).toBe(1);
+    expect(body.timeTroubleReason).toBeNull();
     expect(body.weaknesses.some((w) => w.kind === 'time_trouble')).toBe(true);
   });
 
@@ -289,6 +293,7 @@ describe('GET /players/{playerId}/report', () => {
 
     // The earliest move under the threshold is ply 1, so the full move is 1.
     expect(body.timeTroubleFromMove).toBe(1);
+    expect(body.timeTroubleReason).toBeNull();
     expect(body.weaknesses.some((w) => w.kind === 'time_trouble')).toBe(true);
   });
 

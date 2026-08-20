@@ -26,6 +26,7 @@ function leak(
 }
 
 const unavailable: TimeTroubleResult = { status: 'unavailable', reason: 'no_clock_data' };
+const thinEvidence: TimeTroubleResult = { status: 'unavailable', reason: 'not_enough_evidence' };
 const reported: TimeTroubleResult = {
   status: 'reported',
   clockedGames: 3,
@@ -89,6 +90,7 @@ describe('composeReport', () => {
       reported,
     );
     expect(withTrouble.timeTroubleFromMove).toBe(23);
+    expect(withTrouble.timeTroubleReason).toBeNull();
     expect(withTrouble.weaknesses.map((w) => w.kind)).toEqual(['time_trouble']);
 
     const withoutTrouble = composeReport(
@@ -96,7 +98,16 @@ describe('composeReport', () => {
       unavailable,
     );
     expect(withoutTrouble.timeTroubleFromMove).toBeNull();
+    expect(withoutTrouble.timeTroubleReason).toBe('no_clock_data');
     expect(withoutTrouble.weaknesses).toEqual([]);
+
+    const thin = composeReport(
+      [leak({ kind: 'time_trouble', key: 'time_trouble', halfPointsLost: 1, ratingLeak: 40 })],
+      thinEvidence,
+    );
+    expect(thin.timeTroubleFromMove).toBeNull();
+    expect(thin.timeTroubleReason).toBe('not_enough_evidence');
+    expect(thin.weaknesses).toEqual([]);
   });
 
   test('passes label and eco through, eco on openings only', () => {
