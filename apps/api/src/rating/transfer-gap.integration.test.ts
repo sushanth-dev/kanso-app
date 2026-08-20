@@ -63,7 +63,9 @@ beforeEach(async () => {
 function app() {
   return createApp({
     db: harness.db,
-    auth: createAuth(harness.db, { mailer: { async sendConsentNotice() {} } }),
+    auth: createAuth(harness.db, {
+      mailer: { async sendConsentNotice() {}, async sendPasswordReset() {} },
+    }),
     ratingFetcher,
   });
 }

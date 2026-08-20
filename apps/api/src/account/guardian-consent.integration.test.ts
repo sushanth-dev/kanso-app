@@ -30,6 +30,7 @@ const mailer: Mailer = {
     sent.push(input);
     return Promise.resolve();
   },
+  async sendPasswordReset() {},
 };
 
 beforeAll(async () => {

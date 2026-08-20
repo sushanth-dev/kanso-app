@@ -128,6 +128,8 @@ test('signs up and persists a player through sign-in', async ({ page }) => {
   await expect(page.getByLabel('Password')).toBeFocused();
   await page.keyboard.type(password);
   await page.keyboard.press('Tab');
+  await expect(page.getByRole('link', { name: 'Forgot password?' })).toBeFocused();
+  await page.keyboard.press('Tab');
   await expect(page.getByRole('button', { name: 'Sign in' })).toBeFocused();
   await page.keyboard.press('Enter');
 

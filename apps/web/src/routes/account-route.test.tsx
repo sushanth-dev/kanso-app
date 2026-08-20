@@ -7,6 +7,9 @@ import { ApiRequestError, type Me, type Player } from '../api/account-api.ts';
 import { diagnosisApi } from '../api/diagnosis-api.ts';
 import { createAppRouter } from '../router.tsx';
 import { AccountScreen, PlayerCard, type PlayerDiagnosisState } from './account-route.tsx';
+vi.mock('../auth-client.ts', () => ({
+  authClient: { changePassword: vi.fn() },
+}));
 
 const playerId = '00000000-0000-4000-8000-000000000001';
 
@@ -84,6 +87,10 @@ describe('AccountScreen', () => {
     expect(screen.getByText('Mina')).toBeVisible();
     expect(screen.getByText('player@example.com')).toBeVisible();
     expect(screen.getByText('Free')).toBeVisible();
+  });
+  test('renders the change-password section', () => {
+    renderAccount();
+    expect(screen.getByRole('heading', { name: 'Change password' })).toBeVisible();
   });
 
   test('signs out through the injected handler', async () => {

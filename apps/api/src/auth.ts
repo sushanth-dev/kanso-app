@@ -34,6 +34,10 @@ export function createAuth(db: PostgresJsDatabase<typeof schema>, deps: { mailer
   if (!secret) {
     throw new Error('BETTER_AUTH_SECRET is not set. See .env.example.');
   }
+  // The ST-021 rate limit, shared by sign-in and both reset endpoints so there
+  // is one throttle rather than three to reason about.
+  const rateLimitWindow = Number(process.env.SIGN_IN_RATE_LIMIT_WINDOW_SECONDS ?? 300);
+  const rateLimitMax = Number(process.env.SIGN_IN_RATE_LIMIT_MAX ?? 5);
 
   return betterAuth({
     // The schema is passed explicitly rather than read off `db._.fullSchema`,
@@ -57,6 +61,11 @@ export function createAuth(db: PostgresJsDatabase<typeof schema>, deps: { mailer
       .filter(Boolean),
     emailAndPassword: {
       enabled: true,
+      sendResetPassword: ({ user, token }) =>
+        deps.mailer.sendPasswordReset({
+          to: user.email,
+          resetUrl: `${process.env.APP_ORIGIN ?? 'http://localhost:3000'}/reset-password/${token}`,
+        }),
     },
     user: {
       additionalFields: {
@@ -82,10 +91,9 @@ export function createAuth(db: PostgresJsDatabase<typeof schema>, deps: { mailer
       enabled:
         process.env.SIGN_IN_RATE_LIMIT_ENABLED === 'true' || process.env.NODE_ENV === 'production',
       customRules: {
-        '/sign-in/email': {
-          window: Number(process.env.SIGN_IN_RATE_LIMIT_WINDOW_SECONDS ?? 300),
-          max: Number(process.env.SIGN_IN_RATE_LIMIT_MAX ?? 5),
-        },
+        '/sign-in/email': { window: rateLimitWindow, max: rateLimitMax },
+        '/request-password-reset': { window: rateLimitWindow, max: rateLimitMax },
+        '/reset-password': { window: rateLimitWindow, max: rateLimitMax },
       },
     },
     advanced: {

@@ -32,7 +32,10 @@ const razorpay: RazorpayClient = {
     return verifySignature;
   },
 };
-const mailer: Mailer = { sendConsentNotice: () => Promise.resolve() };
+const mailer: Mailer = {
+  sendConsentNotice: () => Promise.resolve(),
+  sendPasswordReset: () => Promise.resolve(),
+};
 
 beforeAll(async () => {
   harness = await setupIntegrationDatabase();

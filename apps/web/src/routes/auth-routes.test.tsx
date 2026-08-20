@@ -98,6 +98,13 @@ describe('AuthScreen sign-in', () => {
       'Too many attempts. Try again later.',
     );
   });
+  test('links to the forgot-password flow from sign-in', () => {
+    renderSignIn();
+    expect(screen.getByRole('link', { name: 'Forgot password?' })).toHaveAttribute(
+      'href',
+      '/forgot-password',
+    );
+  });
 });
 
 describe('AuthScreen sign-up', () => {
