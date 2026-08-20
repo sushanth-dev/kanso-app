@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   createParticleReveal,
-  supportsHtmlInCanvas,
   type ParticleRevealInstance,
   type ParticleRevealOptions,
 } from './ParticleRevealVanilla';
@@ -14,31 +13,32 @@ export interface ParticleRevealProps extends ParticleRevealOptions {
   style?: React.CSSProperties;
 }
 
-const emptySubscribe = () => () => {};
-
+/**
+ * Reveals the child text as dust that converges around the cursor. The text is
+ * rasterized to a 2D canvas with `fillText` and fed to the WebGL particle
+ * shader, which works in every browser - no experimental `html-in-canvas` API.
+ *
+ * The child is rendered in-flow but invisible so it still sizes the surface and
+ * stays measurable; the canvas overlays it and is the only thing the reader
+ * sees. Under `prefers-reduced-motion: reduce` the engine renders the text
+ * crisp instead of animating.
+ */
 export function ParticleReveal({ children, className, style, ...options }: ParticleRevealProps) {
-  const sourceRef = useRef<HTMLCanvasElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const outputRef = useRef<HTMLCanvasElement>(null);
   const instanceRef = useRef<ParticleRevealInstance | null>(null);
   const [initialOptions] = useState(options);
-  const [failed, setFailed] = useState(false);
-
-  const supported = useSyncExternalStore(emptySubscribe, supportsHtmlInCanvas, () => false);
-  const native = supported && !failed;
 
   useEffect(() => {
-    const source = sourceRef.current;
     const content = contentRef.current;
     const output = outputRef.current;
-    if (!source || !content || !output) return;
-    instanceRef.current = createParticleReveal({ source, content, output }, initialOptions);
-    if (native && !instanceRef.current) setFailed(true);
+    if (!content || !output) return;
+    instanceRef.current = createParticleReveal({ content, output }, initialOptions);
     return () => {
       instanceRef.current?.destroy();
       instanceRef.current = null;
     };
-  }, [initialOptions, native]);
+  }, [initialOptions]);
 
   useEffect(() => {
     instanceRef.current?.setOptions(options);
@@ -46,34 +46,13 @@ export function ParticleReveal({ children, className, style, ...options }: Parti
 
   return (
     <div className={className} style={{ position: 'relative', ...style }}>
-      <canvas
-        ref={sourceRef}
-        // @ts-expect-error experimental html-in-canvas attribute
-        layoutsubtree="true"
-        suppressHydrationWarning
-        style={
-          native
-            ? { position: 'absolute', inset: 0, width: '100%', height: '100%' }
-            : { display: 'none' }
-        }
+      <div
+        ref={contentRef}
+        aria-hidden
+        style={{ visibility: 'hidden', width: 'max-content', whiteSpace: 'nowrap' }}
       >
-        {native ? (
-          <div
-            ref={contentRef}
-            style={{ position: 'relative', width: '100%', height: '100%', overflow: 'auto' }}
-          >
-            {children}
-          </div>
-        ) : null}
-      </canvas>
-      {!native ? (
-        <div
-          ref={contentRef}
-          style={{ position: 'relative', width: '100%', height: '100%', overflow: 'auto' }}
-        >
-          {children}
-        </div>
-      ) : null}
+        {children}
+      </div>
       <canvas
         ref={outputRef}
         aria-hidden
@@ -88,5 +67,7 @@ export function ParticleReveal({ children, className, style, ...options }: Parti
     </div>
   );
 }
+
+export type { ParticleRevealInstance, ParticleRevealOptions };
 
 export default ParticleReveal;

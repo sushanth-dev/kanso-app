@@ -2,54 +2,50 @@
 
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 
-// Board theme colours from DESIGN.md, shared with board.tsx, plus the study-room
-// gold so the glass reads against the warm page.
+// Board theme colours, tinting the glass instead of the prototype's white.
 const WOOD_DARK = '#8f5e38';
 const WOOD_LIGHT = '#ead9b7';
-const GOLD = '#e9b44c';
 
-/** One frosted-glass material per tone, shared across the pawn's parts. */
-function glassMaterial(color: string, opacity: number): THREE.MeshPhysicalMaterial {
+/** Premium clear-glass material, matching the prototype's transmission setup. */
+function glassMaterial(color: string): THREE.MeshPhysicalMaterial {
   return new THREE.MeshPhysicalMaterial({
     color,
-    transparent: true,
-    opacity,
-    roughness: 0.2,
-    metalness: 0,
-    clearcoat: 1,
-    clearcoatRoughness: 0.25,
+    roughness: 0.1,
+    transmission: 1,
+    thickness: 2,
+    ior: 1.5,
+    envMapIntensity: 1,
   });
 }
 
-function mesh(geo: THREE.BufferGeometry, mat: THREE.Material, y: number): THREE.Mesh {
-  const m = new THREE.Mesh(geo, mat);
-  m.position.y = y;
-  return m;
-}
-
-function buildPawn(dark: THREE.Material, light: THREE.Material, gold: THREE.Material): THREE.Group {
+/** The prototype's clean three-part pawn: base, body, head. No collar or finial. */
+function buildPawn(dark: THREE.Material, light: THREE.Material): THREE.Group {
   const g = new THREE.Group();
-  g.add(
-    mesh(new THREE.CylinderGeometry(0.7, 0.82, 0.35, 48), dark, 0.175),
-    mesh(new THREE.CylinderGeometry(0.2, 0.3, 0.9, 32), dark, 0.8),
-    mesh(new THREE.CylinderGeometry(0.42, 0.3, 0.14, 48), light, 1.32),
-    mesh(new THREE.SphereGeometry(0.36, 48, 32), light, 1.72),
-    mesh(new THREE.SphereGeometry(0.1, 24, 16), gold, 2.02),
-  );
+  g.add(new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.5, 32), dark));
+
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.8, 2, 32), dark);
+  body.position.y = 1.25;
+  g.add(body);
+
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.6, 32, 32), light);
+  head.position.y = 2.5;
+  g.add(head);
+
   return g;
 }
 
 /**
- * One big frosted-glass pawn behind the whole landing page. The bottom sections
- * sit on light glass, so the pawn stays in view as the visitor scrolls rather
- * than disappearing after the hero.
+ * One big premium glass pawn behind the landing, matching the prototype's
+ * transmission look and four-phase scroll animation (hero, about, features,
+ * footer), tinted with the board's wood colours instead of white.
  *
- * Depth parallax: the pawn drifts gently and turns as the visitor scrolls. The
+ * A PMREM-baked room environment feeds the transmission and reflection, so the
+ * glass refracts something instead of reading as a flat translucent blob. The
  * render loop reads a scroll-progress ref and never touches React state per
- * frame. Under `prefers-reduced-motion: reduce` the loop never starts; one
- * static frame renders and stays, and the canvas carries a
- * `data-reduced-motion` marker the e2e asserts.
+ * frame. Under `prefers-reduced-motion: reduce` one static hero frame renders
+ * and the canvas carries `data-reduced-motion` for the e2e.
  */
 export function ParallaxPiece() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -62,8 +58,8 @@ export function ParallaxPiece() {
     try {
       renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
     } catch {
-      // No WebGL context (jsdom, or a browser with WebGL disabled): the piece is
-      // decorative, so render nothing rather than crash the surface.
+      // No WebGL context (jsdom, or WebGL disabled): the pawn is decorative,
+      // so render nothing rather than crash the surface.
       return;
     }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -71,24 +67,27 @@ export function ParallaxPiece() {
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-    camera.position.set(0, 0, 7);
-    camera.lookAt(0, 0, 0);
+    camera.position.set(0, 0, 6);
+    camera.lookAt(0, 0.2, 0);
+
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    pmrem.dispose();
 
     scene.add(new THREE.AmbientLight(0xffffff, 1.1));
-    const key = new THREE.DirectionalLight(0xfff2df, 1.8);
+    const key = new THREE.DirectionalLight(0xfff2df, 1.6);
     key.position.set(4, 6, 5);
     scene.add(key);
-    // A warm rim from behind gives the glass its edge without darkening it.
-    const rim = new THREE.DirectionalLight(0xffd9b8, 1.1);
+    const rim = new THREE.DirectionalLight(0xffd9b8, 0.9);
     rim.position.set(-4, 2, -3);
     scene.add(rim);
 
-    const dark = glassMaterial(WOOD_DARK, 0.55);
-    const light = glassMaterial(WOOD_LIGHT, 0.5);
-    const gold = glassMaterial(GOLD, 0.62);
-    const materials = [dark, light, gold];
+    const dark = glassMaterial(WOOD_DARK);
+    const light = glassMaterial(WOOD_LIGHT);
+    const materials = [dark, light];
 
-    const pawn = buildPawn(dark, light, gold);
+    const pawn = buildPawn(dark, light);
+    pawn.position.set(0, -1, 0);
     scene.add(pawn);
 
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -101,41 +100,67 @@ export function ParallaxPiece() {
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
 
-    // Scale the pawn to a large but not overwhelming fraction of the viewport,
-    // and centre it. The pawn group's origin is its base, so it is lowered by
-    // half its height to sit mid-screen.
-    let scale = 1.6;
     const onResize = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
       renderer.setSize(width, height);
-
-      const halfH = Math.tan((45 * Math.PI) / 180 / 2) * camera.position.z;
-      scale = halfH * 0.55;
     };
     onResize();
     window.addEventListener('resize', onResize);
 
-    let frame = 0;
-    const render = () => {
-      const float = Math.sin(frame * 0.0008) * 0.08;
-      pawn.position.x = scrollProgress * 0.4;
-      pawn.position.y = -scale + scrollProgress * 0.5 + float;
-      pawn.rotation.y = frame * 0.002 + scrollProgress * 0.5;
-      pawn.scale.setScalar(scale);
+    const render = (delta: number) => {
+      const t = scrollProgress;
+      let targetScale: number;
+      let targetRotX: number;
+      let rotYSpeed: number;
+
+      if (t < 0.25) {
+        // Hero - centred, normal scale.
+        targetScale = 1.0;
+        targetRotX = 0;
+        rotYSpeed = 0.5;
+      } else if (t < 0.5) {
+        // About - tilt forward imposingly, scale up.
+        const p = (t - 0.25) / 0.25;
+        targetScale = THREE.MathUtils.lerp(1.0, 1.45, p);
+        targetRotX = THREE.MathUtils.lerp(0, Math.PI / 3, p);
+        rotYSpeed = 0.3;
+      } else if (t < 0.75) {
+        // Features - tilt back, rapid spin, scale down sleek.
+        const p = (t - 0.5) / 0.25;
+        targetScale = THREE.MathUtils.lerp(1.45, 0.85, p);
+        targetRotX = THREE.MathUtils.lerp(Math.PI / 3, -Math.PI / 4, p);
+        rotYSpeed = 1.6;
+      } else {
+        // Footer - return upright, massive scale fills the background.
+        const p = (t - 0.75) / 0.25;
+        targetScale = THREE.MathUtils.lerp(0.85, 2.2, p);
+        targetRotX = THREE.MathUtils.lerp(-Math.PI / 4, 0, p);
+        rotYSpeed = 0.4;
+      }
+
+      const s = THREE.MathUtils.lerp(pawn.scale.x, targetScale, 0.05);
+      pawn.scale.set(s, s, s);
+      pawn.rotation.x = THREE.MathUtils.lerp(pawn.rotation.x, targetRotX, 0.05);
+      pawn.rotation.y += delta * rotYSpeed;
+      pawn.position.x = THREE.MathUtils.lerp(pawn.position.x, 0, 0.08);
+      pawn.position.y = THREE.MathUtils.lerp(pawn.position.y, -1, 0.08);
+
       renderer.render(scene, camera);
-      frame += 1;
     };
 
     let raf = 0;
     if (reduced) {
       canvas.dataset.reducedMotion = 'true';
-      render(); // one static frame, then nothing
+      render(0); // one static hero frame, then nothing
     } else {
-      const loop = () => {
-        render();
+      let lastTime = performance.now();
+      const loop = (now: number) => {
+        const delta = Math.min((now - lastTime) / 1000, 1 / 30);
+        lastTime = now;
+        render(delta);
         raf = requestAnimationFrame(loop);
       };
       raf = requestAnimationFrame(loop);
@@ -153,29 +178,16 @@ export function ParallaxPiece() {
       for (const material of materials) {
         material.dispose();
       }
+      scene.environment?.dispose();
       renderer.dispose();
     };
   }, []);
 
   return (
-    <>
-      {/* The warm aurora the glass sits over. Behind the pawn, above the page. */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-0 z-0"
-        style={{
-          background: [
-            'radial-gradient(55% 45% at 18% 12%, rgba(233,180,76,0.22), transparent 60%)',
-            'radial-gradient(50% 45% at 82% 22%, rgba(160,63,34,0.16), transparent 62%)',
-            'radial-gradient(65% 55% at 50% 92%, rgba(234,217,183,0.38), transparent 65%)',
-          ].join(', '),
-        }}
-      />
-      <canvas
-        ref={canvasRef}
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-0 z-[1]"
-      />
-    </>
+    <canvas
+      ref={canvasRef}
+      aria-hidden="true"
+      className="pointer-events-none fixed inset-0 z-[1]"
+    />
   );
 }
