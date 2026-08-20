@@ -62,7 +62,7 @@ export function SharedProofSheetScreen({ sheet }: { sheet: SharedProofSheet }) {
       <p className="text-sm text-muted">{sheet.playerDisplayName}'s focus</p>
       <Heading level={1}>{sheet.focusTitle}</Heading>
 
-      <p className="mt-6 text-2xl font-display leading-snug text-primary">
+      <p className="mt-6 text-2xl font-display leading-snug text-primary reveal-in">
         {verdictSentence(sheet)}
         {sheet.trend !== 'insufficient_evidence' ? (
           <span aria-hidden="true" className="ml-2 font-mono">

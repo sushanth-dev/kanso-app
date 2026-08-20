@@ -224,14 +224,19 @@ border, and box-shadow; reveals fade and rise 6px. Every duration collapses to
 zero under `prefers-reduced-motion`, both in the token theme and in a CSS
 override, so no motion runs when reduced motion is requested.
 
-The shipped surfaces add four concrete moves on top of the tokens. A `.press`
-utility scales controls to 0.98 on `:active`, merging the color transition with
-a transform so a button feels tactile. A `.stagger-in` list reveals its items
-in order, capped at six steps of 45ms, and is used for the ranked weakness
-list. Browser surfaces are themed from the palette: text selection is
-terracotta on white, the text caret is terracotta, links carry a 0.06em
-underline with a 0.22em offset, and `color-scheme: light` keeps native controls
-in the Study Room.
+The shipped surfaces layer concrete moves over the tokens. A `.press` utility
+scales controls to 0.98 on `:active`, merging the color transition with a
+transform so a button feels tactile. A `.stagger-in` list reveals its items in
+order, capped at six steps of 45ms, and is used for the report's ranked
+weakness list and the focus choice. The route transition is a 320ms fade and
+6px rise on enter with a matching fade on exit, applied once in the shared
+shell through `motion`. The evaluation bar's fill transitions over the slow
+320ms board transition, and the proof sheet's verdict reveals with the base
+200ms fade and rise. The game result on the review surface reveals through
+Canvas UI's Particle Reveal, a still frame under reduced motion. Browser
+surfaces are themed from the palette: text selection is terracotta on white,
+the text caret is terracotta, links carry a 0.06em underline with a 0.22em
+offset, and `color-scheme: light` keeps native controls in the Study Room.
 
 ## Components
 
@@ -341,6 +346,27 @@ The header states how current the report is and how much is behind it
 (`generatedAt` and `gamesCovered`). The time-trouble figure leads on the online
 report; on the tournament report it is replaced by a stated reason, never a
 blank or a zero.
+
+### Game review
+
+The review surface is where a player sees the positions behind their mistakes:
+a games list at `/account/players/$playerId/games` and one game at
+`/account/players/$playerId/games/$gameId`. Both render the existing
+`GameDetail` (plies and mistakes) and game list, never a new endpoint.
+
+The board is an in-house SVG component that renders a FEN position with the
+mistake's from and to squares marked in the last-move treatment (gold fill,
+ink border), in the two board themes and orientable to the mover's side.
+Pieces are Unicode chess glyphs with a dark or light outline, so fill contrast
+never decides legibility alone. The evaluation bar is an in-house component: a
+white and black fill split with a numeric label, never red-to-green, its fill
+transitioning over the slow 320ms board transition.
+
+The route lists the game's mistakes in move order; selecting one shows its
+position, the move played versus the engine's best, the judgement and
+centipawn loss, and the motif where one applies. The game result reveals
+through Canvas UI's Particle Reveal, a decorative effect that renders a still
+frame under `prefers-reduced-motion` and is `aria-hidden`, per ADR-0017.
 
 ### Import
 

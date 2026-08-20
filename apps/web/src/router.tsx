@@ -13,12 +13,15 @@ import {
   useRouter,
   type RouterHistory,
 } from '@tanstack/react-router';
+import { AnimatePresence, motion, useReducedMotion, type Transition } from 'motion/react';
 import { ApiRequestError } from './api/account-api.ts';
 import { PageFrame } from './components/page-frame.tsx';
 import { StatusMessageProvider } from './components/status-message.tsx';
 import { meQueryOptions, queryClient } from './query-client.ts';
 import { AccountRoute } from './routes/account-route.tsx';
 import { SignInRoute, SignUpRoute } from './routes/auth-routes.tsx';
+import { GameReviewRoute } from './routes/game-review-route.tsx';
+import { GamesRoute } from './routes/games-route.tsx';
 import { FocusRoute } from './routes/focus-route.tsx';
 import { GuardianConfirmRoute } from './routes/guardian-confirm-route.tsx';
 import { GuardianWaitingRoute } from './routes/guardian-waiting-route.tsx';
@@ -35,6 +38,27 @@ interface RouterContext {
 
 function RootComponent() {
   const pathname = useLocation({ select: (location) => location.pathname });
+  const reduceMotion = useReducedMotion() ?? false;
+  // The route transition is applied once, here, keyed on the pathname so a
+  // navigation remounts the outlet and replays the 320ms enter; a search-only
+  // change (the stream toggle) keeps the same path and does not replay. The
+  // slow 320ms token and standard ease are DESIGN.md's motion values.
+  const transition: Transition = reduceMotion
+    ? { duration: 0 }
+    : { duration: 0.32, ease: [0.2, 0, 0, 1] };
+  const outlet = (
+    <AnimatePresence mode="wait" initial={false}>
+      <motion.div
+        key={pathname}
+        initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={reduceMotion ? undefined : { opacity: 0 }}
+        transition={transition}
+      >
+        <Outlet />
+      </motion.div>
+    </AnimatePresence>
+  );
   // The landing page and the shared page are public and render outside the
   // authenticated shell. The landing page carries its own header and footer.
   if (
@@ -42,13 +66,11 @@ function RootComponent() {
     pathname.startsWith('/shared/proof-sheets/') ||
     pathname.startsWith('/guardians/')
   ) {
-    return <Outlet />;
+    return outlet;
   }
   return (
     <StatusMessageProvider>
-      <PageFrame>
-        <Outlet />
-      </PageFrame>
+      <PageFrame>{outlet}</PageFrame>
     </StatusMessageProvider>
   );
 }
@@ -197,6 +219,34 @@ const upgradeRoute = createRoute({
   component: UpgradeRoute,
 });
 
+const gamesRoute = createRoute({
+  getParentRoute: () => accountRoute,
+  path: '/players/$playerId/games',
+  validateSearch: (search: Record<string, unknown>) =>
+    search.stream === 'online' ? { stream: 'online' as const } : { stream: 'tournament' as const },
+  beforeLoad: async ({ context, params }) => {
+    const me = await context.queryClient.ensureQueryData(meQueryOptions());
+    if (!me.players.some((player) => player.id === params.playerId)) {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error -- notFound() returns a router not-found error, not an Error.
+      throw notFound();
+    }
+  },
+  component: GamesRoute,
+});
+
+const gameReviewRoute = createRoute({
+  getParentRoute: () => accountRoute,
+  path: '/players/$playerId/games/$gameId',
+  beforeLoad: async ({ context, params }) => {
+    const me = await context.queryClient.ensureQueryData(meQueryOptions());
+    if (!me.players.some((player) => player.id === params.playerId)) {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error -- notFound() returns a router not-found error, not an Error.
+      throw notFound();
+    }
+  },
+  component: GameReviewRoute,
+});
+
 const sharedProofSheetRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/shared/proof-sheets/$token',
@@ -242,6 +292,8 @@ const routeTree = rootRoute.addChildren([
     reportRoute,
     focusRoute,
     importRoute,
+    gamesRoute,
+    gameReviewRoute,
     upgradeRoute,
   ]),
   sharedProofSheetRoute,

@@ -120,14 +120,14 @@ export function PlayerCard({ player, state }: { player: Player; state: PlayerDia
             to="/account/players/$playerId/report"
             params={{ playerId: player.id }}
             search={{ stream: 'tournament' }}
-            className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline transition-control"
+            className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline press"
           >
             View report
           </Link>
           <Link
             to="/account/players/$playerId/import"
             params={{ playerId: player.id }}
-            className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline transition-control"
+            className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline press"
           >
             Import games
           </Link>
@@ -135,14 +135,22 @@ export function PlayerCard({ player, state }: { player: Player; state: PlayerDia
             to="/account/players/$playerId/focus"
             params={{ playerId: player.id }}
             search={{ stream: 'tournament' }}
-            className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline transition-control"
+            className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline press"
           >
             Set focus
           </Link>
           <Link
+            to="/account/players/$playerId/games"
+            params={{ playerId: player.id }}
+            search={{ stream: 'tournament' }}
+            className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline press"
+          >
+            Review games
+          </Link>
+          <Link
             to="/account/players/$playerId/edit"
             params={{ playerId: player.id }}
-            className="inline-flex min-h-11 min-w-11 items-center justify-center font-ui text-sm text-accent underline transition-control"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center font-ui text-sm text-accent underline press"
           >
             Edit
           </Link>
