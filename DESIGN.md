@@ -239,6 +239,10 @@ Canvas UI's Particle Reveal, a still frame under reduced motion. Browser
 surfaces are themed from the palette: text selection is terracotta on white,
 the text caret is terracotta, links carry a 0.06em underline with a 0.22em
 offset, and `color-scheme: light` keeps native controls in the Study Room.
+The landing hero adds a decorative 3D pawn on a fixed three.js canvas, driven
+by scroll (a slow spin plus a tilt that settles upright at the bottom) and
+`aria-hidden`; under reduced motion the loop never starts and one static frame
+stays.
 
 ## Components
 
@@ -498,15 +502,15 @@ report's ranked list without a real player behind it.
 Three sections in all: the hero, a value proposition with the free/paid
 boundary, and a closing call to action. The value proposition states the
 three positioning claims as plain headings, never icon-and-heading cards. The
-board is absent by design: the proof is the ranked diagnosis, so the raised
-sample card is the brightest object on the screen. The boundary is fact-only
+board is absent by design as the proof: the ranked diagnosis is the proof, so the raised
+sample card is the brightest object on the screen, and a decorative, `aria-hidden` 3D pawn on a fixed three.js canvas recedes behind the hero. The boundary is fact-only
 from `pricing.md`: free is the diagnosis, paid is the loop, at $15 a month,
 $130 a season, or $150 a year. The join call to action routes to `/sign-up`;
 a secondary link routes to `/sign-in`. Copy states only facts, and the sample
 carries a visible "Synthetic example" label so no visitor mistakes it for a
 real diagnosis. One authored reveal eases the sample card in on load through the shared
 `.reveal-in` utility (base 200ms), collapsing to zero under reduced motion;
-there are no other effects. The sprint 12 coherence pass confirmed the sample
+the parallax pawn is the one other effect: scroll-driven, and a still frame under reduced motion. The sprint 12 coherence pass confirmed the sample
 ranked list, wordmark, sign-in link, footer, and free/paid boundary already
 matched the surfaces around it, and that no route transition ships, so `/`
 mounts statically like every other surface.
