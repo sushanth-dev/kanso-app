@@ -29,6 +29,7 @@ import { LandingRoute } from './routes/landing-route.tsx';
 import { PlayerEditRoute } from './routes/player-routes.tsx';
 import { ProofSheetRoute } from './routes/proof-sheet-route.tsx';
 import { ReportRoute } from './routes/report-route.tsx';
+import { SettingsRoute } from './routes/settings-route.tsx';
 import { SharedProofSheetRoute } from './routes/shared-proof-sheet-route.tsx';
 import { UpgradeRoute } from './routes/upgrade-route.tsx';
 import { ForgotPasswordRoute } from './routes/forgot-password-route.tsx';
@@ -142,6 +143,12 @@ const playerEditRoute = createRoute({
   component: PlayerEditRoute,
 });
 
+const settingsRoute = createRoute({
+  getParentRoute: () => accountRoute,
+  path: '/settings',
+  component: SettingsRoute,
+});
+
 const reportRoute = createRoute({
   getParentRoute: () => accountRoute,
   path: '/report',
@@ -243,6 +250,7 @@ const routeTree = rootRoute.addChildren([
   accountRoute.addChildren([
     accountIndexRoute,
     playerEditRoute,
+    settingsRoute,
     reportRoute,
     focusRoute,
     proofSheetRoute,

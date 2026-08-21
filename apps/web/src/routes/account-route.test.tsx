@@ -1,5 +1,4 @@
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, RouterContextProvider } from '@tanstack/react-router';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
@@ -41,15 +40,14 @@ function meFixture(overrides: Partial<Me> = {}): Me {
     ...overrides,
   };
 }
-
-function renderAccount(me: Me = meFixture(), signOut = vi.fn().mockResolvedValue(undefined)) {
+function renderAccount(me: Me = meFixture()) {
   const history = createMemoryHistory();
   const queryClient = new QueryClient();
   const router = createAppRouter({ history, queryClient });
   return render(
     <QueryClientProvider client={queryClient}>
       <RouterContextProvider router={router}>
-        <AccountScreen me={me} signOut={signOut} />
+        <AccountScreen me={me} />
       </RouterContextProvider>
     </QueryClientProvider>,
   );
@@ -88,31 +86,15 @@ describe('AccountScreen', () => {
     expect(screen.getByText('player@example.com')).toBeVisible();
     expect(screen.getByText('Free')).toBeVisible();
   });
-  test('renders the change-password section', () => {
+
+  test('links to the settings page', () => {
     renderAccount();
-    expect(screen.getByRole('heading', { name: 'Change password' })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute(
+      'href',
+      '/account/settings',
+    );
   });
 
-  test('signs out through the injected handler', async () => {
-    const user = userEvent.setup();
-    const signOut = vi.fn().mockResolvedValue(undefined);
-    renderAccount(meFixture(), signOut);
-
-    await user.click(screen.getByRole('button', { name: 'Sign out' }));
-
-    expect(signOut).toHaveBeenCalledOnce();
-  });
-
-  test('keeps the account visible and reports a sign-out failure', async () => {
-    const user = userEvent.setup();
-    const signOut = vi.fn().mockRejectedValue(new Error('HTTP failure'));
-    renderAccount(meFixture(), signOut);
-
-    await user.click(screen.getByRole('button', { name: 'Sign out' }));
-
-    expect(await screen.findByText('Sign out failed.', { exact: true })).toBeVisible();
-    expect(screen.getByRole('heading', { name: 'Your account' })).toBeVisible();
-  });
   test('owned cards link to edit', () => {
     renderAccount();
     expect(screen.getByRole('link', { name: 'Edit' })).toHaveAttribute('href', '/account/player');
