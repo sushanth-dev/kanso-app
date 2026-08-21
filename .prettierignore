@@ -3,6 +3,7 @@
 apps/api/openapi.json
 apps/api/drizzle/
 apps/web/src/generated/
+apps/web/src/study-room-theme.css
 
 # Build output and vendored files.
 node_modules/

@@ -7,6 +7,7 @@ import { queryClient } from './query-client.ts';
 import { router } from './router.tsx';
 import { studyRoomTheme } from './theme.ts';
 import './styles.css';
+import './study-room-theme.css';
 
 const root = document.getElementById('root');
 if (root === null) throw new Error('Missing #root mount point.');
