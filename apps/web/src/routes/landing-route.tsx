@@ -160,9 +160,8 @@ export function LandingRoute() {
                 <div>
                   <h3 className="font-display text-lg leading-snug">Paid for the loop</h3>
                   <p className="mt-2 text-muted">
-                    Everything after the diagnosis: a focus, verification of whether it worked, a
-                    proof sheet to send your parents, history across seasons, and unlimited imports.
-                    $15 a month, $130 a season, or $150 a year.
+                    Everything after the diagnosis: a focus, verification of whether it worked, and
+                    a proof sheet to send your parents. From $9 a month, uncapped on the Pro plan.
                   </p>
                 </div>
               </div>

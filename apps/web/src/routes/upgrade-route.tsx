@@ -2,23 +2,23 @@
  * Direction contract (shaped directly, no seed).
  *
  * THESIS: the upgrade page states the boundary and asks for the money,
- * plainly. The free/paid split is already decided, so the page is a short
- * fact sheet and three clear prices, not a persuasion essay. It refuses the
+ * plainly. The three plans are already decided, so the page is a short fact
+ * sheet and three clear cards, not a persuasion essay. It refuses the
  * category-default feature-comparison table and long sales copy.
  *
  * OWN-WORLD: Study Room. Inherits the page frame's warm paper page, raised
  * cards, ink, one terracotta accent, Source Serif 4 display over Public Sans,
  * IBM Plex Mono for every number. Restrained: the accent lives on the primary
- * action only.
+ * action and the "most popular" mark only.
  *
- * STORY: a free user lands on a paid surface, is told what free gives, what
- * paid gives, and the three prices, picks one, and pays through Razorpay. A
- * paid user is told the loop is already open and sent back to it, never asked
- * to pay again.
+ * STORY: a beginner lands on a paid surface, is told what each plan gives and
+ * what it costs, picks intermediate or pro, and pays through Razorpay. An
+ * account already on a paid plan is told which one and sent back to it, never
+ * asked to pay again.
  *
  * FIRST VIEWPORT: a heading, one line on the boundary, then the three plan
- * cards - monthly, season (September to May), year - each with its price in
- * mono type and a pay button.
+ * cards - beginner, intermediate, pro - each with its limit, its price in
+ * mono type, and a pay button (beginner needs none).
  *
  * FORM: a whole surface inside an established world, shaped directly because
  * the task and content are precisely specified; no concept tournament.
@@ -33,7 +33,8 @@ import { Card } from '@astryxdesign/core/Card';
 import { Heading } from '@astryxdesign/core/Heading';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { checkoutApi, type CheckoutResponse, type Plan } from '../api/checkout-api.ts';
+import { checkoutApi, type CheckoutResponse, type PayableTier } from '../api/checkout-api.ts';
+import type { Tier } from '../api/account-api.ts';
 import { primaryLinkClassName } from '../components/primary-link.ts';
 import { secondaryLinkClassName } from '../components/secondary-link.ts';
 import { StatusMessage } from '../components/status-message.tsx';
@@ -41,55 +42,61 @@ import { ME_QUERY_KEY, meQueryOptions } from '../query-client.ts';
 import { track } from '../analytics.ts';
 
 interface PlanOption {
-  key: Plan;
+  tier: Tier;
   name: string;
   price: string;
-  period: string;
-  note?: string;
+  limit: string;
+  features: string[];
+  mostPopular?: boolean;
 }
 
 const PLANS: PlanOption[] = [
-  { key: 'monthly', name: 'Monthly', price: '$15', period: 'a month' },
   {
-    key: 'season',
-    name: 'Season',
-    price: '$130',
-    period: 'a season',
-    note: 'September to May',
+    tier: 'beginner',
+    name: 'Beginner',
+    price: 'Free',
+    limit: '30 games analysed a month',
+    features: [
+      'Import from Chess.com or Lichess by username, plus PGN upload for tournament games.',
+      'One diagnosis, ranked by what is costing the most rating.',
+      'The rating leak number for the top weakness.',
+    ],
   },
   {
-    key: 'yearly',
-    name: 'Year',
-    price: '$150',
-    period: 'a year',
-    note: 'Twelve months for the price of ten.',
+    tier: 'intermediate',
+    name: 'Intermediate',
+    price: '$9',
+    limit: '150 games analysed a month',
+    features: [
+      'A focus, and verification afterwards, checked honestly.',
+      'The proof sheet, the before-and-after page a coach sends a parent.',
+      'Unlimited imports and re-analysis, up to the monthly cap.',
+    ],
+    mostPopular: true,
+  },
+  {
+    tier: 'pro',
+    name: 'Pro',
+    price: '$15',
+    limit: 'Unlimited games analysed',
+    features: [
+      'Everything intermediate gives, with no monthly cap.',
+      'History across seasons: compare this season to the last.',
+    ],
   },
 ];
 
-const WHAT_FREE_GIVES = [
-  'Import from Chess.com or Lichess by username, plus PGN upload for tournament games.',
-  'One diagnosis, ranked by what is costing the most rating.',
-  'The rating leak number for the top weakness.',
-];
+const PAYABLE_TIERS = new Set<Tier>(['intermediate', 'pro']);
 
-const WHAT_PAID_GIVES = [
-  {
-    title: 'A focus, and verification',
-    body: 'One thing to work on, checked afterwards on whether it is improving, with the evidence shown honestly.',
-  },
-  {
-    title: 'The proof sheet',
-    body: 'The before-and-after page a coach sends a parent.',
-  },
-  {
-    title: 'History across seasons',
-    body: 'Compare this season to the last.',
-  },
-  {
-    title: 'Unlimited imports and re-analysis',
-    body: 'Import and re-analyse without a cap.',
-  },
-];
+function isPayable(tier: Tier): tier is PayableTier {
+  return PAYABLE_TIERS.has(tier);
+}
+
+const TIER_LABEL: Record<Tier, string> = {
+  beginner: 'Beginner',
+  intermediate: 'Intermediate',
+  pro: 'Pro',
+};
 
 type PayError = 'provider-unreachable' | 'checkout-failed';
 
@@ -154,16 +161,16 @@ function UpgradeSkeleton() {
   );
 }
 
-function AlreadyPaid() {
+function AlreadySubscribed({ tier }: { tier: Tier }) {
   return (
     <div className="space-y-8">
       <header className="space-y-4">
-        <Heading level={1}>Your account is already paid</Heading>
-        <Badge label="Paid" variant="neutral" />
+        <Heading level={1}>You are on the {TIER_LABEL[tier]} plan</Heading>
+        <Badge label={TIER_LABEL[tier]} variant="neutral" />
         <p className="text-muted">
-          The full loop is already open: a focus, verification, the proof sheet, history across
-          seasons, and unlimited imports and re-analysis. Set a focus and check on it from your
-          account.
+          {tier === 'pro'
+            ? 'The full loop is already open, with no monthly cap: a focus, verification, the proof sheet, and history across seasons. Set a focus and check on it from your account.'
+            : 'The full loop is already open, up to your monthly cap: a focus, verification, and the proof sheet. Set a focus and check on it from your account.'}
         </p>
       </header>
       <Link to="/account" className={primaryLinkClassName}>
@@ -177,17 +184,17 @@ export function UpgradeRoute() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const meQuery = useQuery(meQueryOptions());
-  const [paying, setPaying] = useState<Plan | null>(null);
+  const [paying, setPaying] = useState<PayableTier | null>(null);
   const [payError, setPayError] = useState<PayError | null>(null);
   const [status, setStatus] = useState<'idle' | 'confirming' | 'processing'>('idle');
 
-  async function confirmUpgrade(plan: Plan) {
+  async function confirmUpgrade(tier: PayableTier) {
     setStatus('confirming');
     for (let attempt = 0; attempt < 10; attempt += 1) {
       await queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY });
       const me = await queryClient.fetchQuery(meQueryOptions());
-      if (me.tier === 'paid') {
-        track('converted_to_paid', { plan });
+      if (me.tier === tier) {
+        track('converted_to_paid', { tier });
         await navigate({ to: '/account' });
         return;
       }
@@ -196,13 +203,13 @@ export function UpgradeRoute() {
     setStatus('processing');
   }
 
-  async function handlePay(plan: Plan) {
-    setPaying(plan);
+  async function handlePay(tier: PayableTier) {
+    setPaying(tier);
     setPayError(null);
 
     let checkout: CheckoutResponse;
     try {
-      checkout = await checkoutApi.checkout(plan);
+      checkout = await checkoutApi.checkout(tier);
     } catch {
       setPaying(null);
       setPayError('checkout-failed');
@@ -224,7 +231,7 @@ export function UpgradeRoute() {
         name: 'Kanso Chess',
         order_id: checkout.orderId,
         handler: () => {
-          void confirmUpgrade(plan);
+          void confirmUpgrade(tier);
         },
         theme: { color: accentColor() },
       });
@@ -240,8 +247,8 @@ export function UpgradeRoute() {
     return <UpgradeSkeleton />;
   }
 
-  if (meQuery.data?.tier === 'paid') {
-    return <AlreadyPaid />;
+  if (meQuery.data?.tier !== undefined && isPayable(meQuery.data.tier)) {
+    return <AlreadySubscribed tier={meQuery.data.tier} />;
   }
 
   return (
@@ -250,39 +257,14 @@ export function UpgradeRoute() {
         <Link to="/account" className={secondaryLinkClassName}>
           Back to your account
         </Link>
-        <Heading level={1}>Upgrade to the full loop</Heading>
+        <Heading level={1}>Choose a plan</Heading>
         <p className="text-muted">Your first diagnosis is free. The loop after it is paid.</p>
       </header>
 
-      <section aria-labelledby="free-heading">
-        <Heading level={2} id="free-heading">
-          What free gives
-        </Heading>
-        <ul className="mt-4 space-y-2">
-          {WHAT_FREE_GIVES.map((fact) => (
-            <li key={fact}>{fact}</li>
-          ))}
-        </ul>
-      </section>
-
-      <section aria-labelledby="paid-heading">
-        <Heading level={2} id="paid-heading">
-          What paid gives
-        </Heading>
-        <ul className="mt-4 grid gap-6 md:grid-cols-2">
-          {WHAT_PAID_GIVES.map((item) => (
-            <li key={item.title}>
-              <Heading level={3}>{item.title}</Heading>
-              <p className="mt-2 text-muted">{item.body}</p>
-            </li>
-          ))}
-        </ul>
-      </section>
-
       <section aria-labelledby="plans-heading">
-        <Heading level={2} id="plans-heading">
-          Choose a plan
-        </Heading>
+        <h2 id="plans-heading" className="sr-only">
+          Plans
+        </h2>
         {payError === 'provider-unreachable' ? (
           <div className="mt-4">
             <StatusMessage tone="error">
@@ -307,28 +289,40 @@ export function UpgradeRoute() {
         {status === 'processing' ? (
           <div className="mt-4">
             <StatusMessage tone="success">
-              Payment received. Your account has not updated yet. Refresh to see your paid tier.
+              Payment received. Your account has not updated yet. Refresh to see your new plan.
             </StatusMessage>
           </div>
         ) : null}
         <div className="mt-4 grid gap-4 md:grid-cols-3">
-          {PLANS.map((plan) => (
-            <Card key={plan.key} className="flex flex-col p-6">
-              <Heading level={3}>{plan.name}</Heading>
-              <p className="mt-3 font-mono text-3xl leading-tight tracking-tight">{plan.price}</p>
-              <p className="mt-1 text-sm text-muted">{plan.period}</p>
-              {plan.note !== undefined ? (
-                <p className="mt-2 text-sm text-muted">{plan.note}</p>
-              ) : null}
-              <Button
-                label={paying === plan.key ? 'Opening checkout...' : `Pay ${plan.price}`}
-                variant="primary"
-                onClick={() => void handlePay(plan.key)}
-                isDisabled={paying !== null || status !== 'idle'}
-                className="mt-6 min-h-11 press"
-              />
-            </Card>
-          ))}
+          {PLANS.map((plan) => {
+            const payableTier = isPayable(plan.tier) ? plan.tier : null;
+            return (
+              <Card key={plan.tier} className="flex flex-col p-6">
+                <div className="flex items-center justify-between gap-2">
+                  <Heading level={3}>{plan.name}</Heading>
+                  {plan.mostPopular === true ? (
+                    <Badge label="Most popular" variant="orange" />
+                  ) : null}
+                </div>
+                <p className="mt-3 font-mono text-3xl leading-tight tracking-tight">{plan.price}</p>
+                <p className="mt-1 text-sm text-muted">{plan.limit}</p>
+                <ul className="mt-4 space-y-2 text-sm text-muted">
+                  {plan.features.map((feature) => (
+                    <li key={feature}>{feature}</li>
+                  ))}
+                </ul>
+                {payableTier !== null ? (
+                  <Button
+                    label={paying === payableTier ? 'Opening checkout...' : `Pay ${plan.price}`}
+                    variant={plan.mostPopular === true ? 'primary' : 'secondary'}
+                    onClick={() => void handlePay(payableTier)}
+                    isDisabled={paying !== null || status !== 'idle'}
+                    className="mt-6 min-h-11 press"
+                  />
+                ) : null}
+              </Card>
+            );
+          })}
         </div>
       </section>
     </div>

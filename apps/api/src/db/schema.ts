@@ -84,10 +84,8 @@ export const importKindEnum = pgEnum('import_kind', ['backfill', 'incremental'])
 
 export const jobStatusEnum = pgEnum('job_status', ['queued', 'running', 'complete', 'failed']);
 
-export const tierEnum = pgEnum('tier', ['free', 'paid']);
-
-/** ADR-0039, ST-044. The three plans `pricing.md` sets: $15, $130, $150. */
-export const planEnum = pgEnum('plan', ['monthly', 'season', 'yearly']);
+/** ST-074. Beginner is free; intermediate and pro are paid, priced monthly. */
+export const tierEnum = pgEnum('tier', ['beginner', 'intermediate', 'pro']);
 
 /** DEBT-016. Why a report has no time-trouble onset: no clocks, or a clocked history too thin to measure. */
 export const timeTroubleReasonEnum = pgEnum('time_trouble_reason', [
@@ -172,14 +170,14 @@ export const guardianConsent = pgTable(
   (t) => [uniqueIndex('guardian_consent_user_unique').on(t.userId)],
 );
 
-/** B2, O3. The free tier gives one real diagnosis; the paid tier gives the loop. */
+/** B2, O3, ST-074. Beginner gives one real diagnosis; intermediate and pro give the loop, capped and uncapped. */
 export const subscription = pgTable('subscription', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: text('user_id')
     .notNull()
     .unique()
     .references(() => user.id, { onDelete: 'cascade' }),
-  tier: tierEnum('tier').notNull().default('free'),
+  tier: tierEnum('tier').notNull().default('beginner'),
   currentPeriodEnd: timestamp('current_period_end', { withTimezone: true }),
   /** Payment provider is undecided and out of scope until there is something to sell. */
   provider: text('provider'),
@@ -189,17 +187,18 @@ export const subscription = pgTable('subscription', {
 });
 
 /**
- * ADR-0039, ST-044. One row per checkout. Created when the order is placed
- * with a null payment id, completed when Razorpay confirms the payment by
- * webhook. The payment id is unique, so a replayed webhook finds the row
- * already paid and is a no-op; we never see a card number.
+ * ADR-0039, ST-044, ST-074. One row per checkout. Created when the order is
+ * placed with a null payment id, completed when Razorpay confirms the payment
+ * by webhook. The payment id is unique, so a replayed webhook finds the row
+ * already paid and is a no-op; we never see a card number. `tier` is always
+ * `intermediate` or `pro`: beginner needs no checkout.
  */
 export const processedPayment = pgTable('processed_payment', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: text('user_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
-  plan: planEnum('plan').notNull(),
+  tier: tierEnum('tier').notNull(),
   /** Minor units: cents for USD. */
   amount: integer('amount').notNull(),
   currency: text('currency').notNull().default('USD'),

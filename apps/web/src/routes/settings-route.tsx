@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
 import { Heading } from '@astryxdesign/core/Heading';
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
@@ -7,6 +6,7 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import { type Me } from '../api/account-api.ts';
 import { authClient } from '../auth-client.ts';
 import { ChangePasswordForm } from '../components/change-password-form.tsx';
+import { primaryLinkClassName } from '../components/primary-link.ts';
 import { secondaryLinkClassName } from '../components/secondary-link.ts';
 import { StatusMessage } from '../components/status-message.tsx';
 import { ME_QUERY_KEY, meQueryOptions } from '../query-client.ts';
@@ -42,7 +42,11 @@ export function SettingsScreen({ me, signOut }: SettingsScreenProps) {
           Account details
         </Heading>
         <p className="text-muted">{me.email}</p>
-        <Badge label={me.tier === 'paid' ? 'Paid' : 'Free'} variant="neutral" />
+        <div>
+          <Link to="/account/upgrade" className={`${primaryLinkClassName} mt-3`}>
+            See plans
+          </Link>
+        </div>
       </section>
 
       <section aria-labelledby="signout-heading" className="mt-8">

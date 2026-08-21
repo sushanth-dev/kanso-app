@@ -13,7 +13,7 @@ import type { OpenAPIHono } from '@hono/zod-openapi';
 import { razorpayWebhook } from '../contract/routes.ts';
 import * as schema from '../db/schema.ts';
 import { processedPayment, subscription } from '../db/schema.ts';
-import { periodEndFor } from './plans.ts';
+import { nextRenewal } from './plans.ts';
 import type { RazorpayClient } from './razorpay.ts';
 import { log } from '../logging.ts';
 
@@ -61,7 +61,7 @@ export function mountRazorpayWebhook(
       .select({
         id: processedPayment.id,
         userId: processedPayment.userId,
-        plan: processedPayment.plan,
+        tier: processedPayment.tier,
         razorpayPaymentId: processedPayment.razorpayPaymentId,
       })
       .from(processedPayment)
@@ -76,7 +76,7 @@ export function mountRazorpayWebhook(
       return c.body(null, 204);
     }
 
-    const periodEnd = periodEndFor(row.plan);
+    const periodEnd = nextRenewal();
     await deps.db.transaction(async (tx) => {
       await tx
         .update(processedPayment)
@@ -86,7 +86,7 @@ export function mountRazorpayWebhook(
         .insert(subscription)
         .values({
           userId: row.userId,
-          tier: 'paid',
+          tier: row.tier,
           currentPeriodEnd: periodEnd,
           provider: 'razorpay',
           providerRef: paymentId,
@@ -94,7 +94,7 @@ export function mountRazorpayWebhook(
         .onConflictDoUpdate({
           target: subscription.userId,
           set: {
-            tier: 'paid',
+            tier: row.tier,
             currentPeriodEnd: periodEnd,
             provider: 'razorpay',
             providerRef: paymentId,
@@ -105,7 +105,7 @@ export function mountRazorpayWebhook(
     log('info', 'payment_captured', {
       requestId: c.get('requestId'),
       userId: row.userId,
-      plan: row.plan,
+      tier: row.tier,
       orderId,
       paymentId,
     });

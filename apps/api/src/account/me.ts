@@ -1,10 +1,10 @@
 /**
  * The endpoint that returns the signed-in user and the one player they are.
  *
- * ST-072. The account IS the player, so this returns a single `player`, not a
- * list. The tier comes from the user's `subscription` row, defaulting to
- * `free` when there is none, which is the schema's own default for a fresh
- * sign-up rather than a value invented in the handler.
+ * ST-072, ST-074. The account IS the player, so this returns a single
+ * `player`, not a list. The tier comes from the user's `subscription` row,
+ * defaulting to `beginner` when there is none, which is the schema's own
+ * default for a fresh sign-up rather than a value invented in the handler.
  */
 import type { Context } from 'hono';
 import { eq } from 'drizzle-orm';
@@ -62,7 +62,7 @@ export function mountMe(
         userId: account.id,
         email: account.email,
         name: account.name,
-        tier: sub?.tier ?? 'free',
+        tier: sub?.tier ?? 'beginner',
         player: toPlayer(own),
       },
       200,

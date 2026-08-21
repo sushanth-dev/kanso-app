@@ -1,8 +1,9 @@
 /**
- * ST-044. Free and paid tiers, exercised against a real PostgreSQL with a fake
- * Razorpay client: a free account is refused every paid route, checkout records
- * the order, a signed webhook flips the tier exactly once, and the free-tier
- * analysis budget counts games analysed this month. No test reaches Razorpay.
+ * ST-044, ST-074. The three tiers, exercised against a real PostgreSQL with a
+ * fake Razorpay client: a beginner account is refused every paid route,
+ * checkout records the order, a signed webhook flips the tier exactly once,
+ * and each tier's analysis budget counts games analysed this month. No test
+ * reaches Razorpay.
  */
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
@@ -11,7 +12,7 @@ import { createApp } from '../app.ts';
 import { createAuth } from '../auth.ts';
 import { game, processedPayment, subscription } from '../db/schema.ts';
 import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-harness.ts';
-import { freeAnalysisRemaining } from './entitlement.ts';
+import { analysisRemaining } from './entitlement.ts';
 import type { RazorpayClient } from './razorpay.ts';
 
 let harness: IntegrationDatabase;
@@ -78,11 +79,11 @@ async function ownPlayerId(cookie: string): Promise<string> {
   return body.player.id;
 }
 
-async function checkout(cookie: string, plan: string): Promise<string> {
+async function checkout(cookie: string, tier: string): Promise<string> {
   const res = await app().request('/payments/checkout', {
     method: 'POST',
     headers: { cookie, 'content-type': 'application/json' },
-    body: JSON.stringify({ plan }),
+    body: JSON.stringify({ tier }),
   });
   expect(res.status).toBe(200);
   const body = (await res.json()) as { orderId: string };
@@ -100,9 +101,9 @@ async function sendWebhook(orderId: string, paymentId = 'pay_1'): Promise<Respon
   });
 }
 
-describe('free and paid tiers', () => {
-  test('a free account is refused at every paid route', async () => {
-    const { cookie } = await signUpCookie('free@example.com');
+describe('the three tiers', () => {
+  test('a beginner account is refused at every paid route', async () => {
+    const { cookie } = await signUpCookie('beginner@example.com');
 
     const paidPaths = ['/focuses', '/focus', '/proof-sheets'];
     for (const path of paidPaths) {
@@ -112,16 +113,16 @@ describe('free and paid tiers', () => {
     }
   });
 
-  test('a paid account reaches the paid routes', async () => {
-    const { cookie, userId } = await signUpCookie('paid@example.com');
-    await harness.db.insert(subscription).values({ userId, tier: 'paid' });
+  test('an intermediate or pro account reaches the paid routes', async () => {
+    const { cookie, userId } = await signUpCookie('pro@example.com');
+    await harness.db.insert(subscription).values({ userId, tier: 'pro' });
 
     expect((await app().request('/focuses', { headers: { cookie } })).status).toBe(200);
   });
 
   test('checkout creates a Razorpay order and records it without a card', async () => {
     const { cookie, userId } = await signUpCookie('checkout@example.com');
-    const orderId = await checkout(cookie, 'monthly');
+    const orderId = await checkout(cookie, 'pro');
 
     expect(orderId).toBe('order_test_1');
     expect(createdOrders).toHaveLength(1);
@@ -130,7 +131,7 @@ describe('free and paid tiers', () => {
     const [row] = await harness.db.select().from(processedPayment);
     expect(row).toMatchObject({
       userId,
-      plan: 'monthly',
+      tier: 'pro',
       amount: 1500,
       currency: 'USD',
       razorpayOrderId: 'order_test_1',
@@ -144,9 +145,9 @@ describe('free and paid tiers', () => {
     expect(columns.filter((column) => /card/i.test(column))).toEqual([]);
   });
 
-  test('a signed webhook flips the tier to paid exactly once', async () => {
+  test('a signed webhook flips the tier to the one purchased, exactly once', async () => {
     const { cookie, userId } = await signUpCookie('webhook@example.com');
-    const orderId = await checkout(cookie, 'season');
+    const orderId = await checkout(cookie, 'intermediate');
 
     expect((await sendWebhook(orderId)).status).toBe(204);
     // Replayed: the unique payment id makes a second delivery a no-op.
@@ -156,7 +157,11 @@ describe('free and paid tiers', () => {
       .select()
       .from(subscription)
       .where(eq(subscription.userId, userId));
-    expect(sub).toMatchObject({ tier: 'paid', provider: 'razorpay', providerRef: 'pay_1' });
+    expect(sub).toMatchObject({
+      tier: 'intermediate',
+      provider: 'razorpay',
+      providerRef: 'pay_1',
+    });
 
     const rows = await harness.db.select().from(processedPayment);
     expect(rows).toHaveLength(1);
@@ -165,7 +170,7 @@ describe('free and paid tiers', () => {
 
   test('a bad signature is refused and flips nothing', async () => {
     const { cookie, userId } = await signUpCookie('tampered@example.com');
-    const orderId = await checkout(cookie, 'monthly');
+    const orderId = await checkout(cookie, 'pro');
 
     verifySignature = false;
     expect((await sendWebhook(orderId)).status).toBe(401);
@@ -179,11 +184,11 @@ describe('free and paid tiers', () => {
     expect(row!.razorpayPaymentId).toBeNull();
   });
 
-  test('the free analysis budget counts games analysed this month', async () => {
+  test('the beginner analysis budget counts games analysed this month', async () => {
     const { cookie, userId } = await signUpCookie('cap@example.com');
     const playerId = await ownPlayerId(cookie);
 
-    expect(await freeAnalysisRemaining(harness.db, userId)).toBe(30);
+    expect(await analysisRemaining(harness.db, userId)).toBe(30);
 
     for (let i = 0; i < 30; i += 1) {
       await harness.db.insert(game).values({
@@ -197,7 +202,7 @@ describe('free and paid tiers', () => {
         analyzedAt: new Date(),
       });
     }
-    expect(await freeAnalysisRemaining(harness.db, userId)).toBe(0);
+    expect(await analysisRemaining(harness.db, userId)).toBe(0);
 
     // A game analysed last month does not count toward this month's budget.
     const lastMonth = new Date();
@@ -212,6 +217,13 @@ describe('free and paid tiers', () => {
       analysisStatus: 'complete',
       analyzedAt: lastMonth,
     });
-    expect(await freeAnalysisRemaining(harness.db, userId)).toBe(0);
+    expect(await analysisRemaining(harness.db, userId)).toBe(0);
+  });
+
+  test('pro has no analysis cap', async () => {
+    const { userId } = await signUpCookie('unlimited@example.com');
+    await harness.db.insert(subscription).values({ userId, tier: 'pro' });
+
+    expect(await analysisRemaining(harness.db, userId)).toBeNull();
   });
 });

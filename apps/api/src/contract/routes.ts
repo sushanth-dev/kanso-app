@@ -350,7 +350,7 @@ export const queueAnalysis = createRoute({
     403: error('Not your game.'),
     404: error('No such game.'),
     409: error('Analysis is already running for this game.'),
-    429: error('The free tier analysis cap is reached.'),
+    429: error("The plan's analysis cap is reached."),
   },
 });
 
@@ -596,9 +596,9 @@ export const createCheckout = createRoute({
   method: 'post',
   path: '/payments/checkout',
   tags: ['Billing'],
-  summary: 'Create a Razorpay order for a plan',
+  summary: 'Create a Razorpay order for intermediate or pro',
   description:
-    'ST-044. Creates a Razorpay order and records the checkout. The client opens Razorpay Checkout with the returned order id; confirmation arrives by webhook.',
+    'ST-044, ST-074. Creates a Razorpay order and records the checkout. The client opens Razorpay Checkout with the returned order id; confirmation arrives by webhook.',
   request: {
     body: json(CheckoutRequest, 'The plan to purchase.'),
   },
