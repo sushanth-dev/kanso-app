@@ -41,7 +41,7 @@ const checkoutMock = vi.mocked(checkoutApi.checkout);
 
 const RAZORPAY_CHECKOUT_SRC = 'https://checkout.razorpay.com/v1/checkout.js';
 
-function freeMe(tier: 'free' | 'paid' = 'free'): AccountApi.Me {
+function meWithTier(tier: AccountApi.Tier = 'beginner'): AccountApi.Me {
   return {
     userId: 'user-1',
     email: 'player@example.com',
@@ -78,30 +78,37 @@ function renderAt(path: string) {
 describe('UpgradeRoute', () => {
   beforeEach(() => {
     getMe.mockReset();
-    getMe.mockResolvedValue(freeMe());
+    getMe.mockResolvedValue(meWithTier());
     checkoutMock.mockReset();
     trackMock.mockClear();
     delete (window as unknown as { Razorpay?: unknown }).Razorpay;
   });
 
-  test('states the boundary and the three prices', async () => {
+  test('states the boundary and the three plans', async () => {
     renderAt('/account/upgrade');
 
-    expect(
-      await screen.findByRole('heading', { name: 'Upgrade to the full loop' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Choose a plan' })).toBeInTheDocument();
     expect(screen.getByText(/Your first diagnosis is free/)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Beginner' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Intermediate' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Pro' })).toBeInTheDocument();
+    expect(screen.getByText('Free')).toBeInTheDocument();
+    expect(screen.getByText('$9')).toBeInTheDocument();
     expect(screen.getByText('$15')).toBeInTheDocument();
-    expect(screen.getByText('$130')).toBeInTheDocument();
-    expect(screen.getByText('$150')).toBeInTheDocument();
   });
 
-  test('gives each plan a pay button', async () => {
+  test('marks intermediate as most popular', async () => {
     renderAt('/account/upgrade');
 
-    expect(await screen.findByRole('button', { name: 'Pay $15' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Pay $130' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Pay $150' })).toBeInTheDocument();
+    expect(await screen.findByText('Most popular')).toBeInTheDocument();
+  });
+
+  test('gives intermediate and pro a pay button, and beginner none', async () => {
+    renderAt('/account/upgrade');
+
+    expect(await screen.findByRole('button', { name: 'Pay $9' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Pay $15' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Pay Free' })).not.toBeInTheDocument();
   });
 
   test('does not render pay buttons while getMe is pending', async () => {
@@ -116,36 +123,46 @@ describe('UpgradeRoute', () => {
     renderAt('/account/upgrade');
 
     await waitFor(() => {
-      expect(screen.queryByRole('button', { name: 'Pay $15' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Pay $9' })).not.toBeInTheDocument();
     });
 
-    resolveMe(freeMe());
-    expect(await screen.findByRole('button', { name: 'Pay $15' })).toBeInTheDocument();
+    resolveMe(meWithTier());
+    expect(await screen.findByRole('button', { name: 'Pay $9' })).toBeInTheDocument();
   });
 
-  test('shows the already-paid state and no pay buttons when getMe resolves paid', async () => {
-    getMe.mockResolvedValue(freeMe('paid'));
+  test('shows which plan a pro account is already on, and no pay buttons', async () => {
+    getMe.mockResolvedValue(meWithTier('pro'));
 
     renderAt('/account/upgrade');
 
     expect(
-      await screen.findByRole('heading', { name: 'Your account is already paid' }),
+      await screen.findByRole('heading', { name: 'You are on the Pro plan' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Paid')).toBeInTheDocument();
+    expect(screen.getByText('Pro')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Pay \$/ })).not.toBeInTheDocument();
+  });
+
+  test('shows which plan an intermediate account is already on', async () => {
+    getMe.mockResolvedValue(meWithTier('intermediate'));
+
+    renderAt('/account/upgrade');
+
+    expect(
+      await screen.findByRole('heading', { name: 'You are on the Intermediate plan' }),
+    ).toBeInTheDocument();
   });
 
   test('shows provider-unreachable when the Razorpay script never loads', async () => {
     const user = userEvent.setup();
     checkoutMock.mockResolvedValue({
       keyId: 'rzp_test',
-      amount: 1500,
+      amount: 900,
       currency: 'USD',
       orderId: 'order_1',
     });
 
     renderAt('/account/upgrade');
-    await user.click(await screen.findByRole('button', { name: 'Pay $15' }));
+    await user.click(await screen.findByRole('button', { name: 'Pay $9' }));
 
     const script = await waitFor(() => {
       const el = document.querySelector<HTMLScriptElement>(
@@ -167,19 +184,19 @@ describe('UpgradeRoute', () => {
     checkoutMock.mockRejectedValue(new Error('checkout failed'));
 
     renderAt('/account/upgrade');
-    await user.click(await screen.findByRole('button', { name: 'Pay $15' }));
+    await user.click(await screen.findByRole('button', { name: 'Pay $9' }));
 
     expect(await screen.findByText(/payment could not be started/i)).toBeInTheDocument();
     expect(screen.queryByText(/payment received/i)).not.toBeInTheDocument();
   });
 
-  test('fires converted_to_paid when the poll sees the tier flip', async () => {
+  test('fires converted_to_paid with the purchased tier when the poll sees the flip', async () => {
     const user = userEvent.setup();
-    let tier: 'free' | 'paid' = 'free';
-    getMe.mockImplementation(() => Promise.resolve(freeMe(tier)));
+    let tier: AccountApi.Tier = 'beginner';
+    getMe.mockImplementation(() => Promise.resolve(meWithTier(tier)));
     checkoutMock.mockResolvedValue({
       keyId: 'rzp_test',
-      amount: 1500,
+      amount: 900,
       currency: 'USD',
       orderId: 'order_1',
     });
@@ -192,14 +209,14 @@ describe('UpgradeRoute', () => {
     };
 
     renderAt('/account/upgrade');
-    await user.click(await screen.findByRole('button', { name: 'Pay $15' }));
+    await user.click(await screen.findByRole('button', { name: 'Pay $9' }));
 
     await waitFor(() => expect(razorpayHandler).toBeDefined());
-    tier = 'paid';
+    tier = 'intermediate';
     razorpayHandler?.();
 
     await waitFor(() =>
-      expect(trackMock).toHaveBeenCalledWith('converted_to_paid', { plan: 'monthly' }),
+      expect(trackMock).toHaveBeenCalledWith('converted_to_paid', { tier: 'intermediate' }),
     );
   });
 });

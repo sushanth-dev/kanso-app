@@ -21,7 +21,7 @@ const meFixture = {
   userId: 'user-1',
   email: 'player@example.com',
   name: 'Player',
-  tier: 'free' as const,
+  tier: 'beginner' as const,
   player: playerFixture,
 };
 

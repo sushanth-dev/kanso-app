@@ -13,7 +13,7 @@
  * | `game_imported` | `{ source, gamesFound, gamesImported }` | O1 first step, O2 second step |
  * | `report_viewed` | `{ stream }` | O1 second step |
  * | `focus_set` | `{ source, catalogueKey? }` | O2 first step |
- * | `converted_to_paid` | `{ plan }` | O3 |
+ * | `converted_to_paid` | `{ tier }` | O3 |
  *
  * No event carries a game position, an analysis, a child's name or email, or a
  * player id. PostHog's own anonymous distinct_id ties events to the account
@@ -46,7 +46,7 @@ const ALLOWED_PROPERTIES = new Set([
   'gamesImported',
   'stream',
   'catalogueKey',
-  'plan',
+  'tier',
 ]);
 
 export function safeProperties(

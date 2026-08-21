@@ -25,10 +25,10 @@ test('lands a new visitor on a coherent, axe-clean front door', async ({ page })
   await expect(page.getByText('#1')).toBeVisible();
   await expect(page.getByText('Missing tactics in the middlegame')).toBeVisible();
 
-  // The free/paid boundary is fact-only, matching pricing.md and the upgrade.
+  // The free/paid boundary is fact-only, matching the upgrade page's plans.
   await expect(page.getByRole('heading', { name: 'Free today' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Paid for the loop' })).toBeVisible();
-  await expect(page.getByText(/\$15 a month, \$130 a season, or \$150 a year/)).toBeVisible();
+  await expect(page.getByText(/From \$9 a month, uncapped on the Pro plan/)).toBeVisible();
 
   await expectNoAxeViolations(page);
 

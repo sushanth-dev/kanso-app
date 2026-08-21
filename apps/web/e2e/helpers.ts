@@ -12,7 +12,7 @@ import type { Page } from '@playwright/test';
  */
 export async function upgradeToPaid(page: Page): Promise<void> {
   const checkout = await page.request.post('/payments/checkout', {
-    data: { plan: 'monthly' },
+    data: { tier: 'pro' },
   });
   if (!checkout.ok()) {
     throw new Error(`checkout failed with ${checkout.status()}: ${await checkout.text()}`);

@@ -81,7 +81,7 @@ describe('the signed-in user and their player', () => {
     };
     expect(meBody.email).toBe(EMAIL_A);
     expect(meBody.name).toBe('alice');
-    expect(meBody.tier).toBe('free');
+    expect(meBody.tier).toBe('beginner');
     expect(meBody.player.displayName).toBe('alice');
     expect(meBody.player.fideRating).toBeNull();
     expect(meBody.player.lichessUsername).toBeNull();

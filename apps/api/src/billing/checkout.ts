@@ -1,5 +1,6 @@
 /**
- * ST-044. Creates a Razorpay order for a plan and records the checkout.
+ * ST-044, ST-074. Creates a Razorpay order for intermediate or pro and
+ * records the checkout.
  *
  * The `processed_payment` row is written here with a null payment id; the
  * webhook fills the id when Razorpay confirms the capture. The owner comes
@@ -29,8 +30,8 @@ export function mountCheckout(
       return c.json({ code: 'no_session', message: 'Sign in to use this endpoint.' }, 401);
     }
 
-    const { plan } = c.req.valid('json');
-    const { amountCents } = PLAN_PRICES[plan];
+    const { tier } = c.req.valid('json');
+    const { amountCents } = PLAN_PRICES[tier];
 
     const outcome = await deps.razorpay.createOrder({
       amount: amountCents,
@@ -46,7 +47,7 @@ export function mountCheckout(
 
     await deps.db.insert(processedPayment).values({
       userId: session.userId,
-      plan,
+      tier,
       amount: amountCents,
       currency: CURRENCY,
       razorpayOrderId: outcome.orderId,

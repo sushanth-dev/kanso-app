@@ -15,7 +15,7 @@ describe('safeProperties', () => {
         gamesImported: 4,
         stream: 'online',
         catalogueKey: 'converting_won_positions',
-        plan: 'monthly',
+        tier: 'pro',
         pgn: '1. e4 e5',
         fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR',
         name: 'Mina',
@@ -29,7 +29,7 @@ describe('safeProperties', () => {
       gamesImported: 4,
       stream: 'online',
       catalogueKey: 'converting_won_positions',
-      plan: 'monthly',
+      tier: 'pro',
     });
   });
 

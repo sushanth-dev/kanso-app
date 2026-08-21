@@ -36,7 +36,7 @@ const me: Me = {
   userId: 'user-1',
   email: 'player@example.com',
   name: 'Player',
-  tier: 'free',
+  tier: 'beginner',
   player: ownedPlayer,
 };
 

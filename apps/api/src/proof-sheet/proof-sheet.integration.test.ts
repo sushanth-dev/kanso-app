@@ -67,7 +67,7 @@ async function signIn(email: string): Promise<string> {
   // ST-044. Focus and proof sheets are paid surfaces; grant the tier.
   const session = await a.request('/api/auth/get-session', { headers: { cookie } });
   const who = (await session.json()) as { session: { userId: string } };
-  await harness.db.insert(subscription).values({ userId: who.session.userId, tier: 'paid' });
+  await harness.db.insert(subscription).values({ userId: who.session.userId, tier: 'pro' });
   return cookie;
 }
 

@@ -6,6 +6,7 @@ export type Me = components['schemas']['Me'];
 export type Player = components['schemas']['Player'];
 export type UpdatePlayer = components['schemas']['UpdatePlayer'];
 export type ApiError = components['schemas']['ApiError'];
+export type Tier = components['schemas']['Tier'];
 
 export class ApiRequestError extends Error {
   constructor(
