@@ -3,12 +3,34 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, RouterContextProvider } from '@tanstack/react-router';
 import { describe, expect, test, vi } from 'vitest';
+import { type Me } from '../api/account-api.ts';
 import { createAppRouter } from '../router.tsx';
 import { SettingsScreen } from './settings-route.tsx';
 
 vi.mock('../auth-client.ts', () => ({
   authClient: { changePassword: vi.fn() },
 }));
+
+const meFixture: Me = {
+  userId: 'user-1',
+  email: 'player@example.com',
+  name: 'Player',
+  tier: 'free',
+  player: {
+    id: '00000000-0000-4000-8000-000000000001',
+    displayName: 'Mina',
+    birthYear: 2013,
+    fideId: null,
+    fideRating: null,
+    uscfId: null,
+    uscfRating: null,
+    chesscomUsername: null,
+    lichessUsername: null,
+    chesscomRating: null,
+    lichessRating: null,
+    createdAt: '2026-08-14T00:00:00.000Z',
+  },
+};
 
 function renderSettings(signOut = vi.fn().mockResolvedValue(undefined)) {
   const history = createMemoryHistory();
@@ -17,7 +39,7 @@ function renderSettings(signOut = vi.fn().mockResolvedValue(undefined)) {
   return render(
     <QueryClientProvider client={queryClient}>
       <RouterContextProvider router={router}>
-        <SettingsScreen signOut={signOut} />
+        <SettingsScreen me={meFixture} signOut={signOut} />
       </RouterContextProvider>
     </QueryClientProvider>,
   );
@@ -33,6 +55,12 @@ describe('SettingsScreen', () => {
     );
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Change password' })).toBeVisible();
+  });
+
+  test('shows the account email and plan', () => {
+    renderSettings();
+    expect(screen.getByText('player@example.com')).toBeVisible();
+    expect(screen.getByText('Free')).toBeVisible();
   });
 
   test('signs out through the injected handler', async () => {

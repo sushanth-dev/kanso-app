@@ -1,10 +1,8 @@
-import { Badge } from '@astryxdesign/core/Badge';
 import { Card } from '@astryxdesign/core/Card';
 import { Heading } from '@astryxdesign/core/Heading';
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { ApiRequestError, type Me, type Player } from '../api/account-api.ts';
-import { secondaryLinkClassName } from '../components/secondary-link.ts';
 import { gamesQueryOptions, meQueryOptions, reportQueryOptions } from '../query-client.ts';
 
 export interface AccountScreenProps {
@@ -164,11 +162,6 @@ export function AccountScreen({ me }: AccountScreenProps) {
           Your account
         </Heading>
         <p className="font-display text-lg leading-tight">{me.name}</p>
-        <p className="text-muted">{me.email}</p>
-        <Badge label={me.tier === 'paid' ? 'Paid' : 'Free'} variant="neutral" />
-        <Link to="/account/settings" className={secondaryLinkClassName}>
-          Settings
-        </Link>
       </section>
 
       <section aria-label="Your player" className="mt-8">
