@@ -1,9 +1,16 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { createMemoryHistory, RouterContextProvider } from '@tanstack/react-router';
-import { describe, expect, test, vi } from 'vitest';
-import type { MotifReport, PhaseReport, Report } from '../api/diagnosis-api.ts';
+import { createMemoryHistory, RouterContextProvider, RouterProvider } from '@tanstack/react-router';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { accountApi, ApiRequestError, type Me } from '../api/account-api.ts';
+import {
+  diagnosisApi,
+  type GameSummary,
+  type MotifReport,
+  type PhaseReport,
+  type Report,
+} from '../api/diagnosis-api.ts';
 import { createAppRouter } from '../router.tsx';
 import { ReportScreen } from './report-route.tsx';
 
@@ -180,5 +187,121 @@ describe('ReportScreen', () => {
     expect(screen.getByText('games')).toBeInTheDocument();
     expect(screen.getByText('occurrences')).toBeInTheDocument();
     expect(screen.getByText('half-points lost')).toBeInTheDocument();
+  });
+});
+
+const meFixture: Me = {
+  userId: 'user-1',
+  email: 'player@example.com',
+  name: 'Player',
+  tier: 'beginner',
+  player: {
+    id: playerId,
+    displayName: 'Mina',
+    birthYear: 2013,
+    fideId: null,
+    fideRating: null,
+    uscfId: null,
+    uscfRating: null,
+    chesscomUsername: null,
+    lichessUsername: null,
+    chesscomRating: null,
+    lichessRating: null,
+    createdAt: '2026-08-14T00:00:00.000Z',
+  },
+};
+
+function gameFixture(overrides: Partial<GameSummary> = {}): GameSummary {
+  return {
+    id: '00000000-0000-4000-8000-0000000000aa',
+    stream: 'online',
+    source: 'chesscom',
+    playerColor: 'white',
+    result: '1-0',
+    playedAt: '2026-08-14T00:00:00.000Z',
+    event: null,
+    round: null,
+    board: null,
+    whiteName: 'Mina',
+    blackName: 'Opponent',
+    whiteElo: null,
+    blackElo: null,
+    eco: null,
+    opening: null,
+    moveCount: 40,
+    hasClockData: false,
+    analysisStatus: 'pending',
+    analyzedAt: null,
+    ...overrides,
+  };
+}
+
+const reportNotFound = new ApiRequestError(404, 'not_found', undefined, 'Not found.');
+
+function renderRoute(path = '/account/report?stream=online') {
+  const history = createMemoryHistory({ initialEntries: [path] });
+  const queryClient = new QueryClient();
+  const router = createAppRouter({ history, queryClient });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  );
+}
+
+describe('ReportRoute', () => {
+  beforeEach(() => {
+    vi.spyOn(accountApi, 'getMe').mockResolvedValue(meFixture);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  test('shows a live analysing state with the games-analysed count', async () => {
+    vi.spyOn(diagnosisApi, 'getReport').mockRejectedValue(reportNotFound);
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [
+        gameFixture({ id: 'g-1', analysisStatus: 'complete' }),
+        gameFixture({ id: 'g-2', analysisStatus: 'analyzing' }),
+        gameFixture({ id: 'g-3', analysisStatus: 'pending' }),
+      ],
+      total: 3,
+      page: 1,
+      limit: 100,
+    });
+
+    renderRoute();
+
+    expect(await screen.findByText('1 of 3 games analysed')).toBeVisible();
+    expect(screen.getByRole('status')).toBeVisible();
+  });
+
+  test('polls and swaps to the report once every game is analysed', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const getReport = vi.spyOn(diagnosisApi, 'getReport').mockRejectedValue(reportNotFound);
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [gameFixture({ id: 'g-1', analysisStatus: 'analyzing' })],
+      total: 1,
+      page: 1,
+      limit: 100,
+    });
+
+    renderRoute();
+    expect(await screen.findByText('0 of 1 games analysed')).toBeVisible();
+
+    getReport.mockResolvedValue(reportFixture({ stream: 'online', gamesCovered: 1 }));
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [gameFixture({ id: 'g-1', analysisStatus: 'complete' })],
+      total: 1,
+      page: 1,
+      limit: 100,
+    });
+
+    await vi.advanceTimersByTimeAsync(5000);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Online report' })).toBeVisible();
+    });
   });
 });

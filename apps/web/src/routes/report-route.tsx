@@ -3,10 +3,12 @@ import { Badge } from '@astryxdesign/core/Badge';
 import { Card } from '@astryxdesign/core/Card';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Heading } from '@astryxdesign/core/Heading';
+import { Spinner } from '@astryxdesign/core/Spinner';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { ApiRequestError } from '../api/account-api.ts';
 import type {
+  GameSummary,
   MotifReport,
   PhaseReport,
   Report,
@@ -307,16 +309,32 @@ function EmptyReport({ report }: { report: Report }) {
   );
 }
 
-function NotReady({ stillAnalyzing }: { stillAnalyzing: boolean }) {
-  if (stillAnalyzing) {
-    return (
-      <EmptyState
-        title="Your games are still being analyzed"
-        description="Analysis takes a couple of minutes after import. Come back and this report will be here."
-        headingLevel={2}
-      />
-    );
-  }
+function hasActiveGame(games: GameSummary[]): boolean {
+  return games.some(
+    (game) =>
+      game.analysisStatus === 'pending' ||
+      game.analysisStatus === 'queued' ||
+      game.analysisStatus === 'analyzing',
+  );
+}
+
+function Analysing({ games }: { games: GameSummary[] }) {
+  const total = games.length;
+  const analysed = games.filter(
+    (game) => game.analysisStatus === 'complete' || game.analysisStatus === 'failed',
+  ).length;
+  return (
+    <div className="flex flex-col items-center gap-3 py-8 text-center">
+      <Spinner size="md" />
+      <p className="text-primary">
+        {analysed} of {total} games analysed
+      </p>
+      <p className="text-sm text-muted">This report will appear as soon as it is ready.</p>
+    </div>
+  );
+}
+
+function NotReady() {
   return (
     <EmptyState
       title="No analyzed games in this stream yet"
@@ -351,17 +369,20 @@ export function ReportRoute() {
   const navigate = useNavigate();
   const { stream } = useSearch({ from: '/account/report' });
 
-  const reportQuery = useQuery(reportQueryOptions(stream));
+  const gamesQuery = useQuery({
+    ...gamesQueryOptions(stream),
+    refetchInterval: (query) =>
+      query.state.data !== undefined && hasActiveGame(query.state.data.games) ? 5000 : false,
+  });
+  const stillAnalyzing = gamesQuery.data !== undefined && hasActiveGame(gamesQuery.data.games);
+
+  const reportQuery = useQuery({
+    ...reportQueryOptions(stream),
+    refetchInterval: stillAnalyzing ? 5000 : false,
+  });
   useEffect(() => {
     if (reportQuery.data !== undefined) track('report_viewed', { stream });
   }, [reportQuery.data, stream]);
-  const gamesQuery = useQuery({
-    ...gamesQueryOptions(stream),
-    enabled:
-      reportQuery.isError &&
-      reportQuery.error instanceof ApiRequestError &&
-      reportQuery.error.status === 404,
-  });
 
   const onStreamChange = (next: Stream) => {
     void navigate({
@@ -382,19 +403,16 @@ export function ReportRoute() {
   if (reportQuery.isError) {
     const error = reportQuery.error;
     if (error instanceof ApiRequestError && error.status === 404) {
-      const games = gamesQuery.data;
-      const stillAnalyzing =
-        games !== undefined &&
-        games.games.some(
-          (game) =>
-            game.analysisStatus === 'pending' ||
-            game.analysisStatus === 'queued' ||
-            game.analysisStatus === 'analyzing',
-        );
       return (
         <div className="space-y-6">
           <ReportHeader stream={stream} onStreamChange={onStreamChange} />
-          <NotReady stillAnalyzing={stillAnalyzing} />
+          {gamesQuery.isPending ? (
+            <ReportSkeleton />
+          ) : stillAnalyzing ? (
+            <Analysing games={gamesQuery.data?.games ?? []} />
+          ) : (
+            <NotReady />
+          )}
         </div>
       );
     }
