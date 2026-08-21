@@ -36,8 +36,8 @@ function app(userId: string | null) {
   });
 }
 
-async function list(userId: string | null, playerId: string, query = '') {
-  return app(userId).request(`/players/${playerId}/games${query}`);
+async function list(userId: string | null, query = '') {
+  return app(userId).request(`/games${query}`);
 }
 
 async function makePlayer(ownerId: string): Promise<string> {
@@ -87,7 +87,7 @@ interface GameListBody {
   limit: number;
 }
 
-describe('GET /players/{playerId}/games', () => {
+describe('GET /games', () => {
   test('filters by stream and never returns another player’s games', async () => {
     const mine = await makePlayer(OWNER);
     const theirs = await makePlayer(OTHER);
@@ -95,15 +95,13 @@ describe('GET /players/{playerId}/games', () => {
     const o1 = await insertGame(mine, { stream: 'online' });
     const foreign = await insertGame(theirs, { stream: 'tournament' });
 
-    const tournament = (await (
-      await list(OWNER, mine, '?stream=tournament')
-    ).json()) as GameListBody;
+    const tournament = (await (await list(OWNER, '?stream=tournament')).json()) as GameListBody;
     expect(tournament.games.map((g) => g.id)).toEqual([t1]);
 
-    const online = (await (await list(OWNER, mine, '?stream=online')).json()) as GameListBody;
+    const online = (await (await list(OWNER, '?stream=online')).json()) as GameListBody;
     expect(online.games.map((g) => g.id)).toEqual([o1]);
 
-    const both = (await (await list(OWNER, mine)).json()) as GameListBody;
+    const both = (await (await list(OWNER)).json()) as GameListBody;
     expect(both.games.map((g) => g.id).sort()).toEqual([t1, o1].sort());
     expect(both.games.map((g) => g.id)).not.toContain(foreign);
   });
@@ -114,7 +112,7 @@ describe('GET /players/{playerId}/games', () => {
     const newer = await insertGame(mine, { playedAt: new Date('2025-01-01T00:00:00Z') });
     const undated = await insertGame(mine, { playedAt: null });
 
-    const body = (await (await list(OWNER, mine)).json()) as GameListBody;
+    const body = (await (await list(OWNER)).json()) as GameListBody;
     expect(body.games.map((g) => g.id)).toEqual([newer, older, undated]);
   });
 
@@ -124,31 +122,30 @@ describe('GET /players/{playerId}/games', () => {
       await insertGame(mine, { playedAt: new Date(`2025-01-0${i + 1}T00:00:00Z`) });
     }
 
-    const firstPage = (await (await list(OWNER, mine, '?limit=2&page=1')).json()) as GameListBody;
+    const firstPage = (await (await list(OWNER, '?limit=2&page=1')).json()) as GameListBody;
     expect(firstPage.games).toHaveLength(2);
     expect(firstPage.total).toBe(3);
     expect(firstPage.page).toBe(1);
     expect(firstPage.limit).toBe(2);
 
-    const secondPage = (await (await list(OWNER, mine, '?limit=2&page=2')).json()) as GameListBody;
+    const secondPage = (await (await list(OWNER, '?limit=2&page=2')).json()) as GameListBody;
     expect(secondPage.games).toHaveLength(1);
     expect(secondPage.total).toBe(3);
 
-    const defaults = (await (await list(OWNER, mine)).json()) as GameListBody;
+    const defaults = (await (await list(OWNER)).json()) as GameListBody;
     expect(defaults.limit).toBe(50);
     expect(defaults.page).toBe(1);
   });
 
   test('rejects a limit outside the permitted range rather than clamping it', async () => {
-    const mine = await makePlayer(OWNER);
-    expect((await list(OWNER, mine, '?limit=10000000')).status).toBe(400);
-    expect((await list(OWNER, mine, '?limit=0')).status).toBe(400);
-    expect((await list(OWNER, mine, '?page=0')).status).toBe(400);
+    expect((await list(OWNER, '?limit=10000000')).status).toBe(400);
+    expect((await list(OWNER, '?limit=0')).status).toBe(400);
+    expect((await list(OWNER, '?page=0')).status).toBe(400);
   });
 
   test('gives a player with no games an empty page, not a 404', async () => {
-    const mine = await makePlayer(OWNER);
-    const res = await list(OWNER, mine);
+    await makePlayer(OWNER);
+    const res = await list(OWNER);
     expect(res.status).toBe(200);
     const body = (await res.json()) as GameListBody;
     expect(body.games).toEqual([]);
@@ -156,27 +153,7 @@ describe('GET /players/{playerId}/games', () => {
   });
 
   test('answers 401 with no session', async () => {
-    const mine = await makePlayer(OWNER);
-    expect((await list(null, mine)).status).toBe(401);
-  });
-
-  test('answers 403 for a second real player the session has no claim on', async () => {
-    const mine = await makePlayer(OWNER);
-    const theirs = await makePlayer(OTHER);
-    await insertGame(theirs, {});
-    // A real, populated player owned by someone else: the 403 proves the claim
-    // check, which a made-up id would not, because a made-up id has no owner to
-    // compare against.
-    const res = await list(OWNER, theirs);
-    expect(res.status).toBe(403);
-    expect(mine).not.toBe(theirs);
-  });
-
-  test('answers 403 for a player that does not exist, not 404', async () => {
-    // Absence and refusal look identical from outside, so the path cannot be
-    // used to enumerate which player ids are real.
-    const res = await list(OWNER, '00000000-0000-4000-8000-000000000000');
-    expect(res.status).toBe(403);
+    expect((await list(null)).status).toBe(401);
   });
 
   test('scopes to one tournament and composes with the stream filter', async () => {
@@ -187,40 +164,40 @@ describe('GET /players/{playerId}/games', () => {
     const inT2 = await insertGame(mine, { tournamentId: t2, stream: 'tournament' });
     const unattached = await insertGame(mine, { stream: 'tournament' });
 
-    const scopedT1 = (await (await list(OWNER, mine, `?tournament=${t1}`)).json()) as GameListBody;
+    const scopedT1 = (await (await list(OWNER, `?tournament=${t1}`)).json()) as GameListBody;
     expect(scopedT1.games.map((g) => g.id)).toEqual([inT1]);
 
-    const scopedT2 = (await (await list(OWNER, mine, `?tournament=${t2}`)).json()) as GameListBody;
+    const scopedT2 = (await (await list(OWNER, `?tournament=${t2}`)).json()) as GameListBody;
     expect(scopedT2.games.map((g) => g.id)).toEqual([inT2]);
 
     // An unattached game appears in the unfiltered list and in neither scoped one.
-    const both = (await (await list(OWNER, mine)).json()) as GameListBody;
+    const both = (await (await list(OWNER)).json()) as GameListBody;
     expect(both.games.map((g) => g.id).sort()).toEqual([inT1, inT2, unattached].sort());
 
     // The tournament filter composes with the stream filter rather than
     // replacing it: scoping to t1 with only tournament games returns t1's.
     const scopedStream = (await (
-      await list(OWNER, mine, `?stream=tournament&tournament=${t1}`)
+      await list(OWNER, `?stream=tournament&tournament=${t1}`)
     ).json()) as GameListBody;
     expect(scopedStream.games.map((g) => g.id)).toEqual([inT1]);
   });
 
   test('answers 403 for a tournament the caller has no claim on', async () => {
-    const mine = await makePlayer(OWNER);
+    await makePlayer(OWNER);
     const theirs = await makePlayer(OTHER);
     const foreign = await seedTournament(theirs);
     await insertGame(theirs, { tournamentId: foreign });
     // A real tournament owned by another player: the 403 proves the claim check,
     // which a made-up id would not.
-    const res = await list(OWNER, mine, `?tournament=${foreign}`);
+    const res = await list(OWNER, `?tournament=${foreign}`);
     expect(res.status).toBe(403);
   });
 
   test('answers 403 for a tournament that does not exist, not 404', async () => {
-    const mine = await makePlayer(OWNER);
+    await makePlayer(OWNER);
     // Absence and refusal look identical from outside, so the id cannot be used
     // to enumerate which tournaments exist.
-    const res = await list(OWNER, mine, '?tournament=00000000-0000-4000-8000-000000000000');
+    const res = await list(OWNER, '?tournament=00000000-0000-4000-8000-000000000000');
     expect(res.status).toBe(403);
   });
 });

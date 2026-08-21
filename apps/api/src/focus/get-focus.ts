@@ -17,7 +17,7 @@ import { getFocus } from '../contract/routes.ts';
 import * as schema from '../db/schema.ts';
 import { focusCatalogue, focusMeasurement, playerFocus } from '../db/schema.ts';
 import { readSession } from '../session.ts';
-import { hasPlayerClaim } from '../players/claim.ts';
+import { getOwnPlayerId } from '../players/claim.ts';
 import { FocusMeasurement } from '../contract/schemas.ts';
 import { FOCUS_COMPUTE } from './computations.ts';
 import { FOCUS_SPECS, FOCUS_WINDOW_GAMES, measureFocusStream, trendFor } from './verify.ts';
@@ -82,9 +82,9 @@ export function mountGetFocus(
       return c.json({ code: 'no_session', message: 'Sign in to use this endpoint.' }, 401);
     }
 
-    const { playerId } = c.req.valid('param');
-    if (!(await hasPlayerClaim(deps.db, session.userId, playerId))) {
-      return c.json({ code: 'forbidden', message: 'Not your player.' }, 403);
+    const playerId = await getOwnPlayerId(deps.db, session.userId);
+    if (playerId === null) {
+      return c.json({ code: 'not_found', message: 'No such player.' }, 404);
     }
 
     const [row] = await deps.db

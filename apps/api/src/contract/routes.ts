@@ -16,7 +16,6 @@ import {
   ApiError,
   CheckoutRequest,
   CheckoutResponse,
-  CreatePlayer,
   Explanation,
   FocusCatalogueEntry,
   GameDetail,
@@ -58,10 +57,6 @@ const authErrors = {
   403: error('The session has no claim on this player.'),
 };
 
-const playerParams = z.object({
-  playerId: Uuid.openapi({ param: { name: 'playerId', in: 'path' } }),
-});
-
 // ─── Ops ─────────────────────────────────────────────────────────────────────
 
 export const getHealth = createRoute({
@@ -84,34 +79,22 @@ export const getMe = createRoute({
   method: 'get',
   path: '/me',
   tags: ['Account'],
-  summary: 'The signed-in user, the players they play as, and the players they pay for',
+  summary: 'The signed-in user and the one player they are',
   description:
-    'B4. The person paying and the person playing are different people, so this returns two lists rather than one.',
+    'ST-072. The account is the player, so this returns the account identity and its single chess player.',
   responses: {
     200: json(Me, 'The current session.'),
     401: error('No session.'),
-  },
-});
-
-export const createPlayer = createRoute({
-  method: 'post',
-  path: '/players',
-  tags: ['Account'],
-  summary: 'Create a chess identity',
-  request: { body: json(CreatePlayer, 'The new player.') },
-  responses: {
-    201: json(Player, 'Created.'),
-    ...authErrors,
+    404: error('No player for this account.'),
   },
 });
 
 export const updatePlayer = createRoute({
   method: 'patch',
-  path: '/players/{playerId}',
+  path: '/me',
   tags: ['Account'],
-  summary: 'Update ratings and site usernames',
+  summary: 'Update your player: display name, ratings, and site usernames',
   request: {
-    params: playerParams,
     body: json(UpdatePlayer, 'The fields to change.'),
   },
   responses: {
@@ -148,13 +131,12 @@ export const confirmGuardian = createRoute({
 
 export const getTransferGap = createRoute({
   method: 'get',
-  path: '/players/{playerId}/transfer-gap',
+  path: '/transfer-gap',
   tags: ['Diagnosis'],
   summary: 'The gap between a player’s online and over-the-board rating',
   description:
     'ST-018. Online rapid rating from Chess.com and Lichess, compared against the over-the-board rating (FIDE, else USCF). Fetched and snapshotted on the first view, then re-fetched only on an explicit refresh.',
   request: {
-    params: playerParams,
     query: z.object({
       // `refresh=true` is the deliberate re-fetch. A plain string rather than
       // `z.coerce.boolean()`, which turns the string "false" into `true`.
@@ -193,13 +175,12 @@ export const getRoundDecay = createRoute({
 
 export const getMotifs = createRoute({
   method: 'get',
-  path: '/players/{playerId}/motifs',
+  path: '/motifs',
   tags: ['Diagnosis'],
   summary: 'A player’s missed tactical motifs, ranked by cost',
   description:
     'ST-024. Each mistake is attributed to one motif from a closed set, then grouped per motif with the centipawns lost to it, ranked worst first. A motif with fewer than three supporting positions is withheld rather than reported, and the unattributed share is stated, so a thin history reads as thin rather than clean.',
   request: {
-    params: playerParams,
     query: z.object({
       stream: Stream.openapi({ param: { name: 'stream', in: 'query' } }),
     }),
@@ -207,19 +188,19 @@ export const getMotifs = createRoute({
   responses: {
     200: json(MotifReport, 'The ranked motifs, with evidence counts.'),
     ...authErrors,
+    404: error('No such player.'),
     422: error('No analysed games in this stream.'),
   },
 });
 
 export const getPhases = createRoute({
   method: 'get',
-  path: '/players/{playerId}/phase',
+  path: '/phase',
   tags: ['Diagnosis'],
   summary: 'A player’s evaluation loss by phase, and where time trouble starts',
   description:
     'ST-025. A player’s centipawn loss attributed to opening, middlegame, and endgame for one stream, with the games behind each phase. For games with clock data, the time-trouble half reports the move where the remaining clock starts driving mistakes; it is unavailable rather than guessed when no games carry a clock.',
   request: {
-    params: playerParams,
     query: z.object({
       stream: Stream.openapi({ param: { name: 'stream', in: 'query' } }),
     }),
@@ -227,6 +208,7 @@ export const getPhases = createRoute({
   responses: {
     200: json(PhaseReport, 'The phase breakdown, with the time-trouble half where it applies.'),
     ...authErrors,
+    404: error('No such player.'),
     422: error('No analysed games in this stream.'),
   },
 });
@@ -235,13 +217,12 @@ export const getPhases = createRoute({
 
 export const startImport = createRoute({
   method: 'post',
-  path: '/players/{playerId}/imports',
+  path: '/imports',
   tags: ['Import'],
   summary: 'Import games by username, uploaded PGN, or USCF tournament name',
   description:
     'S1, F1, F2, T1. Every game is tagged with its stream at import. An upload rejects the whole file on one malformed game; a username or tournament import rejects one malformed game and keeps the rest.',
   request: {
-    params: playerParams,
     body: json(StartImport, 'What to import.'),
   },
   responses: {
@@ -276,11 +257,10 @@ export const getImport = createRoute({
 
 export const listGames = createRoute({
   method: 'get',
-  path: '/players/{playerId}/games',
+  path: '/games',
   tags: ['Games'],
   summary: 'A player’s games, filtered by stream',
   request: {
-    params: playerParams,
     query: z.object({
       stream: Stream.optional().openapi({ param: { name: 'stream', in: 'query' } }),
       // An object id that names something other than the player in the path,
@@ -376,12 +356,11 @@ export const queueAnalysis = createRoute({
 
 export const analysisEvents = createRoute({
   method: 'get',
-  path: '/players/{playerId}/analysis/events',
+  path: '/analysis/events',
   tags: ['Analysis'],
   summary: 'Server-sent events for analysis progress',
   description:
     'ADR-0016, N1. A player is never made to wait on a blank screen. Events carry the game id and its new analysis status; the client refetches the game on completion.',
-  request: { params: playerParams },
   responses: {
     200: {
       description: 'An event stream that stays open until the client closes it.',
@@ -396,12 +375,11 @@ export const analysisEvents = createRoute({
 
 export const listTournaments = createRoute({
   method: 'get',
-  path: '/players/{playerId}/tournaments',
+  path: '/tournaments',
   tags: ['Tournaments'],
   summary: 'The tournaments a player has games in, most recent first',
   description:
     'S5. Each tournament carries its game and analysed counts. A player with no tournaments gets an empty list and a 200, not a 404.',
-  request: { params: playerParams },
   responses: {
     200: json(TournamentList, 'The tournaments.'),
     ...authErrors,
@@ -432,13 +410,12 @@ export const getTournament = createRoute({
 
 export const getReport = createRoute({
   method: 'get',
-  path: '/players/{playerId}/report',
+  path: '/report',
   tags: ['Report'],
   summary: 'The weakness report for one stream, ranked by rating leak',
   description:
     'F7, F9, S2. Tournament and online games are aggregated separately, so `stream` is required rather than defaulted. A blended report would describe a player who does not exist.',
   request: {
-    params: playerParams,
     query: z.object({
       stream: Stream.openapi({ param: { name: 'stream', in: 'query' } }),
     }),
@@ -509,12 +486,11 @@ export const listFocuses = createRoute({
 
 export const getFocus = createRoute({
   method: 'get',
-  path: '/players/{playerId}/focus',
+  path: '/focus',
   tags: ['Focus'],
   summary: 'The active focus and its verification trend',
   description:
     'F10, F12. One focus at a time, verified over a rolling window kept per stream, reported with the number of games behind it.',
-  request: { params: playerParams },
   responses: {
     200: json(ActiveFocus, 'The active focus.'),
     ...authErrors,
@@ -524,13 +500,12 @@ export const getFocus = createRoute({
 
 export const setFocus = createRoute({
   method: 'put',
-  path: '/players/{playerId}/focus',
+  path: '/focus',
   tags: ['Focus'],
   summary: 'Set the active focus, ending the previous one',
   description:
     'F10, F13. A coach instruction we cannot measure is still accepted: it is stored verbatim, shown as active, marked unverified, and paired with a measurable focus so the loop still closes. It is also logged as a candidate for the catalogue.',
   request: {
-    params: playerParams,
     body: json(SetFocus, 'The focus to take.'),
   },
   responses: {
@@ -544,13 +519,12 @@ export const setFocus = createRoute({
 
 export const createProofSheet = createRoute({
   method: 'post',
-  path: '/players/{playerId}/proof-sheets',
+  path: '/proof-sheets',
   tags: ['Proof sheet'],
   summary: 'Create a shareable before-and-after page',
   description:
     'F14, N5, N8. Sharing is an explicit act, which is why this is a POST and not a flag on the report. The numbers are frozen at creation so a page already in a parent’s inbox does not change underneath them.',
   request: {
-    params: playerParams,
     body: json(z.object({ expiresAt: z.iso.datetime().optional() }), 'Optional expiry.'),
   },
   responses: {
@@ -562,15 +536,15 @@ export const createProofSheet = createRoute({
 
 export const listProofSheets = createRoute({
   method: 'get',
-  path: '/players/{playerId}/proof-sheets',
+  path: '/proof-sheets',
   tags: ['Proof sheet'],
   summary: "A player's live share links",
   description:
     'F14. The current sheets, newest first, excluding revoked and expired ones. The focus screen renders the first so a link survives a reload and can still be revoked.',
-  request: { params: playerParams },
   responses: {
     200: json(z.array(ProofSheet), "The player's live sheets."),
     ...authErrors,
+    404: error('No such player.'),
   },
 });
 
@@ -654,7 +628,6 @@ export const razorpayWebhook = createRoute({
 export const routes = [
   getHealth,
   getMe,
-  createPlayer,
   updatePlayer,
   confirmGuardian,
   startImport,

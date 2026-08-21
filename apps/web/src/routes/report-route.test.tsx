@@ -77,12 +77,7 @@ function renderReport(report: Report, onStreamChange = vi.fn()) {
   render(
     <QueryClientProvider client={queryClient}>
       <RouterContextProvider router={router}>
-        <ReportScreen
-          stream={report.stream}
-          report={report}
-          playerId={playerId}
-          onStreamChange={onStreamChange}
-        />
+        <ReportScreen stream={report.stream} report={report} onStreamChange={onStreamChange} />
       </RouterContextProvider>
     </QueryClientProvider>,
   );
@@ -124,7 +119,7 @@ describe('ReportScreen', () => {
 
   test('expands a motif weakness into the aggregate behind it', async () => {
     const { user, queryClient } = renderReport(reportFixture());
-    queryClient.setQueryData(['motifs', playerId, 'tournament'], motifReportFixture);
+    queryClient.setQueryData(['motifs', 'tournament'], motifReportFixture);
     await user.click(screen.getByRole('button', { name: 'Show evidence' }));
     expect(await screen.findByText(/9 positions, 128 cp lost/)).toBeInTheDocument();
     expect(screen.getByText(/11 mistakes counted/)).toBeInTheDocument();
@@ -148,7 +143,7 @@ describe('ReportScreen', () => {
       ],
     });
     const { user, queryClient } = renderReport(report);
-    queryClient.setQueryData(['phases', playerId, 'tournament'], phaseReportFixture);
+    queryClient.setQueryData(['phases', 'tournament'], phaseReportFixture);
     await user.click(screen.getByRole('button', { name: 'Show evidence' }));
     expect(await screen.findAllByText(/These games do not carry clock data/)).toHaveLength(2);
   });

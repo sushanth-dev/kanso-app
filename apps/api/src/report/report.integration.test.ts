@@ -1,11 +1,11 @@
 /**
  * ST-027. The report endpoint against a real PostgreSQL: ranking, storage and
- * the regeneration rule, stream scoping, the all-refusing case, the
- * no-analysed-games 404, and a second user refused another player's report.
+ * the regeneration rule, stream scoping, the all-refusing case, and the
+ * no-analysed-games 404.
  *
  * The composition is unit-tested in compose.test.ts; this covers what only a
  * database proves: the stored report and weakness rows, the regeneration rule
- * over `analyzed_at`, and the claim check through the real handler.
+ * over `analyzed_at`, and the player resolved from the session.
  */
 import type { Context } from 'hono';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
@@ -17,7 +17,6 @@ import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-h
 
 let harness: IntegrationDatabase;
 const OWNER = 'user_owner';
-const OTHER = 'user_other';
 
 const sessionFor = (userId: string) => () => ({ userId });
 
@@ -31,10 +30,9 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await harness.reset();
-  await harness.db.insert(user).values([
-    { id: OWNER, name: 'Owner', email: 'owner@example.com', emailVerified: true },
-    { id: OTHER, name: 'Other', email: 'other@example.com', emailVerified: true },
-  ]);
+  await harness.db
+    .insert(user)
+    .values([{ id: OWNER, name: 'Owner', email: 'owner@example.com', emailVerified: true }]);
 });
 
 function app(userId: string | null) {
@@ -44,8 +42,8 @@ function app(userId: string | null) {
   });
 }
 
-async function get(userId: string | null, playerId: string, stream: string) {
-  return app(userId).request(`/players/${playerId}/report?stream=${stream}`);
+async function get(userId: string | null, stream: string) {
+  return app(userId).request(`/report?stream=${stream}`);
 }
 
 async function makePlayer(ownerId: string): Promise<string> {
@@ -143,7 +141,7 @@ interface ReportBody {
   narrative: string | null;
 }
 
-describe('GET /players/{playerId}/report', () => {
+describe('GET /report', () => {
   test('returns a stored report ranked by rating leak, worst first, ranks contiguous', async () => {
     const playerId = await makePlayer(OWNER);
     const g1 = await seedRatedGame(playerId, { eco: 'B22', opening: 'Sicilian, Alapin' });
@@ -155,7 +153,7 @@ describe('GET /players/{playerId}/report', () => {
     await addMistake(g2, { halfPointsLost: 1, phase: 'middlegame' });
     await addMistake(g3, { halfPointsLost: 1, phase: 'opening' });
 
-    const res = await get(OWNER, playerId, 'online');
+    const res = await get(OWNER, 'online');
     expect(res.status).toBe(200);
     const body = (await res.json()) as ReportBody;
 
@@ -200,13 +198,13 @@ describe('GET /players/{playerId}/report', () => {
     for (let i = 0; i < 10; i++) games.push(await seedRatedGame(playerId));
     await addMistake(games[0]!, { halfPointsLost: 1, phase: 'middlegame' });
 
-    const first = await get(OWNER, playerId, 'online');
+    const first = await get(OWNER, 'online');
     expect(first.status).toBe(200);
     const firstBody = (await first.json()) as ReportBody;
     expect(firstBody.weaknesses.map((w) => w.kind)).toContain('phase');
 
     // No new analysis: the same stored report is served, same id.
-    const again = await get(OWNER, playerId, 'online');
+    const again = await get(OWNER, 'online');
     const againBody = (await again.json()) as ReportBody;
     expect(againBody.id).toBe(firstBody.id);
 
@@ -219,7 +217,7 @@ describe('GET /players/{playerId}/report', () => {
     });
     await addMistake(late, { halfPointsLost: 1, phase: 'middlegame' });
 
-    const third = await get(OWNER, playerId, 'online');
+    const third = await get(OWNER, 'online');
     const thirdBody = (await third.json()) as ReportBody;
     expect(thirdBody.id).not.toBe(firstBody.id);
     expect(thirdBody.gamesCovered).toBe(11);
@@ -236,8 +234,8 @@ describe('GET /players/{playerId}/report', () => {
       await addMistake(id, { halfPointsLost: 1, phase: 'opening' });
     }
 
-    const online = (await (await get(OWNER, playerId, 'online')).json()) as ReportBody;
-    const tournament = (await (await get(OWNER, playerId, 'tournament')).json()) as ReportBody;
+    const online = (await (await get(OWNER, 'online')).json()) as ReportBody;
+    const tournament = (await (await get(OWNER, 'tournament')).json()) as ReportBody;
 
     expect(online.weaknesses.map((w) => w.eco)).toContain('B22');
     expect(online.weaknesses.map((w) => w.eco)).not.toContain('B20');
@@ -264,7 +262,7 @@ describe('GET /players/{playerId}/report', () => {
       await addMistake(id, { halfPointsLost: 1, phase: 'middlegame' });
     }
 
-    const res = await get(OWNER, playerId, 'online');
+    const res = await get(OWNER, 'online');
     expect(res.status).toBe(200);
     const body = (await res.json()) as ReportBody;
 
@@ -287,7 +285,7 @@ describe('GET /players/{playerId}/report', () => {
       await addMistake(id, { halfPointsLost: 1, phase: 'middlegame' });
     }
 
-    const res = await get(OWNER, playerId, 'tournament');
+    const res = await get(OWNER, 'tournament');
     expect(res.status).toBe(200);
     const body = (await res.json()) as ReportBody;
 
@@ -309,7 +307,7 @@ describe('GET /players/{playerId}/report', () => {
       });
     }
 
-    const res = await get(OWNER, playerId, 'online');
+    const res = await get(OWNER, 'online');
     expect(res.status).toBe(200);
     const body = (await res.json()) as ReportBody;
     expect(body.gamesCovered).toBe(10);
@@ -320,17 +318,8 @@ describe('GET /players/{playerId}/report', () => {
     const playerId = await makePlayer(OWNER);
     for (let i = 0; i < 9; i++) await seedRatedGame(playerId);
 
-    const res = await get(OWNER, playerId, 'online');
+    const res = await get(OWNER, 'online');
     expect(res.status).toBe(404);
     expect((await res.json()) as { code: string }).toMatchObject({ code: 'not_found' });
-  });
-
-  test('a second user with no claim answers 403', async () => {
-    const playerId = await makePlayer(OWNER);
-    for (let i = 0; i < 10; i++) await seedRatedGame(playerId);
-
-    const res = await get(OTHER, playerId, 'online');
-    expect(res.status).toBe(403);
-    expect((await res.json()) as { code: string }).toMatchObject({ code: 'forbidden' });
   });
 });

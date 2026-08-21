@@ -55,8 +55,8 @@ function app(userId: string | null) {
   });
 }
 
-async function upload(playerId: string, pgn: string) {
-  return app(OWNER).request(`/players/${playerId}/imports`, {
+async function upload(pgn: string) {
+  return app(OWNER).request('/imports', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ source: 'pgn_upload', stream: 'tournament', pgn }),
@@ -84,7 +84,7 @@ beforeEach(async () => {
 describe('real-data tournament grouping (ST-011)', () => {
   test('test.pgn: three tournaments, one per event', async () => {
     const playerId = await seedPlayer();
-    const res = await upload(playerId, real('test.pgn'));
+    const res = await upload(real('test.pgn'));
     expect(res.status).toBe(202);
 
     const tournaments = await tournamentsFor(playerId);
@@ -106,7 +106,7 @@ describe('real-data tournament grouping (ST-011)', () => {
 
   test('test2.pgn: the same three tournaments plus the online blitz game', async () => {
     const playerId = await seedPlayer();
-    const res = await upload(playerId, real('test2.pgn'));
+    const res = await upload(real('test2.pgn'));
     expect(res.status).toBe(202);
 
     const tournaments = await tournamentsFor(playerId);
@@ -125,7 +125,7 @@ describe('real-data tournament grouping (ST-011)', () => {
 
   test('test3.pgn: many tournaments, with the two hard cases grouped correctly', async () => {
     const playerId = await seedPlayer();
-    const res = await upload(playerId, real('test3.pgn'));
+    const res = await upload(real('test3.pgn'));
     expect(res.status).toBe(202);
 
     const tournaments = await tournamentsFor(playerId);
@@ -156,7 +156,7 @@ describe('real-data tournament grouping (ST-011)', () => {
       'test8.pgn',
       'test9.pgn',
     ]) {
-      const res = await upload(playerId, real(name));
+      const res = await upload(real(name));
       expect(res.status).toBe(202);
     }
 

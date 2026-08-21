@@ -47,7 +47,7 @@ function GameSkeleton() {
   );
 }
 
-export function GameReviewScreen({ game, playerId }: { game: GameDetail; playerId: string }) {
+export function GameReviewScreen({ game }: { game: GameDetail }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const mistakes = game.mistakes;
   const selected = mistakes.find((mistake) => mistake.id === selectedId) ?? mistakes[0];
@@ -60,8 +60,7 @@ export function GameReviewScreen({ game, playerId }: { game: GameDetail; playerI
     <div className="space-y-6">
       <header className="space-y-4">
         <Link
-          to="/account/players/$playerId/games"
-          params={{ playerId }}
+          to="/account/games"
           search={{ stream: game.stream }}
           className={secondaryLinkClassName}
         >
@@ -167,9 +166,7 @@ export function GameReviewScreen({ game, playerId }: { game: GameDetail; playerI
 }
 
 export function GameReviewRoute() {
-  const { playerId, gameId } = useParams({
-    from: '/account/players/$playerId/games/$gameId',
-  });
+  const { gameId } = useParams({ from: '/account/games/$gameId' });
   const gameQuery = useQuery(gameQueryOptions(gameId));
 
   if (gameQuery.isPending) return <GameSkeleton />;
@@ -184,5 +181,5 @@ export function GameReviewRoute() {
     );
   }
 
-  return <GameReviewScreen game={gameQuery.data} playerId={playerId} />;
+  return <GameReviewScreen game={gameQuery.data} />;
 }

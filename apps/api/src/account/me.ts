@@ -1,12 +1,10 @@
 /**
- * The endpoint that returns the signed-in user and the players they own (B4).
+ * The endpoint that returns the signed-in user and the one player they are.
  *
- * The person playing is the account owner now: a minor signs up themselves and
- * a guardian is a bare email that confirms consent rather than a second account
- * with its own players (ADR-0035), so there is one list, not two. The tier
- * comes from the user's `subscription` row, defaulting to `free` when there is
- * none, which is the schema's own default for a fresh sign-up rather than a
- * value invented in the handler.
+ * ST-072. The account IS the player, so this returns a single `player`, not a
+ * list. The tier comes from the user's `subscription` row, defaulting to
+ * `free` when there is none, which is the schema's own default for a fresh
+ * sign-up rather than a value invented in the handler.
  */
 import type { Context } from 'hono';
 import { eq } from 'drizzle-orm';
@@ -48,7 +46,16 @@ export function mountMe(
       .where(eq(subscription.userId, session.userId))
       .limit(1);
 
-    const owned = await deps.db.select().from(player).where(eq(player.ownerUserId, session.userId));
+    const [own] = await deps.db
+      .select()
+      .from(player)
+      .where(eq(player.ownerUserId, session.userId))
+      .limit(1);
+    if (!own) {
+      // A session always names a user with one player (the sign-up hook and the
+      // backfill guarantee it). Fail closed rather than invent one.
+      return c.json({ code: 'not_found', message: 'No player for this account.' }, 404);
+    }
 
     return c.json(
       {
@@ -56,7 +63,7 @@ export function mountMe(
         email: account.email,
         name: account.name,
         tier: sub?.tier ?? 'free',
-        players: owned.map(toPlayer),
+        player: toPlayer(own),
       },
       200,
     );

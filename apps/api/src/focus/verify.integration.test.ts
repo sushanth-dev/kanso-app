@@ -86,14 +86,11 @@ async function signIn(email: string): Promise<string> {
   return cookie;
 }
 
-async function makePlayer(cookie: string): Promise<string> {
-  const res = await app().request('/players', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', cookie },
-    body: JSON.stringify({ displayName: 'Player' }),
-  });
-  expect(res.status).toBe(201);
-  return ((await res.json()) as { id: string }).id;
+/** The id of the player the sign-up hook created for this account. */
+async function playerIdFor(cookie: string): Promise<string> {
+  const res = await app().request('/me', { headers: { cookie } });
+  expect(res.status).toBe(200);
+  return ((await res.json()) as { player: { id: string } }).player.id;
 }
 
 async function catalogueId(key: string): Promise<string> {
@@ -154,8 +151,8 @@ async function seedConvertedGame(
   return row!.id;
 }
 
-async function getFocus(cookie: string, playerId: string): Promise<Record<string, unknown>> {
-  const res = await app().request(`/players/${playerId}/focus`, { headers: { cookie } });
+async function getFocus(cookie: string): Promise<Record<string, unknown>> {
+  const res = await app().request('/focus', { headers: { cookie } });
   expect(res.status).toBe(200);
   return (await res.json()) as Record<string, unknown>;
 }
@@ -166,7 +163,7 @@ const STARTED = d('2026-08-15');
 describe('focus verification', () => {
   test('below the window floor the trend is insufficient_evidence with the count stated', async () => {
     const cookie = await signIn(EMAIL_A);
-    const playerId = await makePlayer(cookie);
+    const playerId = await playerIdFor(cookie);
     await seedFocus(playerId, {
       catalogueId: await catalogueId('converting_won_positions'),
       startedAt: STARTED,
@@ -180,7 +177,7 @@ describe('focus verification', () => {
       });
     }
 
-    const body = await getFocus(cookie, playerId);
+    const body = await getFocus(cookie);
     const measurements = body.measurements as Array<Record<string, unknown>>;
     const tournament = measurements.find((m) => m.stream === 'tournament')!;
     expect(tournament.trend).toBe('insufficient_evidence');
@@ -191,9 +188,9 @@ describe('focus verification', () => {
 
   test('a converting trend is scoped to the player and the stream', async () => {
     const cookieA = await signIn(EMAIL_A);
-    const playerA = await makePlayer(cookieA);
+    const playerA = await playerIdFor(cookieA);
     const cookieB = await signIn(EMAIL_B);
-    const playerB = await makePlayer(cookieB);
+    const playerB = await playerIdFor(cookieB);
 
     await seedFocus(playerA, {
       catalogueId: await catalogueId('converting_won_positions'),
@@ -224,7 +221,7 @@ describe('focus verification', () => {
       });
     }
 
-    const body = await getFocus(cookieA, playerA);
+    const body = await getFocus(cookieA);
     const measurements = body.measurements as Array<Record<string, unknown>>;
     const tournament = measurements.find((m) => m.stream === 'tournament')!;
     expect(tournament.windowGames).toBe(10);
@@ -235,7 +232,7 @@ describe('focus verification', () => {
 
   test('a stored measurement is reused until new analysis changes the evidence', async () => {
     const cookie = await signIn(EMAIL_A);
-    const playerId = await makePlayer(cookie);
+    const playerId = await playerIdFor(cookie);
     await seedFocus(playerId, {
       catalogueId: await catalogueId('converting_won_positions'),
       startedAt: STARTED,
@@ -256,12 +253,12 @@ describe('focus verification', () => {
       });
     }
 
-    const first = await getFocus(cookie, playerId);
+    const first = await getFocus(cookie);
     const firstMeasuredAt = (first.measurements as Array<Record<string, unknown>>).find(
       (m) => m.stream === 'tournament',
     )!.measuredAt;
 
-    const second = await getFocus(cookie, playerId);
+    const second = await getFocus(cookie);
     const secondMeasuredAt = (second.measurements as Array<Record<string, unknown>>).find(
       (m) => m.stream === 'tournament',
     )!.measuredAt;
@@ -275,7 +272,7 @@ describe('focus verification', () => {
       analyzedAt: new Date(Date.now() + 60_000),
     });
 
-    const third = await getFocus(cookie, playerId);
+    const third = await getFocus(cookie);
     const thirdMeasuredAt = (third.measurements as Array<Record<string, unknown>>).find(
       (m) => m.stream === 'tournament',
     )!.measuredAt;
@@ -284,7 +281,7 @@ describe('focus verification', () => {
 
   test('time management reports the online stream alone', async () => {
     const cookie = await signIn(EMAIL_A);
-    const playerId = await makePlayer(cookie);
+    const playerId = await playerIdFor(cookie);
     await seedFocus(playerId, {
       catalogueId: await catalogueId('time_management'),
       startedAt: STARTED,
@@ -296,7 +293,7 @@ describe('focus verification', () => {
       won: true,
     });
 
-    const body = await getFocus(cookie, playerId);
+    const body = await getFocus(cookie);
     const streams = (body.measurements as Array<Record<string, unknown>>).map((m) => m.stream);
     expect(streams).toEqual(['online']);
     expect((body.measurements as Array<Record<string, unknown>>)[0]!.trend).toBe(
@@ -306,7 +303,7 @@ describe('focus verification', () => {
 
   test('an unverifiable coach instruction reports the paired focus trend', async () => {
     const cookie = await signIn(EMAIL_A);
-    const playerId = await makePlayer(cookie);
+    const playerId = await playerIdFor(cookie);
     const pairedId = await catalogueId('converting_won_positions');
     await seedFocus(playerId, {
       catalogueId: null,
@@ -331,7 +328,7 @@ describe('focus verification', () => {
       });
     }
 
-    const body = await getFocus(cookie, playerId);
+    const body = await getFocus(cookie);
     expect(body.unverified).toBe(true);
     expect(body.catalogue).toBeNull();
     expect(body.pairedFocusId).toBe(pairedId);
@@ -344,7 +341,7 @@ describe('focus verification', () => {
 
   test('the online window counts blitz games only, excluding bullet', async () => {
     const cookie = await signIn(EMAIL_A);
-    const playerId = await makePlayer(cookie);
+    const playerId = await playerIdFor(cookie);
     await seedFocus(playerId, {
       catalogueId: await catalogueId('converting_won_positions'),
       startedAt: STARTED,
@@ -374,7 +371,7 @@ describe('focus verification', () => {
       timeControl: '60+0',
     });
 
-    const body = await getFocus(cookie, playerId);
+    const body = await getFocus(cookie);
     const online = (body.measurements as Array<Record<string, unknown>>).find(
       (m) => m.stream === 'online',
     )!;

@@ -70,15 +70,12 @@ async function signUpCookie(email: string): Promise<{ cookie: string; userId: st
   return { cookie: cookie!, userId: body.session.userId };
 }
 
-async function createPlayer(cookie: string): Promise<string> {
-  const res = await app().request('/players', {
-    method: 'POST',
-    headers: { cookie, 'content-type': 'application/json' },
-    body: JSON.stringify({ displayName: 'A player' }),
-  });
-  expect(res.status).toBe(201);
-  const body = (await res.json()) as { id: string };
-  return body.id;
+/** The id of the player the sign-up hook created for this account. */
+async function ownPlayerId(cookie: string): Promise<string> {
+  const res = await app().request('/me', { headers: { cookie } });
+  expect(res.status).toBe(200);
+  const body = (await res.json()) as { player: { id: string } };
+  return body.player.id;
 }
 
 async function checkout(cookie: string, plan: string): Promise<string> {
@@ -106,13 +103,8 @@ async function sendWebhook(orderId: string, paymentId = 'pay_1'): Promise<Respon
 describe('free and paid tiers', () => {
   test('a free account is refused at every paid route', async () => {
     const { cookie } = await signUpCookie('free@example.com');
-    const playerId = await createPlayer(cookie);
 
-    const paidPaths = [
-      '/focuses',
-      `/players/${playerId}/focus`,
-      `/players/${playerId}/proof-sheets`,
-    ];
+    const paidPaths = ['/focuses', '/focus', '/proof-sheets'];
     for (const path of paidPaths) {
       const res = await app().request(path, { headers: { cookie } });
       expect(res.status).toBe(403);
@@ -122,7 +114,6 @@ describe('free and paid tiers', () => {
 
   test('a paid account reaches the paid routes', async () => {
     const { cookie, userId } = await signUpCookie('paid@example.com');
-    await createPlayer(cookie);
     await harness.db.insert(subscription).values({ userId, tier: 'paid' });
 
     expect((await app().request('/focuses', { headers: { cookie } })).status).toBe(200);
@@ -190,7 +181,7 @@ describe('free and paid tiers', () => {
 
   test('the free analysis budget counts games analysed this month', async () => {
     const { cookie, userId } = await signUpCookie('cap@example.com');
-    const playerId = await createPlayer(cookie);
+    const playerId = await ownPlayerId(cookie);
 
     expect(await freeAnalysisRemaining(harness.db, userId)).toBe(30);
 

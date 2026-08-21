@@ -4,7 +4,7 @@ import { Card } from '@astryxdesign/core/Card';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Heading } from '@astryxdesign/core/Heading';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useParams } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { ApiRequestError } from '../api/account-api.ts';
 import { proofSheetApi, type ProofSheet } from '../api/proof-sheet-api.ts';
 import { proofSheetsQueryOptions } from '../query-client.ts';
@@ -29,9 +29,9 @@ function ProofSheetSkeleton() {
   );
 }
 
-export function ProofSheetScreen({ playerId }: { playerId: string }) {
+export function ProofSheetScreen() {
   const queryClient = useQueryClient();
-  const sheetsQuery = useQuery(proofSheetsQueryOptions(playerId));
+  const sheetsQuery = useQuery(proofSheetsQueryOptions());
   const [creating, setCreating] = useState(false);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
@@ -44,8 +44,8 @@ export function ProofSheetScreen({ playerId }: { playerId: string }) {
     setError(null);
     setNeedsFocus(false);
     try {
-      await proofSheetApi.createProofSheet(playerId);
-      await queryClient.invalidateQueries({ queryKey: ['proof-sheets', playerId] });
+      await proofSheetApi.createProofSheet();
+      await queryClient.invalidateQueries({ queryKey: ['proof-sheets'] });
     } catch (err) {
       if (err instanceof ApiRequestError && err.status === 404) {
         setNeedsFocus(true);
@@ -69,7 +69,7 @@ export function ProofSheetScreen({ playerId }: { playerId: string }) {
     try {
       await proofSheetApi.revokeProofSheet(sheet.id);
       setConfirmingId(null);
-      await queryClient.invalidateQueries({ queryKey: ['proof-sheets', playerId] });
+      await queryClient.invalidateQueries({ queryKey: ['proof-sheets'] });
     } catch {
       setError('The link could not be revoked. Please try again.');
     } finally {
@@ -147,8 +147,7 @@ export function ProofSheetScreen({ playerId }: { playerId: string }) {
             create the link.
           </p>
           <Link
-            to="/account/players/$playerId/focus"
-            params={{ playerId }}
+            to="/account/focus"
             search={{ stream: 'tournament' }}
             className={`${primaryLinkClassName} mt-6`}
           >
@@ -233,6 +232,5 @@ export function ProofSheetScreen({ playerId }: { playerId: string }) {
 }
 
 export function ProofSheetRoute() {
-  const { playerId } = useParams({ from: '/account/players/$playerId/proof-sheet' });
-  return <ProofSheetScreen playerId={playerId} />;
+  return <ProofSheetScreen />;
 }

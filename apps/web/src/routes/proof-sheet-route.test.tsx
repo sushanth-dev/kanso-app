@@ -8,8 +8,6 @@ import { proofSheetApi, type ProofSheet } from '../api/proof-sheet-api.ts';
 import { createAppRouter } from '../router.tsx';
 import { ProofSheetScreen } from './proof-sheet-route.tsx';
 
-const playerId = '00000000-0000-4000-8000-000000000001';
-
 function sheetFixture(overrides: Partial<ProofSheet> = {}): ProofSheet {
   return {
     id: '11111111-1111-4111-8111-111111111111',
@@ -30,7 +28,7 @@ function renderScreen() {
   render(
     <QueryClientProvider client={queryClient}>
       <RouterContextProvider router={router}>
-        <ProofSheetScreen playerId={playerId} />
+        <ProofSheetScreen />
       </RouterContextProvider>
     </QueryClientProvider>,
   );

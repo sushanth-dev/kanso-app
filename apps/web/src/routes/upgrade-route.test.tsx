@@ -13,7 +13,7 @@ vi.mock('../api/account-api.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof AccountApi>();
   return {
     ...actual,
-    accountApi: { getMe: vi.fn(), createPlayer: vi.fn(), updatePlayer: vi.fn() },
+    accountApi: { getMe: vi.fn(), updateMe: vi.fn() },
   };
 });
 
@@ -47,7 +47,20 @@ function freeMe(tier: 'free' | 'paid' = 'free'): AccountApi.Me {
     email: 'player@example.com',
     name: 'Player',
     tier,
-    players: [],
+    player: {
+      id: '00000000-0000-4000-8000-000000000001',
+      displayName: 'Player',
+      birthYear: null,
+      fideId: null,
+      fideRating: null,
+      uscfId: null,
+      uscfRating: null,
+      chesscomUsername: null,
+      lichessUsername: null,
+      chesscomRating: null,
+      lichessRating: null,
+      createdAt: '2026-08-14T00:00:00.000Z',
+    },
   };
 }
 

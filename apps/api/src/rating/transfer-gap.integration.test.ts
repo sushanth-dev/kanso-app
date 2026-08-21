@@ -18,7 +18,6 @@ let harness: IntegrationDatabase;
 
 const PASSWORD = 'correct horse battery staple';
 const OWNER = 'owner@example.com';
-const STRANGER = 'stranger@example.com';
 
 type Platform = 'chesscom' | 'lichess';
 const requested: Array<{ platform: Platform; username: string }> = [];
@@ -93,19 +92,24 @@ async function whoAmI(cookie: string): Promise<string> {
   return body.session.userId;
 }
 
-async function makePlayer(
+async function ownPlayer(
   ownerUserId: string,
   values: Partial<typeof player.$inferInsert> = {},
 ): Promise<string> {
   const [row] = await harness.db
-    .insert(player)
-    .values({ ownerUserId, displayName: 'The child', ...values })
-    .returning({ id: player.id });
-  return row!.id;
+    .select({ id: player.id })
+    .from(player)
+    .where(eq(player.ownerUserId, ownerUserId))
+    .limit(1);
+  const id = row!.id;
+  if (Object.keys(values).length > 0) {
+    await harness.db.update(player).set(values).where(eq(player.id, id));
+  }
+  return id;
 }
 
-async function transferGap(cookie: string, playerId: string, refresh = false): Promise<Response> {
-  return app().request(`/players/${playerId}/transfer-gap${refresh ? '?refresh=true' : ''}`, {
+async function transferGap(cookie: string, refresh = false): Promise<Response> {
+  return app().request(`/transfer-gap${refresh ? '?refresh=true' : ''}`, {
     headers: { cookie },
   });
 }
@@ -122,13 +126,13 @@ describe('the transfer gap', () => {
 
     const cookie = await signIn(OWNER);
     const owner = await whoAmI(cookie);
-    const playerId = await makePlayer(owner, {
+    const playerId = await ownPlayer(owner, {
       fideRating: 1300,
       chesscomUsername: 'onlinekid',
       lichessUsername: 'onlinekid',
     });
 
-    const res = await transferGap(cookie, playerId);
+    const res = await transferGap(cookie);
     expect(res.status).toBe(200);
     const body = (await res.json()) as TransferGapBody;
 
@@ -155,9 +159,9 @@ describe('the transfer gap', () => {
 
     const cookie = await signIn(OWNER);
     const owner = await whoAmI(cookie);
-    const playerId = await makePlayer(owner, { uscfRating: 1400, chesscomUsername: 'onlinekid' });
+    await ownPlayer(owner, { uscfRating: 1400, chesscomUsername: 'onlinekid' });
 
-    const res = await transferGap(cookie, playerId);
+    const res = await transferGap(cookie);
     const body = (await res.json()) as TransferGapBody;
 
     expect(body.overTheBoardRating).toBe(1400);
@@ -167,9 +171,9 @@ describe('the transfer gap', () => {
   test('a player with no usernames never calls the fetcher and reports all-null', async () => {
     const cookie = await signIn(OWNER);
     const owner = await whoAmI(cookie);
-    const playerId = await makePlayer(owner, { fideRating: 1300 });
+    const playerId = await ownPlayer(owner, { fideRating: 1300 });
 
-    const res = await transferGap(cookie, playerId);
+    const res = await transferGap(cookie);
     expect(res.status).toBe(200);
     const body = (await res.json()) as TransferGapBody;
 
@@ -187,9 +191,9 @@ describe('the transfer gap', () => {
 
     const cookie = await signIn(OWNER);
     const owner = await whoAmI(cookie);
-    const playerId = await makePlayer(owner, { fideRating: 1300, chesscomUsername: 'onlinekid' });
+    const playerId = await ownPlayer(owner, { fideRating: 1300, chesscomUsername: 'onlinekid' });
 
-    const res = await transferGap(cookie, playerId);
+    const res = await transferGap(cookie);
     const body = (await res.json()) as TransferGapBody;
 
     expect(body.chesscom).toEqual({ rating: null, gap: null });
@@ -203,26 +207,15 @@ describe('the transfer gap', () => {
 
     const cookie = await signIn(OWNER);
     const owner = await whoAmI(cookie);
-    const playerId = await makePlayer(owner, { fideRating: 1300, chesscomUsername: 'onlinekid' });
+    await ownPlayer(owner, { fideRating: 1300, chesscomUsername: 'onlinekid' });
 
-    await transferGap(cookie, playerId);
+    await transferGap(cookie);
     expect(requested).toHaveLength(1);
 
-    await transferGap(cookie, playerId);
+    await transferGap(cookie);
     expect(requested).toHaveLength(1);
 
-    await transferGap(cookie, playerId, true);
+    await transferGap(cookie, true);
     expect(requested).toHaveLength(2);
-  });
-
-  test('a second user with no claim answers 403 and never fetches', async () => {
-    const cookie = await signIn(OWNER);
-    const owner = await whoAmI(cookie);
-    const playerId = await makePlayer(owner, { chesscomUsername: 'onlinekid' });
-
-    const stranger = await signIn(STRANGER);
-    const res = await transferGap(stranger, playerId);
-    expect(res.status).toBe(403);
-    expect(requested).toEqual([]);
   });
 });
