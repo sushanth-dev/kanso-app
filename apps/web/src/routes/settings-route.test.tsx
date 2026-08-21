@@ -57,10 +57,9 @@ describe('SettingsScreen', () => {
     expect(screen.getByRole('heading', { name: 'Change password' })).toBeVisible();
   });
 
-  test('shows the account email and plan, with a link to see plans', () => {
+  test('shows the account email with a link to see plans', () => {
     renderSettings();
     expect(screen.getByText('player@example.com')).toBeVisible();
-    expect(screen.getByText('Beginner')).toBeVisible();
     expect(screen.getByRole('link', { name: 'See plans' })).toHaveAttribute(
       'href',
       '/account/upgrade',

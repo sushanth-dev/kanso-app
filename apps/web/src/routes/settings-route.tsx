@@ -1,22 +1,15 @@
 import { useState } from 'react';
-import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
 import { Heading } from '@astryxdesign/core/Heading';
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { type Me, type Tier } from '../api/account-api.ts';
+import { type Me } from '../api/account-api.ts';
 import { authClient } from '../auth-client.ts';
 import { ChangePasswordForm } from '../components/change-password-form.tsx';
 import { primaryLinkClassName } from '../components/primary-link.ts';
 import { secondaryLinkClassName } from '../components/secondary-link.ts';
 import { StatusMessage } from '../components/status-message.tsx';
 import { ME_QUERY_KEY, meQueryOptions } from '../query-client.ts';
-
-const TIER_LABEL: Record<Tier, string> = {
-  beginner: 'Beginner',
-  intermediate: 'Intermediate',
-  pro: 'Pro',
-};
 
 export interface SettingsScreenProps {
   me: Me;
@@ -49,7 +42,6 @@ export function SettingsScreen({ me, signOut }: SettingsScreenProps) {
           Account details
         </Heading>
         <p className="text-muted">{me.email}</p>
-        <Badge label={TIER_LABEL[me.tier]} variant="neutral" />
         <div>
           <Link to="/account/upgrade" className={`${primaryLinkClassName} mt-3`}>
             See plans
