@@ -14,7 +14,10 @@ import { TextInput } from '../components/text-input.tsx';
 import { ME_QUERY_KEY } from '../query-client.ts';
 
 export type AuthMode = 'sign-in' | 'sign-up';
-export type NavigateTo = (options: { to: string }) => void | Promise<void>;
+export type NavigateTo = (options: {
+  to: string;
+  search?: Record<string, unknown>;
+}) => void | Promise<void>;
 
 export interface AuthScreenProps {
   mode: AuthMode;
