@@ -1,24 +1,14 @@
-import { useState } from 'react';
 import { Badge } from '@astryxdesign/core/Badge';
-import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { Heading } from '@astryxdesign/core/Heading';
-import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import { Link, useNavigate } from '@tanstack/react-router';
-import { authClient } from '../auth-client.ts';
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
 import { ApiRequestError, type Me, type Player } from '../api/account-api.ts';
-import {
-  ME_QUERY_KEY,
-  gamesQueryOptions,
-  meQueryOptions,
-  reportQueryOptions,
-} from '../query-client.ts';
-import { StatusMessage } from '../components/status-message.tsx';
-import { ChangePasswordForm } from '../components/change-password-form.tsx';
+import { secondaryLinkClassName } from '../components/secondary-link.ts';
+import { gamesQueryOptions, meQueryOptions, reportQueryOptions } from '../query-client.ts';
 
 export interface AccountScreenProps {
   me: Me;
-  signOut: () => Promise<void>;
 }
 
 export type PlayerDiagnosisState =
@@ -166,18 +156,7 @@ export function PlayerCardWithDiagnosis({ player }: { player: Player }) {
   return <PlayerCard player={player} state={state} />;
 }
 
-export function AccountScreen({ me, signOut }: AccountScreenProps) {
-  const [signOutError, setSignOutError] = useState<string | null>(null);
-
-  async function handleSignOut() {
-    setSignOutError(null);
-    try {
-      await signOut();
-    } catch {
-      setSignOutError('Sign out failed.');
-    }
-  }
-
+export function AccountScreen({ me }: AccountScreenProps) {
   return (
     <>
       <section aria-labelledby="account-heading" className="space-y-3">
@@ -187,16 +166,10 @@ export function AccountScreen({ me, signOut }: AccountScreenProps) {
         <p className="font-display text-lg leading-tight">{me.name}</p>
         <p className="text-muted">{me.email}</p>
         <Badge label={me.tier === 'paid' ? 'Paid' : 'Free'} variant="neutral" />
-        {signOutError !== null ? <StatusMessage tone="error">{signOutError}</StatusMessage> : null}
-        <Button
-          label="Sign out"
-          variant="secondary"
-          clickAction={handleSignOut}
-          className="press"
-        />
+        <Link to="/account/settings" className={secondaryLinkClassName}>
+          Settings
+        </Link>
       </section>
-
-      <ChangePasswordForm />
 
       <section aria-label="Your player" className="mt-8">
         <ul className="grid grid-cols-1 gap-4">
@@ -208,19 +181,6 @@ export function AccountScreen({ me, signOut }: AccountScreenProps) {
 }
 
 export function AccountRoute() {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { data: me } = useSuspenseQuery(meQueryOptions());
-
-  const signOut = async () => {
-    const { error } = await authClient.signOut();
-    if (error !== null) throw new Error('Sign out failed.');
-    // Navigate first, then clear: removing `/me` while this route is still
-    // mounted suspends it and re-fetches with the session already cleared,
-    // which surfaces a spurious 401.
-    await navigate({ to: '/sign-in' });
-    queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
-  };
-
-  return <AccountScreen me={me} signOut={signOut} />;
+  return <AccountScreen me={me} />;
 }

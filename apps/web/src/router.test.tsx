@@ -108,8 +108,8 @@ describe('router', () => {
     const user = userEvent.setup();
     getMe.mockResolvedValue(meFixture);
     signOut.mockResolvedValue({ data: { success: true }, error: null });
-    const { router, queryClient } = renderAt('/account');
-    expect(await screen.findByRole('heading', { name: 'Your account' })).toBeVisible();
+    const { router, queryClient } = renderAt('/account/settings');
+    expect(await screen.findByRole('heading', { name: 'Settings' })).toBeVisible();
 
     queryClient.setQueryData(ME_QUERY_KEY, meFixture);
     let pathAtRemoval: string | undefined;
@@ -140,15 +140,15 @@ describe('router', () => {
       data: null,
       error: { status: 500, statusText: 'Internal Server Error' },
     });
-    const { router, queryClient } = renderAt('/account');
-    expect(await screen.findByRole('heading', { name: 'Your account' })).toBeVisible();
+    const { router, queryClient } = renderAt('/account/settings');
+    expect(await screen.findByRole('heading', { name: 'Settings' })).toBeVisible();
     queryClient.setQueryData(ME_QUERY_KEY, meFixture);
 
     await user.click(screen.getByRole('button', { name: 'Sign out' }));
 
     expect(await screen.findByText('Sign out failed.', { exact: true })).toBeVisible();
     expect(queryClient.getQueryData(ME_QUERY_KEY)).toEqual(meFixture);
-    expect(router.state.location.pathname).toBe('/account');
+    expect(router.state.location.pathname).toBe('/account/settings');
   });
 
   test('renders the edit form at /account/player', async () => {
@@ -161,6 +161,16 @@ describe('router', () => {
     getMe.mockResolvedValue(meFixture);
     renderAt('/account/import');
     expect(await screen.findByRole('heading', { name: 'Import games' })).toBeVisible();
+  });
+
+  test('renders the settings screen at /account/settings with a back link', async () => {
+    getMe.mockResolvedValue(meFixture);
+    renderAt('/account/settings');
+    expect(await screen.findByRole('heading', { name: 'Settings' })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Back to your account' })).toHaveAttribute(
+      'href',
+      '/account',
+    );
   });
 
   test('redirects /account to the guardian waiting screen when consent is required', async () => {
