@@ -30,8 +30,9 @@ export const AnalysisStatus = z
   .enum(['pending', 'queued', 'analyzing', 'complete', 'failed'])
   .openapi('AnalysisStatus');
 export const JobStatus = z.enum(['queued', 'running', 'complete', 'failed']).openapi('JobStatus');
-export const Tier = z.enum(['free', 'paid']).openapi('Tier');
-export const Plan = z.enum(['monthly', 'season', 'yearly']).openapi('Plan');
+export const Tier = z.enum(['beginner', 'intermediate', 'pro']).openapi('Tier');
+/** ST-074. Beginner needs no checkout, so a purchase names one of the other two. */
+export const PayableTier = z.enum(['intermediate', 'pro']).openapi('PayableTier');
 export const WeaknessKind = z
   .enum(['opening', 'motif', 'phase', 'time_trouble'])
   .openapi('WeaknessKind');
@@ -665,8 +666,8 @@ export const Health = z
 
 // ─── Billing ────────────────────────────────────────────────────────────────
 
-/** ST-044. The body that starts a checkout for one of the three plans. */
-export const CheckoutRequest = z.object({ plan: Plan }).openapi('CheckoutRequest');
+/** ST-044, ST-074. The body that starts a checkout for intermediate or pro. */
+export const CheckoutRequest = z.object({ tier: PayableTier }).openapi('CheckoutRequest');
 
 /** ST-044. What the client needs to open Razorpay Checkout for the order. */
 export const CheckoutResponse = z

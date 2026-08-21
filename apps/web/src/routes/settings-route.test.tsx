@@ -15,7 +15,7 @@ const meFixture: Me = {
   userId: 'user-1',
   email: 'player@example.com',
   name: 'Player',
-  tier: 'free',
+  tier: 'beginner',
   player: {
     id: '00000000-0000-4000-8000-000000000001',
     displayName: 'Mina',
@@ -57,10 +57,13 @@ describe('SettingsScreen', () => {
     expect(screen.getByRole('heading', { name: 'Change password' })).toBeVisible();
   });
 
-  test('shows the account email and plan', () => {
+  test('shows the account email with a link to see plans', () => {
     renderSettings();
     expect(screen.getByText('player@example.com')).toBeVisible();
-    expect(screen.getByText('Free')).toBeVisible();
+    expect(screen.getByRole('link', { name: 'See plans' })).toHaveAttribute(
+      'href',
+      '/account/upgrade',
+    );
   });
 
   test('signs out through the injected handler', async () => {

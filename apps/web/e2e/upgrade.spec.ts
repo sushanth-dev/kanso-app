@@ -22,7 +22,7 @@ async function signUp(page: Page, name: string, email: string, password: string)
   await page.getByRole('button', { name: 'Sign up' }).click();
 }
 
-test('states the fact-only boundary and the three prices at the 320px floor', async ({ page }) => {
+test('states the fact-only boundary and the three plans at the 320px floor', async ({ page }) => {
   const email = `upgrade-${randomUUID()}@example.com`;
   const password = `E2e-${randomUUID()}-Aa1!`;
 
@@ -33,7 +33,11 @@ test('states the fact-only boundary and the three prices at the 320px floor', as
   await page.goto('/account/upgrade');
 
   // The boundary is stated as facts, not persuasion.
-  await expect(page.getByRole('heading', { name: 'Upgrade to the full loop' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Choose a plan' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Beginner' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Intermediate' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Pro' })).toBeVisible();
+  await expect(page.getByText('Most popular')).toBeVisible();
   await expect(page.getByText('Import from Chess.com or Lichess by username')).toBeVisible();
   await expect(
     page.getByText('One diagnosis, ranked by what is costing the most rating.'),
@@ -42,13 +46,12 @@ test('states the fact-only boundary and the three prices at the 320px floor', as
   await expect(page.getByText('A focus, and verification')).toBeVisible();
   await expect(page.getByText('The proof sheet')).toBeVisible();
 
-  // Three prices, exactly as decided, each with a pay button.
+  // Three plans, exactly as decided: beginner free, the other two paid.
+  await expect(page.getByText('Free', { exact: true })).toBeVisible();
+  await expect(page.getByText('$9', { exact: true })).toBeVisible();
   await expect(page.getByText('$15', { exact: true })).toBeVisible();
-  await expect(page.getByText('$130', { exact: true })).toBeVisible();
-  await expect(page.getByText('$150', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Pay $9', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Pay $15', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Pay $130', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Pay $150', exact: true })).toBeVisible();
   await expectNoAxeViolations(page);
 
   // The smallest phone does not scroll sideways and stays axe-clean.
@@ -59,7 +62,7 @@ test('states the fact-only boundary and the three prices at the 320px floor', as
   await expectNoAxeViolations(page);
 });
 
-test('shows the already-paid state and never offers to charge again', async ({ page }) => {
+test('shows the already-subscribed state and never offers to charge again', async ({ page }) => {
   const email = `paid-${randomUUID()}@example.com`;
   const password = `E2e-${randomUUID()}-Aa1!`;
 
@@ -70,8 +73,8 @@ test('shows the already-paid state and never offers to charge again', async ({ p
   await upgradeToPaid(page);
   await page.goto('/account/upgrade');
 
-  await expect(page.getByRole('heading', { name: 'Your account is already paid' })).toBeVisible();
-  await expect(page.getByText('Paid', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'You are on the Pro plan' })).toBeVisible();
+  await expect(page.getByText('Pro', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: /Pay \$/ })).toHaveCount(0);
   await expectNoAxeViolations(page);
 });

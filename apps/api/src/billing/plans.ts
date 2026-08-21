@@ -1,37 +1,35 @@
 /**
- * ST-044, ADR-0039. The three plans and their prices, from ST-043.
+ * ST-074. The three plans, their prices, and their monthly analysis caps.
  *
  * `amountCents` is what Razorpay's order API takes: minor units, cents for
  * USD. The plan names here, in `contract/schemas.ts`, and in `db/schema.ts`'s
- * `planEnum` are one list of three and must move together.
+ * `tierEnum` are one list of three and must move together. Priced against
+ * comparable chess-improvement apps (Aimchess, Chessable, ChessDojo, all
+ * $8-15/month for their paid tier): intermediate undercuts them as the
+ * accessible middle option, pro holds Kanso's existing price.
  */
-export type Plan = 'monthly' | 'season' | 'yearly';
+export type Tier = 'beginner' | 'intermediate' | 'pro';
 
-export const PLAN_PRICES: Record<Plan, { amountCents: number }> = {
-  monthly: { amountCents: 1500 },
-  season: { amountCents: 13000 },
-  yearly: { amountCents: 15000 },
+/** Beginner needs no checkout, so only the other two have a price. */
+export type PayableTier = Exclude<Tier, 'beginner'>;
+
+export const PLAN_PRICES: Record<PayableTier, { amountCents: number }> = {
+  intermediate: { amountCents: 900 },
+  pro: { amountCents: 1500 },
 };
 
 export const CURRENCY = 'USD' as const;
 
-/** B2. The free tier analyses up to thirty games a month (`pricing.md`). */
-export const FREE_ANALYSIS_MONTHLY_CAP = 30;
+/** Games analysed per calendar month; `null` is uncapped (pro). */
+export const ANALYSIS_MONTHLY_CAP: Record<Tier, number | null> = {
+  beginner: 30,
+  intermediate: 150,
+  pro: null,
+};
 
-/**
- * The date the purchased period ends. Informational for now: nothing renews.
- * A season is the school term, September to May, so its end is the next May 31.
- */
-export function periodEndFor(plan: Plan, now: Date = new Date()): Date {
-  if (plan === 'monthly') return addMonths(now, 1);
-  if (plan === 'yearly') return addMonths(now, 12);
-  const year = now.getUTCFullYear();
-  const endYear = now.getUTCMonth() >= 5 ? year + 1 : year;
-  return new Date(Date.UTC(endYear, 4, 31));
-}
-
-function addMonths(date: Date, months: number): Date {
-  const copy = new Date(date);
-  copy.setUTCMonth(copy.getUTCMonth() + months);
+/** A plan renews a month after it is bought. Informational for now: nothing renews automatically yet. */
+export function nextRenewal(now: Date = new Date()): Date {
+  const copy = new Date(now);
+  copy.setUTCMonth(copy.getUTCMonth() + 1);
   return copy;
 }

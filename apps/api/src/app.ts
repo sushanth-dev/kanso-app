@@ -143,10 +143,11 @@ export function requireConsent(
 }
 
 /**
- * The tier gate (ST-044): a free account is refused every paid route. It runs
- * after `requireSession` and `requireConsent`, so it can assume a session and
- * does one database read in the shared path. The response is the upgrade
- * signal, not a hidden UI element, so a direct request refuses too.
+ * The tier gate (ST-044, ST-074): a beginner account is refused every paid
+ * route; intermediate and pro both pass. It runs after `requireSession` and
+ * `requireConsent`, so it can assume a session and does one database read in
+ * the shared path. The response is the upgrade signal, not a hidden UI
+ * element, so a direct request refuses too.
  */
 export function requirePaid(
   db: PostgresJsDatabase<typeof schema>,
@@ -154,7 +155,7 @@ export function requirePaid(
 ): MiddlewareHandler {
   return async (c, next) => {
     const session = await readSession(getSession, c);
-    if (session === null || (await tierFor(db, session.userId)) === 'paid') {
+    if (session === null || (await tierFor(db, session.userId)) !== 'beginner') {
       await next();
       return;
     }

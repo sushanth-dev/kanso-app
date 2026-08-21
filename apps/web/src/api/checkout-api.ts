@@ -3,11 +3,11 @@ import type { components, paths } from '../generated/api.ts';
 import { apiBaseUrl } from './base-url.ts';
 import { failure } from './account-api.ts';
 
-export type Plan = components['schemas']['Plan'];
+export type PayableTier = components['schemas']['PayableTier'];
 export type CheckoutResponse = components['schemas']['CheckoutResponse'];
 
 export interface CheckoutApi {
-  checkout(plan: Plan): Promise<CheckoutResponse>;
+  checkout(tier: PayableTier): Promise<CheckoutResponse>;
 }
 
 export function createCheckoutApi(
@@ -19,8 +19,8 @@ export function createCheckoutApi(
     credentials: 'include',
   });
   return {
-    async checkout(plan) {
-      const result = await client.POST('/payments/checkout', { body: { plan } });
+    async checkout(tier) {
+      const result = await client.POST('/payments/checkout', { body: { tier } });
       if (result.data !== undefined) return result.data;
       throw failure(result.response.status, result.error);
     },
