@@ -67,7 +67,7 @@ const VALUE_PROPS = [
 
 function SampleDiagnosis() {
   return (
-    <Card className="w-full p-6 reveal-in">
+    <Card className="w-full p-6 shadow-[0_24px_48px_-24px_rgba(61,40,20,0.45)] reveal-in">
       <p className="text-sm text-muted">Synthetic example</p>
       <p className="mt-2 font-display text-xl leading-snug tracking-tight">{SAMPLE_TOURNAMENT}</p>
       <ol className="mt-4">
@@ -101,7 +101,7 @@ export function LandingRoute() {
           Skip to main content
         </a>
 
-        <header className="border-b border-border-subtle bg-page">
+        <header className="glass sticky top-0 z-20 border-b border-border-subtle">
           <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-4">
             <span className="flex items-center gap-2">
               <span aria-hidden="true" className="size-2.5 shrink-0 rounded-control bg-accent" />
@@ -137,7 +137,7 @@ export function LandingRoute() {
             </div>
           </section>
 
-          <section className="border-t border-border-subtle bg-page">
+          <section className="glass border-t border-border-subtle">
             <div className="mx-auto w-full max-w-5xl px-4 py-16">
               <h2 className="font-display text-2xl tracking-tight">What Kanso does</h2>
               <div className="mt-8 grid gap-8 md:grid-cols-3">
@@ -169,7 +169,7 @@ export function LandingRoute() {
             </div>
           </section>
 
-          <section className="border-t border-border-subtle bg-page">
+          <section className="glass border-t border-border-subtle">
             <div className="mx-auto w-full max-w-5xl px-4 py-16 text-center">
               <h2 className="font-display text-2xl tracking-tight">
                 See what is actually costing you rating
@@ -186,7 +186,7 @@ export function LandingRoute() {
           </section>
         </main>
 
-        <footer className="border-t border-border-subtle bg-page">
+        <footer className="glass border-t border-border-subtle">
           <div className="mx-auto w-full max-w-5xl px-4 py-6 text-sm text-muted">
             Kanso Chess is tournament-first chess improvement for junior players and their coaches.
           </div>

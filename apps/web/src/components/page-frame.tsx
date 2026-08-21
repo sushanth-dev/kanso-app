@@ -21,14 +21,14 @@ export function PageFrame({ children }: PageFrameProps) {
   }, [clearMessage, flash, markPresented, pathname]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-page font-ui">
+    <div className="flex min-h-screen flex-col font-ui">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-control focus:bg-accent focus:px-3 focus:py-2 focus:text-on-accent focus:outline-none focus:ring-2 focus:ring-focus"
       >
         Skip to main content
       </a>
-      <header className="border-b border-border-subtle">
+      <header className="glass sticky top-0 z-20 border-b border-border-subtle">
         <div className="mx-auto w-full max-w-3xl px-4 py-4">
           <div className="flex items-center gap-2">
             <span aria-hidden="true" className="size-2.5 shrink-0 rounded-control bg-accent" />
