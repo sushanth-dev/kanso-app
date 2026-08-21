@@ -49,7 +49,6 @@ export function GamesRoute() {
       ) : (
         <ul className="stagger-in space-y-3">
           {gamesQuery.data.games.map((game) => {
-            const opponent = game.playerColor === 'white' ? game.blackName : game.whiteName;
             const analysed = game.analysisStatus === 'complete';
             return (
               <li key={game.id}>
@@ -57,7 +56,7 @@ export function GamesRoute() {
                   <div className="flex flex-wrap items-baseline justify-between gap-3">
                     <div>
                       <p className="font-display text-base">
-                        {opponent ? `vs ${opponent}` : 'Opponent unknown'}
+                        {game.whiteName ?? 'Unknown'} vs {game.blackName ?? 'Unknown'}
                       </p>
                       <p className="mt-1 text-sm text-muted">
                         {game.event ?? 'Game'}
