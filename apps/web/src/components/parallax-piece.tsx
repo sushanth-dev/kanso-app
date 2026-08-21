@@ -9,30 +9,70 @@ const WOOD_DARK = '#8f5e38';
 
 /** Premium clear-glass material, matching the prototype's transmission setup. */
 function glassMaterial(color: string): THREE.MeshPhysicalMaterial {
-  return new THREE.MeshPhysicalMaterial({
+  const material = new THREE.MeshPhysicalMaterial({
     color,
     roughness: 0.1,
-    transmission: 1,
-    thickness: 2,
     ior: 1.5,
-    envMapIntensity: 1,
+    envMapIntensity: 1.4,
+    transparent: true,
+    opacity: 0.6,
   });
+
+  // Flat uniform opacity makes curved surfaces (the head) read as a flat
+  // translucent disc instead of a sphere. A Fresnel term makes silhouette
+  // edges more opaque than the face-on centre, so the curvature actually
+  // reads through the glass.
+  material.onBeforeCompile = (shader) => {
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <opaque_fragment>',
+      `
+      float fresnel = pow(1.0 - saturate(dot(normalize(vViewPosition), normal)), 2.4);
+      diffuseColor.a = mix(0.22, 0.92, fresnel);
+      #include <opaque_fragment>
+      `,
+    );
+  };
+
+  return material;
 }
 
-/** The prototype's clean three-part pawn: base, body, head. No collar or finial. */
-function buildPawn(material: THREE.Material): THREE.Group {
-  const g = new THREE.Group();
-  g.add(new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.5, 32), material));
+/** Profile (radius, y) for the pawn silhouette: base, body, head, as one
+ * continuous line so the lathe produces a single seamless mesh instead of
+ * three abutting parts. The head follows the actual sphere arc rather than
+ * a spline guess, so the dome rounds off instead of overshooting into a
+ * point. */
+function pawnProfile(): THREE.Vector2[] {
+  const points: THREE.Vector2[] = [];
 
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.8, 2, 32), material);
-  body.position.y = 1.25;
-  g.add(body);
+  // Base: flat foot, straight wall, flat collar top.
+  points.push(new THREE.Vector2(0, -0.25));
+  points.push(new THREE.Vector2(1, -0.25));
+  points.push(new THREE.Vector2(1, 0.25));
 
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.6, 32, 32), material);
-  head.position.y = 2.5;
-  g.add(head);
+  // Body: straight taper from the collar up to the neck below the head.
+  const neckRadius = 0.42;
+  const headCenterY = 2.5;
+  const headRadius = 0.6;
+  const neckY = headCenterY - Math.sqrt(headRadius ** 2 - neckRadius ** 2);
+  points.push(new THREE.Vector2(0.8, 0.25));
+  points.push(new THREE.Vector2(neckRadius, neckY));
 
-  return g;
+  // Head: the visible upper cap of the sphere, from the neck join over the top.
+  const angleStart = Math.asin((neckY - headCenterY) / headRadius);
+  const headSegments = 20;
+  for (let i = 1; i <= headSegments; i++) {
+    const angle = THREE.MathUtils.lerp(angleStart, Math.PI / 2, i / headSegments);
+    points.push(
+      new THREE.Vector2(headRadius * Math.cos(angle), headCenterY + headRadius * Math.sin(angle)),
+    );
+  }
+
+  return points;
+}
+
+/** The pawn as a single lathed mesh: no seams between base, body and head. */
+function buildPawn(material: THREE.Material): THREE.Mesh {
+  return new THREE.Mesh(new THREE.LatheGeometry(pawnProfile(), 48), material);
 }
 
 /**

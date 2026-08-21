@@ -8,6 +8,7 @@ import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { authClient } from '../auth-client.ts';
 import { Clouds } from '../components/canvas-ui/Clouds.tsx';
+import { PasswordInput } from '../components/password-input.tsx';
 import { StatusMessage } from '../components/status-message.tsx';
 import { TextInput } from '../components/text-input.tsx';
 import { ME_QUERY_KEY } from '../query-client.ts';
@@ -54,7 +55,7 @@ export function AuthAmbient() {
         density={1.2}
         speed={0.35}
       >
-        <div className="h-full w-full bg-page" />
+        <div className="auth-ambient-glow h-full w-full" />
       </Clouds>
     </div>
   );
@@ -189,10 +190,9 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
               />
             </Field>
             <Field label="Password" inputID="password">
-              <TextInput
+              <PasswordInput
                 id="password"
                 name="password"
-                type="password"
                 autoComplete={isSignUp ? 'new-password' : 'current-password'}
                 required
                 minLength={8}
@@ -210,10 +210,9 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
             ) : null}
             {isSignUp ? (
               <Field label="Confirm password" inputID="passwordConfirmation">
-                <TextInput
+                <PasswordInput
                   id="passwordConfirmation"
                   name="passwordConfirmation"
-                  type="password"
                   autoComplete="new-password"
                   required
                   minLength={8}
