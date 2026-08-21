@@ -1,8 +1,6 @@
 /**
  * ST-031. The focus catalogue and one active focus, against a real session and
- * a real PostgreSQL. The sprint's question is the same one every player-scoped
- * route asks: a second user has no claim, and that is proven here with two real
- * users rather than asserted.
+ * a real PostgreSQL.
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { eq } from 'drizzle-orm';
@@ -15,7 +13,6 @@ let harness: IntegrationDatabase;
 
 const PASSWORD = 'correct horse battery staple';
 const EMAIL_A = 'alice@example.com';
-const EMAIL_B = 'bob@example.com';
 
 const KEY = 'converting_won_positions';
 const KEY_B = 'tactical_alertness';
@@ -88,14 +85,11 @@ async function signIn(email: string): Promise<string> {
   return cookie;
 }
 
-async function makePlayer(cookie: string): Promise<string> {
-  const res = await app().request('/players', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', cookie },
-    body: JSON.stringify({ displayName: 'Player' }),
-  });
-  expect(res.status).toBe(201);
-  return ((await res.json()) as { id: string }).id;
+/** The id of the player the sign-up hook created for this account. */
+async function playerIdFor(cookie: string): Promise<string> {
+  const res = await app().request('/me', { headers: { cookie } });
+  expect(res.status).toBe(200);
+  return ((await res.json()) as { player: { id: string } }).player.id;
 }
 
 function setFocusBody(catalogueKey: string): string {
@@ -115,9 +109,8 @@ describe('the focus catalogue and one active focus', () => {
 
   test('setting a focus and reading it back', async () => {
     const cookie = await signIn(EMAIL_A);
-    const playerId = await makePlayer(cookie);
 
-    const set = await app().request(`/players/${playerId}/focus`, {
+    const set = await app().request('/focus', {
       method: 'PUT',
       headers: { 'content-type': 'application/json', cookie },
       body: setFocusBody(KEY),
@@ -131,7 +124,7 @@ describe('the focus catalogue and one active focus', () => {
     expect(setBody.catalogue?.key).toBe(KEY);
     expect(setBody.unverified).toBe(false);
 
-    const get = await app().request(`/players/${playerId}/focus`, { headers: { cookie } });
+    const get = await app().request('/focus', { headers: { cookie } });
     expect(get.status).toBe(200);
     const getBody = (await get.json()) as { id: string };
     expect(getBody.id).toBe(setBody.id);
@@ -139,16 +132,16 @@ describe('the focus catalogue and one active focus', () => {
 
   test('replacing a focus ends the previous one', async () => {
     const cookie = await signIn(EMAIL_A);
-    const playerId = await makePlayer(cookie);
+    const playerId = await playerIdFor(cookie);
 
-    const first = await app().request(`/players/${playerId}/focus`, {
+    const first = await app().request('/focus', {
       method: 'PUT',
       headers: { 'content-type': 'application/json', cookie },
       body: setFocusBody(KEY),
     });
     const firstBody = (await first.json()) as { id: string };
 
-    const second = await app().request(`/players/${playerId}/focus`, {
+    const second = await app().request('/focus', {
       method: 'PUT',
       headers: { 'content-type': 'application/json', cookie },
       body: setFocusBody(KEY_B),
@@ -169,8 +162,8 @@ describe('the focus catalogue and one active focus', () => {
 
   test('the database refuses a second active focus', async () => {
     const cookie = await signIn(EMAIL_A);
-    const playerId = await makePlayer(cookie);
-    await app().request(`/players/${playerId}/focus`, {
+    const playerId = await playerIdFor(cookie);
+    await app().request('/focus', {
       method: 'PUT',
       headers: { 'content-type': 'application/json', cookie },
       body: setFocusBody(KEY),
@@ -183,9 +176,8 @@ describe('the focus catalogue and one active focus', () => {
 
   test('a coach instruction is stored verbatim, unverified, and paired', async () => {
     const cookie = await signIn(EMAIL_A);
-    const playerId = await makePlayer(cookie);
 
-    const res = await app().request(`/players/${playerId}/focus`, {
+    const res = await app().request('/focus', {
       method: 'PUT',
       headers: { 'content-type': 'application/json', cookie },
       body: JSON.stringify({
@@ -207,35 +199,17 @@ describe('the focus catalogue and one active focus', () => {
     expect(body.pairedFocusId).toBeTruthy();
   });
 
-  test('a second user is refused on set and get with 403', async () => {
-    const alice = await signIn(EMAIL_A);
-    const bob = await signIn(EMAIL_B);
-    const alicePlayer = await makePlayer(alice);
-
-    const set = await app().request(`/players/${alicePlayer}/focus`, {
-      method: 'PUT',
-      headers: { 'content-type': 'application/json', cookie: bob },
-      body: setFocusBody(KEY),
-    });
-    expect(set.status).toBe(403);
-
-    const get = await app().request(`/players/${alicePlayer}/focus`, { headers: { cookie: bob } });
-    expect(get.status).toBe(403);
-  });
-
   test('a player with no active focus answers 404', async () => {
     const cookie = await signIn(EMAIL_A);
-    const playerId = await makePlayer(cookie);
 
-    const res = await app().request(`/players/${playerId}/focus`, { headers: { cookie } });
+    const res = await app().request('/focus', { headers: { cookie } });
     expect(res.status).toBe(404);
   });
 
   test('an unknown catalogue key answers 404', async () => {
     const cookie = await signIn(EMAIL_A);
-    const playerId = await makePlayer(cookie);
 
-    const res = await app().request(`/players/${playerId}/focus`, {
+    const res = await app().request('/focus', {
       method: 'PUT',
       headers: { 'content-type': 'application/json', cookie },
       body: setFocusBody('nope'),

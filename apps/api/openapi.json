@@ -133,11 +133,8 @@
           "tier": {
             "$ref": "#/components/schemas/Tier"
           },
-          "players": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Player"
-            }
+          "player": {
+            "$ref": "#/components/schemas/Player"
           }
         },
         "required": [
@@ -145,7 +142,7 @@
           "email",
           "name",
           "tier",
-          "players"
+          "player"
         ]
       },
       "Tier": {
@@ -237,50 +234,6 @@
           "chesscomRating",
           "lichessRating",
           "createdAt"
-        ]
-      },
-      "CreatePlayer": {
-        "type": "object",
-        "properties": {
-          "displayName": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 80
-          },
-          "birthYear": {
-            "type": "integer",
-            "minimum": 1900,
-            "maximum": 2100
-          },
-          "fideId": {
-            "type": "string",
-            "maxLength": 20
-          },
-          "fideRating": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 3500
-          },
-          "uscfId": {
-            "type": "string",
-            "maxLength": 20
-          },
-          "uscfRating": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 3500
-          },
-          "chesscomUsername": {
-            "type": "string",
-            "maxLength": 60
-          },
-          "lichessUsername": {
-            "type": "string",
-            "maxLength": 60
-          }
-        },
-        "required": [
-          "displayName"
         ]
       },
       "UpdatePlayer": {
@@ -2025,8 +1978,8 @@
         "tags": [
           "Account"
         ],
-        "summary": "The signed-in user, the players they play as, and the players they pay for",
-        "description": "B4. The person paying and the person playing are different people, so this returns two lists rather than one.",
+        "summary": "The signed-in user and the one player they are",
+        "description": "ST-072. The account is the player, so this returns the account identity and its single chess player.",
         "responses": {
           "200": {
             "description": "The current session.",
@@ -2047,59 +2000,9 @@
                 }
               }
             }
-          }
-        }
-      }
-    },
-    "/players": {
-      "post": {
-        "tags": [
-          "Account"
-        ],
-        "summary": "Create a chess identity",
-        "requestBody": {
-          "description": "The new player.",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreatePlayer"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Created.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Player"
-                }
-              }
-            }
           },
-          "400": {
-            "description": "The request body or query failed validation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "No session.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "The session has no claim on this player.",
+          "404": {
+            "description": "No player for this account.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2109,25 +2012,12 @@
             }
           }
         }
-      }
-    },
-    "/players/{playerId}": {
+      },
       "patch": {
         "tags": [
           "Account"
         ],
-        "summary": "Update ratings and site usernames",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "name": "playerId",
-            "in": "path"
-          }
-        ],
+        "summary": "Update your player: display name, ratings, and site usernames",
         "requestBody": {
           "description": "The fields to change.",
           "content": {
@@ -2228,24 +2118,13 @@
         }
       }
     },
-    "/players/{playerId}/imports": {
+    "/imports": {
       "post": {
         "tags": [
           "Import"
         ],
         "summary": "Import games by username, uploaded PGN, or USCF tournament name",
         "description": "S1, F1, F2, T1. Every game is tagged with its stream at import. An upload rejects the whole file on one malformed game; a username or tournament import rejects one malformed game and keeps the rest.",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "name": "playerId",
-            "in": "path"
-          }
-        ],
         "requestBody": {
           "description": "What to import.",
           "content": {
@@ -2401,22 +2280,13 @@
         }
       }
     },
-    "/players/{playerId}/games": {
+    "/games": {
       "get": {
         "tags": [
           "Games"
         ],
         "summary": "A player’s games, filtered by stream",
         "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "name": "playerId",
-            "in": "path"
-          },
           {
             "schema": {
               "$ref": "#/components/schemas/Stream"
@@ -2747,24 +2617,13 @@
         }
       }
     },
-    "/players/{playerId}/analysis/events": {
+    "/analysis/events": {
       "get": {
         "tags": [
           "Analysis"
         ],
         "summary": "Server-sent events for analysis progress",
         "description": "ADR-0016, N1. A player is never made to wait on a blank screen. Events carry the game id and its new analysis status; the client refetches the game on completion.",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "name": "playerId",
-            "in": "path"
-          }
-        ],
         "responses": {
           "200": {
             "description": "An event stream that stays open until the client closes it.",
@@ -2799,24 +2658,13 @@
         }
       }
     },
-    "/players/{playerId}/tournaments": {
+    "/tournaments": {
       "get": {
         "tags": [
           "Tournaments"
         ],
         "summary": "The tournaments a player has games in, most recent first",
         "description": "S5. Each tournament carries its game and analysed counts. A player with no tournaments gets an empty list and a 200, not a 404.",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "name": "playerId",
-            "in": "path"
-          }
-        ],
         "responses": {
           "200": {
             "description": "The tournaments.",
@@ -2923,7 +2771,7 @@
         }
       }
     },
-    "/players/{playerId}/report": {
+    "/report": {
       "get": {
         "tags": [
           "Report"
@@ -2931,15 +2779,6 @@
         "summary": "The weakness report for one stream, ranked by rating leak",
         "description": "F7, F9, S2. Tournament and online games are aggregated separately, so `stream` is required rather than defaulted. A blended report would describe a player who does not exist.",
         "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "name": "playerId",
-            "in": "path"
-          },
           {
             "schema": {
               "$ref": "#/components/schemas/Stream"
@@ -3004,7 +2843,7 @@
         }
       }
     },
-    "/players/{playerId}/transfer-gap": {
+    "/transfer-gap": {
       "get": {
         "tags": [
           "Diagnosis"
@@ -3012,15 +2851,6 @@
         "summary": "The gap between a player’s online and over-the-board rating",
         "description": "ST-018. Online rapid rating from Chess.com and Lichess, compared against the over-the-board rating (FIDE, else USCF). Fetched and snapshotted on the first view, then re-fetched only on an explicit refresh.",
         "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "name": "playerId",
-            "in": "path"
-          },
           {
             "schema": {
               "type": "string"
@@ -3146,7 +2976,7 @@
         }
       }
     },
-    "/players/{playerId}/motifs": {
+    "/motifs": {
       "get": {
         "tags": [
           "Diagnosis"
@@ -3154,15 +2984,6 @@
         "summary": "A player’s missed tactical motifs, ranked by cost",
         "description": "ST-024. Each mistake is attributed to one motif from a closed set, then grouped per motif with the centipawns lost to it, ranked worst first. A motif with fewer than three supporting positions is withheld rather than reported, and the unattributed share is stated, so a thin history reads as thin rather than clean.",
         "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "name": "playerId",
-            "in": "path"
-          },
           {
             "schema": {
               "$ref": "#/components/schemas/Stream"
@@ -3214,6 +3035,16 @@
               }
             }
           },
+          "404": {
+            "description": "No such player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
           "422": {
             "description": "No analysed games in this stream.",
             "content": {
@@ -3227,7 +3058,7 @@
         }
       }
     },
-    "/players/{playerId}/phase": {
+    "/phase": {
       "get": {
         "tags": [
           "Diagnosis"
@@ -3235,15 +3066,6 @@
         "summary": "A player’s evaluation loss by phase, and where time trouble starts",
         "description": "ST-025. A player’s centipawn loss attributed to opening, middlegame, and endgame for one stream, with the games behind each phase. For games with clock data, the time-trouble half reports the move where the remaining clock starts driving mistakes; it is unavailable rather than guessed when no games carry a clock.",
         "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "name": "playerId",
-            "in": "path"
-          },
           {
             "schema": {
               "$ref": "#/components/schemas/Stream"
@@ -3287,6 +3109,16 @@
           },
           "403": {
             "description": "The session has no claim on this player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such player.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3485,24 +3317,13 @@
         }
       }
     },
-    "/players/{playerId}/focus": {
+    "/focus": {
       "get": {
         "tags": [
           "Focus"
         ],
         "summary": "The active focus and its verification trend",
         "description": "F10, F12. One focus at a time, verified over a rolling window kept per stream, reported with the number of games behind it.",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "name": "playerId",
-            "in": "path"
-          }
-        ],
         "responses": {
           "200": {
             "description": "The active focus.",
@@ -3562,17 +3383,6 @@
         ],
         "summary": "Set the active focus, ending the previous one",
         "description": "F10, F13. A coach instruction we cannot measure is still accepted: it is stored verbatim, shown as active, marked unverified, and paired with a measurable focus so the loop still closes. It is also logged as a candidate for the catalogue.",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "name": "playerId",
-            "in": "path"
-          }
-        ],
         "requestBody": {
           "description": "The focus to take.",
           "content": {
@@ -3637,24 +3447,13 @@
         }
       }
     },
-    "/players/{playerId}/proof-sheets": {
+    "/proof-sheets": {
       "get": {
         "tags": [
           "Proof sheet"
         ],
         "summary": "A player's live share links",
         "description": "F14. The current sheets, newest first, excluding revoked and expired ones. The focus screen renders the first so a link survives a reload and can still be revoked.",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "name": "playerId",
-            "in": "path"
-          }
-        ],
         "responses": {
           "200": {
             "description": "The player's live sheets.",
@@ -3698,6 +3497,16 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "No such player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       },
@@ -3707,17 +3516,6 @@
         ],
         "summary": "Create a shareable before-and-after page",
         "description": "F14, N5, N8. Sharing is an explicit act, which is why this is a POST and not a flag on the report. The numbers are frozen at creation so a page already in a parent’s inbox does not change underneath them.",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "name": "playerId",
-            "in": "path"
-          }
-        ],
         "requestBody": {
           "description": "Optional expiry.",
           "content": {

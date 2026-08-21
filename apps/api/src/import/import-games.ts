@@ -21,7 +21,7 @@ import * as schema from '../db/schema.ts';
 import { game, importJob, player } from '../db/schema.ts';
 import { enqueueAnalysis } from '../analysis/queue.ts';
 import { freeAnalysisRemaining, tierFor } from '../billing/entitlement.ts';
-import { hasPlayerClaim } from '../players/claim.ts';
+import { getOwnPlayerId } from '../players/claim.ts';
 import { parseOne, parsePgn, type ParsedGame } from './parse-pgn.ts';
 import { decidePlayerColor } from './player-color.ts';
 import { attachGames } from '../tournaments/attach.ts';
@@ -208,25 +208,25 @@ export function mountImport(
   deps: { db: Db; getSession: (c: Context) => unknown; gameFetcher: GameFetcher },
 ): void {
   app.openapi(startImport, async (c) => {
-    const { playerId } = c.req.valid('param');
     const body = c.req.valid('json');
 
     // Authorization before any work. The session is present (the guard proved
-    // it); existence is this handler's 404; the claim is the 403, and it covers
-    // owners and guardians, the same rule as every other player-scoped route.
+    // it); the player is resolved from the session, so there is no id to claim.
     const session = await readSession(deps.getSession, c);
     if (session == null) {
       return c.json({ code: 'no_session', message: 'Sign in to use this endpoint.' }, 401);
     }
-    const owner = await deps.db
-      .select({ displayName: player.displayName })
-      .from(player)
-      .where(eq(player.id, playerId));
-    if (owner.length === 0) {
+    const playerId = await getOwnPlayerId(deps.db, session.userId);
+    if (playerId === null) {
       return c.json({ code: 'not_found', message: 'No such player.' }, 404);
     }
-    if (!(await hasPlayerClaim(deps.db, session.userId, playerId))) {
-      return c.json({ code: 'forbidden', message: 'Not your player.' }, 403);
+    const [owner] = await deps.db
+      .select({ displayName: player.displayName })
+      .from(player)
+      .where(eq(player.id, playerId))
+      .limit(1);
+    if (!owner) {
+      return c.json({ code: 'not_found', message: 'No such player.' }, 404);
     }
 
     let job: typeof importJob.$inferSelect;
@@ -254,7 +254,7 @@ export function mountImport(
         source: 'pgn_upload',
         username: null,
         stream: body.stream,
-        matchName: owner[0]!.displayName,
+        matchName: owner.displayName,
         games: parsed.games.map((g) => ({ ...g, externalId: null })),
         gamesRejected: 0,
       }));

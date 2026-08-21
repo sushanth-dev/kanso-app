@@ -4,7 +4,7 @@ import { Card } from '@astryxdesign/core/Card';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Heading } from '@astryxdesign/core/Heading';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router';
+import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { ApiRequestError } from '../api/account-api.ts';
 import type {
   MotifReport,
@@ -73,7 +73,6 @@ const rateFormatter = new Intl.NumberFormat('en-US', {
 export interface ReportScreenProps {
   stream: Stream;
   report: Report;
-  playerId: string;
   onStreamChange: (stream: Stream) => void;
 }
 
@@ -97,7 +96,7 @@ function ReportHeader({
     </header>
   );
 }
-export function ReportScreen({ stream, report, playerId, onStreamChange }: ReportScreenProps) {
+export function ReportScreen({ stream, report, onStreamChange }: ReportScreenProps) {
   const isEmpty = report.weaknesses.length === 0;
   const meta = `Reported ${generatedAtFormatter.format(new Date(report.generatedAt))} covering ${report.gamesCovered} games.`;
   return (
@@ -116,7 +115,7 @@ export function ReportScreen({ stream, report, playerId, onStreamChange }: Repor
       {isEmpty ? (
         <EmptyReport report={report} />
       ) : (
-        <WeaknessList weaknesses={report.weaknesses} playerId={playerId} stream={stream} />
+        <WeaknessList weaknesses={report.weaknesses} stream={stream} />
       )}
     </div>
   );
@@ -124,11 +123,10 @@ export function ReportScreen({ stream, report, playerId, onStreamChange }: Repor
 
 interface WeaknessListProps {
   weaknesses: Weakness[];
-  playerId: string;
   stream: Stream;
 }
 
-function WeaknessList({ weaknesses, playerId, stream }: WeaknessListProps) {
+function WeaknessList({ weaknesses, stream }: WeaknessListProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const onToggle = (id: string) => setExpandedId((current) => (current === id ? null : id));
 
@@ -181,7 +179,7 @@ function WeaknessList({ weaknesses, playerId, stream }: WeaknessListProps) {
                 ) : null}
               </div>
               {expanded && weakness.kind !== 'opening' ? (
-                <AggregateDetail kind={weakness.kind} playerId={playerId} stream={stream} />
+                <AggregateDetail kind={weakness.kind} stream={stream} />
               ) : null}
             </Card>
           </li>
@@ -193,17 +191,15 @@ function WeaknessList({ weaknesses, playerId, stream }: WeaknessListProps) {
 
 function AggregateDetail({
   kind,
-  playerId,
   stream,
 }: {
   kind: Exclude<WeaknessKind, 'opening'>;
-  playerId: string;
   stream: Stream;
 }) {
   return kind === 'motif' ? (
-    <MotifAggregate playerId={playerId} stream={stream} />
+    <MotifAggregate stream={stream} />
   ) : (
-    <PhaseAggregate kind={kind} playerId={playerId} stream={stream} />
+    <PhaseAggregate kind={kind} stream={stream} />
   );
 }
 
@@ -220,23 +216,15 @@ function AggregateError() {
   return <p className="mt-3 text-sm text-muted">This breakdown could not be loaded right now.</p>;
 }
 
-function MotifAggregate({ playerId, stream }: { playerId: string; stream: Stream }) {
-  const { data, isPending, isError } = useQuery(motifsQueryOptions(playerId, stream));
+function MotifAggregate({ stream }: { stream: Stream }) {
+  const { data, isPending, isError } = useQuery(motifsQueryOptions(stream));
   if (isPending) return <AggregateSkeleton />;
   if (isError || data === undefined) return <AggregateError />;
   return <MotifBreakdown report={data} />;
 }
 
-function PhaseAggregate({
-  kind,
-  playerId,
-  stream,
-}: {
-  kind: 'phase' | 'time_trouble';
-  playerId: string;
-  stream: Stream;
-}) {
-  const { data, isPending, isError } = useQuery(phasesQueryOptions(playerId, stream));
+function PhaseAggregate({ kind, stream }: { kind: 'phase' | 'time_trouble'; stream: Stream }) {
+  const { data, isPending, isError } = useQuery(phasesQueryOptions(stream));
   if (isPending) return <AggregateSkeleton />;
   if (isError || data === undefined) return <AggregateError />;
   return <PhaseBreakdown report={data} timeTroubleOnly={kind === 'time_trouble'} />;
@@ -361,15 +349,14 @@ function ReportSkeleton() {
 
 export function ReportRoute() {
   const navigate = useNavigate();
-  const { playerId } = useParams({ from: '/account/players/$playerId/report' });
-  const { stream } = useSearch({ from: '/account/players/$playerId/report' });
+  const { stream } = useSearch({ from: '/account/report' });
 
-  const reportQuery = useQuery(reportQueryOptions(playerId, stream));
+  const reportQuery = useQuery(reportQueryOptions(stream));
   useEffect(() => {
     if (reportQuery.data !== undefined) track('report_viewed', { stream });
   }, [reportQuery.data, stream]);
   const gamesQuery = useQuery({
-    ...gamesQueryOptions(playerId, stream),
+    ...gamesQueryOptions(stream),
     enabled:
       reportQuery.isError &&
       reportQuery.error instanceof ApiRequestError &&
@@ -378,8 +365,7 @@ export function ReportRoute() {
 
   const onStreamChange = (next: Stream) => {
     void navigate({
-      to: '/account/players/$playerId/report',
-      params: { playerId },
+      to: '/account/report',
       search: { stream: next },
     });
   };
@@ -420,12 +406,5 @@ export function ReportRoute() {
     );
   }
 
-  return (
-    <ReportScreen
-      stream={stream}
-      report={reportQuery.data}
-      playerId={playerId}
-      onStreamChange={onStreamChange}
-    />
-  );
+  return <ReportScreen stream={stream} report={reportQuery.data} onStreamChange={onStreamChange} />;
 }

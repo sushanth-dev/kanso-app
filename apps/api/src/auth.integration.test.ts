@@ -14,6 +14,7 @@
  * better-auth writes into `user.id` is not the id it puts in the session, the
  * second user reads the first's data. This test is the proof either way.
  */
+import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { createApp } from './app.ts';
 import { createAuth } from './auth.ts';
@@ -69,12 +70,14 @@ async function signIn(email: string): Promise<string> {
 
 /** The session cookie name better-auth issues with the `kanso` prefix. */
 const SESSION_COOKIE = 'kanso.session_token';
-
-async function makePlayer(ownerUserId: string): Promise<string> {
+/** The id of the player the sign-up hook created for this account. */
+async function playerIdFor(ownerUserId: string): Promise<string> {
   const [row] = await harness.db
-    .insert(player)
-    .values({ ownerUserId, displayName: 'Test Player' })
-    .returning({ id: player.id });
+    .select({ id: player.id })
+    .from(player)
+    .where(eq(player.ownerUserId, ownerUserId))
+    .limit(1);
+  expect(row).toBeTruthy();
   return row!.id;
 }
 
@@ -93,7 +96,7 @@ async function seedTournament(playerId: string): Promise<string> {
 describe('a real session', () => {
   test('a guarded endpoint answers 401 with no cookie', async () => {
     const a = app();
-    const res = await a.request('/players/00000000-0000-0000-0000-000000000000/games');
+    const res = await a.request('/games');
     expect(res.status).toBe(401);
     const body = (await res.json()) as { code: string };
     expect(body.code).toBe('no_session');
@@ -102,9 +105,8 @@ describe('a real session', () => {
   test('a guarded endpoint answers normally with a valid cookie', async () => {
     const cookie = await signIn(EMAIL_A);
     const a = app();
-    const mine = await makePlayer((await whoAmI(cookie)).userId);
 
-    const res = await a.request(`/players/${mine}/games`, {
+    const res = await a.request('/games', {
       headers: { cookie },
     });
     expect(res.status).toBe(200);
@@ -114,7 +116,7 @@ describe('a real session', () => {
 
   test('an expired or tampered session cookie is refused with 401, not 500', async () => {
     const a = app();
-    const res = await a.request('/players/00000000-0000-0000-0000-000000000000/games', {
+    const res = await a.request('/games', {
       headers: { cookie: `${SESSION_COOKIE}=forged-token-that-is-not-a-real-session` },
     });
     expect(res.status).toBe(401);
@@ -129,33 +131,31 @@ describe('a real session', () => {
     expect(alice.userId).not.toBe(bob.userId);
 
     const a = app();
-    const alicePlayer = await makePlayer(alice.userId);
+    const alicePlayer = await playerIdFor(alice.userId);
     const aliceTournament = await seedTournament(alicePlayer);
 
-    // Bob's player and tournament are refused with 403, not 200 and not 404.
-    const games = await a.request(`/players/${alicePlayer}/games`, {
-      headers: { cookie: bobCookie },
-    });
-    expect(games.status).toBe(403);
+    // Bob reads his own player-scoped routes: both 200, empty because Bob has
+    // no games or tournaments.
+    const bobGames = await a.request('/games', { headers: { cookie: bobCookie } });
+    expect(bobGames.status).toBe(200);
+    const bobGamesBody = (await bobGames.json()) as { games: unknown[] };
+    expect(bobGamesBody.games).toEqual([]);
 
-    const tournaments = await a.request(`/players/${alicePlayer}/tournaments`, {
-      headers: { cookie: bobCookie },
-    });
-    expect(tournaments.status).toBe(403);
+    const bobTournaments = await a.request('/tournaments', { headers: { cookie: bobCookie } });
+    expect(bobTournaments.status).toBe(200);
+    const bobTournamentsBody = (await bobTournaments.json()) as { tournaments: unknown[] };
+    expect(bobTournamentsBody.tournaments).toEqual([]);
 
+    // Bob cannot name Alice's tournament through the object-scoped route: 403.
     const tournament = await a.request(`/tournaments/${aliceTournament}`, {
       headers: { cookie: bobCookie },
     });
     expect(tournament.status).toBe(403);
 
-    // Alice herself can still read all three.
-    const gamesOk = await a.request(`/players/${alicePlayer}/games`, {
-      headers: { cookie: aliceCookie },
-    });
+    // Alice herself can still read all of it.
+    const gamesOk = await a.request('/games', { headers: { cookie: aliceCookie } });
     expect(gamesOk.status).toBe(200);
-    const tournamentsOk = await a.request(`/players/${alicePlayer}/tournaments`, {
-      headers: { cookie: aliceCookie },
-    });
+    const tournamentsOk = await a.request('/tournaments', { headers: { cookie: aliceCookie } });
     expect(tournamentsOk.status).toBe(200);
     const tournamentOk = await a.request(`/tournaments/${aliceTournament}`, {
       headers: { cookie: aliceCookie },

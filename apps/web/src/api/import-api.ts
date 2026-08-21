@@ -36,7 +36,7 @@ export type StartImportBody =
   | { source: 'uscf'; tournamentName: string; playerName: string };
 
 export interface ImportApi {
-  startImport(playerId: string, body: StartImportBody): Promise<ImportJob>;
+  startImport(body: StartImportBody): Promise<ImportJob>;
 }
 
 export function createImportApi(fetcher: typeof globalThis.fetch = globalThis.fetch): ImportApi {
@@ -46,7 +46,7 @@ export function createImportApi(fetcher: typeof globalThis.fetch = globalThis.fe
     credentials: 'include',
   });
   return {
-    async startImport(playerId, body) {
+    async startImport(body) {
       const payload: components['schemas']['StartImport'] =
         body.source === 'chesscom'
           ? { source: 'chesscom', username: body.username, stream: 'online' }
@@ -60,10 +60,7 @@ export function createImportApi(fetcher: typeof globalThis.fetch = globalThis.fe
                   playerName: body.playerName,
                   stream: 'tournament',
                 };
-      const result = await client.POST('/players/{playerId}/imports', {
-        params: { path: { playerId } },
-        body: payload,
-      });
+      const result = await client.POST('/imports', { body: payload });
       if (result.data !== undefined) return result.data;
       throw failure(result.response.status, result.error);
     },

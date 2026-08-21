@@ -64,8 +64,8 @@ function app(userId: string | null) {
   });
 }
 
-async function importByUsername(userId: string | null, playerId: string, body: unknown) {
-  return app(userId).request(`/players/${playerId}/imports`, {
+async function importByUsername(userId: string | null, body: unknown) {
+  return app(userId).request('/imports', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
@@ -86,7 +86,7 @@ const malformedGame = {
   pgn: '[Event "Broken"]\n[Site "Chess.com"]\n[White "onlinekid"]\n[Black "opponent"]\n[Result "*"]\n\n1. e4 e9',
 };
 
-describe('POST /players/{playerId}/imports (username)', () => {
+describe('POST /imports (username)', () => {
   test('imports chesscom games as online, tagged with source and external id', async () => {
     const playerId = await seedPlayer('Test Player');
     gameFetcher.chesscom.mockResolvedValue({
@@ -94,7 +94,7 @@ describe('POST /players/{playerId}/imports (username)', () => {
       games: [onlineGame('172385979790', 'onlinekid')],
     });
 
-    const res = await importByUsername(OWNER, playerId, {
+    const res = await importByUsername(OWNER, {
       source: 'chesscom',
       username: 'onlinekid',
       stream: 'online',
@@ -131,7 +131,7 @@ describe('POST /players/{playerId}/imports (username)', () => {
       games: [onlineGame('gameid01', 'onlinekid')],
     });
 
-    const res = await importByUsername(OWNER, playerId, {
+    const res = await importByUsername(OWNER, {
       source: 'lichess',
       username: 'onlinekid',
       stream: 'online',
@@ -155,8 +155,8 @@ describe('POST /players/{playerId}/imports (username)', () => {
     });
     const body = { source: 'chesscom', username: 'onlinekid', stream: 'online' };
 
-    await importByUsername(OWNER, playerId, body);
-    const res = await importByUsername(OWNER, playerId, body);
+    await importByUsername(OWNER, body);
+    const res = await importByUsername(OWNER, body);
     expect(res.status).toBe(202);
     const job = (await res.json()) as { gamesFound: number; gamesImported: number };
     expect(job.gamesFound).toBe(1);
@@ -173,7 +173,7 @@ describe('POST /players/{playerId}/imports (username)', () => {
       games: [onlineGame('good-game', 'onlinekid'), malformedGame],
     });
 
-    const res = await importByUsername(OWNER, playerId, {
+    const res = await importByUsername(OWNER, {
       source: 'chesscom',
       username: 'onlinekid',
       stream: 'online',
@@ -194,10 +194,10 @@ describe('POST /players/{playerId}/imports (username)', () => {
   });
 
   test('answers 422 when the username does not resolve', async () => {
-    const playerId = await seedPlayer('Test Player');
+    await seedPlayer('Test Player');
     gameFetcher.chesscom.mockResolvedValue({ ok: false, code: 'username_not_found' });
 
-    const res = await importByUsername(OWNER, playerId, {
+    const res = await importByUsername(OWNER, {
       source: 'chesscom',
       username: 'no_such_account',
       stream: 'online',
@@ -207,10 +207,10 @@ describe('POST /players/{playerId}/imports (username)', () => {
   });
 
   test('answers 502 when the provider is unreachable', async () => {
-    const playerId = await seedPlayer('Test Player');
+    await seedPlayer('Test Player');
     gameFetcher.lichess.mockResolvedValue({ ok: false, code: 'upstream_error' });
 
-    const res = await importByUsername(OWNER, playerId, {
+    const res = await importByUsername(OWNER, {
       source: 'lichess',
       username: 'onlinekid',
       stream: 'online',
@@ -220,10 +220,10 @@ describe('POST /players/{playerId}/imports (username)', () => {
   });
 
   test('answers 202 with zero found for a resolving username with no games in the period', async () => {
-    const playerId = await seedPlayer('Test Player');
+    await seedPlayer('Test Player');
     gameFetcher.chesscom.mockResolvedValue({ ok: true, games: [] });
 
-    const res = await importByUsername(OWNER, playerId, {
+    const res = await importByUsername(OWNER, {
       source: 'chesscom',
       username: 'onlinekid',
       stream: 'online',
@@ -235,10 +235,10 @@ describe('POST /players/{playerId}/imports (username)', () => {
   });
 
   test('threads the explicit since to the fetcher', async () => {
-    const playerId = await seedPlayer();
+    await seedPlayer();
     gameFetcher.lichess.mockResolvedValue({ ok: true, games: [] });
 
-    await importByUsername(OWNER, playerId, {
+    await importByUsername(OWNER, {
       source: 'lichess',
       username: 'onlinekid',
       stream: 'online',
@@ -248,21 +248,21 @@ describe('POST /players/{playerId}/imports (username)', () => {
   });
 
   test('answers 429 once the daily online cap is reached', async () => {
-    const playerId = await seedPlayer('Test Player');
+    await seedPlayer('Test Player');
     const twenty = Array.from({ length: 20 }, (_, i) => ({
       externalId: `g${i}`,
       pgn: `[Event "Live Chess"]\n[Site "https://lichess.org/g${i}"]\n[Date "2026.08.01"]\n[White "onlinekid"]\n[Black "opponent"]\n[Result "1-0"]\n[TimeControl "180"]\n\n1. e4 {[%clk 0:03:00]} e5 {[%clk 0:02:59]} 2. Nf3 {[%clk 0:02:58]}`,
     }));
     gameFetcher.lichess.mockResolvedValue({ ok: true, games: twenty });
 
-    const first = await importByUsername(OWNER, playerId, {
+    const first = await importByUsername(OWNER, {
       source: 'lichess',
       username: 'onlinekid',
       stream: 'online',
     });
     expect(first.status).toBe(202);
 
-    const second = await importByUsername(OWNER, playerId, {
+    const second = await importByUsername(OWNER, {
       source: 'lichess',
       username: 'onlinekid',
       stream: 'online',
@@ -273,32 +273,21 @@ describe('POST /players/{playerId}/imports (username)', () => {
   });
 
   test("bounds the fetch to the day's remaining allowance", async () => {
-    const playerId = await seedPlayer('Test Player');
+    await seedPlayer('Test Player');
     gameFetcher.lichess.mockResolvedValue({ ok: true, games: [onlineGame('g0', 'onlinekid')] });
-    await importByUsername(OWNER, playerId, {
+    await importByUsername(OWNER, {
       source: 'lichess',
       username: 'onlinekid',
       stream: 'online',
     });
 
     gameFetcher.lichess.mockResolvedValue({ ok: true, games: [] });
-    await importByUsername(OWNER, playerId, {
+    await importByUsername(OWNER, {
       source: 'lichess',
       username: 'onlinekid',
       stream: 'online',
     });
 
     expect(gameFetcher.lichess).toHaveBeenLastCalledWith('onlinekid', expect.any(Date), 19);
-  });
-
-  test('answers 403 when the session has no claim', async () => {
-    const playerId = await seedPlayer('Test Player');
-    const res = await importByUsername(OTHER, playerId, {
-      source: 'chesscom',
-      username: 'onlinekid',
-      stream: 'online',
-    });
-    expect(res.status).toBe(403);
-    expect(gameFetcher.chesscom).not.toHaveBeenCalled();
   });
 });

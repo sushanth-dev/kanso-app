@@ -7,7 +7,6 @@ import type { GameDetail, Mistake } from '../api/diagnosis-api.ts';
 import { createAppRouter } from '../router.tsx';
 import { GameReviewScreen } from './game-review-route.tsx';
 
-const playerId = '00000000-0000-4000-8000-000000000001';
 const gameId = '00000000-0000-4000-8000-000000000002';
 
 const FEN = 'rnbqkbnr/pppp1ppp/8/4p3/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 3';
@@ -116,7 +115,7 @@ function renderScreen(game: GameDetail) {
   render(
     <QueryClientProvider client={queryClient}>
       <RouterContextProvider router={router}>
-        <GameReviewScreen game={game} playerId={playerId} />
+        <GameReviewScreen game={game} />
       </RouterContextProvider>
     </QueryClientProvider>,
   );

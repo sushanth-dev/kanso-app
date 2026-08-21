@@ -64,8 +64,8 @@ function app(userId: string | null) {
   });
 }
 
-async function importByTournament(userId: string | null, playerId: string, body: unknown) {
-  return app(userId).request(`/players/${playerId}/imports`, {
+async function importByTournament(userId: string | null, body: unknown) {
+  return app(userId).request('/imports', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
@@ -86,7 +86,7 @@ function crosstableGame(
   };
 }
 
-describe('POST /players/{playerId}/imports (uscf)', () => {
+describe('POST /imports (uscf)', () => {
   test('stores result-only games tagged tournament, failed analysis, no moves', async () => {
     const playerId = await seedPlayer('Test Player');
     gameFetcher.uscf.mockResolvedValue({
@@ -97,7 +97,7 @@ describe('POST /players/{playerId}/imports (uscf)', () => {
       ],
     });
 
-    const res = await importByTournament(OWNER, playerId, {
+    const res = await importByTournament(OWNER, {
       source: 'uscf',
       tournamentName: 'Event',
       playerName: 'Test Player',
@@ -130,7 +130,7 @@ describe('POST /players/{playerId}/imports (uscf)', () => {
   });
 
   test('refuses a near-miss name with the reason', async () => {
-    const playerId = await seedPlayer('Test Player');
+    await seedPlayer('Test Player');
     gameFetcher.uscf.mockResolvedValue({
       ok: false,
       code: 'name_mismatch',
@@ -138,7 +138,7 @@ describe('POST /players/{playerId}/imports (uscf)', () => {
         'This tournament lists a Player but not Test Player; check the spelling.',
     });
 
-    const res = await importByTournament(OWNER, playerId, {
+    const res = await importByTournament(OWNER, {
       source: 'uscf',
       tournamentName: 'Event',
       playerName: 'Test Player',
@@ -153,10 +153,10 @@ describe('POST /players/{playerId}/imports (uscf)', () => {
   });
 
   test('refuses an unresolved tournament name', async () => {
-    const playerId = await seedPlayer('Test Player');
+    await seedPlayer('Test Player');
     gameFetcher.uscf.mockResolvedValue({ ok: false, code: 'tournament_not_found' });
 
-    const res = await importByTournament(OWNER, playerId, {
+    const res = await importByTournament(OWNER, {
       source: 'uscf',
       tournamentName: 'No Such Event',
       playerName: 'Test Player',

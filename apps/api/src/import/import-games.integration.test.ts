@@ -56,8 +56,8 @@ function app(userId: string | null) {
   });
 }
 
-async function upload(userId: string | null, playerId: string, body: unknown) {
-  return app(userId).request(`/players/${playerId}/imports`, {
+async function upload(userId: string | null, body: unknown) {
+  return app(userId).request('/imports', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
@@ -68,10 +68,10 @@ beforeEach(async () => {
   await harness.reset();
 });
 
-describe('POST /players/{playerId}/imports (pgn_upload)', () => {
+describe('POST /imports (pgn_upload)', () => {
   test('imports every game in a multi-game file, tagged with the request stream', async () => {
     const playerId = await seedPlayer('Test Player');
-    const res = await upload(OWNER, playerId, {
+    const res = await upload(OWNER, {
       source: 'pgn_upload',
       stream: 'tournament',
       pgn: fixture('multi-game.pgn'),
@@ -93,7 +93,7 @@ describe('POST /players/{playerId}/imports (pgn_upload)', () => {
 
   test('stores the tournament tags, with null for what the PGN omits', async () => {
     const playerId = await seedPlayer();
-    await upload(OWNER, playerId, {
+    await upload(OWNER, {
       source: 'pgn_upload',
       stream: 'tournament',
       pgn: fixture('round-board.pgn'),
@@ -108,7 +108,7 @@ describe('POST /players/{playerId}/imports (pgn_upload)', () => {
 
   test('sets has_clock_data truthfully', async () => {
     const playerId = await seedPlayer('Test Player');
-    await upload(OWNER, playerId, {
+    await upload(OWNER, {
       source: 'pgn_upload',
       stream: 'online',
       pgn: fixture('with-clock.pgn'),
@@ -117,29 +117,31 @@ describe('POST /players/{playerId}/imports (pgn_upload)', () => {
     expect(row!.has_clock_data).toBe(true);
   });
 
-  test('decides player_color by exact name match, null when it cannot', async () => {
+  test('decides player_color by exact name match', async () => {
     const playerId = await seedPlayer('Test Player');
-    await upload(OWNER, playerId, {
+    await upload(OWNER, {
       source: 'pgn_upload',
       stream: 'tournament',
       pgn: fixture('clean-tournament.pgn'),
     });
     const [row] = await harness.sql`SELECT player_color FROM game WHERE player_id = ${playerId}`;
     expect(row!.player_color).toBe('white');
+  });
 
-    const otherId = await seedPlayer('Nobody Here');
-    await upload(OWNER, otherId, {
+  test('decides player_color null when the name does not match', async () => {
+    const playerId = await seedPlayer('Nobody Here');
+    await upload(OWNER, {
       source: 'pgn_upload',
       stream: 'tournament',
       pgn: fixture('clean-tournament.pgn'),
     });
-    const [row2] = await harness.sql`SELECT player_color FROM game WHERE player_id = ${otherId}`;
-    expect(row2!.player_color).toBeNull();
+    const [row] = await harness.sql`SELECT player_color FROM game WHERE player_id = ${playerId}`;
+    expect(row!.player_color).toBeNull();
   });
 
   test('rejects the whole upload when one game is malformed, storing nothing', async () => {
     const playerId = await seedPlayer('Good Game');
-    const res = await upload(OWNER, playerId, {
+    const res = await upload(OWNER, {
       source: 'pgn_upload',
       stream: 'tournament',
       pgn: fixture('one-malformed.pgn'),
@@ -160,8 +162,8 @@ describe('POST /players/{playerId}/imports (pgn_upload)', () => {
       stream: 'tournament',
       pgn: fixture('multi-game.pgn'),
     };
-    await upload(OWNER, playerId, body);
-    const res = await upload(OWNER, playerId, body);
+    await upload(OWNER, body);
+    const res = await upload(OWNER, body);
     expect(res.status).toBe(202);
     const job = (await res.json()) as {
       gamesFound: number;
@@ -173,28 +175,9 @@ describe('POST /players/{playerId}/imports (pgn_upload)', () => {
     expect(rows).toHaveLength(3);
   });
 
-  test('answers 404 for a player that does not exist', async () => {
-    const res = await upload(OWNER, '00000000-0000-4000-8000-000000000000', {
-      source: 'pgn_upload',
-      stream: 'tournament',
-      pgn: fixture('clean-tournament.pgn'),
-    });
-    expect(res.status).toBe(404);
-  });
-
-  test('answers 403 for a player the session has no claim on', async () => {
-    const playerId = await seedPlayer();
-    const res = await upload(OTHER, playerId, {
-      source: 'pgn_upload',
-      stream: 'tournament',
-      pgn: fixture('clean-tournament.pgn'),
-    });
-    expect(res.status).toBe(403);
-  });
-
   test('counts the games whose side it could not decide', async () => {
-    const playerId = await seedPlayer('Nobody Here');
-    const res = await upload(OWNER, playerId, {
+    await seedPlayer('Nobody Here');
+    const res = await upload(OWNER, {
       source: 'pgn_upload',
       stream: 'tournament',
       pgn: fixture('multi-game.pgn'),
@@ -209,8 +192,8 @@ describe('POST /players/{playerId}/imports (pgn_upload)', () => {
   });
 
   test('counts nothing undetermined when every side was decided', async () => {
-    const playerId = await seedPlayer('Test Player');
-    const res = await upload(OWNER, playerId, {
+    await seedPlayer('Test Player');
+    const res = await upload(OWNER, {
       source: 'pgn_upload',
       stream: 'tournament',
       pgn: fixture('multi-game.pgn'),
@@ -221,8 +204,8 @@ describe('POST /players/{playerId}/imports (pgn_upload)', () => {
   });
 
   test('counts exactly the undetermined games in a mix of decided and undecided sides', async () => {
-    const playerId = await seedPlayer('Test Player');
-    const res = await upload(OWNER, playerId, {
+    await seedPlayer('Test Player');
+    const res = await upload(OWNER, {
       source: 'pgn_upload',
       stream: 'tournament',
       pgn: fixture('mixed-sides.pgn'),
@@ -235,7 +218,7 @@ describe('POST /players/{playerId}/imports (pgn_upload)', () => {
 
   test('decides the side when the crosstable abbreviates the first name', async () => {
     const playerId = await seedPlayer('Test Player');
-    await upload(OWNER, playerId, {
+    await upload(OWNER, {
       source: 'pgn_upload',
       stream: 'tournament',
       pgn: fixture('abbreviated-name.pgn'),
@@ -246,7 +229,7 @@ describe('POST /players/{playerId}/imports (pgn_upload)', () => {
 
   test('decides the side through a title, a federation code, and a FIDE id', async () => {
     const playerId = await seedPlayer('Test Player');
-    await upload(OWNER, playerId, {
+    await upload(OWNER, {
       source: 'pgn_upload',
       stream: 'tournament',
       pgn: fixture('titled-name.pgn'),
@@ -261,7 +244,7 @@ describe('POST /players/{playerId}/imports (pgn_upload)', () => {
     // and it must not wait on analysis either: the response is the import's,
     // and the games are left `pending` for the worker.
     const playerId = await seedPlayer('Test Player');
-    const res = await upload(OWNER, playerId, {
+    const res = await upload(OWNER, {
       source: 'pgn_upload',
       stream: 'tournament',
       pgn: fixture('clean-tournament.pgn'),
@@ -276,7 +259,7 @@ describe('POST /players/{playerId}/imports (pgn_upload)', () => {
 
   test('creates one tournament per event and attaches its games', async () => {
     const playerId = await seedPlayer('Test Player');
-    await upload(OWNER, playerId, {
+    await upload(OWNER, {
       source: 'pgn_upload',
       stream: 'tournament',
       pgn: fixture('multi-game.pgn'),
@@ -296,13 +279,13 @@ describe('POST /players/{playerId}/imports (pgn_upload)', () => {
   test('leaves an online game unattached even when its event matches a tournament', async () => {
     const playerId = await seedPlayer('Test Player');
     // A tournament first, so a tournament with the matching key exists.
-    await upload(OWNER, playerId, {
+    await upload(OWNER, {
       source: 'pgn_upload',
       stream: 'tournament',
       pgn: fixture('clean-tournament.pgn'),
     });
     // Then an online game whose event matches exactly.
-    await upload(OWNER, playerId, {
+    await upload(OWNER, {
       source: 'pgn_upload',
       stream: 'online',
       pgn: fixture('online-same-event.pgn'),
@@ -326,8 +309,8 @@ describe('POST /players/{playerId}/imports (pgn_upload)', () => {
       stream: 'tournament',
       pgn: fixture('multi-game.pgn'),
     };
-    await upload(OWNER, playerId, body);
-    const res = await upload(OWNER, playerId, body);
+    await upload(OWNER, body);
+    const res = await upload(OWNER, body);
     expect(res.status).toBe(202);
 
     const tournaments = await harness.sql`
@@ -337,7 +320,7 @@ describe('POST /players/{playerId}/imports (pgn_upload)', () => {
 
   test('puts two games at the same event a year apart in two tournaments', async () => {
     const playerId = await seedPlayer('Test Player');
-    await upload(OWNER, playerId, {
+    await upload(OWNER, {
       source: 'pgn_upload',
       stream: 'tournament',
       pgn: fixture('same-event-year-apart.pgn'),
@@ -349,7 +332,7 @@ describe('POST /players/{playerId}/imports (pgn_upload)', () => {
 
   test('leaves a tournament-stream game with no event unattached', async () => {
     const playerId = await seedPlayer('Test Player');
-    await upload(OWNER, playerId, {
+    await upload(OWNER, {
       source: 'pgn_upload',
       stream: 'tournament',
       pgn: fixture('sparse-tags.pgn'),

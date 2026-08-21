@@ -19,7 +19,7 @@ import { listTournaments } from '../contract/routes.ts';
 import * as schema from '../db/schema.ts';
 import { game, tournament } from '../db/schema.ts';
 import { readSession } from '../session.ts';
-import { hasPlayerClaim } from '../players/claim.ts';
+import { getOwnPlayerId } from '../players/claim.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
 
@@ -28,14 +28,13 @@ export function mountListTournaments(
   deps: { db: Db; getSession: (c: Context) => unknown },
 ): void {
   app.openapi(listTournaments, async (c) => {
-    const { playerId } = c.req.valid('param');
-
     const session = await readSession(deps.getSession, c);
     if (session === null) {
       return c.json({ code: 'no_session', message: 'Sign in to use this endpoint.' }, 401);
     }
-    if (!(await hasPlayerClaim(deps.db, session.userId, playerId))) {
-      return c.json({ code: 'forbidden', message: 'Not your player.' }, 403);
+    const playerId = await getOwnPlayerId(deps.db, session.userId);
+    if (playerId === null) {
+      return c.json({ code: 'not_found', message: 'No such player.' }, 404);
     }
 
     // Group the player's games by tournament. Only games with a tournament are

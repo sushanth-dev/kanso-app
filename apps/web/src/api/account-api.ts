@@ -4,7 +4,6 @@ import { apiBaseUrl } from './base-url.ts';
 
 export type Me = components['schemas']['Me'];
 export type Player = components['schemas']['Player'];
-export type CreatePlayer = components['schemas']['CreatePlayer'];
 export type UpdatePlayer = components['schemas']['UpdatePlayer'];
 export type ApiError = components['schemas']['ApiError'];
 
@@ -31,8 +30,7 @@ export function failure(status: number, body: ApiError | undefined): ApiRequestE
 
 export interface AccountApi {
   getMe(): Promise<Me>;
-  createPlayer(body: CreatePlayer): Promise<Player>;
-  updatePlayer(playerId: string, body: UpdatePlayer): Promise<Player>;
+  updateMe(body: UpdatePlayer): Promise<Player>;
 }
 
 export function createAccountApi(fetcher: typeof globalThis.fetch = globalThis.fetch): AccountApi {
@@ -47,16 +45,8 @@ export function createAccountApi(fetcher: typeof globalThis.fetch = globalThis.f
       if (result.data !== undefined) return result.data;
       throw failure(result.response.status, result.error);
     },
-    async createPlayer(body: CreatePlayer): Promise<Player> {
-      const result = await client.POST('/players', { body });
-      if (result.data !== undefined) return result.data;
-      throw failure(result.response.status, result.error);
-    },
-    async updatePlayer(playerId: string, body: UpdatePlayer): Promise<Player> {
-      const result = await client.PATCH('/players/{playerId}', {
-        params: { path: { playerId } },
-        body,
-      });
+    async updateMe(body: UpdatePlayer): Promise<Player> {
+      const result = await client.PATCH('/me', { body });
       if (result.data !== undefined) return result.data;
       throw failure(result.response.status, result.error);
     },

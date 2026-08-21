@@ -23,7 +23,7 @@ import { Report } from '../contract/schemas.ts';
 import * as schema from '../db/schema.ts';
 import { game, report, weakness } from '../db/schema.ts';
 import { readSession } from '../session.ts';
-import { hasPlayerClaim } from '../players/claim.ts';
+import { getOwnPlayerId } from '../players/claim.ts';
 import { leakBaseline, scoreLeaks, weaknessLeakRows } from '../analysis/leak.ts';
 import { SEASON_WINDOW_MS } from '../analysis/performance-rating.ts';
 import { scoreTimeTrouble, timeTroubleCounts } from '../phases/phases.ts';
@@ -161,18 +161,15 @@ export function mountReport(
   deps: { db: Db; getSession: (c: Context) => unknown },
 ): void {
   app.openapi(getReport, async (c) => {
-    const { playerId } = c.req.valid('param');
     const { stream } = c.req.valid('query');
 
     const session = await readSession(deps.getSession, c);
     if (session === null) {
       return c.json({ code: 'no_session', message: 'Sign in to use this endpoint.' }, 401);
     }
-
-    // Absence and refusal both answer 403, the same rule as every other
-    // player-scoped route, so a player id cannot be enumerated.
-    if (!(await hasPlayerClaim(deps.db, session.userId, playerId))) {
-      return c.json({ code: 'forbidden', message: 'Not your player.' }, 403);
+    const playerId = await getOwnPlayerId(deps.db, session.userId);
+    if (playerId === null) {
+      return c.json({ code: 'not_found', message: 'No such player.' }, 404);
     }
 
     const stored = await latestReport(deps.db, playerId, stream);

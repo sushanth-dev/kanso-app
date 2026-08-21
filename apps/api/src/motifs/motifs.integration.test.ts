@@ -2,8 +2,7 @@
  * The motif endpoint against a real PostgreSQL, with fixture games and
  * mistakes in the real tables. The scoring is unit-tested in motifs.test.ts;
  * this covers what only a database proves: the grouping, the analysed-only and
- * per-stream filters, the withholding threshold, the two empty cases, and that
- * a second player's claim is refused.
+ * per-stream filters, the withholding threshold, and the two empty cases.
  */
 import type { Context } from 'hono';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
@@ -14,7 +13,6 @@ import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-h
 
 let harness: IntegrationDatabase;
 const OWNER = 'user_owner';
-const OTHER = 'user_other';
 
 const sessionFor = (userId: string) => () => ({ userId });
 
@@ -28,10 +26,9 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await harness.reset();
-  await harness.db.insert(user).values([
-    { id: OWNER, name: 'Owner', email: 'owner@example.com', emailVerified: true },
-    { id: OTHER, name: 'Other', email: 'other@example.com', emailVerified: true },
-  ]);
+  await harness.db
+    .insert(user)
+    .values([{ id: OWNER, name: 'Owner', email: 'owner@example.com', emailVerified: true }]);
 });
 
 function app(userId: string | null) {
@@ -41,8 +38,8 @@ function app(userId: string | null) {
   });
 }
 
-async function get(userId: string | null, playerId: string, stream: string) {
-  return app(userId).request(`/players/${playerId}/motifs?stream=${stream}`);
+async function get(userId: string | null, stream: string) {
+  return app(userId).request(`/motifs?stream=${stream}`);
 }
 
 async function makePlayer(ownerId: string): Promise<string> {
@@ -107,7 +104,7 @@ interface MotifReportBody {
   withheld: number;
 }
 
-describe('GET /players/{playerId}/motifs', () => {
+describe('GET /motifs', () => {
   test('aggregates by motif, ranked by cost, with the unattributed share stated', async () => {
     const playerId = await makePlayer(OWNER);
     await addMistakes(await seedGame(playerId, { stream: 'online' }), [
@@ -121,7 +118,7 @@ describe('GET /players/{playerId}/motifs', () => {
       { motif: null, cpLoss: 30 },
     ]);
 
-    const res = await get(OWNER, playerId, 'online');
+    const res = await get(OWNER, 'online');
     expect(res.status).toBe(200);
     const body = (await res.json()) as MotifReportBody;
     expect(body.motifs).toEqual([
@@ -145,7 +142,7 @@ describe('GET /players/{playerId}/motifs', () => {
       { motif: 'missed_threat', cpLoss: 100 },
     ]);
 
-    const res = await get(OWNER, playerId, 'tournament');
+    const res = await get(OWNER, 'tournament');
     expect(res.status).toBe(200);
     const body = (await res.json()) as MotifReportBody;
     expect(body.motifs).toEqual([{ motif: 'hanging_piece', positions: 4, totalCpLoss: 400 }]);
@@ -168,8 +165,8 @@ describe('GET /players/{playerId}/motifs', () => {
       { motif: 'missed_capture', cpLoss: 100 },
     ]);
 
-    const online = (await (await get(OWNER, playerId, 'online')).json()) as MotifReportBody;
-    const tournament = (await (await get(OWNER, playerId, 'tournament')).json()) as MotifReportBody;
+    const online = (await (await get(OWNER, 'online')).json()) as MotifReportBody;
+    const tournament = (await (await get(OWNER, 'tournament')).json()) as MotifReportBody;
     expect(online.motifs.map((m) => m.motif)).toEqual(['hanging_piece']);
     expect(tournament.motifs.map((m) => m.motif)).toEqual(['missed_capture']);
   });
@@ -183,7 +180,7 @@ describe('GET /players/{playerId}/motifs', () => {
     ]);
 
     // No analysed games at all, so this is the empty case, not a thin history.
-    const res = await get(OWNER, playerId, 'tournament');
+    const res = await get(OWNER, 'tournament');
     expect(res.status).toBe(422);
     expect(((await res.json()) as { code: string }).code).toBe('not_enough_evidence');
   });
@@ -197,7 +194,7 @@ describe('GET /players/{playerId}/motifs', () => {
       { motif: 'hanging_piece', cpLoss: 100 },
     ]);
 
-    const res = await get(OWNER, playerId, 'tournament');
+    const res = await get(OWNER, 'tournament');
     expect(res.status).toBe(422);
     expect(((await res.json()) as { code: string }).code).toBe('not_enough_evidence');
   });
@@ -206,23 +203,11 @@ describe('GET /players/{playerId}/motifs', () => {
     const playerId = await makePlayer(OWNER);
     await seedGame(playerId);
 
-    const res = await get(OWNER, playerId, 'tournament');
+    const res = await get(OWNER, 'tournament');
     expect(res.status).toBe(200);
     const body = (await res.json()) as MotifReportBody;
     expect(body.motifs).toEqual([]);
     expect(body.mistakeCount).toBe(0);
     expect(body.unattributed).toBe(0);
-  });
-
-  test('a second user with no claim answers 403', async () => {
-    const playerId = await makePlayer(OWNER);
-    await addMistakes(await seedGame(playerId), [
-      { motif: 'hanging_piece', cpLoss: 100 },
-      { motif: 'hanging_piece', cpLoss: 100 },
-      { motif: 'hanging_piece', cpLoss: 100 },
-    ]);
-
-    const res = await get(OTHER, playerId, 'tournament');
-    expect(res.status).toBe(403);
   });
 });

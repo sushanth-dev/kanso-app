@@ -36,8 +36,8 @@ function app(userId: string | null) {
   });
 }
 
-async function list(userId: string | null, playerId: string) {
-  return app(userId).request(`/players/${playerId}/tournaments`);
+async function list(userId: string | null) {
+  return app(userId).request('/tournaments');
 }
 
 async function makePlayer(ownerId: string): Promise<string> {
@@ -85,7 +85,7 @@ async function seedTournament(
   return t!.id;
 }
 
-describe('GET /players/{playerId}/tournaments', () => {
+describe('GET /tournaments', () => {
   test('returns the player’s tournaments with game and analysed counts, most recent first', async () => {
     const mine = await makePlayer(OWNER);
     const older = await seedTournament(mine, {
@@ -105,7 +105,7 @@ describe('GET /players/{playerId}/tournaments', () => {
       WHERE tournament_id = ${newer}
     `;
 
-    const body = (await (await list(OWNER, mine)).json()) as TournamentListBody;
+    const body = (await (await list(OWNER)).json()) as TournamentListBody;
     expect(body.tournaments.map((t) => t.id)).toEqual([newer, older]);
 
     const newest = body.tournaments[0]!;
@@ -125,32 +125,20 @@ describe('GET /players/{playerId}/tournaments', () => {
     const mineT = await seedTournament(mine);
     await seedTournament(theirs);
 
-    const body = (await (await list(OWNER, mine)).json()) as TournamentListBody;
+    const body = (await (await list(OWNER)).json()) as TournamentListBody;
     expect(body.tournaments.map((t) => t.id)).toEqual([mineT]);
     expect(body.tournaments).toHaveLength(1);
   });
 
   test('gives a player with no tournaments an empty list, not a 404', async () => {
-    const mine = await makePlayer(OWNER);
-    const res = await list(OWNER, mine);
+    await makePlayer(OWNER);
+    const res = await list(OWNER);
     expect(res.status).toBe(200);
     const body = (await res.json()) as TournamentListBody;
     expect(body.tournaments).toEqual([]);
   });
 
   test('answers 401 with no session', async () => {
-    const mine = await makePlayer(OWNER);
-    expect((await list(null, mine)).status).toBe(401);
-  });
-
-  test('answers 403 for a second real player the session has no claim on', async () => {
-    const theirs = await makePlayer(OTHER);
-    await seedTournament(theirs);
-    expect((await list(OWNER, theirs)).status).toBe(403);
-  });
-
-  test('answers 403 for a player that does not exist, not 404', async () => {
-    const res = await list(OWNER, '00000000-0000-4000-8000-000000000000');
-    expect(res.status).toBe(403);
+    expect((await list(null)).status).toBe(401);
   });
 });

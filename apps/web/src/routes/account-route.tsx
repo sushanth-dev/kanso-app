@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
-import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Heading } from '@astryxdesign/core/Heading';
 import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
@@ -30,10 +29,10 @@ export type PlayerDiagnosisState =
   | { kind: 'no-diagnosis' }
   | { kind: 'unavailable' };
 
-export function usePlayerDiagnosisState(playerId: string): PlayerDiagnosisState {
-  const reportQuery = useQuery(reportQueryOptions(playerId, 'tournament'));
+export function usePlayerDiagnosisState(): PlayerDiagnosisState {
+  const reportQuery = useQuery(reportQueryOptions('tournament'));
   const gamesQuery = useQuery({
-    ...gamesQueryOptions(playerId, 'tournament'),
+    ...gamesQueryOptions('tournament'),
     enabled:
       reportQuery.isError &&
       reportQuery.error instanceof ApiRequestError &&
@@ -118,46 +117,40 @@ export function PlayerCard({ player, state }: { player: Player; state: PlayerDia
         <PlayerDiagnosis state={state} />
         <div className="mt-3 flex flex-wrap gap-4">
           <Link
-            to="/account/players/$playerId/report"
-            params={{ playerId: player.id }}
+            to="/account/report"
             search={{ stream: 'tournament' }}
             className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline press"
           >
             View report
           </Link>
           <Link
-            to="/account/players/$playerId/import"
-            params={{ playerId: player.id }}
+            to="/account/import"
             className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline press"
           >
             Import games
           </Link>
           <Link
-            to="/account/players/$playerId/focus"
-            params={{ playerId: player.id }}
+            to="/account/focus"
             search={{ stream: 'tournament' }}
             className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline press"
           >
             Set focus
           </Link>
           <Link
-            to="/account/players/$playerId/proof-sheet"
-            params={{ playerId: player.id }}
+            to="/account/proof-sheet"
             className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline press"
           >
             Share proof sheet
           </Link>
           <Link
-            to="/account/players/$playerId/games"
-            params={{ playerId: player.id }}
+            to="/account/games"
             search={{ stream: 'tournament' }}
             className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline press"
           >
             Review games
           </Link>
           <Link
-            to="/account/players/$playerId/edit"
-            params={{ playerId: player.id }}
+            to="/account/player"
             className="inline-flex min-h-11 min-w-11 items-center justify-center font-ui text-sm text-accent underline press"
           >
             Edit
@@ -169,7 +162,7 @@ export function PlayerCard({ player, state }: { player: Player; state: PlayerDia
 }
 
 export function PlayerCardWithDiagnosis({ player }: { player: Player }) {
-  const state = usePlayerDiagnosisState(player.id);
+  const state = usePlayerDiagnosisState();
   return <PlayerCard player={player} state={state} />;
 }
 
@@ -205,29 +198,10 @@ export function AccountScreen({ me, signOut }: AccountScreenProps) {
 
       <ChangePasswordForm />
 
-      <section aria-labelledby="owned-heading" className="mt-8">
-        <Heading level={2} id="owned-heading">
-          Your players
-        </Heading>
-        <Link
-          to="/account/players/new"
-          className="mt-3 inline-flex min-h-11 items-center rounded-control bg-accent px-4 py-2 font-ui text-on-accent press hover:bg-accent-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-        >
-          Create player
-        </Link>
-        {me.players.length === 0 ? (
-          <EmptyState
-            title="No players yet"
-            description="Create a player to start tracking their games."
-            headingLevel={3}
-          />
-        ) : (
-          <ul className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-            {me.players.map((player) => (
-              <PlayerCardWithDiagnosis key={player.id} player={player} />
-            ))}
-          </ul>
-        )}
+      <section aria-label="Your player" className="mt-8">
+        <ul className="grid grid-cols-1 gap-4">
+          <PlayerCardWithDiagnosis player={me.player} />
+        </ul>
       </section>
     </>
   );

@@ -2,8 +2,8 @@
  * The phase endpoint against a real PostgreSQL, with fixture games, mistakes,
  * and clocked moves in the real tables. The scoring is unit-tested in
  * phases.test.ts; this covers what only a database proves: the per-stream
- * grouping, the analysed-only filter, the no-data refusal, the clocked-game
- * aggregation, and that a second player's claim is refused.
+ * grouping, the analysed-only filter, the no-data refusal, and the clocked-game
+ * aggregation.
  */
 import type { Context } from 'hono';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
@@ -15,7 +15,6 @@ import type { Phase } from '../analysis/phase.ts';
 
 let harness: IntegrationDatabase;
 const OWNER = 'user_owner';
-const OTHER = 'user_other';
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
 const sessionFor = (userId: string) => () => ({ userId });
@@ -30,10 +29,9 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await harness.reset();
-  await harness.db.insert(user).values([
-    { id: OWNER, name: 'Owner', email: 'owner@example.com', emailVerified: true },
-    { id: OTHER, name: 'Other', email: 'other@example.com', emailVerified: true },
-  ]);
+  await harness.db
+    .insert(user)
+    .values([{ id: OWNER, name: 'Owner', email: 'owner@example.com', emailVerified: true }]);
 });
 
 function app(userId: string | null) {
@@ -43,8 +41,8 @@ function app(userId: string | null) {
   });
 }
 
-async function get(userId: string | null, playerId: string, stream: string) {
-  return app(userId).request(`/players/${playerId}/phase?stream=${stream}`);
+async function get(userId: string | null, stream: string) {
+  return app(userId).request(`/phase?stream=${stream}`);
 }
 
 async function makePlayer(ownerId: string): Promise<string> {
@@ -189,7 +187,7 @@ interface PhaseReportBody {
     | { status: 'unavailable'; reason: string };
 }
 
-describe('GET /players/{playerId}/phase', () => {
+describe('GET /phase', () => {
   test('aggregates loss by phase, zero-fills empty phases, and says no_clock_data for tournament', async () => {
     const playerId = await makePlayer(OWNER);
     await addMistakes(await seedGame(playerId), [
@@ -200,7 +198,7 @@ describe('GET /players/{playerId}/phase', () => {
       { phase: 'middlegame', cpLoss: 150, ply: 29 },
     ]);
 
-    const res = await get(OWNER, playerId, 'tournament');
+    const res = await get(OWNER, 'tournament');
     expect(res.status).toBe(200);
     const body = (await res.json()) as PhaseReportBody;
     expect(body.phases).toEqual([
@@ -221,8 +219,8 @@ describe('GET /players/{playerId}/phase', () => {
       { phase: 'opening', cpLoss: 100, ply: 3 },
     ]);
 
-    const online = (await (await get(OWNER, playerId, 'online')).json()) as PhaseReportBody;
-    const tournament = (await (await get(OWNER, playerId, 'tournament')).json()) as PhaseReportBody;
+    const online = (await (await get(OWNER, 'online')).json()) as PhaseReportBody;
+    const tournament = (await (await get(OWNER, 'tournament')).json()) as PhaseReportBody;
     expect(online.phases.find((p) => p.phase === 'endgame')).toEqual({
       phase: 'endgame',
       totalCpLoss: 300,
@@ -241,7 +239,7 @@ describe('GET /players/{playerId}/phase', () => {
       { phase: 'opening', cpLoss: 100, ply: 3 },
     ]);
 
-    const res = await get(OWNER, playerId, 'tournament');
+    const res = await get(OWNER, 'tournament');
     expect(res.status).toBe(422);
     expect(((await res.json()) as { code: string }).code).toBe('not_enough_evidence');
   });
@@ -252,7 +250,7 @@ describe('GET /players/{playerId}/phase', () => {
       await seedClockedGame(playerId, clockedMoves(15, 7, [7, 9, 11]));
     }
 
-    const res = await get(OWNER, playerId, 'online');
+    const res = await get(OWNER, 'online');
     expect(res.status).toBe(200);
     const body = (await res.json()) as PhaseReportBody;
     expect(body.timeTrouble).toEqual({
@@ -274,7 +272,7 @@ describe('GET /players/{playerId}/phase', () => {
     // An online clocked game that the tournament query must not count.
     await seedClockedGame(playerId, clockedMoves(15, 999, []));
 
-    const res = await get(OWNER, playerId, 'tournament');
+    const res = await get(OWNER, 'tournament');
     expect(res.status).toBe(200);
     const body = (await res.json()) as PhaseReportBody;
     expect(body.timeTrouble).toEqual({
@@ -294,7 +292,7 @@ describe('GET /players/{playerId}/phase', () => {
       { phase: 'opening', cpLoss: 100, ply: 3 },
     ]);
 
-    const res = await get(OWNER, playerId, 'online');
+    const res = await get(OWNER, 'online');
     expect(res.status).toBe(200);
     const body = (await res.json()) as PhaseReportBody;
     expect(body.timeTrouble).toEqual({ status: 'unavailable', reason: 'no_clock_data' });
@@ -307,7 +305,7 @@ describe('GET /players/{playerId}/phase', () => {
       await seedClockedGame(playerId, clockedMoves(15, 7, [7, 9, 11]));
     }
 
-    const res = await get(OWNER, playerId, 'online');
+    const res = await get(OWNER, 'online');
     expect(res.status).toBe(200);
     const body = (await res.json()) as PhaseReportBody;
     expect(body.timeTrouble).toEqual({ status: 'unavailable', reason: 'not_enough_evidence' });
@@ -320,17 +318,9 @@ describe('GET /players/{playerId}/phase', () => {
       await seedClockedGame(playerId, clockedMoves(9, 999, []));
     }
 
-    const res = await get(OWNER, playerId, 'online');
+    const res = await get(OWNER, 'online');
     expect(res.status).toBe(200);
     const body = (await res.json()) as PhaseReportBody;
     expect(body.timeTrouble).toEqual({ status: 'unavailable', reason: 'not_enough_evidence' });
-  });
-
-  test('a second user with no claim answers 403', async () => {
-    const playerId = await makePlayer(OWNER);
-    await addMistakes(await seedGame(playerId), [{ phase: 'opening', cpLoss: 100, ply: 3 }]);
-
-    const res = await get(OTHER, playerId, 'tournament');
-    expect(res.status).toBe(403);
   });
 });

@@ -5,7 +5,7 @@ import { Field } from '@astryxdesign/core/Field';
 import { FormLayout } from '@astryxdesign/core/FormLayout';
 import { Heading } from '@astryxdesign/core/Heading';
 import { useQueryClient, useSuspenseQuery, type QueryClient } from '@tanstack/react-query';
-import { Link, notFound, useNavigate, useParams } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { ApiRequestError, type Me } from '../api/account-api.ts';
 import type { Stream } from '../api/diagnosis-api.ts';
 import type { ImportApi, ImportJob, ImportSource, StartImportBody } from '../api/import-api.ts';
@@ -113,7 +113,7 @@ function outcomeStatus(outcome: ImportOutcome): { tone: StatusTone; message: str
   }
 }
 
-function renderOutcome(outcome: ImportOutcome, playerId: string): ReactNode {
+function renderOutcome(outcome: ImportOutcome): ReactNode {
   const status = outcomeStatus(outcome);
   return (
     <div className="mt-4">
@@ -127,8 +127,7 @@ function renderOutcome(outcome: ImportOutcome, playerId: string): ReactNode {
           <p className="mt-2 text-sm text-muted">
             Analysis runs next and arrives asynchronously.{' '}
             <Link
-              to="/account/players/$playerId/report"
-              params={{ playerId }}
+              to="/account/report"
               search={{ stream: outcome.job.stream }}
               className="font-ui text-sm text-accent underline"
             >
@@ -151,25 +150,13 @@ function renderOutcome(outcome: ImportOutcome, playerId: string): ReactNode {
 
 export interface ImportScreenProps {
   me: Me;
-  playerId: string;
   importApi: ImportApi;
   queryClient: QueryClient;
   navigate: NavigateTo;
 }
 
-export function ImportScreen({
-  me,
-  playerId,
-  importApi,
-  queryClient,
-  navigate,
-}: ImportScreenProps) {
-  const player = me.players.find((owned) => owned.id === playerId);
-
-  if (player === undefined) {
-    // eslint-disable-next-line @typescript-eslint/only-throw-error -- notFound() returns a router not-found error, not an Error.
-    throw notFound();
-  }
+export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScreenProps) {
+  const player = me.player;
 
   const [method, setMethod] = useState<ImportSource>('chesscom');
   const [username, setUsername] = useState('');
@@ -232,7 +219,7 @@ export function ImportScreen({
 
     setSubmitting(true);
     try {
-      const job = await importApi.startImport(playerId, body);
+      const job = await importApi.startImport(body);
       const label =
         body.source === 'uscf'
           ? body.playerName
@@ -311,7 +298,7 @@ export function ImportScreen({
           <StatusMessage tone="info">{waitingMessage}</StatusMessage>
         </div>
       ) : outcome !== null ? (
-        renderOutcome(outcome, playerId)
+        renderOutcome(outcome)
       ) : formError !== null ? (
         <div className="mt-4">
           <StatusMessage tone="error">{formError}</StatusMessage>
@@ -472,16 +459,9 @@ export function ImportScreen({
 export function ImportRoute() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { playerId } = useParams({ from: '/account/players/$playerId/import' });
   const { data: me } = useSuspenseQuery(meQueryOptions());
 
   return (
-    <ImportScreen
-      me={me}
-      playerId={playerId}
-      importApi={importApi}
-      queryClient={queryClient}
-      navigate={navigate}
-    />
+    <ImportScreen me={me} importApi={importApi} queryClient={queryClient} navigate={navigate} />
   );
 }

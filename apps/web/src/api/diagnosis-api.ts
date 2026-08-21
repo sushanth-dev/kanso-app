@@ -19,10 +19,10 @@ export type MovePly = components['schemas']['MovePly'];
 export type Evaluation = components['schemas']['Evaluation'];
 
 export interface DiagnosisApi {
-  getReport(playerId: string, stream: Stream): Promise<Report>;
-  getMotifs(playerId: string, stream: Stream): Promise<MotifReport>;
-  getPhases(playerId: string, stream: Stream): Promise<PhaseReport>;
-  listGames(playerId: string, stream: Stream): Promise<GameList>;
+  getReport(stream: Stream): Promise<Report>;
+  getMotifs(stream: Stream): Promise<MotifReport>;
+  getPhases(stream: Stream): Promise<PhaseReport>;
+  listGames(stream: Stream): Promise<GameList>;
   getGame(gameId: string): Promise<GameDetail>;
 }
 
@@ -35,32 +35,32 @@ export function createDiagnosisApi(
     credentials: 'include',
   });
   return {
-    async getReport(playerId, stream) {
-      const result = await client.GET('/players/{playerId}/report', {
-        params: { path: { playerId }, query: { stream } },
+    async getReport(stream) {
+      const result = await client.GET('/report', {
+        params: { query: { stream } },
       });
       if (result.data !== undefined) return result.data;
       throw failure(result.response.status, result.error);
     },
-    async getMotifs(playerId, stream) {
-      const result = await client.GET('/players/{playerId}/motifs', {
-        params: { path: { playerId }, query: { stream } },
+    async getMotifs(stream) {
+      const result = await client.GET('/motifs', {
+        params: { query: { stream } },
       });
       if (result.data !== undefined) return result.data;
       throw failure(result.response.status, result.error);
     },
-    async getPhases(playerId, stream) {
-      const result = await client.GET('/players/{playerId}/phase', {
-        params: { path: { playerId }, query: { stream } },
+    async getPhases(stream) {
+      const result = await client.GET('/phase', {
+        params: { query: { stream } },
       });
       if (result.data !== undefined) return result.data;
       throw failure(result.response.status, result.error);
     },
-    async listGames(playerId, stream) {
+    async listGames(stream) {
       // ponytail: one page (limit 100) is enough to answer "is anything still
       // analyzing"; the report is the source of truth for coverage.
-      const result = await client.GET('/players/{playerId}/games', {
-        params: { path: { playerId }, query: { stream, limit: 100 } },
+      const result = await client.GET('/games', {
+        params: { query: { stream, limit: 100 } },
       });
       if (result.data !== undefined) return result.data;
       throw failure(result.response.status, result.error);

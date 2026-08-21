@@ -77,8 +77,18 @@ export function createAuth(db: PostgresJsDatabase<typeof schema>, deps: { mailer
       user: {
         create: {
           before: (user) => Promise.resolve(validateMinorSignup(user as unknown as MinorSignup)),
-          after: (created) =>
-            maybeCreateGuardianConsent(db, deps.mailer, created as unknown as NewUser),
+          after: async (created) => {
+            const newUser = created as unknown as NewUser & { name: string };
+            await maybeCreateGuardianConsent(db, deps.mailer, newUser);
+            // ST-072. One account is one player: the player is born at sign-up,
+            // not by a route. `displayName` starts as the account name and is
+            // editable later.
+            await db.insert(schema.player).values({
+              ownerUserId: newUser.id,
+              displayName: newUser.name,
+              birthYear: newUser.dateOfBirth ? Number(newUser.dateOfBirth.slice(0, 4)) : null,
+            });
+          },
         },
       },
     },

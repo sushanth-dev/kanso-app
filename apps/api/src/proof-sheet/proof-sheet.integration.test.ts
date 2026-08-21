@@ -71,18 +71,15 @@ async function signIn(email: string): Promise<string> {
   return cookie;
 }
 
-async function makePlayer(cookie: string, displayName: string): Promise<string> {
-  const res = await app().request('/players', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', cookie },
-    body: JSON.stringify({ displayName }),
-  });
-  expect(res.status).toBe(201);
-  return ((await res.json()) as { id: string }).id;
+/** The id of the player the sign-up hook created for this account. */
+async function playerIdFor(cookie: string): Promise<string> {
+  const res = await app().request('/me', { headers: { cookie } });
+  expect(res.status).toBe(200);
+  return ((await res.json()) as { player: { id: string } }).player.id;
 }
 
-async function setFocus(cookie: string, playerId: string): Promise<void> {
-  const res = await app().request(`/players/${playerId}/focus`, {
+async function setFocus(cookie: string): Promise<void> {
+  const res = await app().request('/focus', {
     method: 'PUT',
     headers: { 'content-type': 'application/json', cookie },
     body: JSON.stringify({ source: 'self', catalogueKey: KEY }),
@@ -90,11 +87,8 @@ async function setFocus(cookie: string, playerId: string): Promise<void> {
   expect(res.status).toBe(200);
 }
 
-async function createSheet(
-  cookie: string,
-  playerId: string,
-): Promise<{ id: string; token: string }> {
-  const res = await app().request(`/players/${playerId}/proof-sheets`, {
+async function createSheet(cookie: string): Promise<{ id: string; token: string }> {
+  const res = await app().request('/proof-sheets', {
     method: 'POST',
     headers: { cookie },
   });
@@ -105,10 +99,9 @@ async function createSheet(
 describe('the proof sheet', () => {
   test('POST composes a refusal sheet with no games, and the shared route serves it without a session', async () => {
     const cookie = await signIn('alice@example.com');
-    const playerId = await makePlayer(cookie, 'Alice Player');
-    await setFocus(cookie, playerId);
+    await setFocus(cookie);
 
-    const { token, id } = await createSheet(cookie, playerId);
+    const { token, id } = await createSheet(cookie);
     expect(token.length).toBeGreaterThanOrEqual(32);
     expect(id).toBeTruthy();
 
@@ -116,7 +109,7 @@ describe('the proof sheet', () => {
     expect(shared.status).toBe(200);
     const sheet = (await shared.json()) as Record<string, unknown>;
     expect(sheet.trend).toBe('insufficient_evidence');
-    expect(sheet.playerDisplayName).toBe('Alice Player');
+    expect(sheet.playerDisplayName).toBe('alice');
     expect(sheet.focusTitle).toBe('Converting won positions');
     expect(sheet.beforeValue).toBeNull();
     expect(sheet.gamesAfter).toBe(0);
@@ -124,23 +117,22 @@ describe('the proof sheet', () => {
 
   test('the snapshot is frozen: changing the source does not move the page', async () => {
     const cookie = await signIn('alice@example.com');
-    const playerId = await makePlayer(cookie, 'Alice Player');
-    await setFocus(cookie, playerId);
-    const { token } = await createSheet(cookie, playerId);
+    const playerId = await playerIdFor(cookie);
+    await setFocus(cookie);
+    const { token } = await createSheet(cookie);
 
     await harness.db.update(player).set({ displayName: 'Renamed' }).where(eq(player.id, playerId));
 
     const shared = await app().request(`/shared/proof-sheets/${token}`);
     expect(((await shared.json()) as { playerDisplayName: string }).playerDisplayName).toBe(
-      'Alice Player',
+      'alice',
     );
   });
 
   test('a player with no active focus gets 404', async () => {
     const cookie = await signIn('alice@example.com');
-    const playerId = await makePlayer(cookie, 'Alice Player');
 
-    const res = await app().request(`/players/${playerId}/proof-sheets`, {
+    const res = await app().request('/proof-sheets', {
       method: 'POST',
       headers: { cookie },
     });
@@ -149,11 +141,8 @@ describe('the proof sheet', () => {
 
   test('revoked, expired, and unknown tokens are the same 404', async () => {
     const cookie = await signIn('alice@example.com');
-    const playerId = await makePlayer(cookie, 'Alice Player');
-    await setFocus(cookie, playerId);
-    const { token, id } = await createSheet(cookie, playerId);
-
-    // Revoke it; the link stops working immediately.
+    await setFocus(cookie);
+    const { token, id } = await createSheet(cookie);
     const del = await app().request(`/proof-sheets/${id}`, {
       method: 'DELETE',
       headers: { cookie },
@@ -199,12 +188,10 @@ describe('the proof sheet', () => {
 
   test("another player's sheet answers 403", async () => {
     const alice = await signIn('alice@example.com');
-    const alicePlayer = await makePlayer(alice, 'Alice');
-    await setFocus(alice, alicePlayer);
-    const { id } = await createSheet(alice, alicePlayer);
+    await setFocus(alice);
+    const { id } = await createSheet(alice);
 
     const bob = await signIn('bob@example.com');
-    await makePlayer(bob, 'Bob');
 
     const res = await app().request(`/proof-sheets/${id}`, {
       method: 'DELETE',
@@ -215,33 +202,23 @@ describe('the proof sheet', () => {
 });
 
 describe('the proof sheet list', () => {
-  test('answers 401 without a session and 403 for a player the session does not own', async () => {
-    const alice = await signIn('alice@example.com');
-    const alicePlayer = await makePlayer(alice, 'Alice');
-
-    const anon = await app().request(`/players/${alicePlayer}/proof-sheets`);
+  test('answers 401 without a session', async () => {
+    const anon = await app().request('/proof-sheets');
     expect(anon.status).toBe(401);
-
-    const bob = await signIn('bob@example.com');
-    const res = await app().request(`/players/${alicePlayer}/proof-sheets`, {
-      headers: { cookie: bob },
-    });
-    expect(res.status).toBe(403);
   });
 
   test('is empty before any sheet, lists a live sheet, and drops revoked and expired ones', async () => {
     const cookie = await signIn('alice@example.com');
-    const playerId = await makePlayer(cookie, 'Alice');
-    await setFocus(cookie, playerId);
+    await setFocus(cookie);
 
-    const empty = await app().request(`/players/${playerId}/proof-sheets`, {
+    const empty = await app().request('/proof-sheets', {
       headers: { cookie },
     });
     expect(empty.status).toBe(200);
     expect(await empty.json()).toEqual([]);
 
-    const { id, token } = await createSheet(cookie, playerId);
-    const listed = await app().request(`/players/${playerId}/proof-sheets`, {
+    const { id, token } = await createSheet(cookie);
+    const listed = await app().request('/proof-sheets', {
       headers: { cookie },
     });
     expect(listed.status).toBe(200);
@@ -254,7 +231,7 @@ describe('the proof sheet list', () => {
     expect(rows[0]).toMatchObject({ id, token, revokedAt: null });
 
     await app().request(`/proof-sheets/${id}`, { method: 'DELETE', headers: { cookie } });
-    const afterRevoke = await app().request(`/players/${playerId}/proof-sheets`, {
+    const afterRevoke = await app().request('/proof-sheets', {
       headers: { cookie },
     });
     expect(await afterRevoke.json()).toEqual([]);
@@ -282,7 +259,7 @@ describe('the proof sheet list', () => {
         expiresAt: new Date(Date.now() - 1000),
       })
       .returning();
-    const withExpired = await app().request(`/players/${playerId}/proof-sheets`, {
+    const withExpired = await app().request('/proof-sheets', {
       headers: { cookie },
     });
     expect(await withExpired.json()).toEqual([]);
