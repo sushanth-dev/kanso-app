@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient } from '@tanstack/react-query';
 import { createMemoryHistory, RouterContextProvider } from '@tanstack/react-router';
@@ -240,6 +240,28 @@ describe('ImportScreen', () => {
     });
     expect(screen.getByText('Analysis runs next and arrives asynchronously.')).toBeVisible();
     expect(screen.getByRole('link', { name: 'View report' })).toBeVisible();
+  });
+
+  test('imports a PGN file dropped on the upload target', async () => {
+    const user = userEvent.setup();
+    const pgn = '[Event "Test"]\n1. e4 e5 1-0';
+    startImport.mockResolvedValue(
+      makeJob({ source: 'pgn_upload', stream: 'online', gamesFound: 1, gamesImported: 1 }),
+    );
+    renderScreen();
+    await user.selectOptions(screen.getByLabelText('Method'), 'pgn_upload');
+
+    const dropTarget = screen.getByRole('button', { name: /drop a pgn file here/i });
+    const file = new File([pgn], 'games.pgn', { type: 'application/x-chess-pgn' });
+    fireEvent.drop(dropTarget, { dataTransfer: { files: [file] } });
+
+    expect(await screen.findByText('games.pgn')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Import games' }));
+    expect(startImport).toHaveBeenCalledWith({
+      source: 'pgn_upload',
+      pgn,
+      stream: 'online',
+    });
   });
 
   test('requires a PGN file before any request', async () => {

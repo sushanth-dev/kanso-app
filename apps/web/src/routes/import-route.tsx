@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useRef, useState, type DragEvent, type FormEvent, type ReactNode } from 'react';
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { Field } from '@astryxdesign/core/Field';
@@ -171,6 +171,20 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
   const [submitting, setSubmitting] = useState(false);
   const [outcome, setOutcome] = useState<ImportOutcome | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [pgnFileName, setPgnFileName] = useState<string | null>(null);
+  const [isDraggingPgn, setIsDraggingPgn] = useState(false);
+  const pgnInputRef = useRef<HTMLInputElement>(null);
+
+  function readPgnFile(file: File | undefined) {
+    setPgnError(undefined);
+    if (file === undefined) {
+      setPgn(null);
+      setPgnFileName(null);
+      return;
+    }
+    setPgnFileName(file.name);
+    void file.text().then((text) => setPgn(text));
+  }
 
   function clearFieldErrors() {
     setUsernameError(undefined);
@@ -365,23 +379,46 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
                   pgnError === undefined ? undefined : { type: 'error' as const, message: pgnError }
                 }
               >
-                <input
-                  id="pgn-file"
-                  name="pgn"
-                  type="file"
-                  accept=".pgn,text/plain"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    setPgnError(undefined);
-                    if (file === undefined) {
-                      setPgn(null);
-                      return;
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => pgnInputRef.current?.click()}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      pgnInputRef.current?.click();
                     }
-                    void file.text().then((text) => setPgn(text));
                   }}
-                  aria-invalid={pgnError === undefined ? undefined : true}
+                  onDragOver={(event: DragEvent<HTMLDivElement>) => {
+                    event.preventDefault();
+                    setIsDraggingPgn(true);
+                  }}
+                  onDragLeave={() => setIsDraggingPgn(false)}
+                  onDrop={(event: DragEvent<HTMLDivElement>) => {
+                    event.preventDefault();
+                    setIsDraggingPgn(false);
+                    readPgnFile(event.dataTransfer.files[0]);
+                  }}
                   aria-describedby={pgnError === undefined ? undefined : 'pgn-file-status'}
-                />
+                  className={`min-h-11 w-full cursor-pointer rounded-control border-2 border-dashed px-3 py-6 text-center transition-control focus:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
+                    isDraggingPgn ? 'border-focus bg-sunken' : 'border-border-strong'
+                  }`}
+                >
+                  <p className="text-primary">
+                    {pgnFileName ?? 'Drop a PGN file here, or click to choose'}
+                  </p>
+                  <input
+                    ref={pgnInputRef}
+                    id="pgn-file"
+                    name="pgn"
+                    type="file"
+                    tabIndex={-1}
+                    accept=".pgn,text/plain"
+                    onChange={(event) => readPgnFile(event.target.files?.[0])}
+                    aria-invalid={pgnError === undefined ? undefined : true}
+                    className="sr-only"
+                  />
+                </div>
               </Field>
               <StreamToggle
                 stream={stream}
