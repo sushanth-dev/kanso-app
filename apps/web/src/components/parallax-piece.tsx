@@ -2,50 +2,89 @@
 
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 
-// Board theme colours from DESIGN.md, shared with board.tsx. The pawn recedes
-// behind the hero so the sample diagnosis card stays the brightest object on
-// the landing page.
+// Board theme colour, tinting the glass instead of the prototype's white.
 const WOOD_DARK = '#8f5e38';
-const WOOD_LIGHT = '#ead9b7';
 
-function buildPawn(): THREE.Group {
-  const dark = new THREE.MeshStandardMaterial({
-    color: WOOD_DARK,
-    roughness: 0.6,
-    metalness: 0.05,
-  });
-  const light = new THREE.MeshStandardMaterial({
-    color: WOOD_LIGHT,
-    roughness: 0.5,
-    metalness: 0.05,
+/** Premium clear-glass material, matching the prototype's transmission setup. */
+function glassMaterial(color: string): THREE.MeshPhysicalMaterial {
+  const material = new THREE.MeshPhysicalMaterial({
+    color,
+    roughness: 0.1,
+    ior: 1.5,
+    envMapIntensity: 1.4,
+    transparent: true,
+    opacity: 0.6,
   });
 
-  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.82, 0.35, 48), dark);
-  base.position.y = 0.175;
+  // Flat uniform opacity makes curved surfaces (the head) read as a flat
+  // translucent disc instead of a sphere. A Fresnel term makes silhouette
+  // edges more opaque than the face-on centre, so the curvature actually
+  // reads through the glass.
+  material.onBeforeCompile = (shader) => {
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <opaque_fragment>',
+      `
+      float fresnel = pow(1.0 - saturate(dot(normalize(vViewPosition), normal)), 2.4);
+      diffuseColor.a = mix(0.22, 0.92, fresnel);
+      #include <opaque_fragment>
+      `,
+    );
+  };
 
-  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.3, 0.9, 32), dark);
-  stem.position.y = 0.8;
+  return material;
+}
 
-  const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.3, 0.14, 48), light);
-  collar.position.y = 1.32;
+/** Profile (radius, y) for the pawn silhouette: base, body, head, as one
+ * continuous line so the lathe produces a single seamless mesh instead of
+ * three abutting parts. The head follows the actual sphere arc rather than
+ * a spline guess, so the dome rounds off instead of overshooting into a
+ * point. */
+function pawnProfile(): THREE.Vector2[] {
+  const points: THREE.Vector2[] = [];
 
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.36, 48, 32), light);
-  head.position.y = 1.72;
+  // Base: flat foot, straight wall, flat collar top.
+  points.push(new THREE.Vector2(0, -0.25));
+  points.push(new THREE.Vector2(1, -0.25));
+  points.push(new THREE.Vector2(1, 0.25));
 
-  const pawn = new THREE.Group();
-  pawn.add(base, stem, collar, head);
-  return pawn;
+  // Body: straight taper from the collar up to the neck below the head.
+  const neckRadius = 0.42;
+  const headCenterY = 2.5;
+  const headRadius = 0.6;
+  const neckY = headCenterY - Math.sqrt(headRadius ** 2 - neckRadius ** 2);
+  points.push(new THREE.Vector2(0.8, 0.25));
+  points.push(new THREE.Vector2(neckRadius, neckY));
+
+  // Head: the visible upper cap of the sphere, from the neck join over the top.
+  const angleStart = Math.asin((neckY - headCenterY) / headRadius);
+  const headSegments = 20;
+  for (let i = 1; i <= headSegments; i++) {
+    const angle = THREE.MathUtils.lerp(angleStart, Math.PI / 2, i / headSegments);
+    points.push(
+      new THREE.Vector2(headRadius * Math.cos(angle), headCenterY + headRadius * Math.sin(angle)),
+    );
+  }
+
+  return points;
+}
+
+/** The pawn as a single lathed mesh: no seams between base, body and head. */
+function buildPawn(material: THREE.Material): THREE.Mesh {
+  return new THREE.Mesh(new THREE.LatheGeometry(pawnProfile(), 48), material);
 }
 
 /**
- * A decorative, scroll-driven 3D pawn behind the landing hero.
+ * One big premium glass pawn behind the landing, matching the prototype's
+ * transmission look and four-phase scroll animation (hero, about, features,
+ * footer), tinted with the board's wood colours instead of white.
  *
- * One scene, one pawn built from primitives, muted wood tones. The render loop
- * reads a scroll-progress ref and never touches React state per frame. Under
- * `prefers-reduced-motion: reduce` the loop never starts; one static frame
- * renders and stays, and the canvas carries a `data-reduced-motion` marker the
- * e2e asserts.
+ * A PMREM-baked room environment feeds the transmission and reflection, so the
+ * glass refracts something instead of reading as a flat translucent blob. The
+ * render loop reads a scroll-progress ref and never touches React state per
+ * frame. Under `prefers-reduced-motion: reduce` one static hero frame renders
+ * and the canvas carries `data-reduced-motion` for the e2e.
  */
 export function ParallaxPiece() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -58,23 +97,35 @@ export function ParallaxPiece() {
     try {
       renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
     } catch {
-      // No WebGL context (jsdom, or a browser with WebGL disabled): the piece is
-      // decorative, so render nothing rather than crash the surface.
+      // No WebGL context (jsdom, or WebGL disabled): the pawn is decorative,
+      // so render nothing rather than crash the surface.
       return;
     }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-    camera.position.set(0, 0.9, 6);
-    camera.lookAt(0, 0.9, 0);
+    camera.position.set(0, 0, 6);
+    camera.lookAt(0, 0.2, 0);
+
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    pmrem.dispose();
 
     scene.add(new THREE.AmbientLight(0xffffff, 1.1));
-    const key = new THREE.DirectionalLight(0xffffff, 1.4);
-    key.position.set(3, 5, 4);
+    const key = new THREE.DirectionalLight(0xfff2df, 1.6);
+    key.position.set(4, 6, 5);
     scene.add(key);
+    const rim = new THREE.DirectionalLight(0xffd9b8, 0.9);
+    rim.position.set(-4, 2, -3);
+    scene.add(rim);
 
-    const pawn = buildPawn();
+    const material = glassMaterial(WOOD_DARK);
+    const materials = [material];
+
+    const pawn = buildPawn(material);
+    pawn.position.set(0, -1, 0);
     scene.add(pawn);
 
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -97,24 +148,57 @@ export function ParallaxPiece() {
     onResize();
     window.addEventListener('resize', onResize);
 
-    let frame = 0;
-    const render = () => {
-      // Slow idle spin plus a half turn over the page, tilting upright at the
-      // bottom: the piece reads as the visitor scrolls but never plays on its
-      // own enough to be the point.
-      pawn.rotation.y = frame * 0.003 + scrollProgress * Math.PI;
-      pawn.rotation.x = (1 - scrollProgress) * 0.45;
+    const render = (delta: number) => {
+      const t = scrollProgress;
+      let targetScale: number;
+      let targetRotX: number;
+      let rotYSpeed: number;
+
+      if (t < 0.25) {
+        // Hero - centred, normal scale.
+        targetScale = 1.0;
+        targetRotX = 0;
+        rotYSpeed = 0.5;
+      } else if (t < 0.5) {
+        // About - tilt forward imposingly, scale up.
+        const p = (t - 0.25) / 0.25;
+        targetScale = THREE.MathUtils.lerp(1.0, 1.45, p);
+        targetRotX = THREE.MathUtils.lerp(0, Math.PI / 3, p);
+        rotYSpeed = 0.3;
+      } else if (t < 0.75) {
+        // Features - tilt back, rapid spin, scale down sleek.
+        const p = (t - 0.5) / 0.25;
+        targetScale = THREE.MathUtils.lerp(1.45, 0.85, p);
+        targetRotX = THREE.MathUtils.lerp(Math.PI / 3, -Math.PI / 4, p);
+        rotYSpeed = 1.6;
+      } else {
+        // Footer - return upright, massive scale fills the background.
+        const p = (t - 0.75) / 0.25;
+        targetScale = THREE.MathUtils.lerp(0.85, 2.2, p);
+        targetRotX = THREE.MathUtils.lerp(-Math.PI / 4, 0, p);
+        rotYSpeed = 0.4;
+      }
+
+      const s = THREE.MathUtils.lerp(pawn.scale.x, targetScale, 0.05);
+      pawn.scale.set(s, s, s);
+      pawn.rotation.x = THREE.MathUtils.lerp(pawn.rotation.x, targetRotX, 0.05);
+      pawn.rotation.y += delta * rotYSpeed;
+      pawn.position.x = THREE.MathUtils.lerp(pawn.position.x, 0, 0.08);
+      pawn.position.y = THREE.MathUtils.lerp(pawn.position.y, -1, 0.08);
+
       renderer.render(scene, camera);
-      frame += 1;
     };
 
     let raf = 0;
     if (reduced) {
       canvas.dataset.reducedMotion = 'true';
-      render(); // one static frame, then nothing
+      render(0); // one static hero frame, then nothing
     } else {
-      const loop = () => {
-        render();
+      let lastTime = performance.now();
+      const loop = (now: number) => {
+        const delta = Math.min((now - lastTime) / 1000, 1 / 30);
+        lastTime = now;
+        render(delta);
         raf = requestAnimationFrame(loop);
       };
       raf = requestAnimationFrame(loop);
@@ -128,11 +212,11 @@ export function ParallaxPiece() {
         if (!(object instanceof THREE.Mesh)) return;
         const mesh = object as THREE.Mesh;
         mesh.geometry.dispose();
-        const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-        for (const material of materials) {
-          material.dispose();
-        }
       });
+      for (const material of materials) {
+        material.dispose();
+      }
+      scene.environment?.dispose();
       renderer.dispose();
     };
   }, []);
@@ -141,7 +225,7 @@ export function ParallaxPiece() {
     <canvas
       ref={canvasRef}
       aria-hidden="true"
-      className="pointer-events-none fixed inset-0 z-0 opacity-60"
+      className="pointer-events-none fixed inset-0 z-[1]"
     />
   );
 }

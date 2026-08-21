@@ -57,8 +57,9 @@ export default tseslint.config(
   // Config files sit outside every tsconfig, so type-aware rules cannot run on
   // them. Syntax rules still do.
   {
-    files: ['*.mjs', '*.js', 'vitest.config.mts'],
+    files: ['*.mjs', '*.js', 'vitest.config.mts', 'scripts/**/*.mjs'],
     ...tseslint.configs.disableTypeChecked,
+    languageOptions: { globals: globals.node },
   },
   // The Lambda entry point is a .mjs re-export because the runtime resolves a
   // handler by .mjs, .js or .cjs and never by .ts. It is one export line and no
