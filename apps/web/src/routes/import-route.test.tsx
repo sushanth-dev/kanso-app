@@ -149,16 +149,18 @@ describe('ImportScreen', () => {
     ).toBeVisible();
   });
 
-  test('shows the analysis note and report link on a username success', async () => {
+  test('navigates to the report on a username success', async () => {
     const user = userEvent.setup();
-    startImport.mockResolvedValue(makeJob({ gamesFound: 3, gamesImported: 3 }));
-    renderScreen();
+    const navigate = vi.fn();
+    startImport.mockResolvedValue(makeJob({ gamesFound: 3, gamesImported: 3, stream: 'online' }));
+    renderScreen({ navigate });
     await user.type(screen.getByLabelText('Username'), 'mina123');
     await user.click(screen.getByRole('button', { name: 'Import games' }));
     expect(await screen.findByText('Imported 3 games.')).toBeVisible();
-    expect(screen.getByText('Analysis runs next and arrives asynchronously.')).toBeVisible();
-    const reportLink = screen.getByRole('link', { name: 'View report' });
-    expect(reportLink).toHaveAttribute('href', expect.stringContaining('stream=online'));
+    expect(navigate).toHaveBeenCalledWith({
+      to: '/account/report',
+      search: { stream: 'online' },
+    });
   });
 
   test('reports no games found for a valid username with an empty period', async () => {
@@ -219,13 +221,14 @@ describe('ImportScreen', () => {
     });
   });
 
-  test('imports a PGN upload and states the chosen stream', async () => {
+  test('imports a PGN upload, states the chosen stream, and navigates to the report', async () => {
     const user = userEvent.setup();
+    const navigate = vi.fn();
     const pgn = '[Event "Test"]\n1. e4 e5 1-0';
     startImport.mockResolvedValue(
       makeJob({ source: 'pgn_upload', stream: 'online', gamesFound: 2, gamesImported: 2 }),
     );
-    renderScreen();
+    renderScreen({ navigate });
     await user.selectOptions(screen.getByLabelText('Method'), 'pgn_upload');
     await user.upload(
       screen.getByLabelText('PGN file'),
@@ -238,8 +241,10 @@ describe('ImportScreen', () => {
       pgn,
       stream: 'online',
     });
-    expect(screen.getByText('Analysis runs next and arrives asynchronously.')).toBeVisible();
-    expect(screen.getByRole('link', { name: 'View report' })).toBeVisible();
+    expect(navigate).toHaveBeenCalledWith({
+      to: '/account/report',
+      search: { stream: 'online' },
+    });
   });
 
   test('imports a PGN file dropped on the upload target', async () => {
@@ -296,12 +301,13 @@ describe('ImportScreen', () => {
     expect(screen.getByText('game 3: missing result header')).toBeVisible();
   });
 
-  test('imports a tournament and notes results carry no moves', async () => {
+  test('imports a tournament, notes results carry no moves, and does not navigate', async () => {
     const user = userEvent.setup();
+    const navigate = vi.fn();
     startImport.mockResolvedValue(
       makeJob({ source: 'uscf', stream: 'tournament', gamesFound: 3, gamesImported: 3 }),
     );
-    renderScreen();
+    renderScreen({ navigate });
     await user.selectOptions(screen.getByLabelText('Method'), 'uscf');
     await user.type(screen.getByLabelText('Tournament name'), 'State Champs');
     expect(screen.getByLabelText('Player name')).toHaveValue('Mina');
@@ -315,7 +321,7 @@ describe('ImportScreen', () => {
       tournamentName: 'State Champs',
       playerName: 'Mina',
     });
-    expect(screen.queryByRole('link', { name: 'View report' })).toBeNull();
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   test('reports no games found for a tournament with an empty crosstable', async () => {

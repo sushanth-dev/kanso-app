@@ -118,23 +118,11 @@ function renderOutcome(outcome: ImportOutcome): ReactNode {
   return (
     <div className="mt-4">
       <StatusMessage tone={status.tone}>{status.message}</StatusMessage>
-      {outcome.kind === 'imported' &&
-        (outcome.job.source === 'uscf' ? (
-          <p className="mt-2 text-sm text-muted">
-            These games carry results, not moves, so no analysis follows.
-          </p>
-        ) : (
-          <p className="mt-2 text-sm text-muted">
-            Analysis runs next and arrives asynchronously.{' '}
-            <Link
-              to="/account/report"
-              search={{ stream: outcome.job.stream }}
-              className="font-ui text-sm text-accent underline"
-            >
-              View report
-            </Link>
-          </p>
-        ))}
+      {outcome.kind === 'imported' && outcome.job.source === 'uscf' && (
+        <p className="mt-2 text-sm text-muted">
+          These games carry results, not moves, so no analysis follows.
+        </p>
+      )}
       {outcome.kind === 'invalid-pgn' && (
         <ul className="mt-2 list-disc pl-5 text-sm text-danger">
           {outcome.issues.map((issue) => (
@@ -249,6 +237,9 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
           gamesFound: job.gamesFound,
           gamesImported: job.gamesImported,
         });
+        if (job.source !== 'uscf') {
+          await navigate({ to: '/account/report', search: { stream: job.stream } });
+        }
       }
     } catch (error) {
       if (error instanceof ApiRequestError) {
