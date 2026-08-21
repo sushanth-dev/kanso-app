@@ -173,6 +173,15 @@ describe('router', () => {
     );
   });
 
+  test('shows a Settings link in the header on the account section', async () => {
+    getMe.mockResolvedValue(meFixture);
+    renderAt('/account');
+    expect(await screen.findByRole('link', { name: 'Settings' })).toHaveAttribute(
+      'href',
+      '/account/settings',
+    );
+  });
+
   test('redirects /account to the guardian waiting screen when consent is required', async () => {
     getMe.mockRejectedValue(
       new ApiRequestError(
