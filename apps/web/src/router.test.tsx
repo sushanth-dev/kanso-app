@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
@@ -173,13 +173,25 @@ describe('router', () => {
     );
   });
 
-  test('shows a Settings link in the header on the account section', async () => {
+  test('shows every authenticated route in the header nav on the account section', async () => {
     getMe.mockResolvedValue(meFixture);
     renderAt('/account');
-    expect(await screen.findByRole('link', { name: 'Settings' })).toHaveAttribute(
-      'href',
-      '/account/settings',
-    );
+    expect(await screen.findByRole('heading', { name: 'Your account' })).toBeVisible();
+    const nav = screen.getByRole('navigation', { name: 'Account' });
+    const expected = [
+      ['Account', '/account'],
+      ['Report', '/account/report'],
+      ['Focus', '/account/focus'],
+      ['Games', '/account/games'],
+      ['Import', '/account/import'],
+      ['Proof sheet', '/account/proof-sheet'],
+      ['Plans', '/account/upgrade'],
+      ['Settings', '/account/settings'],
+    ] as const;
+    for (const [label, href] of expected) {
+      const link = within(nav).getByRole('link', { name: label });
+      expect(link).toHaveAttribute('href', href);
+    }
   });
 
   test('redirects /account to the guardian waiting screen when consent is required', async () => {

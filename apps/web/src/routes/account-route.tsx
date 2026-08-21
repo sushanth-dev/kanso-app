@@ -101,7 +101,7 @@ export function PlayerCard({ player, state }: { player: Player; state: PlayerDia
   return (
     <li>
       <Card>
-        <Heading level={3}>{player.displayName}</Heading>
+        <Heading level={2}>{player.displayName}</Heading>
         <PlayerDiagnosis state={state} />
         <div className="mt-3 flex flex-wrap gap-4">
           <Link
