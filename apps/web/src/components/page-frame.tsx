@@ -6,11 +6,30 @@ export interface PageFrameProps {
   children: ReactNode;
 }
 
+interface NavItem {
+  label: string;
+  to: string;
+}
+
+const NAV_ITEMS: NavItem[] = [
+  { label: 'Account', to: '/account' },
+  { label: 'Report', to: '/account/report' },
+  { label: 'Focus', to: '/account/focus' },
+  { label: 'Games', to: '/account/games' },
+  { label: 'Import', to: '/account/import' },
+  { label: 'Proof sheet', to: '/account/proof-sheet' },
+  { label: 'Plans', to: '/account/upgrade' },
+  { label: 'Settings', to: '/account/settings' },
+];
+
+const NAV_LINK_CLASS =
+  'text-sm font-ui text-muted hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-focus';
+
 export function PageFrame({ children }: PageFrameProps) {
   const pathname = useLocation({ select: (location) => location.pathname });
   const { flash, markPresented, clearMessage } = useStatusMessage();
   const atDestination = flash !== null && pathname === flash.destination;
-  const showSettings = pathname === '/account' || pathname.startsWith('/account/');
+  const showNav = pathname === '/account' || pathname.startsWith('/account/');
 
   useEffect(() => {
     if (flash === null) return;
@@ -31,22 +50,19 @@ export function PageFrame({ children }: PageFrameProps) {
       </a>
       <header className="glass sticky top-0 z-20 border-b border-border-subtle">
         <div className="mx-auto w-full max-w-3xl px-4 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <span aria-hidden="true" className="size-2.5 shrink-0 rounded-control bg-accent" />
-              <span className="font-display text-xl leading-tight tracking-tight">Kanso Chess</span>
-            </div>
-            {showSettings ? (
-              <nav aria-label="Account">
-                <Link
-                  to="/account/settings"
-                  className="text-sm font-ui text-muted hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-                >
-                  Settings
-                </Link>
-              </nav>
-            ) : null}
+          <div className="flex items-center gap-2">
+            <span aria-hidden="true" className="size-2.5 shrink-0 rounded-control bg-accent" />
+            <span className="font-display text-xl leading-tight tracking-tight">Kanso Chess</span>
           </div>
+          {showNav ? (
+            <nav aria-label="Account" className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+              {NAV_ITEMS.map((item) => (
+                <Link key={item.to} to={item.to} className={NAV_LINK_CLASS}>
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+          ) : null}
         </div>
       </header>
       <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">
