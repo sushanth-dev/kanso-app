@@ -83,16 +83,9 @@ describe('AccountScreen', () => {
     renderAccount();
     expect(screen.getByRole('heading', { name: 'Your account' })).toBeVisible();
     expect(screen.getByText('Mina')).toBeVisible();
-    expect(screen.getByText('player@example.com')).toBeVisible();
-    expect(screen.getByText('Free')).toBeVisible();
-  });
-
-  test('links to the settings page', () => {
-    renderAccount();
-    expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute(
-      'href',
-      '/account/settings',
-    );
+    expect(screen.getByText('Player')).toBeVisible();
+    expect(screen.queryByText('player@example.com')).not.toBeInTheDocument();
+    expect(screen.queryByText('Free')).not.toBeInTheDocument();
   });
 
   test('owned cards link to edit', () => {

@@ -1,19 +1,22 @@
 import { useState } from 'react';
+import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
 import { Heading } from '@astryxdesign/core/Heading';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
+import { type Me } from '../api/account-api.ts';
 import { authClient } from '../auth-client.ts';
 import { ChangePasswordForm } from '../components/change-password-form.tsx';
 import { secondaryLinkClassName } from '../components/secondary-link.ts';
 import { StatusMessage } from '../components/status-message.tsx';
-import { ME_QUERY_KEY } from '../query-client.ts';
+import { ME_QUERY_KEY, meQueryOptions } from '../query-client.ts';
 
 export interface SettingsScreenProps {
+  me: Me;
   signOut: () => Promise<void>;
 }
 
-export function SettingsScreen({ signOut }: SettingsScreenProps) {
+export function SettingsScreen({ me, signOut }: SettingsScreenProps) {
   const [signOutError, setSignOutError] = useState<string | null>(null);
 
   async function handleSignOut() {
@@ -33,6 +36,14 @@ export function SettingsScreen({ signOut }: SettingsScreenProps) {
         </Link>
         <Heading level={1}>Settings</Heading>
       </header>
+
+      <section aria-labelledby="account-details-heading" className="mt-8">
+        <Heading level={2} id="account-details-heading">
+          Account details
+        </Heading>
+        <p className="text-muted">{me.email}</p>
+        <Badge label={me.tier === 'paid' ? 'Paid' : 'Free'} variant="neutral" />
+      </section>
 
       <section aria-labelledby="signout-heading" className="mt-8">
         <Heading level={2} id="signout-heading">
@@ -59,6 +70,7 @@ export function SettingsScreen({ signOut }: SettingsScreenProps) {
 export function SettingsRoute() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { data: me } = useSuspenseQuery(meQueryOptions());
 
   const signOut = async () => {
     const { error } = await authClient.signOut();
@@ -70,5 +82,5 @@ export function SettingsRoute() {
     queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
   };
 
-  return <SettingsScreen signOut={signOut} />;
+  return <SettingsScreen me={me} signOut={signOut} />;
 }
