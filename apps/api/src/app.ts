@@ -18,7 +18,6 @@ import { requestId } from 'hono/request-id';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { routes } from './contract/routes.ts';
 import { mountMe } from './account/me.ts';
-import { mountCreatePlayer } from './account/create-player.ts';
 import { mountUpdatePlayer } from './account/update-player.ts';
 import { mountConfirmGuardian } from './account/confirm-guardian.ts';
 import { isConsentGated } from './account/consent-request.ts';
@@ -289,7 +288,6 @@ export function createApp({
     const razorpay = razorpayOption ?? (razorpayConfig ? httpRazorpayClient(razorpayConfig) : null);
     mountHealth(app, { db });
     mountMe(app, { db, getSession: effectiveGetSession });
-    mountCreatePlayer(app, { db, getSession: effectiveGetSession });
     mountUpdatePlayer(app, { db, getSession: effectiveGetSession });
     mountConfirmGuardian(app, { db });
     mountImport(app, { db, getSession: effectiveGetSession, gameFetcher });

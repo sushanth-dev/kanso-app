@@ -1,5 +1,5 @@
 /**
- * PUT /players/{playerId}/focus (F10, F13). Ends the active focus and starts
+ * PUT /focus (F10, F13). Ends the active focus and starts
  * the new one in one transaction. The coach branch stores the instruction
  * verbatim, leaves `catalogueId` null when it names no catalogue key, and pairs
  * it with a measurable focus resolved server-side from a key, never a raw id.
@@ -12,7 +12,7 @@ import { setFocus } from '../contract/routes.ts';
 import * as schema from '../db/schema.ts';
 import { focusCatalogue, playerFocus } from '../db/schema.ts';
 import { readSession } from '../session.ts';
-import { hasPlayerClaim } from '../players/claim.ts';
+import { getOwnPlayerId } from '../players/claim.ts';
 import { resolveFocusFields } from './resolve.ts';
 import { toActiveFocus, toCatalogueEntry } from './view.ts';
 
@@ -27,10 +27,9 @@ export function mountSetFocus(
     if (session === null) {
       return c.json({ code: 'no_session', message: 'Sign in to use this endpoint.' }, 401);
     }
-
-    const { playerId } = c.req.valid('param');
-    if (!(await hasPlayerClaim(deps.db, session.userId, playerId))) {
-      return c.json({ code: 'forbidden', message: 'Not your player.' }, 403);
+    const playerId = await getOwnPlayerId(deps.db, session.userId);
+    if (playerId === null) {
+      return c.json({ code: 'not_found', message: 'No such player.' }, 404);
     }
 
     const body = c.req.valid('json');

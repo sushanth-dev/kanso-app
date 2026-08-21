@@ -22,7 +22,7 @@ import { SharedProofSheet } from '../contract/schemas.ts';
 import * as schema from '../db/schema.ts';
 import { focusCatalogue, player, playerFocus, proofSheet } from '../db/schema.ts';
 import { readSession } from '../session.ts';
-import { hasPlayerClaim } from '../players/claim.ts';
+import { getOwnPlayerId, hasPlayerClaim } from '../players/claim.ts';
 import { FOCUS_COMPUTE } from '../focus/computations.ts';
 import { FOCUS_SPECS, measureFocusStream, trendFor } from '../focus/verify.ts';
 import { composeSharedProofSheet, generateToken, type MeasuredStream } from './compose.ts';
@@ -87,9 +87,9 @@ export function mountProofSheets(
       return c.json({ code: 'no_session', message: 'Sign in to use this endpoint.' }, 401);
     }
 
-    const { playerId } = c.req.valid('param');
-    if (!(await hasPlayerClaim(deps.db, session.userId, playerId))) {
-      return c.json({ code: 'forbidden', message: 'Not your player.' }, 403);
+    const playerId = await getOwnPlayerId(deps.db, session.userId);
+    if (playerId === null) {
+      return c.json({ code: 'not_found', message: 'No such player.' }, 404);
     }
 
     const [focus] = await deps.db
@@ -160,13 +160,13 @@ export function mountProofSheets(
       return c.json({ code: 'no_session', message: 'Sign in to use this endpoint.' }, 401);
     }
 
-    const { playerId } = c.req.valid('param');
-    if (!(await hasPlayerClaim(deps.db, session.userId, playerId))) {
-      return c.json({ code: 'forbidden', message: 'Not your player.' }, 403);
+    const playerId = await getOwnPlayerId(deps.db, session.userId);
+    if (playerId === null) {
+      return c.json({ code: 'not_found', message: 'No such player.' }, 404);
     }
 
     // Live sheets only: revoked and expired links are gone, and a nonexistent
-    // player already answered 403 above, so an empty list is the honest "none".
+    // player already answered 404 above, so an empty list is the honest "none".
     const now = new Date();
     const rows = await deps.db
       .select({

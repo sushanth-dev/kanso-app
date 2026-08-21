@@ -35,8 +35,8 @@ export type SetFocus =
 
 export interface FocusApi {
   listFocuses(): Promise<FocusCatalogueEntry[]>;
-  getFocus(playerId: string): Promise<ActiveFocus>;
-  setFocus(playerId: string, body: SetFocus): Promise<ActiveFocus>;
+  getFocus(): Promise<ActiveFocus>;
+  setFocus(body: SetFocus): Promise<ActiveFocus>;
 }
 
 export function createFocusApi(fetcher: typeof globalThis.fetch = globalThis.fetch): FocusApi {
@@ -51,18 +51,13 @@ export function createFocusApi(fetcher: typeof globalThis.fetch = globalThis.fet
       if (result.data !== undefined) return result.data;
       throw failure(result.response.status, result.error);
     },
-    async getFocus(playerId) {
-      const result = await client.GET('/players/{playerId}/focus', {
-        params: { path: { playerId } },
-      });
+    async getFocus() {
+      const result = await client.GET('/focus');
       if (result.data !== undefined) return result.data;
       throw failure(result.response.status, result.error);
     },
-    async setFocus(playerId, body) {
-      const result = await client.PUT('/players/{playerId}/focus', {
-        params: { path: { playerId } },
-        body,
-      });
+    async setFocus(body) {
+      const result = await client.PUT('/focus', { body });
       if (result.data !== undefined) return result.data;
       throw failure(result.response.status, result.error);
     },

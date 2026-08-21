@@ -7,8 +7,8 @@ export type ProofSheet = components['schemas']['ProofSheet'];
 export type SharedProofSheet = components['schemas']['SharedProofSheet'];
 
 export interface ProofSheetApi {
-  listProofSheets(playerId: string): Promise<ProofSheet[]>;
-  createProofSheet(playerId: string): Promise<ProofSheet>;
+  listProofSheets(): Promise<ProofSheet[]>;
+  createProofSheet(): Promise<ProofSheet>;
   revokeProofSheet(proofSheetId: string): Promise<void>;
 }
 
@@ -21,18 +21,13 @@ export function createProofSheetApi(
     credentials: 'include',
   });
   return {
-    async listProofSheets(playerId) {
-      const result = await client.GET('/players/{playerId}/proof-sheets', {
-        params: { path: { playerId } },
-      });
+    async listProofSheets() {
+      const result = await client.GET('/proof-sheets');
       if (result.data !== undefined) return result.data;
       throw failure(result.response.status, result.error);
     },
-    async createProofSheet(playerId) {
-      const result = await client.POST('/players/{playerId}/proof-sheets', {
-        params: { path: { playerId } },
-        body: {},
-      });
+    async createProofSheet() {
+      const result = await client.POST('/proof-sheets', { body: {} });
       if (result.data !== undefined) return result.data;
       throw failure(result.response.status, result.error);
     },

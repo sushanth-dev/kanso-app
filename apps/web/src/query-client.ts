@@ -12,34 +12,34 @@ export const meQueryOptions = () =>
     staleTime: 30_000,
   });
 
-export const reportQueryOptions = (playerId: string, stream: Stream) =>
+export const reportQueryOptions = (stream: Stream) =>
   queryOptions({
-    queryKey: ['report', playerId, stream] as const,
-    queryFn: () => diagnosisApi.getReport(playerId, stream),
+    queryKey: ['report', stream] as const,
+    queryFn: () => diagnosisApi.getReport(stream),
     retry: false,
     staleTime: 30_000,
   });
 
-export const motifsQueryOptions = (playerId: string, stream: Stream) =>
+export const motifsQueryOptions = (stream: Stream) =>
   queryOptions({
-    queryKey: ['motifs', playerId, stream] as const,
-    queryFn: () => diagnosisApi.getMotifs(playerId, stream),
+    queryKey: ['motifs', stream] as const,
+    queryFn: () => diagnosisApi.getMotifs(stream),
     retry: false,
     staleTime: 30_000,
   });
 
-export const phasesQueryOptions = (playerId: string, stream: Stream) =>
+export const phasesQueryOptions = (stream: Stream) =>
   queryOptions({
-    queryKey: ['phases', playerId, stream] as const,
-    queryFn: () => diagnosisApi.getPhases(playerId, stream),
+    queryKey: ['phases', stream] as const,
+    queryFn: () => diagnosisApi.getPhases(stream),
     retry: false,
     staleTime: 30_000,
   });
 
-export const gamesQueryOptions = (playerId: string, stream: Stream) =>
+export const gamesQueryOptions = (stream: Stream) =>
   queryOptions({
-    queryKey: ['games', playerId, stream] as const,
-    queryFn: () => diagnosisApi.listGames(playerId, stream),
+    queryKey: ['games', stream] as const,
+    queryFn: () => diagnosisApi.listGames(stream),
     retry: false,
     staleTime: 30_000,
   });
@@ -60,18 +60,18 @@ export const focusesQueryOptions = () =>
     staleTime: 30_000,
   });
 
-export const focusQueryOptions = (playerId: string) =>
+export const focusQueryOptions = () =>
   queryOptions({
-    queryKey: ['focus', playerId] as const,
-    queryFn: () => focusApi.getFocus(playerId),
+    queryKey: ['focus'] as const,
+    queryFn: () => focusApi.getFocus(),
     retry: false,
     staleTime: 30_000,
   });
 
-export const proofSheetsQueryOptions = (playerId: string) =>
+export const proofSheetsQueryOptions = () =>
   queryOptions({
-    queryKey: ['proof-sheets', playerId] as const,
-    queryFn: () => proofSheetApi.listProofSheets(playerId),
+    queryKey: ['proof-sheets'] as const,
+    queryFn: () => proofSheetApi.listProofSheets(),
     retry: false,
     staleTime: 30_000,
   });

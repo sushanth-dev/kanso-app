@@ -5,8 +5,8 @@ import { Field, type FieldStatusInput } from '@astryxdesign/core/Field';
 import { FormLayout } from '@astryxdesign/core/FormLayout';
 import { Heading } from '@astryxdesign/core/Heading';
 import { useQueryClient, useSuspenseQuery, type QueryClient } from '@tanstack/react-query';
-import { Link, notFound, useNavigate, useParams } from '@tanstack/react-router';
-import type { AccountApi, CreatePlayer, Me } from '../api/account-api.ts';
+import { Link, useNavigate } from '@tanstack/react-router';
+import type { AccountApi, Me, UpdatePlayer } from '../api/account-api.ts';
 import { ApiRequestError, accountApi } from '../api/account-api.ts';
 import { StatusMessage, useStatusMessage } from '../components/status-message.tsx';
 import { TextInput } from '../components/text-input.tsx';
@@ -28,12 +28,12 @@ function readValue(data: FormData, key: string): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-export function playerBody(formData: FormData): CreatePlayer {
+export function playerBody(formData: FormData): UpdatePlayer {
   const displayName = readValue(formData, 'displayName');
   if (displayName === '') {
     throw new Error('Display name is required.');
   }
-  const body: CreatePlayer = { displayName };
+  const body: UpdatePlayer = { displayName };
   for (const field of textFields) {
     const value = readValue(formData, field);
     if (value !== '') body[field] = value;
@@ -67,37 +67,22 @@ function numberDefault(value: number | null): string {
 }
 
 export interface PlayerFormScreenProps {
-  mode: 'create' | 'edit';
   me: Me;
-  playerId?: string;
   accountApi: AccountApi;
   queryClient: QueryClient;
   navigate: NavigateTo;
 }
 
-export function PlayerFormScreen({
-  mode,
-  me,
-  playerId,
-  accountApi,
-  queryClient,
-  navigate,
-}: PlayerFormScreenProps) {
-  const isEdit = mode === 'edit';
-  const player = isEdit ? me.players.find((owned) => owned.id === playerId) : undefined;
-
-  if (isEdit && player === undefined) {
-    // eslint-disable-next-line @typescript-eslint/only-throw-error -- notFound() returns a router not-found error, not an Error.
-    throw notFound();
-  }
+export function PlayerFormScreen({ me, accountApi, queryClient, navigate }: PlayerFormScreenProps) {
+  const player = me.player;
 
   const { clearMessage, showMessage } = useStatusMessage();
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  const heading = isEdit ? 'Edit player' : 'New player';
-  const submitLabel = isEdit ? 'Save changes' : 'Create player';
+  const heading = 'Edit player';
+  const submitLabel = 'Save changes';
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -105,7 +90,7 @@ export function PlayerFormScreen({
     clearMessage();
     setFieldErrors({});
 
-    let body: CreatePlayer;
+    let body: UpdatePlayer;
     try {
       body = playerBody(new FormData(event.currentTarget));
     } catch (error) {
@@ -115,11 +100,7 @@ export function PlayerFormScreen({
 
     setSubmitting(true);
     try {
-      if (isEdit && player !== undefined) {
-        await accountApi.updatePlayer(player.id, body);
-      } else {
-        await accountApi.createPlayer(body);
-      }
+      await accountApi.updateMe(body);
     } catch (error) {
       setSubmitting(false);
       if (error instanceof ApiRequestError) {
@@ -128,8 +109,8 @@ export function PlayerFormScreen({
           await navigate({ to: '/sign-in' });
           return;
         }
-        if (error.status === 403) {
-          setFormError('This player cannot be changed from this account.');
+        if (error.status === 404) {
+          setFormError('No player for this account.');
           return;
         }
         if (error.status === 400) {
@@ -322,33 +303,14 @@ export function PlayerFormScreen({
   );
 }
 
-export function PlayerNewRoute() {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const { data: me } = useSuspenseQuery(meQueryOptions());
-
-  return (
-    <PlayerFormScreen
-      mode="create"
-      me={me}
-      accountApi={accountApi}
-      queryClient={queryClient}
-      navigate={navigate}
-    />
-  );
-}
-
 export function PlayerEditRoute() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { playerId } = useParams({ from: '/account/players/$playerId/edit' });
   const { data: me } = useSuspenseQuery(meQueryOptions());
 
   return (
     <PlayerFormScreen
-      mode="edit"
       me={me}
-      playerId={playerId}
       accountApi={accountApi}
       queryClient={queryClient}
       navigate={navigate}

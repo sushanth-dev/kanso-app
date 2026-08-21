@@ -6,7 +6,6 @@ import {
   type SharedProofSheet,
 } from './proof-sheet-api.ts';
 
-const playerId = '00000000-0000-4000-8000-000000000001';
 const proofSheetId = '11111111-1111-4111-8111-111111111111';
 
 const sheetFixture: ProofSheet = {
@@ -48,10 +47,10 @@ describe('proof sheet API transport', () => {
       return Promise.resolve(jsonResponse([sheetFixture]));
     });
 
-    expect(await api.listProofSheets(playerId)).toEqual([sheetFixture]);
+    expect(await api.listProofSheets()).toEqual([sheetFixture]);
     expect(lastRequest?.method).toBe('GET');
     expect(lastRequest?.credentials).toBe('include');
-    expect(lastRequest?.url).toMatch(new RegExp(`/players/${playerId}/proof-sheets$`));
+    expect(lastRequest?.url).toMatch(/\/proof-sheets$/);
   });
 
   test('creates a sheet with an empty body', async () => {
@@ -61,7 +60,7 @@ describe('proof sheet API transport', () => {
       return Promise.resolve(jsonResponse(sheetFixture, 201));
     });
 
-    expect(await api.createProofSheet(playerId)).toEqual(sheetFixture);
+    expect(await api.createProofSheet()).toEqual(sheetFixture);
     expect(lastRequest?.method).toBe('POST');
     expect(await lastRequest?.json()).toEqual({});
   });

@@ -98,11 +98,11 @@ export const timeTroubleReasonEnum = pgEnum('time_trouble_reason', [
 // ─── Identity ────────────────────────────────────────────────────────────────
 
 /**
- * B4. The person paying and the person playing are different people, and the
- * account model has to support that from the first version because retrofitting
- * it means migrating every account we have.
+ * ST-072. One account is one chess player. The account IS the player: a `user`
+ * is the login (better-auth, ADR-0011) and the single `player` row is the chess
+ * identity that login owns, 1:1. The unique owner enforces it rather than a
+ * convention. The player is born in the sign-up hook, not created by a route.
  *
- * A `user` is a login (better-auth, ADR-0011). A `player` is a chess identity.
  * A self-managing adult owns their own player. A minor signs up themselves and
  * is gated until their guardian confirms consent by email (ST-034, ADR-0035);
  * the guardian is a bare email, not a second account with its own players.
@@ -148,7 +148,7 @@ export const player = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index('player_owner_idx').on(t.ownerUserId)],
+  (t) => [uniqueIndex('player_owner_unique').on(t.ownerUserId)],
 );
 
 /**

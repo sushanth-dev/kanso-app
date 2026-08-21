@@ -44,7 +44,7 @@ function meFixture(overrides: Partial<Me> = {}): Me {
     email: 'player@example.com',
     name: 'Player',
     tier: 'free',
-    players: [player()],
+    player: player(),
     ...overrides,
   };
 }
@@ -52,22 +52,17 @@ function meFixture(overrides: Partial<Me> = {}): Me {
 function accountApi(overrides: Partial<AccountApi> = {}): AccountApi {
   return {
     getMe: vi.fn(),
-    createPlayer: vi.fn(),
-    updatePlayer: vi.fn(),
+    updateMe: vi.fn(),
     ...overrides,
   };
 }
 
 function renderScreen({
-  mode = 'create',
   me = meFixture(),
-  playerId: id,
   api = accountApi(),
   navigate = vi.fn(),
 }: {
-  mode?: 'create' | 'edit';
   me?: Me;
-  playerId?: string;
   api?: AccountApi;
   navigate?: NavigateTo;
 } = {}) {
@@ -80,9 +75,7 @@ function renderScreen({
       <StatusMessageProvider>
         <PageFrame>
           <PlayerFormScreen
-            mode={mode}
             me={me}
-            playerId={id}
             accountApi={api}
             queryClient={queryClient}
             navigate={navigate}
@@ -120,27 +113,29 @@ describe('playerBody', () => {
   });
 });
 
-describe('PlayerFormScreen create', () => {
+describe('PlayerFormScreen', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
 
   test('submits the allowlisted body', async () => {
-    const createPlayer = vi.fn().mockResolvedValue(player());
-    const api = accountApi({ createPlayer });
+    const updateMe = vi.fn().mockResolvedValue(player());
+    const api = accountApi({ updateMe });
     const { user } = renderScreen({ api });
 
+    await user.clear(screen.getByLabelText('Display name'));
     await user.type(screen.getByLabelText('Display name'), 'Mina');
+    await user.clear(screen.getByLabelText('Birth year'));
     await user.type(screen.getByLabelText('Birth year'), '2013');
-    await user.click(screen.getByRole('button', { name: 'Create player' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() =>
-      expect(createPlayer).toHaveBeenCalledWith({ displayName: 'Mina', birthYear: 2013 }),
+      expect(updateMe).toHaveBeenCalledWith({ displayName: 'Mina', birthYear: 2013 }),
     );
   });
 
   test('renders a 400 issue with path birthYear beside Birth year and preserves values', async () => {
-    const createPlayer = vi
+    const updateMe = vi
       .fn()
       .mockRejectedValue(
         new ApiRequestError(
@@ -150,19 +145,23 @@ describe('PlayerFormScreen create', () => {
           'Invalid.',
         ),
       );
-    const { user } = renderScreen({ api: accountApi({ createPlayer }) });
+    const { user } = renderScreen({ api: accountApi({ updateMe }) });
 
+    await user.clear(screen.getByLabelText('Display name'));
     await user.type(screen.getByLabelText('Display name'), 'Mina');
+    await user.clear(screen.getByLabelText('Birth year'));
     await user.type(screen.getByLabelText('Birth year'), '2013');
-    await user.click(screen.getByRole('button', { name: 'Create player' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
-    expect(await screen.findByText('Birth year must be between 1900 and 2100.')).toBeVisible();
+    expect(
+      (await screen.findAllByText('Birth year must be between 1900 and 2100.')).length,
+    ).toBeGreaterThan(0);
     expect(screen.getByLabelText('Display name')).toHaveValue('Mina');
     expect(screen.getByLabelText('Birth year')).toHaveValue(2013);
   });
 
   test('does not map field issues for a non-400 status', async () => {
-    const createPlayer = vi
+    const updateMe = vi
       .fn()
       .mockRejectedValue(
         new ApiRequestError(
@@ -172,10 +171,11 @@ describe('PlayerFormScreen create', () => {
           'Conflict.',
         ),
       );
-    const { user } = renderScreen({ api: accountApi({ createPlayer }) });
+    const { user } = renderScreen({ api: accountApi({ updateMe }) });
 
+    await user.clear(screen.getByLabelText('Display name'));
     await user.type(screen.getByLabelText('Display name'), 'Mina');
-    await user.click(screen.getByRole('button', { name: 'Create player' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     expect(
       await screen.findByText('The player could not be saved. Please try again.'),
@@ -184,16 +184,17 @@ describe('PlayerFormScreen create', () => {
   });
 
   test('navigates to /sign-in on 401', async () => {
-    const createPlayer = vi
+    const updateMe = vi
       .fn()
       .mockRejectedValue(new ApiRequestError(401, 'unauthorized', undefined, 'No session.'));
     const navigate = vi.fn();
-    const { user, queryClient } = renderScreen({ api: accountApi({ createPlayer }), navigate });
+    const { user, queryClient } = renderScreen({ api: accountApi({ updateMe }), navigate });
     queryClient.setQueryData(ME_QUERY_KEY, meFixture());
     const removeSpy = vi.spyOn(queryClient, 'removeQueries');
 
+    await user.clear(screen.getByLabelText('Display name'));
     await user.type(screen.getByLabelText('Display name'), 'Mina');
-    await user.click(screen.getByRole('button', { name: 'Create player' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: '/sign-in' }));
     expect(queryClient.getQueryData(ME_QUERY_KEY)).toBeUndefined();
@@ -202,58 +203,59 @@ describe('PlayerFormScreen create', () => {
     );
   });
 
-  test('renders the 403 copy and preserves values', async () => {
-    const createPlayer = vi
+  test('renders the 404 copy and preserves values', async () => {
+    const updateMe = vi
       .fn()
-      .mockRejectedValue(new ApiRequestError(403, 'forbidden', undefined, 'Not yours.'));
-    const { user } = renderScreen({ api: accountApi({ createPlayer }) });
+      .mockRejectedValue(new ApiRequestError(404, 'not_found', undefined, 'No such player.'));
+    const { user } = renderScreen({ api: accountApi({ updateMe }) });
 
+    await user.clear(screen.getByLabelText('Display name'));
     await user.type(screen.getByLabelText('Display name'), 'Mina');
-    await user.click(screen.getByRole('button', { name: 'Create player' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
-    expect(
-      await screen.findByText('This player cannot be changed from this account.'),
-    ).toBeVisible();
+    expect(await screen.findByText('No player for this account.')).toBeVisible();
     expect(screen.getByLabelText('Display name')).toHaveValue('Mina');
   });
 
   test('keeps submit disabled and blocks duplicate mutations until invalidation resolves', async () => {
-    const createPlayer = vi.fn().mockResolvedValue(player());
+    const updateMe = vi.fn().mockResolvedValue(player());
     let resolveInvalidate: () => void = () => {};
     const pending = new Promise<void>((resolve) => {
       resolveInvalidate = resolve;
     });
-    const { user, queryClient } = renderScreen({ api: accountApi({ createPlayer }) });
+    const { user, queryClient } = renderScreen({ api: accountApi({ updateMe }) });
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockReturnValue(pending);
 
+    await user.clear(screen.getByLabelText('Display name'));
     await user.type(screen.getByLabelText('Display name'), 'Mina');
-    await user.click(screen.getByRole('button', { name: 'Create player' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ME_QUERY_KEY }));
-    const button = screen.getByRole('button', { name: 'Create player' });
+    const button = screen.getByRole('button', { name: 'Save changes' });
     expect(button).toBeDisabled();
-    expect(createPlayer).toHaveBeenCalledTimes(1);
+    expect(updateMe).toHaveBeenCalledTimes(1);
 
     // The disabled submit button cannot fire a second mutation.
     await user.click(button).catch(() => {});
-    expect(createPlayer).toHaveBeenCalledTimes(1);
+    expect(updateMe).toHaveBeenCalledTimes(1);
 
     resolveInvalidate();
     await waitFor(() => expect(invalidateSpy.mock.results[0]?.value).toBe(pending));
   });
 
   test('invalidates, then navigates only after invalidation resolves', async () => {
-    const createPlayer = vi.fn().mockResolvedValue(player());
+    const updateMe = vi.fn().mockResolvedValue(player());
     const navigate = vi.fn();
     let resolveInvalidate: () => void = () => {};
     const pending = new Promise<void>((resolve) => {
       resolveInvalidate = resolve;
     });
-    const { user, queryClient } = renderScreen({ api: accountApi({ createPlayer }), navigate });
+    const { user, queryClient } = renderScreen({ api: accountApi({ updateMe }), navigate });
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockReturnValue(pending);
 
+    await user.clear(screen.getByLabelText('Display name'));
     await user.type(screen.getByLabelText('Display name'), 'Mina');
-    await user.click(screen.getByRole('button', { name: 'Create player' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ME_QUERY_KEY });
@@ -268,11 +270,9 @@ describe('PlayerFormScreen create', () => {
     renderScreen();
     expect(screen.getByRole('link', { name: 'Cancel' })).toHaveAttribute('href', '/account');
   });
-});
 
-describe('PlayerFormScreen edit', () => {
-  test('pre-fills an owned player', () => {
-    renderScreen({ mode: 'edit', me: meFixture(), playerId });
+  test('pre-fills the account player', () => {
+    renderScreen();
     expect(screen.getByLabelText('Display name')).toHaveValue('Mina');
     expect(screen.getByLabelText('Birth year')).toHaveValue(2013);
   });
@@ -282,16 +282,8 @@ describe('PlayerFormScreen consent and grouping', () => {
   const consent =
     'Consent is confirmed from the guardian email entered at sign-up. This form records a birth year, never a full date of birth.';
 
-  test('create renders the consent line and the three grouped legends', () => {
+  test('renders the consent line and the three grouped legends', () => {
     renderScreen();
-    expect(screen.getByText(consent)).toBeVisible();
-    expect(screen.getByRole('group', { name: 'Identity' })).toBeInTheDocument();
-    expect(screen.getByRole('group', { name: 'Federation' })).toBeInTheDocument();
-    expect(screen.getByRole('group', { name: 'Platforms' })).toBeInTheDocument();
-  });
-
-  test('edit renders the consent line and the three grouped legends', () => {
-    renderScreen({ mode: 'edit', playerId });
     expect(screen.getByText(consent)).toBeVisible();
     expect(screen.getByRole('group', { name: 'Identity' })).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'Federation' })).toBeInTheDocument();

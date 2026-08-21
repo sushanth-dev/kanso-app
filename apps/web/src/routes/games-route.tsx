@@ -1,7 +1,7 @@
 import { Card } from '@astryxdesign/core/Card';
 import { Heading } from '@astryxdesign/core/Heading';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router';
+import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import type { Stream } from '../api/diagnosis-api.ts';
 import { secondaryLinkClassName } from '../components/secondary-link.ts';
 import { StreamToggle } from '../components/stream-toggle.tsx';
@@ -15,14 +15,12 @@ const dateFormatter = new Intl.DateTimeFormat('en-US', {
 
 export function GamesRoute() {
   const navigate = useNavigate();
-  const { playerId } = useParams({ from: '/account/players/$playerId/games' });
-  const { stream } = useSearch({ from: '/account/players/$playerId/games' });
-  const gamesQuery = useQuery(gamesQueryOptions(playerId, stream));
+  const { stream } = useSearch({ from: '/account/games' });
+  const gamesQuery = useQuery(gamesQueryOptions(stream));
 
   const onStreamChange = (next: Stream) => {
     void navigate({
-      to: '/account/players/$playerId/games',
-      params: { playerId },
+      to: '/account/games',
       search: { stream: next },
     });
   };
@@ -72,8 +70,8 @@ export function GamesRoute() {
                   </div>
                   {analysed ? (
                     <Link
-                      to="/account/players/$playerId/games/$gameId"
-                      params={{ playerId, gameId: game.id }}
+                      to="/account/games/$gameId"
+                      params={{ gameId: game.id }}
                       className="mt-3 inline-flex min-h-11 items-center font-ui text-sm text-accent underline press"
                     >
                       Review

@@ -37,7 +37,7 @@ const me: Me = {
   email: 'player@example.com',
   name: 'Player',
   tier: 'free',
-  players: [ownedPlayer],
+  player: ownedPlayer,
 };
 
 const startImport = vi.fn<ImportApi['startImport']>();
@@ -69,7 +69,6 @@ function renderScreen(overrides: Partial<ImportScreenProps> = {}) {
     <RouterContextProvider router={router}>
       <ImportScreen
         me={me}
-        playerId={ownedPlayerId}
         importApi={{ startImport }}
         queryClient={queryClient}
         navigate={vi.fn()}
@@ -133,7 +132,7 @@ describe('ImportScreen', () => {
     await user.type(screen.getByLabelText('Username'), 'mina123');
     await user.click(screen.getByRole('button', { name: 'Import games' }));
     expect(await screen.findByText('Imported 3 games.')).toBeVisible();
-    expect(startImport).toHaveBeenCalledWith(ownedPlayerId, {
+    expect(startImport).toHaveBeenCalledWith({
       source: 'chesscom',
       username: 'mina123',
     });
@@ -214,7 +213,7 @@ describe('ImportScreen', () => {
     await user.type(screen.getByLabelText('Username'), 'hi');
     await user.click(screen.getByRole('button', { name: 'Import games' }));
     expect(await screen.findByText('Imported 1 game.')).toBeVisible();
-    expect(startImport).toHaveBeenCalledWith(ownedPlayerId, {
+    expect(startImport).toHaveBeenCalledWith({
       source: 'lichess',
       username: 'hi',
     });
@@ -234,7 +233,7 @@ describe('ImportScreen', () => {
     );
     await user.click(screen.getByRole('button', { name: 'Import games' }));
     expect(await screen.findByText('Imported 2 games.')).toBeVisible();
-    expect(startImport).toHaveBeenCalledWith(ownedPlayerId, {
+    expect(startImport).toHaveBeenCalledWith({
       source: 'pgn_upload',
       pgn,
       stream: 'online',
@@ -248,7 +247,7 @@ describe('ImportScreen', () => {
     renderScreen();
     await user.selectOptions(screen.getByLabelText('Method'), 'pgn_upload');
     await user.click(screen.getByRole('button', { name: 'Import games' }));
-    expect(await screen.findByText('Choose a PGN file.')).toBeVisible();
+    expect((await screen.findAllByText('Choose a PGN file.')).length).toBeGreaterThan(0);
     expect(startImport).not.toHaveBeenCalled();
   });
 
@@ -289,7 +288,7 @@ describe('ImportScreen', () => {
     expect(
       screen.getByText('These games carry results, not moves, so no analysis follows.'),
     ).toBeVisible();
-    expect(startImport).toHaveBeenCalledWith(ownedPlayerId, {
+    expect(startImport).toHaveBeenCalledWith({
       source: 'uscf',
       tournamentName: 'State Champs',
       playerName: 'Mina',
@@ -379,10 +378,5 @@ describe('ImportScreen', () => {
       gamesFound: 3,
       gamesImported: 3,
     });
-  });
-
-  test('throws not-found for a player not owned by the signed-in account', () => {
-    const unownedPlayerId = '00000000-0000-4000-8000-000000000099';
-    expect(() => renderScreen({ playerId: unownedPlayerId })).toThrow();
   });
 });

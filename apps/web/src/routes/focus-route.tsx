@@ -7,7 +7,7 @@ import { Field } from '@astryxdesign/core/Field';
 import { FormLayout } from '@astryxdesign/core/FormLayout';
 import { Heading } from '@astryxdesign/core/Heading';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router';
+import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { ApiRequestError } from '../api/account-api.ts';
 import type { Stream } from '../api/diagnosis-api.ts';
 import {
@@ -208,15 +208,13 @@ export function ActiveFocusView({
 }
 
 function RankingSection({
-  playerId,
   stream,
   onStreamChange,
 }: {
-  playerId: string;
   stream: Stream;
   onStreamChange: (stream: Stream) => void;
 }) {
-  const reportQuery = useQuery(reportQueryOptions(playerId, stream));
+  const reportQuery = useQuery(reportQueryOptions(stream));
   return (
     <section aria-labelledby="ranking-heading" className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -257,8 +255,7 @@ function RankingSection({
         </>
       )}
       <Link
-        to="/account/players/$playerId/report"
-        params={{ playerId }}
+        to="/account/report"
         search={{ stream }}
         className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline press"
       >
@@ -420,7 +417,6 @@ function CoachInstructionForm({
 }
 
 export function FocusChoiceView({
-  playerId,
   stream,
   onStreamChange,
   catalogue,
@@ -430,7 +426,6 @@ export function FocusChoiceView({
   formError,
   onSet,
 }: {
-  playerId: string;
   stream: Stream;
   onStreamChange: (stream: Stream) => void;
   catalogue: FocusCatalogueEntry[];
@@ -459,7 +454,7 @@ export function FocusChoiceView({
       {formError !== null ? <StatusMessage tone="error">{formError}</StatusMessage> : null}
       {submitting ? <StatusMessage tone="info">Setting your focus...</StatusMessage> : null}
 
-      <RankingSection playerId={playerId} stream={stream} onStreamChange={onStreamChange} />
+      <RankingSection stream={stream} onStreamChange={onStreamChange} />
 
       {catalogueFailed ? (
         <StatusMessage tone="error">
@@ -510,19 +505,17 @@ function FocusError() {
 export function FocusRoute() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { playerId } = useParams({ from: '/account/players/$playerId/focus' });
-  const { stream } = useSearch({ from: '/account/players/$playerId/focus' });
+  const { stream } = useSearch({ from: '/account/focus' });
   const [choosing, setChoosing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   const focusesQuery = useQuery(focusesQueryOptions());
-  const focusQuery = useQuery(focusQueryOptions(playerId));
+  const focusQuery = useQuery(focusQueryOptions());
 
   const onStreamChange = (next: Stream) => {
     void navigate({
-      to: '/account/players/$playerId/focus',
-      params: { playerId },
+      to: '/account/focus',
       search: { stream: next },
     });
   };
@@ -531,12 +524,12 @@ export function FocusRoute() {
     setSubmitting(true);
     setFormError(null);
     try {
-      await focusApi.setFocus(playerId, body);
+      await focusApi.setFocus(body);
       track('focus_set', {
         source: body.source,
         ...(body.source === 'coach' ? {} : { catalogueKey: body.catalogueKey }),
       });
-      await queryClient.invalidateQueries({ queryKey: ['focus', playerId] });
+      await queryClient.invalidateQueries({ queryKey: ['focus'] });
       setChoosing(false);
     } catch (error) {
       if (error instanceof ApiRequestError) {
@@ -615,7 +608,6 @@ export function FocusRoute() {
   if (choosing || activeFocus === undefined) {
     return (
       <FocusChoiceView
-        playerId={playerId}
         stream={stream}
         onStreamChange={onStreamChange}
         catalogue={catalogue}

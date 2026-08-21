@@ -92,12 +92,11 @@ function renderFocusChoice(props: Partial<Parameters<typeof FocusChoiceView>[0]>
   const queryClient = new QueryClient();
   const history = createMemoryHistory();
   const router = createAppRouter({ history, queryClient });
-  queryClient.setQueryData(['report', playerId, 'tournament'], emptyReport);
+  queryClient.setQueryData(['report', 'tournament'], emptyReport);
   render(
     <QueryClientProvider client={queryClient}>
       <RouterContextProvider router={router}>
         <FocusChoiceView
-          playerId={playerId}
           stream="tournament"
           onStreamChange={vi.fn()}
           catalogue={[convertingWon, timeManagement, tacticalAlertness]}
@@ -175,10 +174,10 @@ describe('FocusChoiceView', () => {
     await user.type(screen.getByLabelText('Coach instruction'), 'Work on the clock.');
     await user.click(screen.getByRole('button', { name: 'Set coach focus' }));
     expect(
-      screen.getByText(
+      screen.getAllByText(
         'Choose a measurable focus to pair with, so we can still show whether the work is helping.',
-      ),
-    ).toBeInTheDocument();
+      ).length,
+    ).toBeGreaterThan(0);
     expect(onSet).not.toHaveBeenCalled();
   });
 

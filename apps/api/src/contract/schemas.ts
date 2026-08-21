@@ -80,9 +80,13 @@ export const Player = z
   })
   .openapi('Player');
 
-export const CreatePlayer = z
+/**
+ * ST-072. The fields of the account's own player a person can edit. The player
+ * is born at sign-up, so there is no create body; this is the update body only.
+ */
+export const UpdatePlayer = z
   .object({
-    displayName: z.string().min(1).max(80),
+    displayName: z.string().min(1).max(80).optional(),
     /**
      * N7. Year rather than a full date of birth: enough to know whether COPPA
      * applies, and no more than that.
@@ -95,9 +99,7 @@ export const CreatePlayer = z
     chesscomUsername: z.string().max(60).optional(),
     lichessUsername: z.string().max(60).optional(),
   })
-  .openapi('CreatePlayer');
-
-export const UpdatePlayer = CreatePlayer.partial().openapi('UpdatePlayer');
+  .openapi('UpdatePlayer');
 
 export const Me = z
   .object({
@@ -105,8 +107,8 @@ export const Me = z
     email: z.email(),
     name: z.string(),
     tier: Tier,
-    /** Players this login plays as. */
-    players: z.array(Player),
+    /** The single chess identity this login owns. */
+    player: Player,
   })
   .openapi('Me');
 

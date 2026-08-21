@@ -4,8 +4,8 @@
  * The endpoint fetches, snapshots, and reports. A view fetches only when there
  * is no snapshot or it is older than the TTL, and `refresh=true` is the
  * deliberate second fetch, so viewing twice does not hit Chess.com or Lichess
- * twice. Absence and refusal both answer 403, the same rule as every other
- * player-scoped route, so a player id cannot be enumerated.
+ * twice. The player is resolved from the session, so there is no id to
+ * enumerate.
  *
  * The over-the-board baseline is FIDE when present, else USCF. Each online gap
  * is `online - overTheBoard`, null when either side is unknown. A failed fetch
@@ -20,7 +20,7 @@ import { getTransferGap } from '../contract/routes.ts';
 import * as schema from '../db/schema.ts';
 import { player } from '../db/schema.ts';
 import { readSession } from '../session.ts';
-import { hasPlayerClaim } from '../players/claim.ts';
+import { getOwnPlayerId } from '../players/claim.ts';
 import { RATING_TTL_SECONDS } from './constants.ts';
 import type { RatingFetcher } from './rating-fetcher.ts';
 
@@ -31,19 +31,19 @@ export function mountTransferGap(
   deps: { db: Db; getSession: (c: Context) => unknown; ratingFetcher: RatingFetcher },
 ): void {
   app.openapi(getTransferGap, async (c) => {
-    const { playerId } = c.req.valid('param');
     const { refresh } = c.req.valid('query');
 
     const session = await readSession(deps.getSession, c);
     if (session === null) {
       return c.json({ code: 'no_session', message: 'Sign in to use this endpoint.' }, 401);
     }
-    if (!(await hasPlayerClaim(deps.db, session.userId, playerId))) {
-      return c.json({ code: 'forbidden', message: 'Not your player.' }, 403);
+    const playerId = await getOwnPlayerId(deps.db, session.userId);
+    if (playerId === null) {
+      return c.json({ code: 'not_found', message: 'No such player.' }, 404);
     }
 
     const [row] = await deps.db.select().from(player).where(eq(player.id, playerId)).limit(1);
-    // `hasPlayerClaim` just loaded this row, so it exists.
+    // `getOwnPlayerId` just resolved this id, so the row exists.
     const current = row!;
 
     const hasUsername = current.chesscomUsername !== null || current.lichessUsername !== null;

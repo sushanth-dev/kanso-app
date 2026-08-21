@@ -15,8 +15,7 @@ vi.mock('./api/account-api.ts', async (importOriginal) => {
     ...actual,
     accountApi: {
       getMe: vi.fn(),
-      createPlayer: vi.fn(),
-      updatePlayer: vi.fn(),
+      updateMe: vi.fn(),
     },
   };
 });
@@ -32,10 +31,6 @@ vi.mock('./auth-client.ts', () => ({
 // eslint-disable-next-line @typescript-eslint/unbound-method -- accountApi.getMe is a vi.fn() from the module mock.
 const getMe = vi.mocked(accountApi.getMe);
 const signOut = vi.mocked(authClient.signOut);
-// eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() from the module mock.
-const createPlayer = vi.mocked(accountApi.createPlayer);
-// eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() from the module mock.
-const updatePlayer = vi.mocked(accountApi.updatePlayer);
 
 const ownedPlayerId = '00000000-0000-4000-8000-000000000001';
 
@@ -59,7 +54,7 @@ const meFixture = {
   email: 'player@example.com',
   name: 'Player',
   tier: 'free' as const,
-  players: [ownedPlayer],
+  player: ownedPlayer,
 };
 
 function renderAt(path: string) {
@@ -79,8 +74,6 @@ describe('router', () => {
     getMe.mockReset();
     signOut.mockReset();
     signOut.mockResolvedValue({ data: { success: true }, error: null });
-    createPlayer.mockReset();
-    updatePlayer.mockReset();
   });
 
   test('renders the landing page at /', async () => {
@@ -158,41 +151,16 @@ describe('router', () => {
     expect(router.state.location.pathname).toBe('/account');
   });
 
-  test('creates a player through the real router and lands back on /account', async () => {
-    const user = userEvent.setup();
+  test('renders the edit form at /account/player', async () => {
     getMe.mockResolvedValue(meFixture);
-    createPlayer.mockResolvedValue(ownedPlayer);
-    const { router } = renderAt('/account/players/new');
-
-    expect(await screen.findByRole('heading', { name: 'New player' })).toBeVisible();
-    await user.type(screen.getByLabelText('Display name'), 'Mina');
-    await user.click(screen.getByRole('button', { name: 'Create player' }));
-
-    expect(await screen.findByRole('heading', { name: 'Your account' })).toBeVisible();
-    expect(screen.getByText('Player saved.')).toHaveAttribute('role', 'status');
-    expect(createPlayer).toHaveBeenCalledWith({ displayName: 'Mina' });
-    expect(router.state.location.pathname).toBe('/account');
+    renderAt('/account/player');
+    expect(await screen.findByRole('heading', { name: 'Edit player' })).toBeVisible();
   });
 
-  test('an unknown player id cannot be edited and triggers no mutation', async () => {
+  test('renders the import screen at /account/import', async () => {
     getMe.mockResolvedValue(meFixture);
-    updatePlayer.mockResolvedValue(ownedPlayer);
-    renderAt('/account/players/00000000-0000-4000-8000-999999999999/edit');
-
-    expect(await screen.findByText('Not Found')).toBeVisible();
-    expect(updatePlayer).not.toHaveBeenCalled();
-  });
-
-  test('an owned player id renders the import screen', async () => {
-    getMe.mockResolvedValue(meFixture);
-    renderAt(`/account/players/${ownedPlayerId}/import`);
+    renderAt('/account/import');
     expect(await screen.findByRole('heading', { name: 'Import games' })).toBeVisible();
-  });
-
-  test('an unknown player id cannot import', async () => {
-    getMe.mockResolvedValue(meFixture);
-    renderAt('/account/players/00000000-0000-4000-8000-999999999999/import');
-    expect(await screen.findByText('Not Found')).toBeVisible();
   });
 
   test('redirects /account to the guardian waiting screen when consent is required', async () => {

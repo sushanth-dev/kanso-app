@@ -6,7 +6,6 @@ import {
   createRootRouteWithContext,
   createRoute,
   createRouter,
-  notFound,
   Outlet,
   redirect,
   useLocation,
@@ -27,7 +26,7 @@ import { GuardianConfirmRoute } from './routes/guardian-confirm-route.tsx';
 import { GuardianWaitingRoute } from './routes/guardian-waiting-route.tsx';
 import { ImportRoute } from './routes/import-route.tsx';
 import { LandingRoute } from './routes/landing-route.tsx';
-import { PlayerEditRoute, PlayerNewRoute } from './routes/player-routes.tsx';
+import { PlayerEditRoute } from './routes/player-routes.tsx';
 import { ProofSheetRoute } from './routes/proof-sheet-route.tsx';
 import { ReportRoute } from './routes/report-route.tsx';
 import { SharedProofSheetRoute } from './routes/shared-proof-sheet-route.tsx';
@@ -137,81 +136,37 @@ const accountIndexRoute = createRoute({
   component: AccountRoute,
 });
 
-const playersNewRoute = createRoute({
-  getParentRoute: () => accountRoute,
-  path: '/players/new',
-  component: PlayerNewRoute,
-});
-
 const playerEditRoute = createRoute({
   getParentRoute: () => accountRoute,
-  path: '/players/$playerId/edit',
-  beforeLoad: async ({ context, params }) => {
-    const me = await context.queryClient.ensureQueryData(meQueryOptions());
-    if (!me.players.some((owned) => owned.id === params.playerId)) {
-      // eslint-disable-next-line @typescript-eslint/only-throw-error -- notFound() returns a router not-found error, not an Error.
-      throw notFound();
-    }
-  },
+  path: '/player',
   component: PlayerEditRoute,
 });
 
 const reportRoute = createRoute({
   getParentRoute: () => accountRoute,
-  path: '/players/$playerId/report',
+  path: '/report',
   validateSearch: (search: Record<string, unknown>) =>
     search.stream === 'online' ? { stream: 'online' as const } : { stream: 'tournament' as const },
-  beforeLoad: async ({ context, params }) => {
-    const me = await context.queryClient.ensureQueryData(meQueryOptions());
-    const owned = me.players.some((player) => player.id === params.playerId);
-    if (!owned) {
-      // eslint-disable-next-line @typescript-eslint/only-throw-error -- notFound() returns a router not-found error, not an Error.
-      throw notFound();
-    }
-  },
   component: ReportRoute,
 });
 
 const focusRoute = createRoute({
   getParentRoute: () => accountRoute,
-  path: '/players/$playerId/focus',
+  path: '/focus',
   validateSearch: (search: Record<string, unknown>) =>
     search.stream === 'online' ? { stream: 'online' as const } : { stream: 'tournament' as const },
-  beforeLoad: async ({ context, params }) => {
-    const me = await context.queryClient.ensureQueryData(meQueryOptions());
-    if (!me.players.some((player) => player.id === params.playerId)) {
-      // eslint-disable-next-line @typescript-eslint/only-throw-error -- notFound() returns a router not-found error, not an Error.
-      throw notFound();
-    }
-  },
   component: FocusRoute,
 });
 
 const proofSheetRoute = createRoute({
   getParentRoute: () => accountRoute,
-  path: '/players/$playerId/proof-sheet',
-  beforeLoad: async ({ context, params }) => {
-    const me = await context.queryClient.ensureQueryData(meQueryOptions());
-    const owned = me.players.some((player) => player.id === params.playerId);
-    if (!owned) {
-      // eslint-disable-next-line @typescript-eslint/only-throw-error -- notFound() returns a router not-found error, not an Error.
-      throw notFound();
-    }
-  },
+  path: '/proof-sheet',
   component: ProofSheetRoute,
 });
 
 const importRoute = createRoute({
   getParentRoute: () => accountRoute,
-  path: '/players/$playerId/import',
-  beforeLoad: async ({ context, params }) => {
-    const me = await context.queryClient.ensureQueryData(meQueryOptions());
-    const owned = me.players.some((player) => player.id === params.playerId);
-    if (!owned) {
-      // eslint-disable-next-line @typescript-eslint/only-throw-error -- notFound() returns a router not-found error, not an Error.
-      throw notFound();
-    }
-  },
+  path: '/import',
   component: ImportRoute,
 });
 
@@ -223,29 +178,15 @@ const upgradeRoute = createRoute({
 
 const gamesRoute = createRoute({
   getParentRoute: () => accountRoute,
-  path: '/players/$playerId/games',
+  path: '/games',
   validateSearch: (search: Record<string, unknown>) =>
     search.stream === 'online' ? { stream: 'online' as const } : { stream: 'tournament' as const },
-  beforeLoad: async ({ context, params }) => {
-    const me = await context.queryClient.ensureQueryData(meQueryOptions());
-    if (!me.players.some((player) => player.id === params.playerId)) {
-      // eslint-disable-next-line @typescript-eslint/only-throw-error -- notFound() returns a router not-found error, not an Error.
-      throw notFound();
-    }
-  },
   component: GamesRoute,
 });
 
 const gameReviewRoute = createRoute({
   getParentRoute: () => accountRoute,
-  path: '/players/$playerId/games/$gameId',
-  beforeLoad: async ({ context, params }) => {
-    const me = await context.queryClient.ensureQueryData(meQueryOptions());
-    if (!me.players.some((player) => player.id === params.playerId)) {
-      // eslint-disable-next-line @typescript-eslint/only-throw-error -- notFound() returns a router not-found error, not an Error.
-      throw notFound();
-    }
-  },
+  path: '/games/$gameId',
   component: GameReviewRoute,
 });
 
@@ -301,7 +242,6 @@ const routeTree = rootRoute.addChildren([
   signUpRoute,
   accountRoute.addChildren([
     accountIndexRoute,
-    playersNewRoute,
     playerEditRoute,
     reportRoute,
     focusRoute,

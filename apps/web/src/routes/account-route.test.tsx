@@ -37,7 +37,7 @@ function meFixture(overrides: Partial<Me> = {}): Me {
     email: 'player@example.com',
     name: 'Player',
     tier: 'free',
-    players: [player()],
+    player: player(),
     ...overrides,
   };
 }
@@ -113,22 +113,9 @@ describe('AccountScreen', () => {
     expect(await screen.findByText('Sign out failed.', { exact: true })).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Your account' })).toBeVisible();
   });
-
-  test('shows the owned empty-state message when there are no owned players', () => {
-    renderAccount(meFixture({ players: [] }));
-    expect(screen.getByText('No players yet')).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Create player' })).toHaveAttribute(
-      'href',
-      '/account/players/new',
-    );
-  });
-
   test('owned cards link to edit', () => {
     renderAccount();
-    expect(screen.getByRole('link', { name: 'Edit' })).toHaveAttribute(
-      'href',
-      `/account/players/${playerId}/edit`,
-    );
+    expect(screen.getByRole('link', { name: 'Edit' })).toHaveAttribute('href', '/account/player');
     expect(screen.getByRole('link', { name: 'Edit' })).toHaveClass('min-w-11', 'justify-center');
   });
 });
