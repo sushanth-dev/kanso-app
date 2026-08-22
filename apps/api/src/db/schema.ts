@@ -13,6 +13,7 @@
 import { relations, sql } from 'drizzle-orm';
 import {
   boolean,
+  date,
   index,
   integer,
   jsonb,
@@ -142,6 +143,20 @@ export const player = pgTable(
     chesscomRating: smallint('chesscom_rating'),
     lichessRating: smallint('lichess_rating'),
     ratingFetchedAt: timestamp('rating_fetched_at', { withTimezone: true }),
+
+    /**
+     * ST-080. The activity is reviewing at least one analysed game
+     * (`GET /games/{gameId}` on a completed game, ST-079's play-through
+     * surface). `lastActivityDate` is a calendar date, not a timestamp, so
+     * "today" and "yesterday" compare without a timezone-aware walk of a full
+     * log; a fuller activity history is deferred until something reads it.
+     * `xp` accrues 10 per day counted, matching the streak trigger; a
+     * leveling formula (level = xp / 100, rounded down, plus one) reads off
+     * it rather than being stored.
+     */
+    currentStreak: integer('current_streak').notNull().default(0),
+    xp: integer('xp').notNull().default(0),
+    lastActivityDate: date('last_activity_date'),
 
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

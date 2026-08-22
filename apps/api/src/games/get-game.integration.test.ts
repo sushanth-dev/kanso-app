@@ -1,4 +1,5 @@
 import type { Context } from 'hono';
+import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { createApp } from '../app.ts';
 import { game, mistake, movePly, player } from '../db/schema.ts';
@@ -55,6 +56,7 @@ async function seedReviewedGame(ownerId: string): Promise<string> {
       pgn: '[Result "0-1"]\n\n1. e4 e5 2. Nf3 Qf6 3. Nc3 Qxf3 0-1',
       result: '0-1',
       playerColor: 'black',
+      analysisStatus: 'complete',
     })
     .returning({ id: game.id });
   const gameId = created!.id;
@@ -157,5 +159,20 @@ describe('GET /games/{gameId}', () => {
     await seedReviewedGame(OWNER);
     const res = await app(OWNER).request('/games/00000000-0000-4000-8000-000000000000');
     expect(res.status).toBe(404);
+  });
+
+  test('ST-080: opening a completed game records a day of streak activity', async () => {
+    const gameId = await seedReviewedGame(OWNER);
+    const [row0] = await harness.db
+      .select({ playerId: game.playerId })
+      .from(game)
+      .where(eq(game.id, gameId));
+    const playerId = row0!.playerId;
+
+    await app(OWNER).request(`/games/${gameId}`);
+
+    const [row] = await harness.db.select().from(player).where(eq(player.id, playerId));
+    expect(row!.currentStreak).toBe(1);
+    expect(row!.xp).toBe(10);
   });
 });

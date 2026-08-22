@@ -25,6 +25,9 @@ function player(overrides: Partial<Player> = {}): Player {
     lichessUsername: null,
     chesscomRating: null,
     lichessRating: null,
+    currentStreak: 0,
+    xp: 0,
+    level: 1,
     createdAt: '2026-08-14T00:00:00.000Z',
     ...overrides,
   };
@@ -86,6 +89,12 @@ describe('AccountScreen', () => {
     expect(screen.getByText('Player')).toBeVisible();
     expect(screen.queryByText('player@example.com')).not.toBeInTheDocument();
     expect(screen.queryByText('Free')).not.toBeInTheDocument();
+  });
+
+  test('shows the streak and level', () => {
+    renderAccount(meFixture({ player: player({ currentStreak: 4, xp: 130, level: 2 }) }));
+    expect(screen.getByText('4-day streak')).toBeVisible();
+    expect(screen.getByText('Level 2')).toBeVisible();
   });
 
   test('owned cards link to edit', () => {

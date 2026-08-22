@@ -77,6 +77,11 @@ export const Player = z
     lichessUsername: z.string().nullable(),
     chesscomRating: z.number().int().nullable(),
     lichessRating: z.number().int().nullable(),
+    /** ST-080, R8. Consecutive calendar days with at least one reviewed game. */
+    currentStreak: z.number().int(),
+    xp: z.number().int(),
+    /** Derived from `xp` (one level per 100), not stored. */
+    level: z.number().int(),
     createdAt: z.iso.datetime(),
   })
   .openapi('Player');
@@ -648,6 +653,33 @@ export const SocraticQuestion = z
     generatedAt: z.iso.datetime(),
   })
   .openapi('SocraticQuestion');
+
+/**
+ * ST-080, ADR-0029. One candidate move from the CCT scan: a check, a
+ * capture, or a threat available at the mistake position. Enumerated by
+ * ChessOps attack geometry, not a model, so there is nothing to cache.
+ */
+export const CctMove = z
+  .object({
+    san: z.string(),
+    uci: z.string(),
+    type: z.enum(['Check', 'Capture', 'Threat']),
+    threatCategory: z.enum(['Checkmate', 'Material']).optional(),
+    /** True when this move is the engine's best move at the position. */
+    isGoodOption: z.boolean(),
+    /** True unless a one-ply lookahead shows the move is an outright blunder. */
+    isUseful: z.boolean(),
+  })
+  .openapi('CctMove');
+
+export const CctScan = z
+  .object({
+    mistakeId: Uuid,
+    checks: z.array(CctMove),
+    captures: z.array(CctMove),
+    threats: z.array(CctMove),
+  })
+  .openapi('CctScan');
 
 // ─── Ops ─────────────────────────────────────────────────────────────────────
 
