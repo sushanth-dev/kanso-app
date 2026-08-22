@@ -1,9 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, RouterContextProvider } from '@tanstack/react-router';
-import { describe, expect, test } from 'vitest';
-import type { GameDetail, Mistake } from '../api/diagnosis-api.ts';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { diagnosisApi, type CctScan, type GameDetail, type Mistake } from '../api/diagnosis-api.ts';
 import { createAppRouter } from '../router.tsx';
 import { GameReviewScreen } from './game-review-route.tsx';
 
@@ -131,6 +131,16 @@ function gameFixture(overrides: Partial<GameDetail> = {}): GameDetail {
   };
 }
 
+const emptyScan: CctScan = { mistakeId: 'm-1', checks: [], captures: [], threats: [] };
+
+beforeEach(() => {
+  vi.spyOn(diagnosisApi, 'getCctScan').mockResolvedValue(emptyScan);
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 function renderScreen(game: GameDetail) {
   const user = userEvent.setup();
   const history = createMemoryHistory();
@@ -224,5 +234,28 @@ describe('GameReviewScreen', () => {
   test('reconstructs the position in the board label', () => {
     renderScreen(gameFixture());
     expect(screen.getByRole('img', { name: /white king e1/ })).toBeInTheDocument();
+  });
+
+  test('shows the CCT scan for the selected mistake, best move highlighted', async () => {
+    vi.spyOn(diagnosisApi, 'getCctScan').mockResolvedValue({
+      mistakeId: 'm-1',
+      checks: [{ san: 'Qd1+', uci: 'a1d1', type: 'Check', isGoodOption: true, isUseful: true }],
+      captures: [
+        { san: 'Qxb2', uci: 'a1b2', type: 'Capture', isGoodOption: false, isUseful: true },
+      ],
+      threats: [],
+    });
+    renderScreen(gameFixture());
+    expect(await screen.findByText('Qd1+')).toBeInTheDocument();
+    expect(screen.getByText('Qxb2')).toBeInTheDocument();
+  });
+
+  test('says honestly when the scan has no checks, captures or threats', async () => {
+    renderScreen(gameFixture());
+    await waitFor(() =>
+      expect(
+        screen.getByText('No checks, captures or threats at this position.'),
+      ).toBeInTheDocument(),
+    );
   });
 });

@@ -1,3 +1,4 @@
+import { Badge } from '@astryxdesign/core/Badge';
 import { Card } from '@astryxdesign/core/Card';
 import { Heading } from '@astryxdesign/core/Heading';
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
@@ -102,6 +103,10 @@ export function PlayerCard({ player, state }: { player: Player; state: PlayerDia
     <li>
       <Card>
         <Heading level={2}>{player.displayName}</Heading>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Badge label={`${player.currentStreak}-day streak`} variant="orange" />
+          <Badge label={`Level ${player.level}`} variant="info" />
+        </div>
         <PlayerDiagnosis state={state} />
         <div className="mt-3 flex flex-wrap gap-4">
           <Link

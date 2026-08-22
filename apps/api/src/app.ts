@@ -49,6 +49,9 @@ import {
   type RazorpayClient,
 } from './billing/razorpay.ts';
 import { mountRazorpayWebhook } from './billing/webhook.ts';
+import { mountExplanation, mountSocraticQuestion } from './coaching/explanation.ts';
+import { mountCctScan } from './coaching/cct.ts';
+import { httpGeminiClient, geminiConfigFromEnv, type AiClient } from './coaching/gemini.ts';
 import { log } from './logging.ts';
 
 /** The shape of every error the API emits, from `ApiError` in the contract. */
@@ -205,6 +208,12 @@ export interface AppOptions {
    * read from the environment; tests pass a fake so no test calls Razorpay.
    */
   razorpay?: RazorpayClient;
+  /**
+   * Generates mistake explanations and Socratic questions (ADR-0018). Defaults
+   * to the real Gemini client read from the environment; tests pass a fake so
+   * no test calls Gemini.
+   */
+  aiClient?: AiClient;
 }
 
 export function createApp({
@@ -214,6 +223,7 @@ export function createApp({
   ratingFetcher: ratingFetcherOption,
   gameFetcher: gameFetcherOption,
   razorpay: razorpayOption,
+  aiClient: aiClientOption,
 }: AppOptions = {}) {
   const app = new OpenAPIHono({
     /**
@@ -287,6 +297,8 @@ export function createApp({
     const gameFetcher = gameFetcherOption ?? httpGameFetcher;
     const razorpayConfig = razorpayConfigFromEnv();
     const razorpay = razorpayOption ?? (razorpayConfig ? httpRazorpayClient(razorpayConfig) : null);
+    const geminiConfig = geminiConfigFromEnv();
+    const aiClient = aiClientOption ?? (geminiConfig ? httpGeminiClient(geminiConfig) : null);
     mountHealth(app, { db });
     mountMe(app, { db, getSession: effectiveGetSession });
     mountUpdatePlayer(app, { db, getSession: effectiveGetSession });
@@ -306,9 +318,14 @@ export function createApp({
     mountGetFocus(app, { db, getSession: effectiveGetSession });
     mountSetFocus(app, { db, getSession: effectiveGetSession });
     mountProofSheets(app, { db, getSession: effectiveGetSession });
+    mountCctScan(app, { db, getSession: effectiveGetSession });
     if (razorpay) {
       mountCheckout(app, { db, getSession: effectiveGetSession, razorpay });
       mountRazorpayWebhook(app, { db, razorpay });
+    }
+    if (aiClient) {
+      mountExplanation(app, { db, getSession: effectiveGetSession, aiClient });
+      mountSocraticQuestion(app, { db, getSession: effectiveGetSession, aiClient });
     }
   }
 
