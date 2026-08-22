@@ -4,7 +4,8 @@ import { Card } from '@astryxdesign/core/Card';
 import { Field } from '@astryxdesign/core/Field';
 import { FormLayout } from '@astryxdesign/core/FormLayout';
 import { Heading } from '@astryxdesign/core/Heading';
-import { Link, useParams } from '@tanstack/react-router';
+import { useParams } from '@tanstack/react-router';
+import { Link } from '@astryxdesign/core/Link';
 import { authClient } from '../auth-client.ts';
 import { StatusMessage } from '../components/status-message.tsx';
 import { TextInput } from '../components/text-input.tsx';
@@ -13,8 +14,6 @@ import { AuthAmbient } from './auth-routes.tsx';
 const MISMATCH_COPY = 'Passwords do not match.';
 const RATE_LIMIT_COPY = 'Too many attempts. Try again later.';
 const FAILURE_COPY = 'Something went wrong. Try again.';
-const LINK_CLASS =
-  'inline-flex min-h-11 items-center font-ui text-accent underline press hover:text-accent-hover';
 
 function readText(data: FormData, key: string): string {
   const value = data.get(key);
@@ -65,9 +64,7 @@ export function ResetPasswordRoute() {
             The link was used already, expired, or does not match a reset request.
           </p>
           <p className="mt-4">
-            <Link to="/forgot-password" className={LINK_CLASS}>
-              Request a new link
-            </Link>
+            <Link href="/forgot-password">Request a new link</Link>
           </p>
         </Card>
       </>
@@ -82,9 +79,7 @@ export function ResetPasswordRoute() {
           <Heading level={1}>Password reset</Heading>
           <p className="mt-4 text-muted">Your password was reset. Sign in with it now.</p>
           <p className="mt-4">
-            <Link to="/sign-in" className={LINK_CLASS}>
-              Sign in
-            </Link>
+            <Link href="/sign-in">Sign in</Link>
           </p>
         </Card>
       </>

@@ -1,8 +1,8 @@
 import { Badge } from '@astryxdesign/core/Badge';
 import { Card } from '@astryxdesign/core/Card';
 import { Heading } from '@astryxdesign/core/Heading';
+import { Link } from '@astryxdesign/core/Link';
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
-import { Link } from '@tanstack/react-router';
 import { ApiRequestError, type Me, type Player } from '../api/account-api.ts';
 import { gamesQueryOptions, meQueryOptions, reportQueryOptions } from '../query-client.ts';
 
@@ -109,45 +109,12 @@ export function PlayerCard({ player, state }: { player: Player; state: PlayerDia
         </div>
         <PlayerDiagnosis state={state} />
         <div className="mt-3 flex flex-wrap gap-4">
-          <Link
-            to="/account/report"
-            search={{ stream: 'tournament' }}
-            className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline press"
-          >
-            View report
-          </Link>
-          <Link
-            to="/account/import"
-            className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline press"
-          >
-            Import games
-          </Link>
-          <Link
-            to="/account/focus"
-            search={{ stream: 'tournament' }}
-            className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline press"
-          >
-            Set focus
-          </Link>
-          <Link
-            to="/account/proof-sheet"
-            className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline press"
-          >
-            Share proof sheet
-          </Link>
-          <Link
-            to="/account/games"
-            search={{ stream: 'tournament' }}
-            className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline press"
-          >
-            Review games
-          </Link>
-          <Link
-            to="/account/player"
-            className="inline-flex min-h-11 min-w-11 items-center justify-center font-ui text-sm text-accent underline press"
-          >
-            Edit
-          </Link>
+          <Link href="/account/report?stream=tournament">View report</Link>
+          <Link href="/account/import">Import games</Link>
+          <Link href="/account/focus?stream=tournament">Set focus</Link>
+          <Link href="/account/proof-sheet">Share proof sheet</Link>
+          <Link href="/account/games?stream=tournament">Review games</Link>
+          <Link href="/account/player">Edit</Link>
         </div>
       </Card>
     </li>

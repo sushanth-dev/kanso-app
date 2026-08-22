@@ -1,9 +1,10 @@
+import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { Heading } from '@astryxdesign/core/Heading';
+import { Link } from '@astryxdesign/core/Link';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useNavigate, useSearch } from '@tanstack/react-router';
+import { useNavigate, useSearch } from '@tanstack/react-router';
 import type { Stream } from '../api/diagnosis-api.ts';
-import { secondaryLinkClassName } from '../components/secondary-link.ts';
 import { StreamToggle } from '../components/stream-toggle.tsx';
 import { gamesQueryOptions } from '../query-client.ts';
 
@@ -28,9 +29,7 @@ export function GamesRoute() {
   return (
     <div className="space-y-6">
       <header className="space-y-4">
-        <Link to="/account" className={secondaryLinkClassName}>
-          Back to your account
-        </Link>
+        <Button label="Back to your account" href="/account" variant="secondary" />
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Heading level={1}>Your games</Heading>
           <StreamToggle stream={stream} onChange={onStreamChange} ariaLabel="Games stream" />
@@ -68,13 +67,9 @@ export function GamesRoute() {
                     <span className="font-mono text-base">{game.result}</span>
                   </div>
                   {analysed ? (
-                    <Link
-                      to="/account/games/$gameId"
-                      params={{ gameId: game.id }}
-                      className="mt-3 inline-flex min-h-11 items-center font-ui text-sm text-accent underline press"
-                    >
-                      Review
-                    </Link>
+                    <div className="mt-3">
+                      <Link href={`/account/games/${game.id}`}>Review</Link>
+                    </div>
                   ) : (
                     <p className="mt-3 text-sm text-muted">Analysis in progress.</p>
                   )}

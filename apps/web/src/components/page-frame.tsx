@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from 'react';
-import { Link, useLocation } from '@tanstack/react-router';
+import { useLocation } from '@tanstack/react-router';
+import { Link } from '@astryxdesign/core/Link';
 import { StatusMessage, useStatusMessage } from './status-message.tsx';
 
 export interface PageFrameProps {
@@ -21,9 +22,6 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Plans', to: '/account/upgrade' },
   { label: 'Settings', to: '/account/settings' },
 ];
-
-const NAV_LINK_CLASS =
-  'text-sm font-ui text-muted hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-focus';
 
 export function PageFrame({ children }: PageFrameProps) {
   const pathname = useLocation({ select: (location) => location.pathname });
@@ -57,7 +55,7 @@ export function PageFrame({ children }: PageFrameProps) {
           {showNav ? (
             <nav aria-label="Account" className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
               {NAV_ITEMS.map((item) => (
-                <Link key={item.to} to={item.to} className={NAV_LINK_CLASS}>
+                <Link key={item.to} href={item.to}>
                   {item.label}
                 </Link>
               ))}

@@ -4,12 +4,9 @@ import { Card } from '@astryxdesign/core/Card';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Heading } from '@astryxdesign/core/Heading';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link } from '@tanstack/react-router';
 import { ApiRequestError } from '../api/account-api.ts';
 import { proofSheetApi, type ProofSheet } from '../api/proof-sheet-api.ts';
 import { proofSheetsQueryOptions } from '../query-client.ts';
-import { secondaryLinkClassName } from '../components/secondary-link.ts';
-import { primaryLinkClassName } from '../components/primary-link.ts';
 import { UpgradePrompt } from '../components/upgrade-prompt.tsx';
 import { StatusMessage } from '../components/status-message.tsx';
 
@@ -81,9 +78,7 @@ export function ProofSheetScreen() {
     return (
       <div className="space-y-6">
         <header className="space-y-4">
-          <Link to="/account" className={secondaryLinkClassName}>
-            Back to your account
-          </Link>
+          <Button label="Back to your account" href="/account" variant="secondary" />
           <Heading level={1}>Share a proof sheet</Heading>
         </header>
         <ProofSheetSkeleton />
@@ -99,9 +94,7 @@ export function ProofSheetScreen() {
     return (
       <div className="space-y-6">
         <header className="space-y-4">
-          <Link to="/account" className={secondaryLinkClassName}>
-            Back to your account
-          </Link>
+          <Button label="Back to your account" href="/account" variant="secondary" />
           <Heading level={1}>Share a proof sheet</Heading>
         </header>
         <UpgradePrompt title="The proof sheet is part of the paid loop" />
@@ -113,9 +106,7 @@ export function ProofSheetScreen() {
     return (
       <div className="space-y-6">
         <header className="space-y-4">
-          <Link to="/account" className={secondaryLinkClassName}>
-            Back to your account
-          </Link>
+          <Button label="Back to your account" href="/account" variant="secondary" />
           <Heading level={1}>Share a proof sheet</Heading>
         </header>
         <EmptyState
@@ -132,9 +123,7 @@ export function ProofSheetScreen() {
   return (
     <div className="space-y-6">
       <header className="space-y-4">
-        <Link to="/account" className={secondaryLinkClassName}>
-          Back to your account
-        </Link>
+        <Button label="Back to your account" href="/account" variant="secondary" />
         <Heading level={1}>Share a proof sheet</Heading>
         <p className="text-muted">Send a parent a before-and-after page for this focus.</p>
       </header>
@@ -146,13 +135,12 @@ export function ProofSheetScreen() {
             A proof sheet shows whether a focus is working, so you need one active before you can
             create the link.
           </p>
-          <Link
-            to="/account/focus"
-            search={{ stream: 'tournament' }}
-            className={`${primaryLinkClassName} mt-6`}
-          >
-            Set a focus
-          </Link>
+          <Button
+            label="Set a focus"
+            href="/account/focus?stream=tournament"
+            variant="primary"
+            className="mt-6"
+          />
         </Card>
       ) : null}
 

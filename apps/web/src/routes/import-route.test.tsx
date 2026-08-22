@@ -112,7 +112,9 @@ describe('ImportScreen', () => {
     expect(screen.getByText('Imports the last 12 months of online games.')).toBeVisible();
 
     await user.selectOptions(screen.getByLabelText('Method'), 'pgn_upload');
-    expect(screen.getByRole('group', { name: 'Where were these games played?' })).toBeVisible();
+    expect(
+      screen.getByRole('radiogroup', { name: 'Where were these games played?' }),
+    ).toBeVisible();
 
     await user.selectOptions(screen.getByLabelText('Method'), 'uscf');
     expect(screen.getByText('Imports tournament results, not moves.')).toBeVisible();

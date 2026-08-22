@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Card } from '@astryxdesign/core/Card';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
+import { Button } from '@astryxdesign/core/Button';
 import { Heading } from '@astryxdesign/core/Heading';
+import { Link } from '@astryxdesign/core/Link';
 import { Spinner } from '@astryxdesign/core/Spinner';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useNavigate, useSearch } from '@tanstack/react-router';
+import { useNavigate, useSearch } from '@tanstack/react-router';
 import { ApiRequestError } from '../api/account-api.ts';
 import type {
   GameSummary,
@@ -16,7 +18,6 @@ import type {
   Weakness,
   WeaknessKind,
 } from '../api/diagnosis-api.ts';
-import { secondaryLinkClassName } from '../components/secondary-link.ts';
 import { StreamToggle } from '../components/stream-toggle.tsx';
 import {
   gamesQueryOptions,
@@ -89,9 +90,7 @@ function ReportHeader({
 }) {
   return (
     <header className="space-y-4">
-      <Link to="/account" className={secondaryLinkClassName}>
-        Back to your account
-      </Link>
+      <Button label="Back to your account" href="/account" variant="secondary" />
       <Heading level={1}>{STREAM_HEADING[stream]}</Heading>
       <StreamToggle stream={stream} onChange={onStreamChange} ariaLabel="Report stream" />
       {meta !== undefined ? <p className="text-sm text-muted">{meta}</p> : null}
@@ -170,14 +169,9 @@ function WeaknessList({ weaknesses, stream }: WeaknessListProps) {
                   </div>
                 </dl>
                 {weakness.kind !== 'opening' ? (
-                  <button
-                    type="button"
-                    onClick={() => onToggle(weakness.id)}
-                    aria-expanded={expanded}
-                    className="press inline-flex min-h-11 items-center font-ui text-sm text-accent underline hover:text-accent-hover"
-                  >
+                  <Link onClick={() => onToggle(weakness.id)} aria-expanded={expanded}>
                     {expanded ? 'Hide evidence' : 'Show evidence'}
-                  </button>
+                  </Link>
                 ) : null}
               </div>
               {expanded && weakness.kind !== 'opening' ? (

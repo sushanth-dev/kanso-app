@@ -1,7 +1,6 @@
+import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { Heading } from '@astryxdesign/core/Heading';
-import { Link } from '@tanstack/react-router';
-import { primaryLinkClassName } from './primary-link.ts';
 
 /**
  * The paid-boundary prompt every paid surface renders when a free account
@@ -16,9 +15,7 @@ export function UpgradePrompt({ title }: { title: string }) {
         Your first diagnosis is free. A focus, verification afterwards, and the proof sheet you send
         a parent are paid.
       </p>
-      <Link to="/account/upgrade" className={`${primaryLinkClassName} mt-6`}>
-        See plans
-      </Link>
+      <Button label="See plans" href="/account/upgrade" variant="primary" className="mt-6" />
     </Card>
   );
 }

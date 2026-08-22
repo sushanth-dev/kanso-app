@@ -2,12 +2,10 @@ import { useState } from 'react';
 import { Button } from '@astryxdesign/core/Button';
 import { Heading } from '@astryxdesign/core/Heading';
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import { type Me } from '../api/account-api.ts';
 import { authClient } from '../auth-client.ts';
 import { ChangePasswordForm } from '../components/change-password-form.tsx';
-import { primaryLinkClassName } from '../components/primary-link.ts';
-import { secondaryLinkClassName } from '../components/secondary-link.ts';
 import { StatusMessage } from '../components/status-message.tsx';
 import { ME_QUERY_KEY, meQueryOptions } from '../query-client.ts';
 
@@ -31,9 +29,7 @@ export function SettingsScreen({ me, signOut }: SettingsScreenProps) {
   return (
     <>
       <header className="space-y-4">
-        <Link to="/account" className={secondaryLinkClassName}>
-          Back to your account
-        </Link>
+        <Button label="Back to your account" href="/account" variant="secondary" />
         <Heading level={1}>Settings</Heading>
       </header>
 
@@ -43,9 +39,7 @@ export function SettingsScreen({ me, signOut }: SettingsScreenProps) {
         </Heading>
         <p className="text-muted">{me.email}</p>
         <div>
-          <Link to="/account/upgrade" className={`${primaryLinkClassName} mt-3`}>
-            See plans
-          </Link>
+          <Button label="See plans" href="/account/upgrade" variant="primary" className="mt-3" />
         </div>
       </section>
 
