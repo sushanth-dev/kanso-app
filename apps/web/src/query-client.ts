@@ -52,6 +52,14 @@ export const gameQueryOptions = (gameId: string) =>
     staleTime: 30_000,
   });
 
+export const cctScanQueryOptions = (mistakeId: string) =>
+  queryOptions({
+    queryKey: ['cct-scan', mistakeId] as const,
+    queryFn: () => diagnosisApi.getCctScan(mistakeId),
+    retry: false,
+    staleTime: 30_000,
+  });
+
 export const focusesQueryOptions = () =>
   queryOptions({
     queryKey: ['focuses'] as const,

@@ -45,10 +45,15 @@ function factsFrom(m: MistakeRow, g: GameRow): MistakeFacts {
   };
 }
 
-type OwnedMistake = { mistake: MistakeRow; game: GameRow };
-type LoadError = { status: 401 | 403 | 404; body: { code: string; message: string } };
+export type OwnedMistake = { mistake: MistakeRow; game: GameRow };
+export type LoadError = { status: 401 | 403 | 404; body: { code: string; message: string } };
 
-async function loadOwnedMistake(
+/**
+ * Shared by every mistake-scoped coaching route (explanation, Socratic
+ * question, CCT scan): load the mistake, and check ownership through its
+ * game the same way `getGame` does.
+ */
+export async function loadOwnedMistake(
   db: Db,
   getSession: (c: Context) => unknown,
   c: Context,

@@ -50,6 +50,7 @@ import {
 } from './billing/razorpay.ts';
 import { mountRazorpayWebhook } from './billing/webhook.ts';
 import { mountExplanation, mountSocraticQuestion } from './coaching/explanation.ts';
+import { mountCctScan } from './coaching/cct.ts';
 import { httpGeminiClient, geminiConfigFromEnv, type AiClient } from './coaching/gemini.ts';
 import { log } from './logging.ts';
 
@@ -317,6 +318,7 @@ export function createApp({
     mountGetFocus(app, { db, getSession: effectiveGetSession });
     mountSetFocus(app, { db, getSession: effectiveGetSession });
     mountProofSheets(app, { db, getSession: effectiveGetSession });
+    mountCctScan(app, { db, getSession: effectiveGetSession });
     if (razorpay) {
       mountCheckout(app, { db, getSession: effectiveGetSession, razorpay });
       mountRazorpayWebhook(app, { db, razorpay });

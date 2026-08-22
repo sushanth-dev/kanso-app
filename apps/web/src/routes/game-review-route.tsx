@@ -6,12 +6,12 @@ import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Heading } from '@astryxdesign/core/Heading';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from '@tanstack/react-router';
-import type { GameDetail, Mistake, MovePly } from '../api/diagnosis-api.ts';
+import type { CctMove, GameDetail, Mistake, MovePly } from '../api/diagnosis-api.ts';
 import { ParticleReveal } from '../components/canvas-ui/ParticleReveal.tsx';
 import { Board, describePosition } from '../components/board.tsx';
 import { EvalBar, evalLabel } from '../components/eval-bar.tsx';
 import { secondaryLinkClassName } from '../components/secondary-link.ts';
-import { gameQueryOptions } from '../query-client.ts';
+import { cctScanQueryOptions, gameQueryOptions } from '../query-client.ts';
 
 const JUDGEMENT_LABEL: Record<Mistake['judgement'], string> = {
   inaccuracy: 'Inaccuracy',
@@ -158,6 +158,54 @@ function resultGloss(
   return null;
 }
 
+const CCT_GROUP_LABEL: Record<'checks' | 'captures' | 'threats', string> = {
+  checks: 'Checks',
+  captures: 'Captures',
+  threats: 'Threats',
+};
+
+function CctMoveList({ label, moves }: { label: string; moves: CctMove[] }) {
+  if (moves.length === 0) return null;
+  return (
+    <div>
+      <h3 className="text-sm font-semibold text-muted">{label}</h3>
+      <ul className="mt-1 flex flex-wrap gap-2">
+        {moves.map((move) => (
+          <li key={move.san}>
+            <Badge label={move.san} variant={move.isGoodOption ? 'info' : 'neutral'} />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** ST-080. The checks, captures and threats available at the mistake position. */
+function CctScanCard({ mistakeId }: { mistakeId: string }) {
+  const scanQuery = useQuery(cctScanQueryOptions(mistakeId));
+
+  return (
+    <Card className="space-y-3 p-4">
+      <Heading level={3}>CCT scan</Heading>
+      {scanQuery.isPending ? (
+        <p className="text-sm text-muted">Scanning the position…</p>
+      ) : scanQuery.isError ? (
+        <p className="text-sm text-muted">The scan could not be loaded.</p>
+      ) : scanQuery.data.checks.length === 0 &&
+        scanQuery.data.captures.length === 0 &&
+        scanQuery.data.threats.length === 0 ? (
+        <p className="text-sm text-muted">No checks, captures or threats at this position.</p>
+      ) : (
+        <>
+          <CctMoveList label={CCT_GROUP_LABEL.checks} moves={scanQuery.data.checks} />
+          <CctMoveList label={CCT_GROUP_LABEL.captures} moves={scanQuery.data.captures} />
+          <CctMoveList label={CCT_GROUP_LABEL.threats} moves={scanQuery.data.threats} />
+        </>
+      )}
+    </Card>
+  );
+}
+
 function GameSkeleton() {
   return (
     <div role="status" aria-label="Loading game review" aria-busy="true" className="space-y-4">
@@ -297,6 +345,9 @@ export function GameReviewScreen({ game }: { game: GameDetail }) {
                 ) : null}
               </Card>
             )}
+            {currentMistake !== undefined ? (
+              <CctScanCard mistakeId={currentMistake.id} />
+            ) : null}
           </section>
 
           <Notation

@@ -17,6 +17,8 @@ export type GameDetail = components['schemas']['GameDetail'];
 export type Mistake = components['schemas']['Mistake'];
 export type MovePly = components['schemas']['MovePly'];
 export type Evaluation = components['schemas']['Evaluation'];
+export type CctScan = components['schemas']['CctScan'];
+export type CctMove = components['schemas']['CctMove'];
 
 export interface DiagnosisApi {
   getReport(stream: Stream): Promise<Report>;
@@ -24,6 +26,7 @@ export interface DiagnosisApi {
   getPhases(stream: Stream): Promise<PhaseReport>;
   listGames(stream: Stream): Promise<GameList>;
   getGame(gameId: string): Promise<GameDetail>;
+  getCctScan(mistakeId: string): Promise<CctScan>;
 }
 
 export function createDiagnosisApi(
@@ -68,6 +71,13 @@ export function createDiagnosisApi(
     async getGame(gameId) {
       const result = await client.GET('/games/{gameId}', {
         params: { path: { gameId } },
+      });
+      if (result.data !== undefined) return result.data;
+      throw failure(result.response.status, result.error);
+    },
+    async getCctScan(mistakeId) {
+      const result = await client.GET('/mistakes/{mistakeId}/cct', {
+        params: { path: { mistakeId } },
       });
       if (result.data !== undefined) return result.data;
       throw failure(result.response.status, result.error);
