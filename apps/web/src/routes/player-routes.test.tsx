@@ -33,6 +33,9 @@ function player(overrides: Partial<Player> = {}): Player {
     lichessUsername: null,
     chesscomRating: null,
     lichessRating: null,
+    currentStreak: 0,
+    xp: 0,
+    level: 1,
     createdAt: '2026-08-14T00:00:00.000Z',
     ...overrides,
   };

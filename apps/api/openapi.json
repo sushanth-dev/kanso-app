@@ -217,6 +217,15 @@
               "null"
             ]
           },
+          "currentStreak": {
+            "type": "integer"
+          },
+          "xp": {
+            "type": "integer"
+          },
+          "level": {
+            "type": "integer"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -234,6 +243,9 @@
           "lichessUsername",
           "chesscomRating",
           "lichessRating",
+          "currentStreak",
+          "xp",
+          "level",
           "createdAt"
         ]
       },

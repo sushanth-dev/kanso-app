@@ -77,6 +77,11 @@ export const Player = z
     lichessUsername: z.string().nullable(),
     chesscomRating: z.number().int().nullable(),
     lichessRating: z.number().int().nullable(),
+    /** ST-080, R8. Consecutive calendar days with at least one reviewed game. */
+    currentStreak: z.number().int(),
+    xp: z.number().int(),
+    /** Derived from `xp` (one level per 100), not stored. */
+    level: z.number().int(),
     createdAt: z.iso.datetime(),
   })
   .openapi('Player');

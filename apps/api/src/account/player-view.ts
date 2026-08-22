@@ -6,6 +6,7 @@
  * a client needs to see.
  */
 import type { player } from '../db/schema.ts';
+import { levelFromXp } from '../players/activity.ts';
 
 export function toPlayer(row: typeof player.$inferSelect) {
   return {
@@ -20,6 +21,9 @@ export function toPlayer(row: typeof player.$inferSelect) {
     lichessUsername: row.lichessUsername,
     chesscomRating: row.chesscomRating,
     lichessRating: row.lichessRating,
+    currentStreak: row.currentStreak,
+    xp: row.xp,
+    level: levelFromXp(row.xp),
     createdAt: row.createdAt.toISOString(),
   };
 }
