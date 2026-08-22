@@ -135,6 +135,16 @@ const emptyScan: CctScan = { mistakeId: 'm-1', checks: [], captures: [], threats
 
 beforeEach(() => {
   vi.spyOn(diagnosisApi, 'getCctScan').mockResolvedValue(emptyScan);
+  vi.spyOn(diagnosisApi, 'getExplanation').mockResolvedValue({
+    mistakeId: 'm-1',
+    text: 'Qf6 hangs the queen to Nc6; the knight forks it with the rook.',
+    generatedAt: '2026-08-22T00:00:00.000Z',
+  });
+  vi.spyOn(diagnosisApi, 'getSocraticQuestion').mockResolvedValue({
+    mistakeId: 'm-1',
+    question: 'What does Nc6 attack that Qf6 ignored?',
+    generatedAt: '2026-08-22T00:00:00.000Z',
+  });
 });
 
 afterEach(() => {
@@ -257,5 +267,17 @@ describe('GameReviewScreen', () => {
         screen.getByText('No checks, captures or threats at this position.'),
       ).toBeInTheDocument(),
     );
+  });
+
+  test('shows the AI explanation and Socratic question for the mistake', async () => {
+    renderScreen(gameFixture());
+    expect(await screen.findByText(/Qf6 hangs the queen to Nc6/)).toBeInTheDocument();
+    expect(screen.getByText('What does Nc6 attack that Qf6 ignored?')).toBeInTheDocument();
+  });
+
+  test('says honestly when the explanation could not be loaded', async () => {
+    vi.spyOn(diagnosisApi, 'getExplanation').mockRejectedValue(new Error('502'));
+    renderScreen(gameFixture());
+    expect(await screen.findByText('The explanation could not be loaded.')).toBeInTheDocument();
   });
 });
