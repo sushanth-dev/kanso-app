@@ -5,7 +5,8 @@ import { Field } from '@astryxdesign/core/Field';
 import { FormLayout } from '@astryxdesign/core/FormLayout';
 import { Heading } from '@astryxdesign/core/Heading';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
+import { Link } from '@astryxdesign/core/Link';
 import { authClient } from '../auth-client.ts';
 import { Clouds } from '../components/canvas-ui/Clouds.tsx';
 import { PasswordInput } from '../components/password-input.tsx';
@@ -203,12 +204,7 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
             </Field>
             {!isSignUp ? (
               <p className="text-right">
-                <Link
-                  to="/forgot-password"
-                  className="inline-flex min-h-11 items-center font-ui text-accent underline press hover:text-accent-hover"
-                >
-                  Forgot password?
-                </Link>
+                <Link href="/forgot-password">Forgot password?</Link>
               </p>
             ) : null}
             {isSignUp ? (
@@ -234,12 +230,7 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
         </form>
         <p className="mt-4 text-center text-muted">
           {isSignUp ? 'Already have an account? ' : 'Need an account? '}
-          <Link
-            to={isSignUp ? '/sign-in' : '/sign-up'}
-            className="inline-flex min-h-11 items-center font-ui text-accent underline press hover:text-accent-hover"
-          >
-            {isSignUp ? 'Sign in' : 'Sign up'}
-          </Link>
+          <Link href={isSignUp ? '/sign-in' : '/sign-up'}>{isSignUp ? 'Sign in' : 'Sign up'}</Link>
         </p>
       </Card>
     </>

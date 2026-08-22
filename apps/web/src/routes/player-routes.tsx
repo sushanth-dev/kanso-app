@@ -5,12 +5,11 @@ import { Field, type FieldStatusInput } from '@astryxdesign/core/Field';
 import { FormLayout } from '@astryxdesign/core/FormLayout';
 import { Heading } from '@astryxdesign/core/Heading';
 import { useQueryClient, useSuspenseQuery, type QueryClient } from '@tanstack/react-query';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import type { AccountApi, Me, UpdatePlayer } from '../api/account-api.ts';
 import { ApiRequestError, accountApi } from '../api/account-api.ts';
 import { StatusMessage, useStatusMessage } from '../components/status-message.tsx';
 import { TextInput } from '../components/text-input.tsx';
-import { secondaryLinkClassName } from '../components/secondary-link.ts';
 import { ME_QUERY_KEY, meQueryOptions } from '../query-client.ts';
 import type { NavigateTo } from './auth-routes.tsx';
 
@@ -293,9 +292,7 @@ export function PlayerFormScreen({ me, accountApi, queryClient, navigate }: Play
               isLoading={submitting}
               className="min-h-11 flex-1 press"
             />
-            <Link to="/account" className={secondaryLinkClassName}>
-              Cancel
-            </Link>
+            <Button label="Cancel" href="/account" variant="secondary" />
           </div>
         </FormLayout>
       </form>

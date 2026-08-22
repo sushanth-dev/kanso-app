@@ -5,12 +5,11 @@ import { Card } from '@astryxdesign/core/Card';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Heading } from '@astryxdesign/core/Heading';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useParams } from '@tanstack/react-router';
+import { useParams } from '@tanstack/react-router';
 import type { CctMove, GameDetail, Mistake, MovePly } from '../api/diagnosis-api.ts';
 import { ParticleReveal } from '../components/canvas-ui/ParticleReveal.tsx';
 import { Board, describePosition } from '../components/board.tsx';
 import { EvalBar, evalLabel } from '../components/eval-bar.tsx';
-import { secondaryLinkClassName } from '../components/secondary-link.ts';
 import {
   cctScanQueryOptions,
   explanationQueryOptions,
@@ -278,13 +277,11 @@ export function GameReviewScreen({ game }: { game: GameDetail }) {
   return (
     <div className="space-y-6">
       <header className="space-y-4">
-        <Link
-          to="/account/games"
-          search={{ stream: game.stream }}
-          className={secondaryLinkClassName}
-        >
-          Back to games
-        </Link>
+        <Button
+          label="Back to games"
+          href={`/account/games?stream=${game.stream}`}
+          variant="secondary"
+        />
         <Heading level={1}>Game review</Heading>
         <p className="text-muted">{opponent ? `vs ${opponent}` : 'Opponent unknown'}</p>
         {/* The result reveal is the Canvas UI effect ADR-0017 names. The

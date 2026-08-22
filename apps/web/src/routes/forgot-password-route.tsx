@@ -4,7 +4,7 @@ import { Card } from '@astryxdesign/core/Card';
 import { Field } from '@astryxdesign/core/Field';
 import { FormLayout } from '@astryxdesign/core/FormLayout';
 import { Heading } from '@astryxdesign/core/Heading';
-import { Link } from '@tanstack/react-router';
+import { Link } from '@astryxdesign/core/Link';
 import { authClient } from '../auth-client.ts';
 import { StatusMessage } from '../components/status-message.tsx';
 import { TextInput } from '../components/text-input.tsx';
@@ -12,8 +12,6 @@ import { AuthAmbient } from './auth-routes.tsx';
 
 const RATE_LIMIT_COPY = 'Too many attempts. Try again later.';
 const FAILURE_COPY = 'Something went wrong. Try again.';
-const LINK_CLASS =
-  'inline-flex min-h-11 items-center font-ui text-accent underline press hover:text-accent-hover';
 
 export function ForgotPasswordRoute() {
   const [submitting, setSubmitting] = useState(false);
@@ -52,9 +50,7 @@ export function ForgotPasswordRoute() {
               If this email exists in our system, check your email for the reset link.
             </p>
             <p className="mt-4 text-center">
-              <Link to="/sign-in" className={LINK_CLASS}>
-                Back to sign in
-              </Link>
+              <Link href="/sign-in">Back to sign in</Link>
             </p>
           </>
         ) : (
@@ -94,9 +90,7 @@ export function ForgotPasswordRoute() {
               </FormLayout>
             </form>
             <p className="mt-4 text-center text-muted">
-              <Link to="/sign-in" className={LINK_CLASS}>
-                Back to sign in
-              </Link>
+              <Link href="/sign-in">Back to sign in</Link>
             </p>
           </>
         )}

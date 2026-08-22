@@ -32,11 +32,9 @@ import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { Heading } from '@astryxdesign/core/Heading';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import { checkoutApi, type CheckoutResponse, type PayableTier } from '../api/checkout-api.ts';
 import type { Tier } from '../api/account-api.ts';
-import { primaryLinkClassName } from '../components/primary-link.ts';
-import { secondaryLinkClassName } from '../components/secondary-link.ts';
 import { StatusMessage } from '../components/status-message.tsx';
 import { ME_QUERY_KEY, meQueryOptions } from '../query-client.ts';
 import { track } from '../analytics.ts';
@@ -173,9 +171,7 @@ function AlreadySubscribed({ tier }: { tier: Tier }) {
             : 'The full loop is already open, up to your monthly cap: a focus, verification, and the proof sheet. Set a focus and check on it from your account.'}
         </p>
       </header>
-      <Link to="/account" className={primaryLinkClassName}>
-        Back to your account
-      </Link>
+      <Button label="Back to your account" href="/account" variant="primary" />
     </div>
   );
 }
@@ -254,9 +250,7 @@ export function UpgradeRoute() {
   return (
     <div className="space-y-8">
       <header className="space-y-4">
-        <Link to="/account" className={secondaryLinkClassName}>
-          Back to your account
-        </Link>
+        <Button label="Back to your account" href="/account" variant="secondary" />
         <Heading level={1}>Choose a plan</Heading>
         <p className="text-muted">Your first diagnosis is free. The loop after it is paid.</p>
       </header>

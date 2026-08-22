@@ -5,7 +5,7 @@ import { Field } from '@astryxdesign/core/Field';
 import { FormLayout } from '@astryxdesign/core/FormLayout';
 import { Heading } from '@astryxdesign/core/Heading';
 import { useQueryClient, useSuspenseQuery, type QueryClient } from '@tanstack/react-query';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import { ApiRequestError, type Me } from '../api/account-api.ts';
 import type { Stream } from '../api/diagnosis-api.ts';
 import type { ImportApi, ImportJob, ImportSource, StartImportBody } from '../api/import-api.ts';
@@ -14,7 +14,6 @@ import {
   isPlausibleChesscomUsername,
   isPlausibleLichessUsername,
 } from '../api/import-api.ts';
-import { secondaryLinkClassName } from '../components/secondary-link.ts';
 import { StatusMessage, type StatusTone } from '../components/status-message.tsx';
 import { StreamToggle } from '../components/stream-toggle.tsx';
 import { TextInput } from '../components/text-input.tsx';
@@ -474,9 +473,7 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
               isLoading={submitting}
               className="min-h-11 flex-1 press"
             />
-            <Link to="/account" className={secondaryLinkClassName}>
-              Back to account
-            </Link>
+            <Button label="Back to account" href="/account" variant="secondary" />
           </div>
         </FormLayout>
       </form>

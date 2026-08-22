@@ -6,8 +6,9 @@ import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Field } from '@astryxdesign/core/Field';
 import { FormLayout } from '@astryxdesign/core/FormLayout';
 import { Heading } from '@astryxdesign/core/Heading';
+import { Link } from '@astryxdesign/core/Link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate, useSearch } from '@tanstack/react-router';
+import { useNavigate, useSearch } from '@tanstack/react-router';
 import { ApiRequestError } from '../api/account-api.ts';
 import type { Stream } from '../api/diagnosis-api.ts';
 import {
@@ -18,7 +19,6 @@ import {
   type FocusTrend,
   type SetFocus,
 } from '../api/focus-api.ts';
-import { secondaryLinkClassName } from '../components/secondary-link.ts';
 
 import { UpgradePrompt } from '../components/upgrade-prompt.tsx';
 import { track } from '../analytics.ts';
@@ -185,9 +185,7 @@ export function ActiveFocusView({
   return (
     <div className="space-y-6">
       <header className="space-y-4">
-        <Link to="/account" className={secondaryLinkClassName}>
-          Back to your account
-        </Link>
+        <Button label="Back to your account" href="/account" variant="secondary" />
         <Heading level={1}>
           {focus.unverified ? "Your coach's focus" : (focus.catalogue?.title ?? 'Your focus')}
         </Heading>
@@ -254,13 +252,7 @@ function RankingSection({
           </ol>
         </>
       )}
-      <Link
-        to="/account/report"
-        search={{ stream }}
-        className="inline-flex min-h-11 items-center font-ui text-sm text-accent underline press"
-      >
-        View full report
-      </Link>
+      <Link href={`/account/report?stream=${stream}`}>View full report</Link>
     </section>
   );
 }
@@ -438,9 +430,7 @@ export function FocusChoiceView({
   return (
     <div className="space-y-6">
       <header className="space-y-4">
-        <Link to="/account" className={secondaryLinkClassName}>
-          Back to your account
-        </Link>
+        <Button label="Back to your account" href="/account" variant="secondary" />
         <Heading level={1}>Set your focus</Heading>
         {replacing !== null ? (
           <p className="text-muted">
@@ -557,9 +547,7 @@ export function FocusRoute() {
     return (
       <div className="space-y-6">
         <header className="space-y-4">
-          <Link to="/account" className={secondaryLinkClassName}>
-            Back to your account
-          </Link>
+          <Button label="Back to your account" href="/account" variant="secondary" />
           <Heading level={1}>Your focus</Heading>
         </header>
         <FocusSkeleton />
@@ -575,9 +563,7 @@ export function FocusRoute() {
     return (
       <div className="space-y-6">
         <header className="space-y-4">
-          <Link to="/account" className={secondaryLinkClassName}>
-            Back to your account
-          </Link>
+          <Button label="Back to your account" href="/account" variant="secondary" />
           <Heading level={1}>Your focus</Heading>
         </header>
         <UpgradePrompt title="Your focus is part of the paid loop" />
@@ -592,9 +578,7 @@ export function FocusRoute() {
     return (
       <div className="space-y-6">
         <header className="space-y-4">
-          <Link to="/account" className={secondaryLinkClassName}>
-            Back to your account
-          </Link>
+          <Button label="Back to your account" href="/account" variant="secondary" />
           <Heading level={1}>Your focus</Heading>
         </header>
         <FocusError />
