@@ -78,6 +78,18 @@ function gameFixture(overrides: Partial<GameDetail> = {}): GameDetail {
     pgn: '1. e4 e5 2. Nf3 Qf6 3. Nc3 Qxf3 0-1',
     plies: [
       {
+        ply: 5,
+        san: 'Nf3',
+        uci: 'g1f3',
+        fenBefore: 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 2',
+        phase: 'opening',
+        evaluation: { cp: 20, mate: null },
+        bestMoveSan: 'Nf3',
+        bestMoveUci: 'g1f3',
+        clockMs: null,
+        moveTimeMs: null,
+      },
+      {
         ply: 6,
         san: 'Qf6',
         uci: 'd8f6',
@@ -90,12 +102,24 @@ function gameFixture(overrides: Partial<GameDetail> = {}): GameDetail {
         moveTimeMs: null,
       },
       {
+        ply: 7,
+        san: 'Nc3',
+        uci: 'b1c3',
+        fenBefore: 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3',
+        phase: 'opening',
+        evaluation: { cp: -200, mate: null },
+        bestMoveSan: 'Nc3',
+        bestMoveUci: 'b1c3',
+        clockMs: null,
+        moveTimeMs: null,
+      },
+      {
         ply: 8,
         san: 'Qxf3',
         uci: 'f6f3',
         fenBefore: FEN,
         phase: 'opening',
-        evaluation: { cp: -200, mate: null },
+        evaluation: { cp: -180, mate: null },
         bestMoveSan: 'd6',
         bestMoveUci: 'd7d6',
         clockMs: null,
@@ -130,22 +154,59 @@ describe('GameReviewScreen', () => {
     expect(screen.getByText('vs Alice')).toBeInTheDocument();
   });
 
-  test('lists every mistake and switches position on selection', async () => {
+  test('lists every move in the notation panel and switches position on selection', async () => {
     const { user } = renderScreen(gameFixture());
-    expect(screen.getAllByRole('button').length).toBe(2);
     await user.click(screen.getByRole('button', { name: /Qxf3/ }));
     expect(screen.getByText(/you played/)).toHaveTextContent('Qxf3');
     expect(screen.getByText(/best was/)).toHaveTextContent('d6');
   });
 
-  test('says honestly when the game has no recorded mistakes', () => {
+  test('says honestly when the game has no recorded moves', () => {
     renderScreen(gameFixture({ mistakes: [], plies: [] }));
-    expect(screen.getByText('No recorded mistakes in this game.')).toBeInTheDocument();
+    expect(screen.getByText('No recorded moves in this game.')).toBeInTheDocument();
   });
-  test('shows each mistake cost in the list', () => {
+
+  test('a game with plies but no mistakes is still steppable', () => {
+    renderScreen(gameFixture({ mistakes: [] }));
+    expect(screen.getByText(/you played/)).toHaveTextContent('Nf3');
+    expect(screen.getByRole('button', { name: 'Next move' })).toBeEnabled();
+  });
+
+  test('shows the plain move line on a non-mistake ply', async () => {
+    const { user } = renderScreen(gameFixture());
+    await user.click(screen.getByRole('button', { name: /Nc3/ }));
+    expect(screen.getByText(/you played/)).toHaveTextContent('Nc3');
+    expect(screen.queryByText(/best was/)).not.toBeInTheDocument();
+  });
+
+  test('shows the mistake glyph in the notation panel', () => {
     renderScreen(gameFixture());
-    expect(screen.getByText('-2.3')).toBeInTheDocument();
-    expect(screen.getByText('-4.2')).toBeInTheDocument();
+    const blunder = screen.getByRole('button', { name: /Qf6/ });
+    expect(blunder).toHaveTextContent('??');
+  });
+
+  test('Previous is disabled on the first move, Next on the last', async () => {
+    const { user } = renderScreen(gameFixture());
+    await user.click(screen.getByRole('button', { name: /^Nf3$/ }));
+    expect(screen.getByRole('button', { name: 'Previous move' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: /Qxf3/ }));
+    expect(screen.getByRole('button', { name: 'Next move' })).toBeDisabled();
+  });
+
+  test('Next and Previous buttons step through every ply, not just mistakes', async () => {
+    const { user } = renderScreen(gameFixture());
+    await user.click(screen.getByRole('button', { name: /^Nf3$/ }));
+    await user.click(screen.getByRole('button', { name: 'Next move' }));
+    expect(screen.getByText(/you played/)).toHaveTextContent('Qf6');
+  });
+
+  test('ArrowRight and ArrowLeft step through the game, and no-op at the boundaries', async () => {
+    const { user } = renderScreen(gameFixture());
+    await user.click(screen.getByRole('button', { name: /^Nf3$/ }));
+    await user.keyboard('{ArrowRight}');
+    expect(screen.getByText(/you played/)).toHaveTextContent('Qf6');
+    await user.keyboard('{ArrowLeft}{ArrowLeft}');
+    expect(screen.getByText(/you played/)).toHaveTextContent('Nf3');
   });
 
   test("labels the evaluation as White's advantage", () => {

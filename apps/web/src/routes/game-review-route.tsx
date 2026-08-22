@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Heading } from '@astryxdesign/core/Heading';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from '@tanstack/react-router';
-import type { GameDetail, Mistake } from '../api/diagnosis-api.ts';
+import type { GameDetail, Mistake, MovePly } from '../api/diagnosis-api.ts';
 import { ParticleReveal } from '../components/canvas-ui/ParticleReveal.tsx';
 import { Board, describePosition } from '../components/board.tsx';
 import { EvalBar, evalLabel } from '../components/eval-bar.tsx';
@@ -18,12 +19,132 @@ const JUDGEMENT_LABEL: Record<Mistake['judgement'], string> = {
   blunder: 'Blunder',
 };
 
+const JUDGEMENT_GLYPH: Record<Mistake['judgement'], string> = {
+  inaccuracy: '?!',
+  mistake: '?',
+  blunder: '??',
+};
+
 const MOTIF_LABEL: Record<string, string> = {
   hanging_piece: 'Hung a piece',
   missed_check: 'Missed a check',
   missed_capture: 'Missed a capture',
   missed_threat: 'Missed a threat',
 };
+
+/** The side to move at a ply's pre-move position, read off the FEN. */
+function movingColorOf(ply: MovePly): 'white' | 'black' {
+  return ply.fenBefore.split(' ')[1] === 'b' ? 'black' : 'white';
+}
+
+/** The index into `plies` for the game's first recorded mistake, else 0. */
+function initialPlyIndex(game: GameDetail): number {
+  const firstMistake = game.mistakes[0];
+  if (firstMistake === undefined) return 0;
+  const index = game.plies.findIndex((ply) => ply.ply === firstMistake.ply);
+  return index === -1 ? 0 : index;
+}
+
+interface MoveRow {
+  moveNumber: number;
+  white?: MovePly;
+  black?: MovePly;
+}
+
+/** Pairs plies into White/Black rows by move number, for the notation panel. */
+function toMoveRows(plies: MovePly[]): MoveRow[] {
+  const rows: MoveRow[] = [];
+  for (const ply of plies) {
+    const moveNumber = Math.ceil(ply.ply / 2);
+    let row = rows.at(-1);
+    if (row === undefined || row.moveNumber !== moveNumber) {
+      row = { moveNumber };
+      rows.push(row);
+    }
+    if (ply.ply % 2 === 1) row.white = ply;
+    else row.black = ply;
+  }
+  return rows;
+}
+
+function NotationMove({
+  ply,
+  mistake,
+  isCurrent,
+  onSelect,
+}: {
+  ply: MovePly;
+  mistake: Mistake | undefined;
+  isCurrent: boolean;
+  onSelect: (ply: number) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(ply.ply)}
+      aria-pressed={isCurrent}
+      title={mistake === undefined ? undefined : JUDGEMENT_LABEL[mistake.judgement]}
+      className={
+        isCurrent
+          ? 'press rounded-control bg-raised px-2 py-1 text-left font-mono text-sm ring-2 ring-focus'
+          : 'press rounded-control px-2 py-1 text-left font-mono text-sm hover:bg-sunken'
+      }
+    >
+      {ply.san}
+      {mistake === undefined ? null : (
+        <span className="ml-1 text-danger">{JUDGEMENT_GLYPH[mistake.judgement]}</span>
+      )}
+    </button>
+  );
+}
+
+function Notation({
+  plies,
+  mistakes,
+  currentPly,
+  onSelect,
+}: {
+  plies: MovePly[];
+  mistakes: Mistake[];
+  currentPly: MovePly;
+  onSelect: (ply: number) => void;
+}) {
+  const mistakeByPly = new Map(mistakes.map((mistake) => [mistake.ply, mistake]));
+  return (
+    <section aria-labelledby="notation-heading">
+      <Heading level={2} id="notation-heading">
+        Moves
+      </Heading>
+      <ol className="mt-3 grid grid-cols-[auto_1fr_1fr] items-center gap-x-2 gap-y-1">
+        {toMoveRows(plies).map((row) => (
+          <li key={row.moveNumber} className="contents">
+            <span className="font-mono text-sm text-muted">{row.moveNumber}.</span>
+            {row.white === undefined ? (
+              <span />
+            ) : (
+              <NotationMove
+                ply={row.white}
+                mistake={mistakeByPly.get(row.white.ply)}
+                isCurrent={row.white.ply === currentPly.ply}
+                onSelect={onSelect}
+              />
+            )}
+            {row.black === undefined ? (
+              <span />
+            ) : (
+              <NotationMove
+                ply={row.black}
+                mistake={mistakeByPly.get(row.black.ply)}
+                isCurrent={row.black.ply === currentPly.ply}
+                onSelect={onSelect}
+              />
+            )}
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
 
 /** "won", "lost" or "drew" from the player's side, or null when neither is known. */
 function resultGloss(
@@ -48,13 +169,34 @@ function GameSkeleton() {
 }
 
 export function GameReviewScreen({ game }: { game: GameDetail }) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const mistakes = game.mistakes;
-  const selected = mistakes.find((mistake) => mistake.id === selectedId) ?? mistakes[0];
+  const [plyIndex, setPlyIndex] = useState(() => initialPlyIndex(game));
   const opponent = game.playerColor === 'white' ? game.blackName : game.whiteName;
   const gloss = resultGloss(game.result, game.playerColor);
-  const selectedPly =
-    selected === undefined ? undefined : game.plies.find((ply) => ply.ply === selected.ply);
+  const currentPly = game.plies[plyIndex];
+  const currentMistake = game.mistakes.find((mistake) => mistake.ply === currentPly?.ply);
+
+  const stepBy = (delta: number) => {
+    setPlyIndex((index) => Math.min(Math.max(index + delta, 0), game.plies.length - 1));
+  };
+  const selectPly = (ply: number) => {
+    const index = game.plies.findIndex((movePly) => movePly.ply === ply);
+    if (index !== -1) setPlyIndex(index);
+  };
+
+  useEffect(() => {
+    if (game.plies.length === 0) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        stepBy(-1);
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        stepBy(1);
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [game.plies.length]);
 
   return (
     <div className="space-y-6">
@@ -78,87 +220,91 @@ export function GameReviewScreen({ game }: { game: GameDetail }) {
         {gloss !== null ? <p>You {gloss}.</p> : null}
       </header>
 
-      {selected === undefined ? (
+      {currentPly === undefined ? (
         <Card className="p-6">
-          <p className="text-muted">No recorded mistakes in this game.</p>
+          <p className="text-muted">No recorded moves in this game.</p>
         </Card>
       ) : (
         <>
           <section aria-label="Position" className="space-y-4">
             <div className="flex max-w-md items-stretch gap-4">
               <EvalBar
-                evaluation={selected.evalAfter}
-                label={`Evaluation after move ${selected.moveNumber}, White's advantage: ${evalLabel(selected.evalAfter)}`}
+                evaluation={
+                  currentMistake === undefined ? currentPly.evaluation : currentMistake.evalAfter
+                }
+                label={`White's advantage: ${evalLabel(currentMistake === undefined ? currentPly.evaluation : currentMistake.evalAfter)}`}
               />
               <Board
-                fen={selected.fen}
-                from={selectedPly?.uci.slice(0, 2)}
-                to={selectedPly?.uci.slice(2, 4)}
-                bestFrom={selectedPly?.bestMoveUci?.slice(0, 2)}
-                bestTo={selectedPly?.bestMoveUci?.slice(2, 4)}
-                flipped={selected.movingColor === 'black'}
-                label={`Position before move ${selected.moveNumber}, ${selected.movingColor} to move. ${describePosition(selected.fen)}`}
+                fen={currentPly.fenBefore}
+                from={currentPly.uci.slice(0, 2)}
+                to={currentPly.uci.slice(2, 4)}
+                bestFrom={currentPly.bestMoveUci?.slice(0, 2)}
+                bestTo={currentPly.bestMoveUci?.slice(2, 4)}
+                flipped={movingColorOf(currentPly) === 'black'}
+                label={`Position before move ${Math.ceil(currentPly.ply / 2)}, ${movingColorOf(currentPly)} to move. ${describePosition(currentPly.fenBefore)}`}
               />
             </div>
-            <Card className="space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge label={JUDGEMENT_LABEL[selected.judgement]} variant="neutral" />
-                <span className="font-mono text-sm text-muted">
-                  -{(selected.cpLoss / 100).toFixed(1)} pawns
-                </span>
-              </div>
-              <p>
-                Move {selected.moveNumber}: you played{' '}
-                <span className="font-mono">{selected.moveSan}</span>; best was{' '}
-                <span className="font-mono">{selected.bestMoveSan}</span>.
-              </p>
-              <p className="font-mono text-sm text-muted">
-                White's advantage: {evalLabel(selected.evalBefore)} →{' '}
-                {evalLabel(selected.evalAfter)}
-              </p>
-              {selected.motif !== null ? (
-                <p className="text-sm text-muted">
-                  {MOTIF_LABEL[selected.motif] ?? selected.motif}
+
+            <div className="flex items-center gap-2">
+              <Button
+                label="Previous move"
+                variant="secondary"
+                isDisabled={plyIndex === 0}
+                onClick={() => stepBy(-1)}
+              />
+              <Button
+                label="Next move"
+                variant="secondary"
+                isDisabled={plyIndex === game.plies.length - 1}
+                onClick={() => stepBy(1)}
+              />
+              <span className="font-mono text-sm text-muted">
+                Move {plyIndex + 1} of {game.plies.length}
+              </span>
+            </div>
+
+            {currentMistake === undefined ? (
+              <Card className="space-y-2">
+                <p>
+                  Move {Math.ceil(currentPly.ply / 2)}: you played{' '}
+                  <span className="font-mono">{currentPly.san}</span>.
                 </p>
-              ) : null}
-            </Card>
+                <p className="font-mono text-sm text-muted">
+                  White's advantage: {evalLabel(currentPly.evaluation)}
+                </p>
+              </Card>
+            ) : (
+              <Card className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge label={JUDGEMENT_LABEL[currentMistake.judgement]} variant="neutral" />
+                  <span className="font-mono text-sm text-muted">
+                    -{(currentMistake.cpLoss / 100).toFixed(1)} pawns
+                  </span>
+                </div>
+                <p>
+                  Move {currentMistake.moveNumber}: you played{' '}
+                  <span className="font-mono">{currentMistake.moveSan}</span>; best was{' '}
+                  <span className="font-mono">{currentMistake.bestMoveSan}</span>.
+                </p>
+                <p className="font-mono text-sm text-muted">
+                  White's advantage: {evalLabel(currentMistake.evalBefore)} →{' '}
+                  {evalLabel(currentMistake.evalAfter)}
+                </p>
+                {currentMistake.motif !== null ? (
+                  <p className="text-sm text-muted">
+                    {MOTIF_LABEL[currentMistake.motif] ?? currentMistake.motif}
+                  </p>
+                ) : null}
+              </Card>
+            )}
           </section>
 
-          <section aria-labelledby="mistakes-heading">
-            <Heading level={2} id="mistakes-heading">
-              Mistakes in this game
-            </Heading>
-            <ol className="mt-3 space-y-2">
-              {mistakes.map((mistake) => {
-                const selectedState = mistake.id === selected.id;
-                return (
-                  <li key={mistake.id}>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedId(mistake.id)}
-                      aria-pressed={selectedState}
-                      className={
-                        selectedState
-                          ? 'press w-full rounded-surface bg-raised p-3 text-left ring-2 ring-focus'
-                          : 'press w-full rounded-surface bg-raised p-3 text-left hover:bg-sunken'
-                      }
-                    >
-                      <span className="font-mono text-sm text-muted">
-                        Move {mistake.moveNumber}
-                      </span>
-                      <span className="ml-3 font-mono">{mistake.moveSan}</span>
-                      <span className="ml-3 text-sm text-muted">
-                        {JUDGEMENT_LABEL[mistake.judgement]}
-                      </span>
-                      <span className="ml-3 font-mono text-sm text-muted">
-                        -{(mistake.cpLoss / 100).toFixed(1)}
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ol>
-          </section>
+          <Notation
+            plies={game.plies}
+            mistakes={game.mistakes}
+            currentPly={currentPly}
+            onSelect={selectPly}
+          />
         </>
       )}
     </div>
