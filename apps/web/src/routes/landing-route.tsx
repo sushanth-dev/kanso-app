@@ -24,14 +24,10 @@
  * finish review, the verdict, and DESIGN.md.
  */
 import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
-import { Link } from '@tanstack/react-router';
-import { secondaryLinkClassName } from '../components/secondary-link.ts';
-import { primaryLinkClassName } from '../components/primary-link.ts';
+import { Link } from '@astryxdesign/core/Link';
 import { ParallaxPiece } from '../components/parallax-piece.tsx';
-
-const textLinkClassName =
-  'inline-flex min-h-11 items-center font-ui text-accent underline underline-offset-2 transition-control hover:text-accent-hover';
 
 const SAMPLE_TOURNAMENT = 'A scholastic tournament · K-8 U1200 · 5 rounds';
 
@@ -107,9 +103,7 @@ export function LandingRoute() {
               <span aria-hidden="true" className="size-2.5 shrink-0 rounded-control bg-accent" />
               <span className="font-display text-xl leading-tight tracking-tight">Kanso Chess</span>
             </span>
-            <Link to="/sign-in" className={textLinkClassName}>
-              Sign in
-            </Link>
+            <Link href="/sign-in">Sign in</Link>
           </div>
         </header>
 
@@ -128,9 +122,7 @@ export function LandingRoute() {
                   For parents, it makes every lesson you already pay for work harder.
                 </p>
                 <div className="mt-8">
-                  <Link to="/sign-up" className={primaryLinkClassName}>
-                    Get your free diagnosis
-                  </Link>
+                  <Button label="Get your free diagnosis" href="/sign-up" variant="primary" />
                 </div>
               </div>
               <SampleDiagnosis />
@@ -174,12 +166,12 @@ export function LandingRoute() {
                 See what is actually costing you rating
               </h2>
               <div className="mt-8 flex flex-col items-center gap-3">
-                <Link to="/sign-up" className={primaryLinkClassName}>
-                  Get your free diagnosis
-                </Link>
-                <Link to="/sign-in" className={secondaryLinkClassName}>
-                  Already have an account? Sign in
-                </Link>
+                <Button label="Get your free diagnosis" href="/sign-up" variant="primary" />
+                <Button
+                  label="Already have an account? Sign in"
+                  href="/sign-in"
+                  variant="secondary"
+                />
               </div>
             </div>
           </section>

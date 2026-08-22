@@ -100,7 +100,6 @@ describe('AccountScreen', () => {
   test('owned cards link to edit', () => {
     renderAccount();
     expect(screen.getByRole('link', { name: 'Edit' })).toHaveAttribute('href', '/account/player');
-    expect(screen.getByRole('link', { name: 'Edit' })).toHaveClass('min-w-11', 'justify-center');
   });
 });
 

@@ -115,12 +115,12 @@ describe('ReportScreen', () => {
 
   test('shows the stream choice and never blends it', async () => {
     const { user, onStreamChange } = renderReport(reportFixture());
-    expect(screen.getByRole('button', { name: 'Tournament' })).toHaveAttribute(
-      'aria-pressed',
+    expect(screen.getByRole('radio', { name: 'Tournament' })).toHaveAttribute(
+      'aria-checked',
       'true',
     );
-    expect(screen.getByRole('button', { name: 'Online' })).toHaveAttribute('aria-pressed', 'false');
-    await user.click(screen.getByRole('button', { name: 'Online' }));
+    expect(screen.getByRole('radio', { name: 'Online' })).toHaveAttribute('aria-checked', 'false');
+    await user.click(screen.getByRole('radio', { name: 'Online' }));
     expect(onStreamChange).toHaveBeenCalledWith('online');
   });
 
@@ -277,7 +277,7 @@ describe('ReportRoute', () => {
     renderRoute();
 
     expect(await screen.findByText('1 of 3 games analysed')).toBeVisible();
-    expect(screen.getByRole('status')).toBeVisible();
+    expect(screen.getByRole('status', { name: 'Loading' })).toBeVisible();
   });
 
   test('polls and swaps to the report once every game is analysed', async () => {
