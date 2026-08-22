@@ -1,5 +1,5 @@
 import { queryOptions, QueryClient } from '@tanstack/react-query';
-import { accountApi } from './api/account-api.ts';
+import { accountApi, ApiRequestError } from './api/account-api.ts';
 import { diagnosisApi, type Stream } from './api/diagnosis-api.ts';
 import { focusApi } from './api/focus-api.ts';
 import { proofSheetApi } from './api/proof-sheet-api.ts';
@@ -57,6 +57,27 @@ export const cctScanQueryOptions = (mistakeId: string) =>
     queryKey: ['cct-scan', mistakeId] as const,
     queryFn: () => diagnosisApi.getCctScan(mistakeId),
     retry: false,
+    staleTime: 30_000,
+  });
+
+// ADR-0018: a 502 means the model call failed, not that the mistake has no
+// explanation. Retry that case a few times; anything else (401/403/404) is final.
+const retryOnModelFailure = (failureCount: number, error: unknown) =>
+  error instanceof ApiRequestError && error.status === 502 && failureCount < 5;
+
+export const explanationQueryOptions = (mistakeId: string) =>
+  queryOptions({
+    queryKey: ['explanation', mistakeId] as const,
+    queryFn: () => diagnosisApi.getExplanation(mistakeId),
+    retry: retryOnModelFailure,
+    staleTime: 30_000,
+  });
+
+export const socraticQuestionQueryOptions = (mistakeId: string) =>
+  queryOptions({
+    queryKey: ['socratic-question', mistakeId] as const,
+    queryFn: () => diagnosisApi.getSocraticQuestion(mistakeId),
+    retry: retryOnModelFailure,
     staleTime: 30_000,
   });
 

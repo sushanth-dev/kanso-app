@@ -19,6 +19,8 @@ export type MovePly = components['schemas']['MovePly'];
 export type Evaluation = components['schemas']['Evaluation'];
 export type CctScan = components['schemas']['CctScan'];
 export type CctMove = components['schemas']['CctMove'];
+export type Explanation = components['schemas']['Explanation'];
+export type SocraticQuestion = components['schemas']['SocraticQuestion'];
 
 export interface DiagnosisApi {
   getReport(stream: Stream): Promise<Report>;
@@ -27,6 +29,8 @@ export interface DiagnosisApi {
   listGames(stream: Stream): Promise<GameList>;
   getGame(gameId: string): Promise<GameDetail>;
   getCctScan(mistakeId: string): Promise<CctScan>;
+  getExplanation(mistakeId: string): Promise<Explanation>;
+  getSocraticQuestion(mistakeId: string): Promise<SocraticQuestion>;
 }
 
 export function createDiagnosisApi(
@@ -77,6 +81,20 @@ export function createDiagnosisApi(
     },
     async getCctScan(mistakeId) {
       const result = await client.GET('/mistakes/{mistakeId}/cct', {
+        params: { path: { mistakeId } },
+      });
+      if (result.data !== undefined) return result.data;
+      throw failure(result.response.status, result.error);
+    },
+    async getExplanation(mistakeId) {
+      const result = await client.GET('/mistakes/{mistakeId}/explanation', {
+        params: { path: { mistakeId } },
+      });
+      if (result.data !== undefined) return result.data;
+      throw failure(result.response.status, result.error);
+    },
+    async getSocraticQuestion(mistakeId) {
+      const result = await client.GET('/mistakes/{mistakeId}/question', {
         params: { path: { mistakeId } },
       });
       if (result.data !== undefined) return result.data;
