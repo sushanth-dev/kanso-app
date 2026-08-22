@@ -69,9 +69,14 @@ sparingly. Depth comes from three steps of brightness, never drop shadows. The
 board is always the brightest object on the screen; the interface recedes so
 the position reads at a glance.
 
-This is the anti-game-portal: no saturated neon, no gamified candy, no
-red-green status pairs. Every state carries its meaning in at least two
-channels, never hue alone.
+This is the anti-game-portal: no saturated neon, no red-green status pairs.
+Every state carries its meaning in at least two channels, never hue alone.
+
+**Exception: streak and XP.** ST-080 (22 August 2026) approved gamified
+engagement elements for the streak counter and XP/level display, since the
+reader asked for them directly. They still follow the One Accent Rule, the
+Never-Next-to-Green Rule, and the No Hue Alone Rule; they just are not held
+to the no-gamified-candy line the rest of the interface is.
 
 **Key Characteristics:**
 
