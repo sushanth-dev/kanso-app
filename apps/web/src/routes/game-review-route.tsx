@@ -11,7 +11,12 @@ import { ParticleReveal } from '../components/canvas-ui/ParticleReveal.tsx';
 import { Board, describePosition } from '../components/board.tsx';
 import { EvalBar, evalLabel } from '../components/eval-bar.tsx';
 import { secondaryLinkClassName } from '../components/secondary-link.ts';
-import { cctScanQueryOptions, gameQueryOptions } from '../query-client.ts';
+import {
+  cctScanQueryOptions,
+  explanationQueryOptions,
+  gameQueryOptions,
+  socraticQuestionQueryOptions,
+} from '../query-client.ts';
 
 const JUDGEMENT_LABEL: Record<Mistake['judgement'], string> = {
   inaccuracy: 'Inaccuracy',
@@ -206,6 +211,30 @@ function CctScanCard({ mistakeId }: { mistakeId: string }) {
   );
 }
 
+/** ST-080. AI explanation and Socratic question for the mistake, per ADR-0018. */
+function ExplanationCard({ mistakeId }: { mistakeId: string }) {
+  const explanationQuery = useQuery(explanationQueryOptions(mistakeId));
+  const questionQuery = useQuery(socraticQuestionQueryOptions(mistakeId));
+
+  return (
+    <Card className="space-y-3 p-4">
+      <Heading level={3}>Coach's take</Heading>
+      {explanationQuery.isError ? (
+        <p className="text-sm text-muted">The explanation could not be loaded.</p>
+      ) : (
+        <p className="text-sm">
+          {explanationQuery.data?.text ?? 'Working out what happened here…'}
+        </p>
+      )}
+      {questionQuery.isError ? null : (
+        <p className="text-sm text-muted">
+          {questionQuery.data?.question ?? 'Thinking of a question to ask you…'}
+        </p>
+      )}
+    </Card>
+  );
+}
+
 function GameSkeleton() {
   return (
     <div role="status" aria-label="Loading game review" aria-busy="true" className="space-y-4">
@@ -346,7 +375,10 @@ export function GameReviewScreen({ game }: { game: GameDetail }) {
               </Card>
             )}
             {currentMistake !== undefined ? (
-              <CctScanCard mistakeId={currentMistake.id} />
+              <>
+                <ExplanationCard mistakeId={currentMistake.id} />
+                <CctScanCard mistakeId={currentMistake.id} />
+              </>
             ) : null}
           </section>
 
