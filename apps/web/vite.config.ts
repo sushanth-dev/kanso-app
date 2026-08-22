@@ -21,6 +21,7 @@ export default defineConfig({
       },
       '/players': 'http://127.0.0.1:3000',
       '/games': 'http://127.0.0.1:3000',
+      '/imports': 'http://127.0.0.1:3000',
       '/proof-sheets': 'http://127.0.0.1:3000',
       '/shared': {
         target: 'http://127.0.0.1:3000',
