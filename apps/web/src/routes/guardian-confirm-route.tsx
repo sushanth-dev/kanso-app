@@ -1,4 +1,5 @@
 import { Heading } from '@astryxdesign/core/Heading';
+import { Text } from '@astryxdesign/core/Text';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from '@tanstack/react-router';
 import { guardianApi } from '../api/guardian-api.ts';
@@ -42,7 +43,9 @@ export function GuardianConfirmRoute() {
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-16 font-ui">
       <Heading level={1}>Consent recorded</Heading>
-      <p className="mt-4 text-muted">Thank you. The player's account is now ready to use.</p>
+      <Text as="p" display="block" type="supporting" className="mt-4">
+        Thank you. The player's account is now ready to use.
+      </Text>
     </main>
   );
 }

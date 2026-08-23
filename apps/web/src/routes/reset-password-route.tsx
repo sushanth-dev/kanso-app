@@ -4,6 +4,7 @@ import { Card } from '@astryxdesign/core/Card';
 import { Field } from '@astryxdesign/core/Field';
 import { FormLayout } from '@astryxdesign/core/FormLayout';
 import { Heading } from '@astryxdesign/core/Heading';
+import { Text } from '@astryxdesign/core/Text';
 import { useParams } from '@tanstack/react-router';
 import { Link } from '@astryxdesign/core/Link';
 import { authClient } from '../auth-client.ts';
@@ -60,12 +61,12 @@ export function ResetPasswordRoute() {
         <AuthAmbient />
         <Card className="mx-auto w-full max-w-sm">
           <Heading level={1}>This link is no longer available.</Heading>
-          <p className="mt-4 text-muted">
+          <Text as="p" display="block" type="supporting" className="mt-4">
             The link was used already, expired, or does not match a reset request.
-          </p>
-          <p className="mt-4">
+          </Text>
+          <Text as="p" display="block" className="mt-4">
             <Link href="/forgot-password">Request a new link</Link>
-          </p>
+          </Text>
         </Card>
       </>
     );
@@ -77,10 +78,12 @@ export function ResetPasswordRoute() {
         <AuthAmbient />
         <Card className="mx-auto w-full max-w-sm">
           <Heading level={1}>Password reset</Heading>
-          <p className="mt-4 text-muted">Your password was reset. Sign in with it now.</p>
-          <p className="mt-4">
+          <Text as="p" display="block" type="supporting" className="mt-4">
+            Your password was reset. Sign in with it now.
+          </Text>
+          <Text as="p" display="block" className="mt-4">
             <Link href="/sign-in">Sign in</Link>
-          </p>
+          </Text>
         </Card>
       </>
     );

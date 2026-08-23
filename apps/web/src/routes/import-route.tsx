@@ -5,6 +5,7 @@ import { Field } from '@astryxdesign/core/Field';
 import { FileInput } from '@astryxdesign/core/FileInput';
 import { FormLayout } from '@astryxdesign/core/FormLayout';
 import { Heading } from '@astryxdesign/core/Heading';
+import { Text } from '@astryxdesign/core/Text';
 import { useQueryClient, useSuspenseQuery, type QueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { ApiRequestError, type Me } from '../api/account-api.ts';
@@ -119,9 +120,9 @@ function renderOutcome(outcome: ImportOutcome): ReactNode {
     <div className="mt-4">
       <StatusMessage tone={status.tone}>{status.message}</StatusMessage>
       {outcome.kind === 'imported' && outcome.job.source === 'uscf' && (
-        <p className="mt-2 text-sm text-muted">
+        <Text as="p" display="block" type="supporting" className="mt-2 text-sm">
           These games carry results, not moves, so no analysis follows.
-        </p>
+        </Text>
       )}
       {outcome.kind === 'invalid-pgn' && (
         <ul className="mt-2 list-disc pl-5 text-sm text-danger">
@@ -293,7 +294,9 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
   return (
     <Card>
       <Heading level={1}>Import games</Heading>
-      <p className="mt-1 text-muted">for {player.displayName}</p>
+      <Text as="p" display="block" type="supporting" className="mt-1">
+        for {player.displayName}
+      </Text>
 
       {submitting ? (
         <div className="mt-4">
@@ -356,7 +359,9 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
                   aria-describedby={usernameError === undefined ? undefined : 'username-status'}
                 />
               </Field>
-              <p className="text-muted">Imports the last 12 months of online games.</p>
+              <Text as="p" display="block" type="supporting">
+                Imports the last 12 months of online games.
+              </Text>
             </>
           ) : method === 'pgn_upload' ? (
             <>
@@ -421,7 +426,9 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
                   }
                 />
               </Field>
-              <p className="text-muted">Imports tournament results, not moves.</p>
+              <Text as="p" display="block" type="supporting">
+                Imports tournament results, not moves.
+              </Text>
             </>
           )}
 

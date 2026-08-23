@@ -78,12 +78,14 @@ function SampleDiagnosis() {
             key={weakness.rank}
             className="flex items-baseline gap-3 border-b border-border-subtle py-3 first:pt-0 last:border-b-0 last:pb-0"
           >
-            <span className="font-mono text-sm text-muted">#{weakness.rank}</span>
+            <Text type="supporting" className="font-mono text-sm">
+              #{weakness.rank}
+            </Text>
             <span className="flex-1">
-              <span className="font-display text-base">{weakness.label}</span>
+              <Text className="font-display text-base">{weakness.label}</Text>
               <Badge label={weakness.kind} variant="neutral" />
             </span>
-            <span className="font-mono text-base">{weakness.ratingLeak}</span>
+            <Text className="font-mono text-base">{weakness.ratingLeak}</Text>
           </li>
         ))}
       </ol>
@@ -107,7 +109,7 @@ export function LandingRoute() {
           <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-4">
             <span className="flex items-center gap-2">
               <span aria-hidden="true" className="size-2.5 shrink-0 rounded-control bg-accent" />
-              <span className="font-display text-xl leading-tight tracking-tight">Kanso Chess</span>
+              <Text className="font-display text-xl leading-tight tracking-tight">Kanso Chess</Text>
             </span>
             <Link href="/sign-in">Sign in</Link>
           </div>

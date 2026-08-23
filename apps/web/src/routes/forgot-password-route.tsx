@@ -5,6 +5,7 @@ import { Field } from '@astryxdesign/core/Field';
 import { FormLayout } from '@astryxdesign/core/FormLayout';
 import { Heading } from '@astryxdesign/core/Heading';
 import { Link } from '@astryxdesign/core/Link';
+import { Text } from '@astryxdesign/core/Text';
 import { authClient } from '../auth-client.ts';
 import { StatusMessage } from '../components/status-message.tsx';
 import { TextInput } from '../components/text-input.tsx';
@@ -46,18 +47,18 @@ export function ForgotPasswordRoute() {
         <Heading level={1}>{sent ? 'Check your email' : 'Reset your password'}</Heading>
         {sent ? (
           <>
-            <p className="mt-4 text-muted">
+            <Text as="p" display="block" type="supporting" className="mt-4">
               If this email exists in our system, check your email for the reset link.
-            </p>
-            <p className="mt-4 text-center">
+            </Text>
+            <Text as="p" display="block" className="mt-4 text-center">
               <Link href="/sign-in">Back to sign in</Link>
-            </p>
+            </Text>
           </>
         ) : (
           <>
-            <p className="mt-2 text-muted">
+            <Text as="p" display="block" type="supporting" className="mt-2">
               Enter your email and we will send a link to reset your password.
-            </p>
+            </Text>
             {errorMessage !== null ? (
               <div className="mt-4">
                 <StatusMessage tone="error">{errorMessage}</StatusMessage>
@@ -89,9 +90,9 @@ export function ForgotPasswordRoute() {
                 />
               </FormLayout>
             </form>
-            <p className="mt-4 text-center text-muted">
+            <Text as="p" display="block" type="supporting" className="mt-4 text-center">
               <Link href="/sign-in">Back to sign in</Link>
-            </p>
+            </Text>
           </>
         )}
       </Card>

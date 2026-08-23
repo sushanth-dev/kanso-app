@@ -4,6 +4,7 @@ import { Card } from '@astryxdesign/core/Card';
 import { Field } from '@astryxdesign/core/Field';
 import { FormLayout } from '@astryxdesign/core/FormLayout';
 import { Heading } from '@astryxdesign/core/Heading';
+import { Text } from '@astryxdesign/core/Text';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { Link } from '@astryxdesign/core/Link';
@@ -166,10 +167,10 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
             ) : null}
             {showGuardianEmail ? (
               <>
-                <p id="guardianEmail-help" className="text-muted">
+                <Text as="p" display="block" type="supporting" id="guardianEmail-help">
                   A guardian's email is required for players under 13, so a parent or guardian can
                   confirm consent.
-                </p>
+                </Text>
                 <Field label="Guardian email" inputID="guardianEmail">
                   <TextInput
                     id="guardianEmail"
@@ -203,9 +204,9 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
               />
             </Field>
             {!isSignUp ? (
-              <p className="text-right">
+              <Text as="p" display="block" className="text-right">
                 <Link href="/forgot-password">Forgot password?</Link>
-              </p>
+              </Text>
             ) : null}
             {isSignUp ? (
               <Field label="Confirm password" inputID="passwordConfirmation">
@@ -228,10 +229,10 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
             />
           </FormLayout>
         </form>
-        <p className="mt-4 text-center text-muted">
+        <Text as="p" display="block" type="supporting" className="mt-4 text-center">
           {isSignUp ? 'Already have an account? ' : 'Need an account? '}
           <Link href={isSignUp ? '/sign-in' : '/sign-up'}>{isSignUp ? 'Sign in' : 'Sign up'}</Link>
-        </p>
+        </Text>
       </Card>
     </>
   );

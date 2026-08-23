@@ -68,25 +68,32 @@ test('signs up and persists a player through sign-in', async ({ page }) => {
   await page.keyboard.press('Enter');
   await expect(page.getByRole('heading', { name: 'Create your account' })).toBeVisible();
   await expectNoAxeViolations(page);
-  await signUp(page, 'E2E Account', email, password);
+  await signUp(page, 'Mina', email, password);
 
   await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
   await expectNoAxeViolations(page);
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
 
-  await page.getByRole('link', { name: 'Create player' }).focus();
-  await expect(page.getByRole('link', { name: 'Create player' })).toBeFocused();
+  // Sign-up creates the player from the account name (ST-072), so the account
+  // page already shows it.
+  await expect(page.getByRole('heading', { name: 'Mina' })).toBeVisible();
+  await expect(
+    page.getByText('No diagnosis yet. Import games to get a ranked report.'),
+  ).toBeVisible();
+
+  // The edit form keeps the keyboard walk: field order through to submit.
+  await page.getByRole('link', { name: 'Edit' }).focus();
+  await expect(page.getByRole('link', { name: 'Edit' })).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(
-    page.getByRole('heading', { name: 'New player' }),
+    page.getByRole('heading', { name: 'Edit player' }),
     failedRequests.join('\n'),
   ).toBeVisible();
   await expectNoAxeViolations(page);
 
-  await page.keyboard.press('Tab');
-  await expect(page.getByLabel('Display name')).toBeFocused();
-  await page.keyboard.type('Mina');
+  await page.getByLabel('Display name').focus();
+  await expect(page.getByLabel('Display name')).toHaveValue('Mina');
   await page.keyboard.press('Tab');
   await expect(page.getByLabel('Birth year')).toBeFocused();
   await page.keyboard.type('2013');
@@ -102,14 +109,11 @@ test('signs up and persists a player through sign-in', async ({ page }) => {
     await expect(page.getByLabel(label)).toBeFocused();
   }
   await page.keyboard.press('Tab');
-  await expect(page.getByRole('button', { name: 'Create player' })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Save changes' })).toBeFocused();
   await page.keyboard.press('Enter');
 
   await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Mina' })).toBeVisible();
-  await expect(
-    page.getByText('No diagnosis yet. Import games to get a ranked report.'),
-  ).toBeVisible();
   await page.getByRole('link', { name: 'Edit' }).click();
   await page.getByLabel('Chess.com username').fill('mina-studies');
   await page.getByRole('button', { name: 'Save changes' }).click();
@@ -119,14 +123,22 @@ test('signs up and persists a player through sign-in', async ({ page }) => {
   await expect(page.getByLabel('Chess.com username')).toHaveValue('mina-studies');
   await page.getByRole('link', { name: 'Cancel' }).click();
 
+  // Sign out lives on the settings surface (ST-073).
+  await page
+    .getByRole('navigation', { name: 'Account' })
+    .getByRole('link', { name: 'Settings' })
+    .click();
+  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
   await page.keyboard.press('Tab');
   await expect(page.getByLabel('Email')).toBeFocused();
   await page.keyboard.type(email);
   await page.keyboard.press('Tab');
-  await expect(page.getByLabel('Password')).toBeFocused();
+  await expect(page.getByLabel('Password', { exact: true })).toBeFocused();
   await page.keyboard.type(password);
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Show password' })).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(page.getByRole('link', { name: 'Forgot password?' })).toBeFocused();
   await page.keyboard.press('Tab');
@@ -167,15 +179,11 @@ test('walks report to focus to the verification trend', async ({ page }) => {
   const password = `E2e-${randomUUID()}-Aa1!`;
 
   await page.goto('/sign-up');
-  await signUp(page, 'E2E Focus', email, password);
+  await signUp(page, 'Mina', email, password);
   await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
   await expectNoAxeViolations(page);
 
-  await page.getByRole('link', { name: 'Create player' }).click();
-  await expect(page.getByRole('heading', { name: 'New player' })).toBeVisible();
-  await page.getByLabel('Display name').fill('Mina');
-  await page.getByLabel('Birth year').fill('2013');
-  await page.getByRole('button', { name: 'Create player' }).click();
+  // Sign-up creates the player from the account name (ST-072).
   await expect(page.getByRole('heading', { name: 'Mina' })).toBeVisible();
 
   // The report is the honest empty state before a focus exists.

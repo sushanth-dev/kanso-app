@@ -2,6 +2,7 @@ import { Badge } from '@astryxdesign/core/Badge';
 import { Card } from '@astryxdesign/core/Card';
 import { Heading } from '@astryxdesign/core/Heading';
 import { Link } from '@astryxdesign/core/Link';
+import { Text } from '@astryxdesign/core/Text';
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { ApiRequestError, type Me, type Player } from '../api/account-api.ts';
 import { gamesQueryOptions, meQueryOptions, reportQueryOptions } from '../query-client.ts';
@@ -71,30 +72,38 @@ export function PlayerDiagnosis({ state }: { state: PlayerDiagnosisState }) {
     case 'diagnosis':
       return (
         <>
-          <p className="mt-2 text-muted">
-            Top weakness: <span className="text-primary">{state.topWeakness}</span>
-          </p>
-          <p className="mt-1 font-mono text-sm text-muted">{state.gamesCovered} tournament games</p>
+          <Text as="p" display="block" type="supporting" className="mt-2">
+            Top weakness: <Text>{state.topWeakness}</Text>
+          </Text>
+          <Text as="p" display="block" type="supporting" className="mt-1 font-mono text-sm">
+            {state.gamesCovered} tournament games
+          </Text>
         </>
       );
     case 'honest-empty':
       return (
-        <p className="mt-2 text-sm text-muted">Could not identify a defensible weakness yet.</p>
+        <Text as="p" display="block" type="supporting" className="mt-2 text-sm">
+          Could not identify a defensible weakness yet.
+        </Text>
       );
     case 'still-analyzing':
       return (
-        <p className="mt-2 text-sm text-muted">
+        <Text as="p" display="block" type="supporting" className="mt-2 text-sm">
           Analysis in progress. Come back in a couple of minutes.
-        </p>
+        </Text>
       );
     case 'no-diagnosis':
       return (
-        <p className="mt-2 text-sm text-muted">
+        <Text as="p" display="block" type="supporting" className="mt-2 text-sm">
           No diagnosis yet. Import games to get a ranked report.
-        </p>
+        </Text>
       );
     case 'unavailable':
-      return <p className="mt-2 text-sm text-muted">Diagnosis unavailable right now.</p>;
+      return (
+        <Text as="p" display="block" type="supporting" className="mt-2 text-sm">
+          Diagnosis unavailable right now.
+        </Text>
+      );
   }
 }
 
@@ -133,7 +142,9 @@ export function AccountScreen({ me }: AccountScreenProps) {
         <Heading level={1} id="account-heading">
           Your account
         </Heading>
-        <p className="font-display text-lg leading-tight">{me.name}</p>
+        <Text as="p" display="block" className="font-display text-lg leading-tight">
+          {me.name}
+        </Text>
       </section>
 
       <section aria-label="Your player" className="mt-8">

@@ -74,7 +74,7 @@ export function GamesRoute() {
                           : ''}
                       </Text>
                     </div>
-                    <span className="font-mono text-base">{game.result}</span>
+                    <Text className="font-mono text-base">{game.result}</Text>
                   </div>
                   {analysed ? (
                     <div className="mt-3">
