@@ -20,6 +20,15 @@ export const studyRoomTheme: DefinedTheme = {
       '--color-border-emphasized': 'var(--kanso-color-border-strong)',
       '--font-family-body': 'var(--kanso-font-ui)',
       '--font-family-heading': 'var(--kanso-font-display)',
+      // Link's default color and Button's secondary/destructive variants pull
+      // these tokens too; left at Astryx defaults they render Astryx's blue
+      // link and navy-tinted neutral instead of the app's palette.
+      '--color-text-accent': 'var(--kanso-color-link)',
+      '--color-neutral': 'color-mix(in srgb, var(--kanso-color-ink-900) 8%, transparent)',
+      '--color-overlay-hover': 'color-mix(in srgb, var(--kanso-color-ink-900) 5%, transparent)',
+      '--color-overlay-pressed': 'color-mix(in srgb, var(--kanso-color-ink-900) 10%, transparent)',
+      '--color-error': 'var(--kanso-color-danger)',
+      '--color-on-error': 'var(--kanso-color-text-on-accent)',
     },
     components: {
       button: {
