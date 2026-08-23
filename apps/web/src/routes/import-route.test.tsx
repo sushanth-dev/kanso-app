@@ -236,7 +236,7 @@ describe('ImportScreen', () => {
     renderScreen({ navigate });
     await user.selectOptions(screen.getByLabelText('Method'), 'pgn_upload');
     await user.upload(
-      screen.getByLabelText('PGN file'),
+      screen.getByLabelText('PGN file', { selector: 'input' }),
       new File([pgn], 'games.pgn', { type: 'application/x-chess-pgn' }),
     );
     await user.click(screen.getByRole('button', { name: 'Import games' }));
@@ -261,7 +261,7 @@ describe('ImportScreen', () => {
     renderScreen();
     await user.selectOptions(screen.getByLabelText('Method'), 'pgn_upload');
 
-    const dropTarget = screen.getByRole('button', { name: /drop a pgn file here/i });
+    const dropTarget = screen.getByRole('button', { name: 'PGN file' });
     const file = new File([pgn], 'games.pgn', { type: 'application/x-chess-pgn' });
     fireEvent.drop(dropTarget, { dataTransfer: { files: [file] } });
 
@@ -296,7 +296,7 @@ describe('ImportScreen', () => {
     renderScreen();
     await user.selectOptions(screen.getByLabelText('Method'), 'pgn_upload');
     await user.upload(
-      screen.getByLabelText('PGN file'),
+      screen.getByLabelText('PGN file', { selector: 'input' }),
       new File(['[Event "Test"]\n1. e4'], 'games.pgn', { type: 'application/x-chess-pgn' }),
     );
     await user.click(screen.getByRole('button', { name: 'Import games' }));

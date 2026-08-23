@@ -1,7 +1,9 @@
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
+import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Heading } from '@astryxdesign/core/Heading';
 import { Link } from '@astryxdesign/core/Link';
+import { Text } from '@astryxdesign/core/Text';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import type { Stream } from '../api/diagnosis-api.ts';
@@ -42,9 +44,17 @@ export function GamesRoute() {
           <div className="h-20 rounded-surface bg-sunken" />
         </div>
       ) : gamesQuery.isError ? (
-        <p className="text-muted">Your games could not be loaded right now.</p>
+        <EmptyState
+          title="Your games could not be loaded"
+          description="Try again in a moment."
+          headingLevel={2}
+        />
       ) : gamesQuery.data.games.length === 0 ? (
-        <p className="text-muted">No {stream} games yet. Import games to see them reviewed.</p>
+        <EmptyState
+          title={`No ${stream} games yet`}
+          description="Import games to see them reviewed."
+          headingLevel={2}
+        />
       ) : (
         <ul className="stagger-in space-y-3">
           {gamesQuery.data.games.map((game) => {
@@ -54,15 +64,15 @@ export function GamesRoute() {
                 <Card>
                   <div className="flex flex-wrap items-baseline justify-between gap-3">
                     <div>
-                      <p className="font-display text-base">
+                      <Text as="p" display="block" className="text-base">
                         {game.whiteName ?? 'Unknown'} vs {game.blackName ?? 'Unknown'}
-                      </p>
-                      <p className="mt-1 text-sm text-muted">
+                      </Text>
+                      <Text as="p" display="block" type="supporting" className="mt-1 text-sm">
                         {game.event ?? 'Game'}
                         {game.playedAt !== null
                           ? ` · ${dateFormatter.format(new Date(game.playedAt))}`
                           : ''}
-                      </p>
+                      </Text>
                     </div>
                     <span className="font-mono text-base">{game.result}</span>
                   </div>
@@ -71,7 +81,9 @@ export function GamesRoute() {
                       <Link href={`/account/games/${game.id}`}>Review</Link>
                     </div>
                   ) : (
-                    <p className="mt-3 text-sm text-muted">Analysis in progress.</p>
+                    <Text as="p" display="block" type="supporting" className="mt-3 text-sm">
+                      Analysis in progress.
+                    </Text>
                   )}
                 </Card>
               </li>
