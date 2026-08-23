@@ -3,6 +3,7 @@ import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Heading } from '@astryxdesign/core/Heading';
+import { Text } from '@astryxdesign/core/Text';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiRequestError } from '../api/account-api.ts';
 import { proofSheetApi, type ProofSheet } from '../api/proof-sheet-api.ts';
@@ -125,16 +126,18 @@ export function ProofSheetScreen() {
       <header className="space-y-4">
         <Button label="Back to your account" href="/account" variant="secondary" />
         <Heading level={1}>Share a proof sheet</Heading>
-        <p className="text-muted">Send a parent a before-and-after page for this focus.</p>
+        <Text as="p" display="block" type="supporting">
+          Send a parent a before-and-after page for this focus.
+        </Text>
       </header>
 
       {needsFocus ? (
         <Card>
           <Heading level={2}>Set a focus first</Heading>
-          <p className="mt-2 text-muted">
+          <Text as="p" display="block" type="supporting" className="mt-2">
             A proof sheet shows whether a focus is working, so you need one active before you can
             create the link.
-          </p>
+          </Text>
           <Button
             label="Set a focus"
             href="/account/focus?stream=tournament"
@@ -148,9 +151,9 @@ export function ProofSheetScreen() {
 
       <Card>
         <Heading level={2}>Create a share link</Heading>
-        <p className="mt-2 text-muted">
+        <Text as="p" display="block" type="supporting" className="mt-2">
           The link opens the page a parent reads. It stays live until you revoke it.
-        </p>
+        </Text>
         <Button
           label={creating ? 'Creating...' : 'Create a share link'}
           variant="primary"
@@ -161,19 +164,21 @@ export function ProofSheetScreen() {
       </Card>
 
       {sheets.length === 0 ? (
-        <p className="text-muted">No share links yet.</p>
+        <Text as="p" display="block" type="supporting">
+          No share links yet.
+        </Text>
       ) : (
         <div className="space-y-4">
           <Heading level={2}>Your share links</Heading>
           {sheets.map((sheet) => (
             <Card key={sheet.id}>
-              <p className="text-muted">
+              <Text as="p" display="block" type="supporting">
                 Created on {createdFormatter.format(new Date(sheet.createdAt))}.
-              </p>
+              </Text>
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span className="min-w-0 flex-1 truncate font-mono text-sm text-primary">
+                <Text className="min-w-0 flex-1 truncate font-mono text-sm text-primary">
                   {sheet.url}
-                </span>
+                </Text>
                 <Button
                   label={copiedId === sheet.id ? 'Copied' : 'Copy'}
                   variant="secondary"
@@ -183,9 +188,9 @@ export function ProofSheetScreen() {
               </div>
               {confirmingId === sheet.id ? (
                 <div className="mt-3 space-y-2">
-                  <p className="text-muted">
+                  <Text as="p" display="block" type="supporting">
                     Anyone holding this link will no longer be able to open the page.
-                  </p>
+                  </Text>
                   <div className="flex flex-wrap gap-2">
                     <Button
                       label={revokingId === sheet.id ? 'Revoking...' : 'Confirm revoke'}

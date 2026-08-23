@@ -1,6 +1,7 @@
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { Heading } from '@astryxdesign/core/Heading';
+import { Text } from '@astryxdesign/core/Text';
 
 /**
  * The paid-boundary prompt every paid surface renders when a free account
@@ -11,10 +12,10 @@ export function UpgradePrompt({ title }: { title: string }) {
   return (
     <Card className="p-6">
       <Heading level={2}>{title}</Heading>
-      <p className="mt-2 text-muted">
+      <Text as="p" display="block" type="supporting" className="mt-2">
         Your first diagnosis is free. A focus, verification afterwards, and the proof sheet you send
         a parent are paid.
-      </p>
+      </Text>
       <Button label="See plans" href="/account/upgrade" variant="primary" className="mt-6" />
     </Card>
   );

@@ -31,6 +31,7 @@ import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { Heading } from '@astryxdesign/core/Heading';
+import { Text } from '@astryxdesign/core/Text';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { checkoutApi, type CheckoutResponse, type PayableTier } from '../api/checkout-api.ts';
@@ -165,11 +166,11 @@ function AlreadySubscribed({ tier }: { tier: Tier }) {
       <header className="space-y-4">
         <Heading level={1}>You are on the {TIER_LABEL[tier]} plan</Heading>
         <Badge label={TIER_LABEL[tier]} variant="neutral" />
-        <p className="text-muted">
+        <Text as="p" display="block" type="supporting">
           {tier === 'pro'
             ? 'The full loop is already open, with no monthly cap: a focus, verification, the proof sheet, and history across seasons. Set a focus and check on it from your account.'
             : 'The full loop is already open, up to your monthly cap: a focus, verification, and the proof sheet. Set a focus and check on it from your account.'}
-        </p>
+        </Text>
       </header>
       <Button label="Back to your account" href="/account" variant="primary" />
     </div>
@@ -252,13 +253,15 @@ export function UpgradeRoute() {
       <header className="space-y-4">
         <Button label="Back to your account" href="/account" variant="secondary" />
         <Heading level={1}>Choose a plan</Heading>
-        <p className="text-muted">Your first diagnosis is free. The loop after it is paid.</p>
+        <Text as="p" display="block" type="supporting">
+          Your first diagnosis is free. The loop after it is paid.
+        </Text>
       </header>
 
       <section aria-labelledby="plans-heading">
-        <h2 id="plans-heading" className="sr-only">
+        <Heading level={2} id="plans-heading" className="sr-only">
           Plans
-        </h2>
+        </Heading>
         {payError === 'provider-unreachable' ? (
           <div className="mt-4">
             <StatusMessage tone="error">
@@ -298,8 +301,16 @@ export function UpgradeRoute() {
                     <Badge label="Most popular" variant="orange" />
                   ) : null}
                 </div>
-                <p className="mt-3 font-mono text-3xl leading-tight tracking-tight">{plan.price}</p>
-                <p className="mt-1 text-sm text-muted">{plan.limit}</p>
+                <Text
+                  as="p"
+                  display="block"
+                  className="mt-3 font-mono text-3xl leading-tight tracking-tight"
+                >
+                  {plan.price}
+                </Text>
+                <Text as="p" display="block" type="supporting" className="mt-1 text-sm">
+                  {plan.limit}
+                </Text>
                 <ul className="mt-4 space-y-2 text-sm text-muted">
                   {plan.features.map((feature) => (
                     <li key={feature}>{feature}</li>

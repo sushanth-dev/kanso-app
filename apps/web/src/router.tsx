@@ -1,5 +1,5 @@
 import { Button } from '@astryxdesign/core/Button';
-import { Heading } from '@astryxdesign/core/Heading';
+import { EmptyState } from '@astryxdesign/core/EmptyState';
 import type { QueryClient } from '@tanstack/react-query';
 import {
   createBrowserHistory,
@@ -65,17 +65,20 @@ function RootComponent() {
 function DefaultErrorComponent() {
   const router = useRouter();
   return (
-    <div role="alert" className="space-y-3">
-      <Heading level={1}>Something went wrong</Heading>
-      <p className="text-muted">We couldn't load this page. Please try again.</p>
-      <Button
-        label="Retry"
-        variant="primary"
-        onClick={() => {
-          void router.invalidate();
-        }}
-      />
-    </div>
+    <EmptyState
+      title="Something went wrong"
+      description="We couldn't load this page. Please try again."
+      headingLevel={1}
+      actions={
+        <Button
+          label="Retry"
+          variant="primary"
+          onClick={() => {
+            void router.invalidate();
+          }}
+        />
+      }
+    />
   );
 }
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@astryxdesign/core/Button';
 import { Heading } from '@astryxdesign/core/Heading';
+import { Text } from '@astryxdesign/core/Text';
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { type Me } from '../api/account-api.ts';
@@ -37,7 +38,9 @@ export function SettingsScreen({ me, signOut }: SettingsScreenProps) {
         <Heading level={2} id="account-details-heading">
           Account details
         </Heading>
-        <p className="text-muted">{me.email}</p>
+        <Text as="p" display="block" type="supporting">
+          {me.email}
+        </Text>
         <div>
           <Button label="See plans" href="/account/upgrade" variant="primary" className="mt-3" />
         </div>

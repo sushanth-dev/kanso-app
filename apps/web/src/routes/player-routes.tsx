@@ -4,6 +4,7 @@ import { Card } from '@astryxdesign/core/Card';
 import { Field, type FieldStatusInput } from '@astryxdesign/core/Field';
 import { FormLayout } from '@astryxdesign/core/FormLayout';
 import { Heading } from '@astryxdesign/core/Heading';
+import { Text } from '@astryxdesign/core/Text';
 import { useQueryClient, useSuspenseQuery, type QueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import type { AccountApi, Me, UpdatePlayer } from '../api/account-api.ts';
@@ -131,10 +132,10 @@ export function PlayerFormScreen({ me, accountApi, queryClient, navigate }: Play
   return (
     <Card>
       <Heading level={1}>{heading}</Heading>
-      <p className="mt-2 text-sm text-muted">
+      <Text as="p" display="block" type="supporting" className="mt-2 text-sm">
         Consent is confirmed from the guardian email entered at sign-up. This form records a birth
         year, never a full date of birth.
-      </p>
+      </Text>
       {formError !== null ? (
         <div className="mt-4">
           <StatusMessage tone="error">{formError}</StatusMessage>

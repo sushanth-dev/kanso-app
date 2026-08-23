@@ -22,12 +22,9 @@ async function signUp(page: Page, name: string, email: string, password: string)
   await page.getByRole('button', { name: 'Sign up' }).click();
 }
 
-async function createPlayerAndSetFocus(page: Page) {
-  await page.getByRole('link', { name: 'Create player' }).click();
-  await page.getByLabel('Display name').fill('Mina');
-  await page.getByLabel('Birth year').fill('2013');
-  await page.getByRole('button', { name: 'Create player' }).click();
-  await expect(page.getByRole('heading', { name: 'Mina' })).toBeVisible();
+// Sign-up creates the player from the account name (ST-072); only the focus
+// is still a separate act.
+async function setFocus(page: Page) {
   await page.getByRole('link', { name: 'Set focus' }).click();
   await page.getByRole('button', { name: 'Set Converting won positions' }).click();
   await expect(
@@ -57,17 +54,12 @@ test('creates, shares, reads, and revokes a proof sheet', async ({ page, browser
   // The proof sheet and the focus behind it are paid (ST-044); flip the
   // account through the checkout and webhook seams before the share act.
   await upgradeToPaid(page);
-  await createPlayerAndSetFocus(page);
+  await setFocus(page);
 
   // The share act is an explicit create. It lives on its own surface
   // (ST-067), but this journey drives the API seam so the reader
   // verification stays independent of the create/revoke UI.
-  const me = (await (await page.request.get('/me')).json()) as {
-    players: { id: string }[];
-  };
-  const player = me.players[0];
-  if (player === undefined) throw new Error('expected a player after sign-up');
-  const created = await page.request.post(`/players/${player.id}/proof-sheets`);
+  const created = await page.request.post('/proof-sheets');
   if (!created.ok()) {
     throw new Error(`create proof sheet failed: ${created.status()} ${await created.text()}`);
   }
