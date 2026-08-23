@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from 'react';
 import { useLocation } from '@tanstack/react-router';
 import { Link } from '@astryxdesign/core/Link';
+import { Text } from '@astryxdesign/core/Text';
 import { StatusMessage, useStatusMessage } from './status-message.tsx';
 
 export interface PageFrameProps {
@@ -50,7 +51,7 @@ export function PageFrame({ children }: PageFrameProps) {
         <div className="mx-auto w-full max-w-3xl px-4 py-4">
           <div className="flex items-center gap-2">
             <span aria-hidden="true" className="size-2.5 shrink-0 rounded-control bg-accent" />
-            <span className="font-display text-xl leading-tight tracking-tight">Kanso Chess</span>
+            <Text className="font-display text-xl leading-tight tracking-tight">Kanso Chess</Text>
           </div>
           {showNav ? (
             <nav aria-label="Account" className="mt-3 flex flex-wrap gap-x-5 gap-y-2">

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Button } from '@astryxdesign/core/Button';
 import { Heading } from '@astryxdesign/core/Heading';
+import { Text } from '@astryxdesign/core/Text';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from '@tanstack/react-router';
 import { ApiRequestError } from '../api/account-api.ts';
@@ -59,24 +60,30 @@ export function SharedProofSheetScreen({ sheet }: { sheet: SharedProofSheet }) {
 
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-16 font-ui">
-      <p className="text-sm text-muted">{sheet.playerDisplayName}'s focus</p>
+      <Text as="p" display="block" type="supporting" className="text-sm">
+        {sheet.playerDisplayName}'s focus
+      </Text>
       <Heading level={1}>{sheet.focusTitle}</Heading>
 
-      <p className="mt-6 text-2xl font-display leading-snug text-primary reveal-in">
+      <Text
+        as="p"
+        display="block"
+        className="mt-6 text-2xl font-display leading-snug text-primary reveal-in"
+      >
         {verdictSentence(sheet)}
         {sheet.trend !== 'insufficient_evidence' ? (
           <span aria-hidden="true" className="ml-2 font-mono">
             {TREND_ARROW[sheet.trend]}
           </span>
         ) : null}
-      </p>
+      </Text>
 
       {hasVerdict ? (
         <dl className="mt-8 space-y-6">
           <div>
             <dt className="text-sm text-muted">Before the focus</dt>
             <dd className="mt-1 font-mono text-lg text-primary">
-              {formatValue(sheet.beforeValue)} <span className="text-muted">{sheet.unit}</span>
+              {formatValue(sheet.beforeValue)} <Text type="supporting">{sheet.unit}</Text>
             </dd>
             <dd className="mt-1 text-sm text-muted">
               over {sheet.gamesBefore} {gamesLabel(sheet.gamesBefore)}
@@ -85,7 +92,7 @@ export function SharedProofSheetScreen({ sheet }: { sheet: SharedProofSheet }) {
           <div>
             <dt className="text-sm text-muted">Since the focus</dt>
             <dd className="mt-1 font-mono text-lg text-primary">
-              {formatValue(sheet.afterValue)} <span className="text-muted">{sheet.unit}</span>
+              {formatValue(sheet.afterValue)} <Text type="supporting">{sheet.unit}</Text>
             </dd>
             <dd className="mt-1 text-sm text-muted">
               over {sheet.gamesAfter} {gamesLabel(sheet.gamesAfter)}
@@ -93,20 +100,22 @@ export function SharedProofSheetScreen({ sheet }: { sheet: SharedProofSheet }) {
           </div>
         </dl>
       ) : (
-        <p className="mt-4 text-muted">
+        <Text as="p" display="block" type="supporting" className="mt-4">
           {sheet.gamesBefore} {gamesLabel(sheet.gamesBefore)} before the focus, {sheet.gamesAfter}{' '}
           {gamesLabel(sheet.gamesAfter)} since. More games will make a verdict possible.
-        </p>
+        </Text>
       )}
 
-      <p className="mt-8 text-sm text-muted">
+      <Text as="p" display="block" type="supporting" className="mt-8 text-sm">
         {STREAM_LABEL[sheet.stream]} games · {periodFormatter.format(new Date(sheet.periodStart))}{' '}
         to {periodFormatter.format(new Date(sheet.periodEnd))}
-      </p>
+      </Text>
 
       {sheet.coachInstruction ? (
         <section className="mt-8">
-          <p className="text-sm text-muted">The coach's instruction</p>
+          <Text as="p" display="block" type="supporting" className="text-sm">
+            The coach's instruction
+          </Text>
           <blockquote className="mt-1 whitespace-pre-wrap font-display text-xl leading-snug">
             {sheet.coachInstruction}
           </blockquote>
@@ -155,7 +164,9 @@ export function SharedProofSheetRoute() {
     return (
       <main className="mx-auto w-full max-w-2xl px-4 py-16 font-ui">
         <Heading level={1}>This page could not be reached.</Heading>
-        <p className="mt-4 text-muted">Check your connection and try again.</p>
+        <Text as="p" display="block" type="supporting" className="mt-4">
+          Check your connection and try again.
+        </Text>
         <Button
           label="Try again"
           variant="primary"

@@ -42,6 +42,12 @@ async function signUp(page: Page, email: string, password: string) {
 }
 
 async function signOut(page: Page) {
+  // Sign out lives on the settings surface (ST-073).
+  await page
+    .getByRole('navigation', { name: 'Account' })
+    .getByRole('link', { name: 'Settings' })
+    .click();
+  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
 }
@@ -92,13 +98,19 @@ test('a bad reset link reads as no longer available', async ({ page }) => {
   await expectNoAxeViolations(page);
 });
 
-test('a signed-in user changes their password from the account surface', async ({ page }) => {
+test('a signed-in user changes their password from the settings surface', async ({ page }) => {
   const email = `change-${randomUUID()}@example.com`;
   const oldPassword = `Old-${randomUUID()}-Aa1!`;
   const newPassword = `New-${randomUUID()}-Aa1!`;
 
   await signUp(page, email, oldPassword);
 
+  // The change-password form lives on the settings surface (ST-073).
+  await page
+    .getByRole('navigation', { name: 'Account' })
+    .getByRole('link', { name: 'Settings' })
+    .click();
+  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
   await page.getByLabel('Current password').fill(oldPassword);
   await page.getByLabel('New password', { exact: true }).fill(newPassword);
   await page.getByLabel('Confirm new password').fill(newPassword);

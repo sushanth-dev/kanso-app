@@ -6,6 +6,7 @@ import { Button } from '@astryxdesign/core/Button';
 import { Heading } from '@astryxdesign/core/Heading';
 import { Link } from '@astryxdesign/core/Link';
 import { Spinner } from '@astryxdesign/core/Spinner';
+import { Text } from '@astryxdesign/core/Text';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { ApiRequestError } from '../api/account-api.ts';
@@ -93,7 +94,11 @@ function ReportHeader({
       <Button label="Back to your account" href="/account" variant="secondary" />
       <Heading level={1}>{STREAM_HEADING[stream]}</Heading>
       <StreamToggle stream={stream} onChange={onStreamChange} ariaLabel="Report stream" />
-      {meta !== undefined ? <p className="text-sm text-muted">{meta}</p> : null}
+      {meta !== undefined ? (
+        <Text as="p" display="block" type="supporting" className="text-sm">
+          {meta}
+        </Text>
+      ) : null}
     </header>
   );
 }
@@ -104,14 +109,14 @@ export function ReportScreen({ stream, report, onStreamChange }: ReportScreenPro
     <div className="space-y-6">
       <ReportHeader stream={stream} onStreamChange={onStreamChange} meta={meta} />
       {report.timeTroubleFromMove !== null ? (
-        <p className="text-sm">
+        <Text as="p" display="block" className="text-sm">
           Time trouble starts around move{' '}
           <span className="font-mono">{report.timeTroubleFromMove}</span>.
-        </p>
+        </Text>
       ) : (
-        <p className="text-sm text-muted">
+        <Text as="p" display="block" type="supporting" className="text-sm">
           {TIME_TROUBLE_UNAVAILABLE[report.timeTroubleReason ?? 'no_clock_data']}
-        </p>
+        </Text>
       )}
       {isEmpty ? (
         <EmptyReport report={report} />
@@ -141,17 +146,21 @@ function WeaknessList({ weaknesses, stream }: WeaknessListProps) {
               <div className="space-y-2">
                 <div className="flex items-baseline justify-between gap-3">
                   <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                    <span className="font-mono text-sm text-muted">#{weakness.rank}</span>
-                    <span className="font-display text-base">{weakness.label}</span>
+                    <Text type="supporting" className="font-mono text-sm">
+                      #{weakness.rank}
+                    </Text>
+                    <Text className="font-display text-base">{weakness.label}</Text>
                   </div>
-                  <span className="font-mono text-base">
+                  <Text className="font-mono text-base">
                     {weakness.saturated ? `at least ${weakness.ratingLeak}` : weakness.ratingLeak}
-                  </span>
+                  </Text>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge label={KIND_LABEL[weakness.kind]} variant="neutral" />
                   {weakness.eco !== null ? (
-                    <span className="font-mono text-sm text-muted">{weakness.eco}</span>
+                    <Text type="supporting" className="font-mono text-sm">
+                      {weakness.eco}
+                    </Text>
                   ) : null}
                 </div>
                 <dl className="flex flex-wrap gap-x-6 gap-y-2">
@@ -209,7 +218,11 @@ function AggregateSkeleton() {
 }
 
 function AggregateError() {
-  return <p className="mt-3 text-sm text-muted">This breakdown could not be loaded right now.</p>;
+  return (
+    <Text as="p" display="block" type="supporting" className="mt-3 text-sm">
+      This breakdown could not be loaded right now.
+    </Text>
+  );
 }
 
 function MotifAggregate({ stream }: { stream: Stream }) {
@@ -232,12 +245,12 @@ function MotifBreakdown({ report }: { report: MotifReport }) {
       {report.motifs.map((point) => (
         <div key={point.motif} className="flex items-baseline justify-between gap-3">
           <span>{MOTIF_LABEL[point.motif]}</span>
-          <span className="font-mono text-muted">
+          <Text type="supporting" className="font-mono">
             {point.positions} positions, {point.totalCpLoss} cp lost
-          </span>
+          </Text>
         </div>
       ))}
-      <p className="text-muted">
+      <Text as="p" display="block" type="supporting">
         {report.mistakeCount} mistakes counted.
         {report.withheld > 0
           ? ` ${report.withheld} positions held below the reporting threshold.`
@@ -245,7 +258,7 @@ function MotifBreakdown({ report }: { report: MotifReport }) {
         {report.unattributed > 0
           ? ` ${report.unattributed} positions not tied to a known motif.`
           : ''}
-      </p>
+      </Text>
     </div>
   );
 }
@@ -260,18 +273,26 @@ function PhaseBreakdown({
   if (timeTroubleOnly) {
     const trouble = report.timeTrouble;
     if (trouble.status === 'unavailable') {
-      return <p className="mt-3 text-sm text-muted">{TIME_TROUBLE_UNAVAILABLE[trouble.reason]}</p>;
+      return (
+        <Text as="p" display="block" type="supporting" className="mt-3 text-sm">
+          {TIME_TROUBLE_UNAVAILABLE[trouble.reason]}
+        </Text>
+      );
     }
     return (
       <div className="mt-3 space-y-1 text-sm">
-        <p>Time trouble starts around move {trouble.fromMove}.</p>
-        <p>
+        <Text as="p" display="block">
+          Time trouble starts around move {trouble.fromMove}.
+        </Text>
+        <Text as="p" display="block">
           <span className="font-mono">{rateFormatter.format(trouble.troubleMistakeRate)}</span> of
           time-trouble moves were mistakes, versus{' '}
           <span className="font-mono">{rateFormatter.format(trouble.calmMistakeRate)}</span> when
           calm.
-        </p>
-        <p className="text-muted">Measured across {trouble.clockedGames} games with clock data.</p>
+        </Text>
+        <Text as="p" display="block" type="supporting">
+          Measured across {trouble.clockedGames} games with clock data.
+        </Text>
       </div>
     );
   }
@@ -280,14 +301,18 @@ function PhaseBreakdown({
       {report.phases.map((point) => (
         <div key={point.phase ?? 'unknown'} className="flex items-baseline justify-between gap-3">
           <span>{point.phase === null ? 'Unknown phase' : PHASE_LABEL[point.phase]}</span>
-          <span className="font-mono text-muted">
+          <Text type="supporting" className="font-mono">
             {point.totalCpLoss} cp lost over {point.games} games
-          </span>
+          </Text>
         </div>
       ))}
-      <p className="text-muted">{report.mistakeCount} mistakes counted.</p>
+      <Text as="p" display="block" type="supporting">
+        {report.mistakeCount} mistakes counted.
+      </Text>
       {report.timeTrouble.status === 'unavailable' ? (
-        <p className="text-muted">{TIME_TROUBLE_UNAVAILABLE[report.timeTrouble.reason]}</p>
+        <Text as="p" display="block" type="supporting">
+          {TIME_TROUBLE_UNAVAILABLE[report.timeTrouble.reason]}
+        </Text>
       ) : null}
     </div>
   );
@@ -320,10 +345,12 @@ function Analysing({ games }: { games: GameSummary[] }) {
   return (
     <div className="flex flex-col items-center gap-3 py-8 text-center">
       <Spinner size="md" />
-      <p className="text-primary">
+      <Text as="p" display="block" className="text-primary">
         {analysed} of {total} games analysed
-      </p>
-      <p className="text-sm text-muted">This report will appear as soon as it is ready.</p>
+      </Text>
+      <Text as="p" display="block" type="supporting" className="text-sm">
+        This report will appear as soon as it is ready.
+      </Text>
     </div>
   );
 }

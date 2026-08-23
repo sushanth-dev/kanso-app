@@ -26,7 +26,9 @@
 import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
+import { Heading } from '@astryxdesign/core/Heading';
 import { Link } from '@astryxdesign/core/Link';
+import { Text } from '@astryxdesign/core/Text';
 import { ParallaxPiece } from '../components/parallax-piece.tsx';
 
 const SAMPLE_TOURNAMENT = 'A scholastic tournament · K-8 U1200 · 5 rounds';
@@ -64,20 +66,26 @@ const VALUE_PROPS = [
 function SampleDiagnosis() {
   return (
     <Card className="w-full p-6 shadow-[0_24px_48px_-24px_rgba(61,40,20,0.45)] reveal-in">
-      <p className="text-sm text-muted">Synthetic example</p>
-      <p className="mt-2 font-display text-xl leading-snug tracking-tight">{SAMPLE_TOURNAMENT}</p>
+      <Text as="p" display="block" type="supporting">
+        Synthetic example
+      </Text>
+      <Text as="p" display="block" className="mt-2 text-xl leading-snug tracking-tight">
+        {SAMPLE_TOURNAMENT}
+      </Text>
       <ol className="mt-4">
         {SAMPLE_WEAKNESSES.map((weakness) => (
           <li
             key={weakness.rank}
             className="flex items-baseline gap-3 border-b border-border-subtle py-3 first:pt-0 last:border-b-0 last:pb-0"
           >
-            <span className="font-mono text-sm text-muted">#{weakness.rank}</span>
+            <Text type="supporting" className="font-mono text-sm">
+              #{weakness.rank}
+            </Text>
             <span className="flex-1">
-              <span className="font-display text-base">{weakness.label}</span>
+              <Text className="font-display text-base">{weakness.label}</Text>
               <Badge label={weakness.kind} variant="neutral" />
             </span>
-            <span className="font-mono text-base">{weakness.ratingLeak}</span>
+            <Text className="font-mono text-base">{weakness.ratingLeak}</Text>
           </li>
         ))}
       </ol>
@@ -101,7 +109,7 @@ export function LandingRoute() {
           <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-4">
             <span className="flex items-center gap-2">
               <span aria-hidden="true" className="size-2.5 shrink-0 rounded-control bg-accent" />
-              <span className="font-display text-xl leading-tight tracking-tight">Kanso Chess</span>
+              <Text className="font-display text-xl leading-tight tracking-tight">Kanso Chess</Text>
             </span>
             <Link href="/sign-in">Sign in</Link>
           </div>
@@ -111,16 +119,21 @@ export function LandingRoute() {
           <section className="mx-auto w-full max-w-5xl px-4 py-16 md:py-24">
             <div className="grid gap-10 md:grid-cols-2 md:items-center md:gap-12">
               <div>
-                <h1 className="font-display text-3xl leading-tight tracking-tight md:text-4xl">
+                <Heading level={1} className="text-3xl leading-tight tracking-tight md:text-4xl">
                   Know the one thing to fix after every tournament.
-                </h1>
-                <p className="mt-4 text-lg leading-base text-muted">
+                </Heading>
+                <Text
+                  as="p"
+                  display="block"
+                  type="supporting"
+                  className="mt-4 text-lg leading-base"
+                >
                   Your first diagnosis is free. Import your games and get a ranked list of what is
                   costing you rating, starting with the one thing to fix.
-                </p>
-                <p className="mt-4 text-muted">
+                </Text>
+                <Text as="p" display="block" type="supporting" className="mt-4">
                   For parents, it makes every lesson you already pay for work harder.
-                </p>
+                </Text>
                 <div className="mt-8">
                   <Button label="Get your free diagnosis" href="/sign-up" variant="primary" />
                 </div>
@@ -131,30 +144,40 @@ export function LandingRoute() {
 
           <section className="glass border-t border-border-subtle">
             <div className="mx-auto w-full max-w-5xl px-4 py-16">
-              <h2 className="font-display text-2xl tracking-tight">What Kanso does</h2>
+              <Heading level={2} className="text-2xl tracking-tight">
+                What Kanso does
+              </Heading>
               <div className="mt-8 grid gap-8 md:grid-cols-3">
                 {VALUE_PROPS.map((prop) => (
                   <div key={prop.title}>
-                    <h3 className="font-display text-lg leading-snug">{prop.title}</h3>
-                    <p className="mt-2 text-muted">{prop.body}</p>
+                    <Heading level={3} className="text-lg leading-snug">
+                      {prop.title}
+                    </Heading>
+                    <Text as="p" display="block" type="supporting" className="mt-2">
+                      {prop.body}
+                    </Text>
                   </div>
                 ))}
               </div>
 
               <div className="mt-14 grid gap-8 border-t border-border-subtle pt-8 md:grid-cols-2">
                 <div>
-                  <h3 className="font-display text-lg leading-snug">Free today</h3>
-                  <p className="mt-2 text-muted">
+                  <Heading level={3} className="text-lg leading-snug">
+                    Free today
+                  </Heading>
+                  <Text as="p" display="block" type="supporting" className="mt-2">
                     Import from Chess.com or Lichess by username, or upload a PGN. Get one ranked
                     diagnosis, with the rating-leak number for your top weakness.
-                  </p>
+                  </Text>
                 </div>
                 <div>
-                  <h3 className="font-display text-lg leading-snug">Paid for the loop</h3>
-                  <p className="mt-2 text-muted">
+                  <Heading level={3} className="text-lg leading-snug">
+                    Paid for the loop
+                  </Heading>
+                  <Text as="p" display="block" type="supporting" className="mt-2">
                     Everything after the diagnosis: a focus, verification of whether it worked, and
                     a proof sheet to send your parents. From $9 a month, uncapped on the Pro plan.
-                  </p>
+                  </Text>
                 </div>
               </div>
             </div>
@@ -162,9 +185,9 @@ export function LandingRoute() {
 
           <section className="glass border-t border-border-subtle">
             <div className="mx-auto w-full max-w-5xl px-4 py-16 text-center">
-              <h2 className="font-display text-2xl tracking-tight">
+              <Heading level={2} className="text-2xl tracking-tight">
                 See what is actually costing you rating
-              </h2>
+              </Heading>
               <div className="mt-8 flex flex-col items-center gap-3">
                 <Button label="Get your free diagnosis" href="/sign-up" variant="primary" />
                 <Button
@@ -178,9 +201,14 @@ export function LandingRoute() {
         </main>
 
         <footer className="glass border-t border-border-subtle">
-          <div className="mx-auto w-full max-w-5xl px-4 py-6 text-sm text-muted">
+          <Text
+            as="p"
+            display="block"
+            type="supporting"
+            className="mx-auto w-full max-w-5xl px-4 py-6 text-sm"
+          >
             Kanso Chess is tournament-first chess improvement for junior players and their coaches.
-          </div>
+          </Text>
         </footer>
       </div>
     </div>

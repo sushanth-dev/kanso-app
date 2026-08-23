@@ -4,6 +4,7 @@ import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Heading } from '@astryxdesign/core/Heading';
+import { Text } from '@astryxdesign/core/Text';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from '@tanstack/react-router';
 import type { CctMove, GameDetail, Mistake, MovePly } from '../api/diagnosis-api.ts';
@@ -96,7 +97,7 @@ function NotationMove({
     >
       {ply.san}
       {mistake === undefined ? null : (
-        <span className="ml-1 text-danger">{JUDGEMENT_GLYPH[mistake.judgement]}</span>
+        <Text className="ml-1 text-danger">{JUDGEMENT_GLYPH[mistake.judgement]}</Text>
       )}
     </button>
   );
@@ -122,7 +123,9 @@ function Notation({
       <ol className="mt-3 grid grid-cols-[auto_1fr_1fr] items-center gap-x-2 gap-y-1">
         {toMoveRows(plies).map((row) => (
           <li key={row.moveNumber} className="contents">
-            <span className="font-mono text-sm text-muted">{row.moveNumber}.</span>
+            <Text type="supporting" className="font-mono text-sm">
+              {row.moveNumber}.
+            </Text>
             {row.white === undefined ? (
               <span />
             ) : (
@@ -172,7 +175,9 @@ function CctMoveList({ label, moves }: { label: string; moves: CctMove[] }) {
   if (moves.length === 0) return null;
   return (
     <div>
-      <h3 className="text-sm font-semibold text-muted">{label}</h3>
+      <Heading level={3} className="text-sm font-semibold">
+        {label}
+      </Heading>
       <ul className="mt-1 flex flex-wrap gap-2">
         {moves.map((move) => (
           <li key={move.san}>
@@ -192,13 +197,19 @@ function CctScanCard({ mistakeId }: { mistakeId: string }) {
     <Card className="space-y-3 p-4">
       <Heading level={3}>CCT scan</Heading>
       {scanQuery.isPending ? (
-        <p className="text-sm text-muted">Scanning the position…</p>
+        <Text as="p" display="block" type="supporting" className="text-sm">
+          Scanning the position…
+        </Text>
       ) : scanQuery.isError ? (
-        <p className="text-sm text-muted">The scan could not be loaded.</p>
+        <Text as="p" display="block" type="supporting" className="text-sm">
+          The scan could not be loaded.
+        </Text>
       ) : scanQuery.data.checks.length === 0 &&
         scanQuery.data.captures.length === 0 &&
         scanQuery.data.threats.length === 0 ? (
-        <p className="text-sm text-muted">No checks, captures or threats at this position.</p>
+        <Text as="p" display="block" type="supporting" className="text-sm">
+          No checks, captures or threats at this position.
+        </Text>
       ) : (
         <>
           <CctMoveList label={CCT_GROUP_LABEL.checks} moves={scanQuery.data.checks} />
@@ -219,16 +230,18 @@ function ExplanationCard({ mistakeId }: { mistakeId: string }) {
     <Card className="space-y-3 p-4">
       <Heading level={3}>Coach's take</Heading>
       {explanationQuery.isError ? (
-        <p className="text-sm text-muted">The explanation could not be loaded.</p>
+        <Text as="p" display="block" type="supporting" className="text-sm">
+          The explanation could not be loaded.
+        </Text>
       ) : (
-        <p className="text-sm">
+        <Text as="p" display="block" className="text-sm">
           {explanationQuery.data?.text ?? 'Working out what happened here…'}
-        </p>
+        </Text>
       )}
       {questionQuery.isError ? null : (
-        <p className="text-sm text-muted">
+        <Text as="p" display="block" type="supporting" className="text-sm">
           {questionQuery.data?.question ?? 'Thinking of a question to ask you…'}
-        </p>
+        </Text>
       )}
     </Card>
   );
@@ -283,20 +296,28 @@ export function GameReviewScreen({ game }: { game: GameDetail }) {
           variant="secondary"
         />
         <Heading level={1}>Game review</Heading>
-        <p className="text-muted">{opponent ? `vs ${opponent}` : 'Opponent unknown'}</p>
+        <Text as="p" display="block" type="supporting">
+          {opponent ? `vs ${opponent}` : 'Opponent unknown'}
+        </Text>
         {/* The result reveal is the Canvas UI effect ADR-0017 names. The
             background is the Study Room page colour, so the shader can tell
             text apart from empty space; the token's value, since the vendored
             engine takes a concrete CSS colour. */}
         <ParticleReveal background="#f7f2ea" className="max-w-fit">
-          <span className="font-mono text-lg text-primary">{game.result}</span>
+          <Text className="font-mono text-lg text-primary">{game.result}</Text>
         </ParticleReveal>
-        {gloss !== null ? <p>You {gloss}.</p> : null}
+        {gloss !== null ? (
+          <Text as="p" display="block">
+            You {gloss}.
+          </Text>
+        ) : null}
       </header>
 
       {currentPly === undefined ? (
         <Card className="p-6">
-          <p className="text-muted">No recorded moves in this game.</p>
+          <Text as="p" display="block" type="supporting">
+            No recorded moves in this game.
+          </Text>
         </Card>
       ) : (
         <>
@@ -332,42 +353,42 @@ export function GameReviewScreen({ game }: { game: GameDetail }) {
                 isDisabled={plyIndex === game.plies.length - 1}
                 onClick={() => stepBy(1)}
               />
-              <span className="font-mono text-sm text-muted">
+              <Text type="supporting" className="font-mono text-sm">
                 Move {plyIndex + 1} of {game.plies.length}
-              </span>
+              </Text>
             </div>
 
             {currentMistake === undefined ? (
               <Card className="space-y-2">
-                <p>
+                <Text as="p" display="block">
                   Move {Math.ceil(currentPly.ply / 2)}: you played{' '}
                   <span className="font-mono">{currentPly.san}</span>.
-                </p>
-                <p className="font-mono text-sm text-muted">
+                </Text>
+                <Text as="p" display="block" type="supporting" className="font-mono text-sm">
                   White's advantage: {evalLabel(currentPly.evaluation)}
-                </p>
+                </Text>
               </Card>
             ) : (
               <Card className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge label={JUDGEMENT_LABEL[currentMistake.judgement]} variant="neutral" />
-                  <span className="font-mono text-sm text-muted">
+                  <Text type="supporting" className="font-mono text-sm">
                     -{(currentMistake.cpLoss / 100).toFixed(1)} pawns
-                  </span>
+                  </Text>
                 </div>
-                <p>
+                <Text as="p" display="block">
                   Move {currentMistake.moveNumber}: you played{' '}
                   <span className="font-mono">{currentMistake.moveSan}</span>; best was{' '}
                   <span className="font-mono">{currentMistake.bestMoveSan}</span>.
-                </p>
-                <p className="font-mono text-sm text-muted">
+                </Text>
+                <Text as="p" display="block" type="supporting" className="font-mono text-sm">
                   White's advantage: {evalLabel(currentMistake.evalBefore)} →{' '}
                   {evalLabel(currentMistake.evalAfter)}
-                </p>
+                </Text>
                 {currentMistake.motif !== null ? (
-                  <p className="text-sm text-muted">
+                  <Text as="p" display="block" type="supporting" className="text-sm">
                     {MOTIF_LABEL[currentMistake.motif] ?? currentMistake.motif}
-                  </p>
+                  </Text>
                 ) : null}
               </Card>
             )}

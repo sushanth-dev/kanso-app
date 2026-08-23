@@ -7,6 +7,7 @@ import { Field } from '@astryxdesign/core/Field';
 import { FormLayout } from '@astryxdesign/core/FormLayout';
 import { Heading } from '@astryxdesign/core/Heading';
 import { Link } from '@astryxdesign/core/Link';
+import { Text } from '@astryxdesign/core/Text';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { ApiRequestError } from '../api/account-api.ts';
@@ -88,29 +89,29 @@ function FocusTrendCard({ measurement }: { measurement: FocusMeasurement }) {
     return (
       <Card>
         <Heading level={2}>{STREAM_LABEL[measurement.stream]}</Heading>
-        <p className="mt-2 text-muted">
+        <Text as="p" display="block" type="supporting" className="mt-2">
           We cannot say yet whether this is working. It rests on {games} analysed{' '}
           {gamesLabel(games)} in this stream; more games will make a verdict possible.
-        </p>
+        </Text>
       </Card>
     );
   }
   return (
     <Card>
       <Heading level={2}>{STREAM_LABEL[measurement.stream]}</Heading>
-      <p className="mt-2">
+      <Text as="p" display="block" className="mt-2">
         {TREND_LABEL[measurement.trend]}{' '}
         <span aria-hidden="true" className="font-mono">
           {TREND_ARROW[measurement.trend]}
         </span>
-      </p>
-      <p className="mt-1 font-mono">
+      </Text>
+      <Text as="p" display="block" className="mt-1 font-mono">
         {formatValue(measurement.baselineValue)} → {formatValue(measurement.currentValue)}{' '}
         {measurement.unit}
-      </p>
-      <p className="mt-1 text-sm text-muted">
+      </Text>
+      <Text as="p" display="block" type="supporting" className="mt-1 text-sm">
         Measured over {games} {gamesLabel(games)}.
-      </p>
+      </Text>
     </Card>
   );
 }
@@ -132,18 +133,20 @@ function CoachInstructionCard({
         <div className="flex flex-wrap items-center gap-2">
           <Badge label="Unverified" variant="neutral" />
         </div>
-        <p className="mt-2 whitespace-pre-wrap">{focus.coachInstruction ?? ''}</p>
-        <p className="mt-2 text-muted">
+        <Text as="p" display="block" className="mt-2 whitespace-pre-wrap">
+          {focus.coachInstruction ?? ''}
+        </Text>
+        <Text as="p" display="block" type="supporting" className="mt-2">
           {paired !== undefined
             ? `Paired with ${paired.title}. The numbers below measure that focus, not the instruction.`
             : 'Paired with a measurable focus. The numbers below measure that focus, not the instruction.'}
-        </p>
+        </Text>
       </Card>
       {focus.measurements.length === 0 ? (
-        <p className="text-muted">
+        <Text as="p" display="block" type="supporting">
           No verification yet. The first verdict appears once enough analysed games have
           accumulated.
-        </p>
+        </Text>
       ) : (
         focus.measurements.map((measurement) => (
           <FocusTrendCard key={measurement.stream} measurement={measurement} />
@@ -157,13 +160,15 @@ function CatalogueFocusCard({ focus }: { focus: ActiveFocus }) {
   return (
     <div className="space-y-4">
       {focus.catalogue !== null ? (
-        <p className="text-muted">{focus.catalogue.description}</p>
+        <Text as="p" display="block" type="supporting">
+          {focus.catalogue.description}
+        </Text>
       ) : null}
       {focus.measurements.length === 0 ? (
-        <p className="text-muted">
+        <Text as="p" display="block" type="supporting">
           No verification yet. The first verdict appears once enough analysed games have
           accumulated.
-        </p>
+        </Text>
       ) : (
         focus.measurements.map((measurement) => (
           <FocusTrendCard key={measurement.stream} measurement={measurement} />
@@ -227,22 +232,26 @@ function RankingSection({
           <div className="h-4 w-64 rounded-control bg-sunken" />
         </div>
       ) : reportQuery.isError ? (
-        <p className="text-muted">
+        <Text as="p" display="block" type="supporting">
           {reportQuery.error instanceof ApiRequestError && reportQuery.error.status === 404
             ? 'No analysed games in this stream yet. Import games to get a ranking.'
             : 'Your ranking could not be loaded right now.'}
-        </p>
+        </Text>
       ) : reportQuery.data.weaknesses.length === 0 ? (
-        <p className="text-muted">
+        <Text as="p" display="block" type="supporting">
           Not enough evidence to rank your weaknesses in this stream yet.
-        </p>
+        </Text>
       ) : (
         <>
-          <p className="text-sm text-muted">Ranked by rating leak.</p>
+          <Text as="p" display="block" type="supporting" className="text-sm">
+            Ranked by rating leak.
+          </Text>
           <ol className="space-y-2">
             {reportQuery.data.weaknesses.map((weakness) => (
               <li key={weakness.id} className="flex items-baseline gap-3">
-                <span className="w-8 shrink-0 font-mono text-sm text-muted">#{weakness.rank}</span>
+                <Text type="supporting" className="w-8 shrink-0 font-mono text-sm">
+                  #{weakness.rank}
+                </Text>
                 <span className="flex-1">{weakness.label}</span>
                 <span className="font-mono">
                   {weakness.saturated ? `at least ${weakness.ratingLeak}` : weakness.ratingLeak}
@@ -276,9 +285,15 @@ function CatalogueList({
           <li key={entry.id}>
             <Card>
               <Heading level={3}>{entry.title}</Heading>
-              <p className="mt-2">{entry.description}</p>
-              <p className="mt-1 text-muted">{entry.measureDescription}</p>
-              <p className="mt-1 text-muted">{measurableStreamsStatement(entry)}</p>
+              <Text as="p" display="block" className="mt-2">
+                {entry.description}
+              </Text>
+              <Text as="p" display="block" type="supporting" className="mt-1">
+                {entry.measureDescription}
+              </Text>
+              <Text as="p" display="block" type="supporting" className="mt-1">
+                {measurableStreamsStatement(entry)}
+              </Text>
               <Button
                 label={`Set ${entry.title}`}
                 variant="primary"
@@ -329,10 +344,10 @@ function CoachInstructionForm({
         A focus from your coach
       </Heading>
       <Card>
-        <p className="text-muted">
+        <Text as="p" display="block" type="supporting">
           An instruction in the coach's own words cannot be measured directly, so we pair it with a
           measurable focus and show that focus's number, not a measurement of the instruction.
-        </p>
+        </Text>
         <form
           className="mt-4"
           onSubmit={(event) => {
@@ -433,11 +448,11 @@ export function FocusChoiceView({
         <Button label="Back to your account" href="/account" variant="secondary" />
         <Heading level={1}>Set your focus</Heading>
         {replacing !== null ? (
-          <p className="text-muted">
+          <Text as="p" display="block" type="supporting">
             {replacing.catalogue !== null
               ? `Setting a new focus ends your current one: ${replacing.catalogue.title}.`
               : 'Setting a new focus ends your current coach focus.'}
-          </p>
+          </Text>
         ) : null}
       </header>
 

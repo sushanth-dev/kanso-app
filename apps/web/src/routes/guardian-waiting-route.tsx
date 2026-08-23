@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@astryxdesign/core/Button';
 import { Heading } from '@astryxdesign/core/Heading';
+import { Text } from '@astryxdesign/core/Text';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { authClient } from '../auth-client.ts';
@@ -22,10 +23,10 @@ export function GuardianWaitingScreen({ signOut }: { signOut: () => Promise<void
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-16 font-ui">
       <Heading level={1}>Waiting for guardian consent</Heading>
-      <p className="mt-4 text-muted">
+      <Text as="p" display="block" type="supporting" className="mt-4">
         A guardian has been emailed and must confirm by opening the link before this account can be
         used.
-      </p>
+      </Text>
       {signOutError !== null ? (
         <div className="mt-4">
           <StatusMessage tone="error">{signOutError}</StatusMessage>

@@ -9,7 +9,12 @@ export default defineConfig({
     proxy: {
       '/api': 'http://127.0.0.1:3000',
       '/me': 'http://127.0.0.1:3000',
+      '/report': 'http://127.0.0.1:3000',
+      '/motifs': 'http://127.0.0.1:3000',
+      '/phase': 'http://127.0.0.1:3000',
+      '/mistakes': 'http://127.0.0.1:3000',
       '/focuses': 'http://127.0.0.1:3000',
+      '/focus': 'http://127.0.0.1:3000',
       '/payments': 'http://127.0.0.1:3000',
       '/guardians': {
         target: 'http://127.0.0.1:3000',
