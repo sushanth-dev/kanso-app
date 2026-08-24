@@ -1,5 +1,7 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useLocation } from '@tanstack/react-router';
+import { Icon } from '@astryxdesign/core/Icon';
+import { IconButton } from '@astryxdesign/core/IconButton';
 import { Link } from '@astryxdesign/core/Link';
 import { Text } from '@astryxdesign/core/Text';
 import { StatusMessage, useStatusMessage } from './status-message.tsx';
@@ -8,27 +10,47 @@ export interface PageFrameProps {
   children: ReactNode;
 }
 
-interface NavItem {
-  label: string;
-  to: string;
+type NavLeaf = { label: string; to: string };
+type NavGroup = { label: string; items: NavLeaf[] };
+type NavEntry = NavLeaf | NavGroup;
+
+function isGroup(entry: NavEntry): entry is NavGroup {
+  return (entry as NavGroup).items !== undefined;
 }
 
-const NAV_ITEMS: NavItem[] = [
+// One source of truth for the nav. ST-088 will drop the Account leaf once the
+// account page merges into settings; removing one entry is a one-line change.
+const NAV_ENTRIES: NavEntry[] = [
   { label: 'Account', to: '/account' },
-  { label: 'Report', to: '/account/report' },
-  { label: 'Focus', to: '/account/focus' },
-  { label: 'Games', to: '/account/games' },
-  { label: 'Import', to: '/account/import' },
-  { label: 'Proof sheet', to: '/account/proof-sheet' },
+  {
+    label: 'Progress',
+    items: [
+      { label: 'Report', to: '/account/report' },
+      { label: 'Focus', to: '/account/focus' },
+      { label: 'Proof sheet', to: '/account/proof-sheet' },
+    ],
+  },
+  {
+    label: 'Games',
+    items: [
+      { label: 'Games', to: '/account/games' },
+      { label: 'Import', to: '/account/import' },
+    ],
+  },
   { label: 'Plans', to: '/account/upgrade' },
   { label: 'Settings', to: '/account/settings' },
 ];
+
+function navEntryKey(entry: NavEntry): string {
+  return isGroup(entry) ? entry.label : entry.to;
+}
 
 export function PageFrame({ children }: PageFrameProps) {
   const pathname = useLocation({ select: (location) => location.pathname });
   const { flash, markPresented, clearMessage } = useStatusMessage();
   const atDestination = flash !== null && pathname === flash.destination;
   const showNav = pathname === '/account' || pathname.startsWith('/account/');
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     if (flash === null) return;
@@ -38,6 +60,12 @@ export function PageFrame({ children }: PageFrameProps) {
       clearMessage();
     }
   }, [clearMessage, flash, markPresented, pathname]);
+
+  // Close the mobile menu on route change so a navigated-to page does not
+  // render behind a stale open panel.
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   return (
     <div className="flex min-h-screen flex-col font-ui">
@@ -52,14 +80,48 @@ export function PageFrame({ children }: PageFrameProps) {
           <div className="flex items-center gap-2">
             <span aria-hidden="true" className="size-2.5 shrink-0 rounded-control bg-accent" />
             <Text className="font-display text-xl leading-tight tracking-tight">Kanso Chess</Text>
+            {showNav ? (
+              <IconButton
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="ml-auto md:hidden"
+                label={mobileOpen ? 'Close menu' : 'Open menu'}
+                icon={<Icon icon={mobileOpen ? 'close' : 'menu'} size="sm" />}
+                aria-expanded={mobileOpen}
+                aria-controls="account-nav"
+                onClick={() => setMobileOpen((open) => !open)}
+              />
+            ) : null}
           </div>
           {showNav ? (
-            <nav aria-label="Account" className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
-              {NAV_ITEMS.map((item) => (
-                <Link key={item.to} href={item.to}>
-                  {item.label}
-                </Link>
-              ))}
+            <nav aria-label="Account" id="account-nav" className="mt-3">
+              {/* Desktop: single horizontal row, grouped dropdowns via native <details>. */}
+              <ul className="hidden flex-row flex-nowrap gap-1 md:flex">
+                {NAV_ENTRIES.map((entry) => (
+                  <li key={navEntryKey(entry)} className="relative">
+                    {isGroup(entry) ? (
+                      <NavGroupDesktop group={entry} pathname={pathname} />
+                    ) : (
+                      <NavLinkLeaf leaf={entry} pathname={pathname} />
+                    )}
+                  </li>
+                ))}
+              </ul>
+              {/* Mobile: the same entries behind the menu icon. */}
+              {mobileOpen ? (
+                <ul className="flex flex-col gap-1 md:hidden">
+                  {NAV_ENTRIES.map((entry) => (
+                    <li key={navEntryKey(entry)}>
+                      {isGroup(entry) ? (
+                        <NavGroupMobile group={entry} pathname={pathname} />
+                      ) : (
+                        <NavLinkLeaf leaf={entry} pathname={pathname} block />
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
             </nav>
           ) : null}
         </div>
@@ -73,5 +135,132 @@ export function PageFrame({ children }: PageFrameProps) {
         {children}
       </main>
     </div>
+  );
+}
+
+interface NavLinkLeafProps {
+  leaf: NavLeaf;
+  pathname: string;
+  block?: boolean;
+}
+
+function NavLinkLeaf({ leaf, pathname, block }: NavLinkLeafProps) {
+  const active = pathname === leaf.to;
+  return (
+    <Link
+      href={leaf.to}
+      aria-current={active ? 'page' : undefined}
+      className={[
+        'inline-flex min-h-11 items-center rounded-control px-3 py-2 text-sm transition-colors',
+        'hover:bg-overlay-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus',
+        active ? 'font-semibold text-text-accent' : 'text-text-secondary',
+        block ? 'w-full' : '',
+      ].join(' ')}
+    >
+      {leaf.label}
+    </Link>
+  );
+}
+
+interface NavGroupProps {
+  group: NavGroup;
+  pathname: string;
+}
+
+function NavGroupDesktop({ group, pathname }: NavGroupProps) {
+  return (
+    <DetailsDropdown
+      summary={
+        <>
+          <span>{group.label}</span>
+          <Icon icon="chevronDown" size="sm" />
+        </>
+      }
+    >
+      <GroupItems items={group.items} pathname={pathname} />
+    </DetailsDropdown>
+  );
+}
+
+function NavGroupMobile({ group, pathname }: NavGroupProps) {
+  return (
+    <DetailsDropdown summary={<span>{group.label}</span>}>
+      <GroupItems items={group.items} pathname={pathname} />
+    </DetailsDropdown>
+  );
+}
+
+interface GroupItemsProps {
+  items: NavLeaf[];
+  pathname: string;
+}
+
+function GroupItems({ items, pathname }: GroupItemsProps) {
+  return (
+    <ul className="flex flex-col gap-0.5 py-1">
+      {items.map((item) => {
+        const active = pathname === item.to;
+        return (
+          <li key={item.to}>
+            <Link
+              href={item.to}
+              aria-current={active ? 'page' : undefined}
+              className={[
+                'inline-flex min-h-11 w-full items-center rounded-control px-3 py-2 text-sm transition-colors',
+                'hover:bg-overlay-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus',
+                active ? 'font-semibold text-text-accent' : 'text-text-secondary',
+              ].join(' ')}
+            >
+              {item.label}
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+interface DetailsDropdownProps {
+  summary: ReactNode;
+  children: ReactNode;
+}
+
+/**
+ * Native <details>/<summary> dropdown. Keyboard-operable by default (Enter and
+ * Space toggle, Tab moves through links), and its open state is exposed to
+ * assistive tech without ARIA wiring. The one addition over native is Escape
+ * to close and restore focus to the summary, which <details> does not do.
+ * Styled with semantic tokens: md-radius control surface, raised-paper panel,
+ * hairline border, teal focus ring.
+ */
+function DetailsDropdown({ summary, children }: DetailsDropdownProps) {
+  const detailsRef = useRef<HTMLDetailsElement>(null);
+  const summaryRef = useRef<HTMLElement>(null);
+
+  function onKeyDown(event: React.KeyboardEvent<HTMLDetailsElement>) {
+    if (event.key !== 'Escape') return;
+    if (detailsRef.current?.open) {
+      event.preventDefault();
+      detailsRef.current.open = false;
+      summaryRef.current?.focus();
+    }
+  }
+
+  return (
+    <details ref={detailsRef} onKeyDown={onKeyDown} className="group relative rounded-control">
+      <summary
+        ref={summaryRef}
+        className={[
+          'inline-flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-control px-3 py-2 text-sm text-text-secondary transition-colors',
+          'hover:bg-overlay-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus',
+          'group-open:text-text-primary',
+        ].join(' ')}
+      >
+        {summary}
+      </summary>
+      <div className="absolute left-0 top-full z-30 min-w-full rounded-control border border-border-subtle bg-background-surface px-1 py-1 shadow-none motion-safe:transition-colors">
+        {children}
+      </div>
+    </details>
   );
 }
