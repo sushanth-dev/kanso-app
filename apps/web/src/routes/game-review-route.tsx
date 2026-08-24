@@ -290,11 +290,7 @@ export function GameReviewScreen({ game }: { game: GameDetail }) {
   return (
     <div className="space-y-6">
       <header className="space-y-4">
-        <Button
-          label="Back to games"
-          href={`/account/games?stream=${game.stream}`}
-          variant="secondary"
-        />
+        <Button label="Back to games" href={`/games?stream=${game.stream}`} variant="secondary" />
         <Heading level={1}>Game review</Heading>
         <Text as="p" display="block" type="supporting">
           {opponent ? `vs ${opponent}` : 'Opponent unknown'}

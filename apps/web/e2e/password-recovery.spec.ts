@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
+import { openSettingsViaNav } from './helpers.ts';
 
 // Axe scans a settled page; reduced motion collapses the reveal animations so
 // it never measures mid-fade text, and exercises the reduced-motion collapse.
@@ -42,12 +43,9 @@ async function signUp(page: Page, email: string, password: string) {
 }
 
 async function signOut(page: Page) {
-  // Sign out lives on the settings surface (ST-073).
-  await page
-    .getByRole('navigation', { name: 'Account' })
-    .getByRole('link', { name: 'Settings' })
-    .click();
-  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
+  // Sign out lives on the merged account and settings page (ST-088).
+  await openSettingsViaNav(page);
+  await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
 }
@@ -105,12 +103,10 @@ test('a signed-in user changes their password from the settings surface', async 
 
   await signUp(page, email, oldPassword);
 
-  // The change-password form lives on the settings surface (ST-073).
-  await page
-    .getByRole('navigation', { name: 'Account' })
-    .getByRole('link', { name: 'Settings' })
-    .click();
-  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
+  // The change-password form lives on the merged account and settings page
+  // (ST-088).
+  await openSettingsViaNav(page);
+  await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
   await page.getByLabel('Current password').fill(oldPassword);
   await page.getByLabel('New password', { exact: true }).fill(newPassword);
   await page.getByLabel('Confirm new password').fill(newPassword);

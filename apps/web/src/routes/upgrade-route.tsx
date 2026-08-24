@@ -162,18 +162,15 @@ function UpgradeSkeleton() {
 
 function AlreadySubscribed({ tier }: { tier: Tier }) {
   return (
-    <div className="space-y-8">
-      <header className="space-y-4">
-        <Heading level={1}>You are on the {TIER_LABEL[tier]} plan</Heading>
-        <Badge label={TIER_LABEL[tier]} variant="neutral" />
-        <Text as="p" display="block" type="supporting">
-          {tier === 'pro'
-            ? 'The full loop is already open, with no monthly cap: a focus, verification, the proof sheet, and history across seasons. Set a focus and check on it from your account.'
-            : 'The full loop is already open, up to your monthly cap: a focus, verification, and the proof sheet. Set a focus and check on it from your account.'}
-        </Text>
-      </header>
-      <Button label="Back to your account" href="/account" variant="primary" />
-    </div>
+    <header className="space-y-4">
+      <Heading level={1}>You are on the {TIER_LABEL[tier]} plan</Heading>
+      <Badge label={TIER_LABEL[tier]} variant="neutral" />
+      <Text as="p" display="block" type="supporting">
+        {tier === 'pro'
+          ? 'The full loop is already open, with no monthly cap: a focus, verification, the proof sheet, and history across seasons. Set a focus and check on it from your account.'
+          : 'The full loop is already open, up to your monthly cap: a focus, verification, and the proof sheet. Set a focus and check on it from your account.'}
+      </Text>
+    </header>
   );
 }
 
@@ -192,7 +189,7 @@ export function UpgradeRoute() {
       const me = await queryClient.fetchQuery(meQueryOptions());
       if (me.tier === tier) {
         track('converted_to_paid', { tier });
-        await navigate({ to: '/account' });
+        await navigate({ to: '/settings' });
         return;
       }
       await delay(1500);
@@ -251,7 +248,6 @@ export function UpgradeRoute() {
   return (
     <div className="space-y-8">
       <header className="space-y-4">
-        <Button label="Back to your account" href="/account" variant="secondary" />
         <Heading level={1}>Choose a plan</Heading>
         <Text as="p" display="block" type="supporting">
           Your first diagnosis is free. The loop after it is paid.

@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
+import { openNavGroupLink } from './helpers.ts';
 
 // Axe scans a settled page; reduced motion collapses the reveal animations so
 // it never measures mid-fade text, and exercises the reduced-motion collapse.
@@ -46,7 +47,7 @@ async function signUp(page: Page): Promise<void> {
 }
 
 async function openImport(page: Page): Promise<void> {
-  await page.getByRole('link', { name: 'Import games' }).click();
+  await openNavGroupLink(page, 'Games', 'Import');
   await expect(page.getByRole('heading', { name: 'Import games' })).toBeVisible();
 }
 

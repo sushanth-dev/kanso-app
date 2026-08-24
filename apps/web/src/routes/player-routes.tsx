@@ -124,9 +124,9 @@ export function PlayerFormScreen({ me, accountApi, queryClient, navigate }: Play
       setFormError('The player could not be saved. Please try again.');
       return;
     }
-    showMessage('Player saved.', '/account');
+    showMessage('Player saved.', '/settings');
     await queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY });
-    await navigate({ to: '/account' });
+    await navigate({ to: '/settings' });
   }
 
   return (
@@ -293,7 +293,7 @@ export function PlayerFormScreen({ me, accountApi, queryClient, navigate }: Play
               isLoading={submitting}
               className="min-h-11 flex-1 press"
             />
-            <Button label="Cancel" href="/account" variant="secondary" />
+            <Button label="Cancel" href="/settings" variant="secondary" />
           </div>
         </FormLayout>
       </form>

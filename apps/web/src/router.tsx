@@ -17,7 +17,6 @@ import { PageFrame } from './components/page-frame.tsx';
 import { StatusMessageProvider } from './components/status-message.tsx';
 import { RouteError } from './components/route-error.tsx';
 import { meQueryOptions, queryClient } from './query-client.ts';
-import { AccountRoute } from './routes/account-route.tsx';
 import { SignInRoute, SignUpRoute } from './routes/auth-routes.tsx';
 import { GameReviewRoute } from './routes/game-review-route.tsx';
 import { GamesRoute } from './routes/games-route.tsx';
@@ -115,7 +114,7 @@ const signUpRoute = createRoute({
 
 const accountRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/account',
+  id: 'account',
   errorComponent: RouteError,
   beforeLoad: async ({ context }) => {
     try {
@@ -132,12 +131,6 @@ const accountRoute = createRoute({
       throw error;
     }
   },
-});
-
-const accountIndexRoute = createRoute({
-  getParentRoute: () => accountRoute,
-  path: '/',
-  component: AccountRoute,
 });
 
 const playerEditRoute = createRoute({
@@ -241,7 +234,7 @@ const guardianWaitingRoute = createRoute({
       throw error;
     }
     // eslint-disable-next-line @typescript-eslint/only-throw-error -- redirect() throws a Response, not an Error.
-    throw redirect({ to: '/account' });
+    throw redirect({ to: '/settings' });
   },
   component: GuardianWaitingRoute,
 });
@@ -251,7 +244,6 @@ const routeTree = rootRoute.addChildren([
   signInRoute,
   signUpRoute,
   accountRoute.addChildren([
-    accountIndexRoute,
     playerEditRoute,
     settingsRoute,
     reportRoute,
