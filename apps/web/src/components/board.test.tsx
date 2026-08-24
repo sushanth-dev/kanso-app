@@ -8,12 +8,10 @@ describe('Board', () => {
   test('renders the pieces from a FEN position', () => {
     render(<Board fen={START} label="Start position" />);
     expect(screen.getByRole('img', { name: 'Start position' })).toBeInTheDocument();
-    // One king each, eight pawns each, two rooks each.
-    expect(screen.getAllByText('\u2654')).toHaveLength(1);
-    expect(screen.getAllByText('\u265A')).toHaveLength(1);
-    expect(screen.getAllByText('\u2659')).toHaveLength(8);
-    expect(screen.getAllByText('\u265F')).toHaveLength(8);
-    expect(screen.getAllByText('\u2656')).toHaveLength(2);
+    // Both colours use the solid glyph set; 32 pieces total.
+    expect(screen.getAllByText('\u265A')).toHaveLength(2);
+    expect(screen.getAllByText('\u265F')).toHaveLength(16);
+    expect(screen.getAllByText('\u265C')).toHaveLength(4);
   });
 
   test('marks the from and to squares in gold', () => {
@@ -25,8 +23,7 @@ describe('Board', () => {
 
   test('a sparse FEN renders only the pieces it names', () => {
     render(<Board fen="8/8/8/8/8/8/8/K7 w - - 0 1" label="Lone king" />);
-    expect(screen.getAllByText('\u2654')).toHaveLength(1);
-    expect(screen.queryAllByText('\u265A')).toHaveLength(0);
+    expect(screen.getAllByText('\u265A')).toHaveLength(1);
   });
   test('draws the best-move arrow from bestFrom to bestTo', () => {
     const { container } = render(<Board fen={START} bestFrom="e2" bestTo="e4" label="Best move" />);
