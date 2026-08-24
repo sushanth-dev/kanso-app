@@ -28,6 +28,10 @@ test('header nav groups routes into dropdowns and every route stays reachable', 
 }) => {
   const email = `nav-${randomUUID()}@example.com`;
   const password = `E2e-${randomUUID()}-Aa1!`;
+  // The suite's phone-chromium project runs 390px wide, where the desktop nav
+  // row is hidden behind the menu icon; this test is about the desktop row, so
+  // widen the viewport before asserting it (the mobile row has its own test).
+  await page.setViewportSize({ width: 1280, height: 800 });
 
   await page.goto('/sign-up');
   await signUp(page, 'E2E Nav', email, password);
@@ -60,7 +64,9 @@ test('header nav groups routes into dropdowns and every route stays reachable', 
   const openedGroups = new Set<string>();
   for (const [group, label, href] of groupedRoutes) {
     if (!openedGroups.has(group)) {
-      const summary = nav.getByRole('button', { name: group });
+      // The group is a native <details>; its <summary> is the keyboard
+      // trigger and exposes no button role, so locate it by element.
+      const summary = nav.locator('summary', { hasText: group });
       await summary.focus();
       await page.keyboard.press('Enter');
       openedGroups.add(group);
@@ -97,10 +103,9 @@ test('mobile menu icon opens the same grouped structure', async ({ page }) => {
   await signUp(page, 'E2E Nav Mobile', email, password);
   await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
 
-  await page.setViewportSize({ width: 375, height: 667 });
-
   const nav = page.getByRole('navigation', { name: 'Account' });
-  const menuButton = nav.getByRole('button', { name: 'Open menu' });
+  // The menu button lives in the header banner, outside the nav it toggles.
+  const menuButton = page.getByRole('button', { name: 'Open menu' });
 
   // Desktop links are hidden below the breakpoint; the menu button is the way in.
   await expect(menuButton).toBeVisible();
@@ -111,12 +116,15 @@ test('mobile menu icon opens the same grouped structure', async ({ page }) => {
   await expect(nav.getByRole('link', { name: 'Settings' })).toBeVisible();
 
   // A grouped route opens and reaches its destination.
-  const progressSummary = nav.getByRole('button', { name: 'Progress' });
-  await progressSummary.click();
+  const progressSummary = nav.locator('summary', { hasText: 'Progress' });
+  // Hover opens the group (the panel follows the pointer), and a click on an
+  // open <details> toggles it shut; open by keyboard, as on desktop.
+  await progressSummary.focus();
+  await page.keyboard.press('Enter');
   await expect(nav.getByRole('link', { name: 'Report' })).toBeVisible();
   await nav.getByRole('link', { name: 'Report' }).click();
   await expect(page.getByRole('heading', { name: 'Tournament report' })).toBeVisible();
 
   // The menu closes on navigation, so the menu button reverts to "Open".
-  await expect(nav.getByRole('button', { name: 'Open menu' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Open menu' })).toBeVisible();
 });
