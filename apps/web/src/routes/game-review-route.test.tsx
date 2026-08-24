@@ -171,7 +171,7 @@ describe('GameReviewScreen', () => {
     renderScreen(gameFixture());
     expect(screen.getByText(/you played/)).toHaveTextContent('Qf6');
     expect(screen.getByText(/best was/)).toHaveTextContent('Nc6');
-    expect(screen.getByText('vs Alice')).toBeInTheDocument();
+    expect(screen.getByText('Alice vs Mina')).toBeInTheDocument();
   });
 
   test('lists every move in the notation panel and switches position on selection', async () => {
