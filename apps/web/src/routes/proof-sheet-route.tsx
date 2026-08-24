@@ -79,7 +79,6 @@ export function ProofSheetScreen() {
     return (
       <div className="space-y-6">
         <header className="space-y-4">
-          <Button label="Back to your account" href="/account" variant="secondary" />
           <Heading level={1}>Share a proof sheet</Heading>
         </header>
         <ProofSheetSkeleton />
@@ -95,7 +94,6 @@ export function ProofSheetScreen() {
     return (
       <div className="space-y-6">
         <header className="space-y-4">
-          <Button label="Back to your account" href="/account" variant="secondary" />
           <Heading level={1}>Share a proof sheet</Heading>
         </header>
         <UpgradePrompt title="The proof sheet is part of the paid loop" />
@@ -107,12 +105,11 @@ export function ProofSheetScreen() {
     return (
       <div className="space-y-6">
         <header className="space-y-4">
-          <Button label="Back to your account" href="/account" variant="secondary" />
           <Heading level={1}>Share a proof sheet</Heading>
         </header>
         <EmptyState
           title="Your share links could not be loaded"
-          description="Try again, or go back to your account."
+          description="Try again in a moment."
           headingLevel={2}
         />
       </div>
@@ -124,7 +121,6 @@ export function ProofSheetScreen() {
   return (
     <div className="space-y-6">
       <header className="space-y-4">
-        <Button label="Back to your account" href="/account" variant="secondary" />
         <Heading level={1}>Share a proof sheet</Heading>
         <Text as="p" display="block" type="supporting">
           Send a parent a before-and-after page for this focus.
@@ -140,7 +136,7 @@ export function ProofSheetScreen() {
           </Text>
           <Button
             label="Set a focus"
-            href="/account/focus?stream=tournament"
+            href="/focus?stream=tournament"
             variant="primary"
             className="mt-6"
           />

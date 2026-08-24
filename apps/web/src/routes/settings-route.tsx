@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
 import { Heading } from '@astryxdesign/core/Heading';
+import { Link } from '@astryxdesign/core/Link';
 import { Text } from '@astryxdesign/core/Text';
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
-import { type Me } from '../api/account-api.ts';
+import type { Me } from '../api/account-api.ts';
 import { authClient } from '../auth-client.ts';
 import { ChangePasswordForm } from '../components/change-password-form.tsx';
 import { StatusMessage } from '../components/status-message.tsx';
@@ -29,10 +31,24 @@ export function SettingsScreen({ me, signOut }: SettingsScreenProps) {
 
   return (
     <>
-      <header className="space-y-4">
-        <Button label="Back to your account" href="/account" variant="secondary" />
-        <Heading level={1}>Settings</Heading>
-      </header>
+      <section aria-labelledby="account-heading" className="space-y-3">
+        <Heading level={1} id="account-heading">
+          Your account
+        </Heading>
+        <Text as="p" display="block" className="font-display text-lg leading-tight">
+          {me.name}
+        </Text>
+      </section>
+
+      <section aria-label="Your player" className="mt-8">
+        <div className="flex flex-wrap gap-2">
+          <Badge label={`${me.player.currentStreak}-day streak`} variant="orange" />
+          <Badge label={`Level ${me.player.level}`} variant="info" />
+        </div>
+        <div className="mt-3">
+          <Link href="/player">Edit player</Link>
+        </div>
+      </section>
 
       <section aria-labelledby="account-details-heading" className="mt-8">
         <Heading level={2} id="account-details-heading">
@@ -42,7 +58,7 @@ export function SettingsScreen({ me, signOut }: SettingsScreenProps) {
           {me.email}
         </Text>
         <div>
-          <Button label="See plans" href="/account/upgrade" variant="primary" className="mt-3" />
+          <Button label="See plans" href="/upgrade" variant="primary" className="mt-3" />
         </div>
       </section>
 

@@ -30,7 +30,7 @@ test('states the fact-only boundary and the three plans at the 320px floor', asy
   await signUp(page, 'E2E Upgrade', email, password);
   await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
 
-  await page.goto('/account/upgrade');
+  await page.goto('/upgrade');
 
   // The boundary is stated as facts, not persuasion.
   await expect(page.getByRole('heading', { name: 'Choose a plan' })).toBeVisible();
@@ -71,7 +71,7 @@ test('shows the already-subscribed state and never offers to charge again', asyn
   await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
 
   await upgradeToPaid(page);
-  await page.goto('/account/upgrade');
+  await page.goto('/upgrade');
 
   await expect(page.getByRole('heading', { name: 'You are on the Pro plan' })).toBeVisible();
   await expect(page.getByText('Pro', { exact: true })).toBeVisible();

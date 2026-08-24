@@ -236,7 +236,7 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
           gamesImported: job.gamesImported,
         });
         if (job.source !== 'uscf') {
-          await navigate({ to: '/account/report', search: { stream: job.stream } });
+          await navigate({ to: '/report', search: { stream: job.stream } });
         }
       }
     } catch (error) {
@@ -432,17 +432,14 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
             </>
           )}
 
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Button
-              type="submit"
-              label={submitting ? 'Importing...' : 'Import games'}
-              variant="primary"
-              isDisabled={submitting}
-              isLoading={submitting}
-              className="min-h-11 flex-1 press"
-            />
-            <Button label="Back to account" href="/account" variant="secondary" />
-          </div>
+          <Button
+            type="submit"
+            label={submitting ? 'Importing...' : 'Import games'}
+            variant="primary"
+            isDisabled={submitting}
+            isLoading={submitting}
+            className="min-h-11 press"
+          />
         </FormLayout>
       </form>
     </Card>

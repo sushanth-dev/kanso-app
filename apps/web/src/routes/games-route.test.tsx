@@ -55,7 +55,7 @@ function gameFixture(overrides: Partial<GameSummary> = {}): GameSummary {
   };
 }
 
-function renderRoute(path = '/account/games?stream=tournament') {
+function renderRoute(path = '/games?stream=tournament') {
   const history = createMemoryHistory({ initialEntries: [path] });
   const queryClient = new QueryClient();
   const router = createAppRouter({ history, queryClient });
@@ -85,7 +85,7 @@ describe('GamesRoute', () => {
     expect(screen.getByText(/Club Championship/)).toBeVisible();
     expect(screen.getByRole('link', { name: 'Review' })).toHaveAttribute(
       'href',
-      `/account/games/${gameFixture().id}`,
+      `/games/${gameFixture().id}`,
     );
   });
 

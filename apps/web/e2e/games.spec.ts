@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
+import { openNavGroupLink } from './helpers.ts';
 
 // Axe scans a settled page; reduced motion collapses the reveal animations so
 // it never measures mid-fade text, and exercises the reduced-motion collapse.
@@ -28,7 +29,7 @@ async function signUp(page: Page): Promise<void> {
 }
 
 async function importPgn(page: Page): Promise<void> {
-  await page.getByRole('link', { name: 'Import games' }).click();
+  await openNavGroupLink(page, 'Games', 'Import');
   await expect(page.getByRole('heading', { name: 'Import games' })).toBeVisible();
   await page.getByLabel('Method').selectOption('pgn_upload');
   const pgn = [
@@ -61,7 +62,7 @@ test('lists an imported game and opens its review to the honest unanalysed state
   await importPgn(page);
 
   // The games list shows the imported, still-analysing game, not a shell.
-  await page.goto('/account/games?stream=online');
+  await page.goto('/games?stream=online');
   await expect(page.getByRole('heading', { name: 'Your games' })).toBeVisible();
   await expect(page.getByText('Analysis in progress.')).toBeVisible();
   await expectNoAxeViolations(page);
@@ -71,12 +72,12 @@ test('lists an imported game and opens its review to the honest unanalysed state
   const list = await page.request.get('/games?stream=online&limit=100');
   const body = (await list.json()) as { games: Array<{ id: string }> };
   expect(body.games.length).toBeGreaterThan(0);
-  await page.goto(`/account/games/${body.games[0]!.id}`);
+  await page.goto(`/games/${body.games[0]!.id}`);
   await expect(page.getByRole('heading', { name: 'Game review' })).toBeVisible();
   await expect(page.getByText('No recorded moves in this game.')).toBeVisible();
   await expectNoAxeViolations(page);
 
   // A game this player does not own answers the designed error state, not 500.
-  await page.goto('/account/games/00000000-0000-4000-8000-000000000000');
+  await page.goto('/games/00000000-0000-4000-8000-000000000000');
   await expect(page.getByText('This game could not be loaded')).toBeVisible();
 });

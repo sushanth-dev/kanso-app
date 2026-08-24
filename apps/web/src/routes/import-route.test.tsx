@@ -163,7 +163,7 @@ describe('ImportScreen', () => {
     await user.click(screen.getByRole('button', { name: 'Import games' }));
     expect(await screen.findByText('Imported 3 games.')).toBeVisible();
     expect(navigate).toHaveBeenCalledWith({
-      to: '/account/report',
+      to: '/report',
       search: { stream: 'online' },
     });
   });
@@ -247,7 +247,7 @@ describe('ImportScreen', () => {
       stream: 'online',
     });
     expect(navigate).toHaveBeenCalledWith({
-      to: '/account/report',
+      to: '/report',
       search: { stream: 'online' },
     });
   });

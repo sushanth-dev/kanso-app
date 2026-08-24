@@ -289,7 +289,7 @@ stays.
   header carries the wordmark and the horizontal top nav on one row: the nav
   sits to the right of the wordmark and groups routes into native
   `<details>`/`<summary>` dropdowns (Progress, Games) alongside singleton
-  links (Account, Plans, Settings). All nav text, summaries and leaves alike,
+  links (Plans, Settings). All nav text, summaries and leaves alike,
   is the terracotta accent; the active page is bold, not a hue shift. The
   dropdown opens on hover and closes on mouse leave so it follows the pointer.
   The summary is a md-radius control with the teal focus ring; the open panel
@@ -303,33 +303,22 @@ stays.
 
 ### Account
 
-The account dashboard is the signed-in hub at `/account`: the identity block
-(name, email, tier) and a list of player cards. Each card states where that
-player stands with their diagnosis before its four actions are reached, so a
-parent reads the account at a glance rather than opening each player in turn.
-The four actions, view report, import games, set focus, and edit, keep their
-ST-020 targets and sit under the diagnosis line.
+The account and its settings are one page at `/settings` (ST-088), because
+one account became one player (ST-072) and left each page thinner than its
+reason for existing. It reads as one page, not two stapled together: an H1
+"Your account" over the identity block (`me.name`), then the settings
+sections, Account details (email, See plans), Sign out, and Change password,
+each under its own H2, the ladder both pages already used internally. The
+former player card is a bare standing section: the streak and level badges
+the card already carried, plus the "Edit player" link, and nothing else. The
+diagnosis line and the six action links are gone with the card; the navbar
+(ST-087) is the way to every surface. The `/account` path prefix is gone
+entirely: every authenticated route is top-level (`/settings`, `/report`,
+`/focus`, `/proof-sheet`, `/games`, `/import`, `/upgrade`, `/player`), and no
+`/account` URL remains.
 
-The last-diagnosis state is read from the existing per-player report and games
-endpoints over the tournament stream, the same stream the "View report" link
-opens, so the card agrees with the report it links to. No figure is computed
-in the browser; every number is the API's own, and the empty and in-progress
-states are prose rather than a zero or a spinner. The card resolves to one of
-six states:
-
-- **Diagnosis:** the top weakness label, with the `gamesCovered` count behind
-  it in IBM Plex Mono.
-- **Honest empty:** "Could not identify a defensible weakness yet."
-- **Still analyzing:** "Analysis in progress. Come back in a couple of
-  minutes."
-- **No diagnosis yet:** "No diagnosis yet. Import games to get a ranked
-  report."
-- **Unavailable:** "Diagnosis unavailable right now.", the player and actions
-  still shown.
-- **Pending:** a two-line skeleton, never a spinner.
-
-An account with no players renders the honest empty state with the create
-action, and a gated minor never reaches this surface because the router
+Sign-up creates the player from the account name, so the page always has a
+standing to show. A gated minor never reaches this surface because the router
 redirects the `consent_required` answer to the waiting screen.
 
 ### Player
@@ -502,7 +491,7 @@ available".
 
 The share act (an explicit create, copy, and confirm-then-revoke) lives on its
 own player-scoped surface at `/account/players/$playerId/proof-sheet`, reached
-from the account card's "Share proof sheet" link. It lists every live link,
+from the player card's "Share proof sheet" link. It lists every live link,
 creates a new one, copies it, and revokes after an inline confirm; a free
 account is refused with the shared paid-boundary prompt, and a player with no
 active focus is sent to set one. It stays out of this reader surface regardless.
@@ -554,8 +543,8 @@ The tier is read from `/me` on load. While it resolves, a skeleton renders in
 the page frame (`aria-busy`, `role="status"`), never the pay buttons, so a
 paying account never sees the pay action flash before its tier is known. A paid
 account renders the already-paid state instead of the pay cards: it names the
-paid tier and links back to `/account` where the loop lives, and it never
-offers to charge a paying account again.
+paid tier and never offers to charge a paying account again. The navbar is the
+way back to the loop (ST-088); no back link rides the page.
 
 The pay action on each card routes through the existing Razorpay checkout
 unchanged; no card number is handled by us. The four post-pay states are
