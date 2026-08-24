@@ -31,3 +31,20 @@ export async function upgradeToPaid(page: Page): Promise<void> {
     throw new Error(`webhook failed with ${webhook.status()}: ${await webhook.text()}`);
   }
 }
+
+/**
+ * Navigates to the merged account-and-settings page (ST-088) through the
+ * real UI: the phone-width header menu, then its Settings link. The nav
+ * landmark only renders once the menu is open below the md breakpoint.
+ */
+export async function openSettingsViaNav(page: Page): Promise<void> {
+  const settingsLink = page
+    .getByRole('navigation', { name: 'Account' })
+    .getByRole('link', { name: 'Settings' });
+  // The menu may already be open: clicking Settings while already on the page
+  // navigates to the same route, which does not close it.
+  if (!(await settingsLink.isVisible())) {
+    await page.getByRole('button', { name: 'Open menu' }).click();
+  }
+  await settingsLink.click();
+}

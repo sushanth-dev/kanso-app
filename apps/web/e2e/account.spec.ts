@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { upgradeToPaid } from './helpers.ts';
+import { openSettingsViaNav, upgradeToPaid } from './helpers.ts';
 
 // Axe scans a settled page; reduced motion collapses the reveal animations so
 // it never measures mid-fade text, and exercises the reduced-motion collapse.
@@ -124,12 +124,12 @@ test('signs up and persists a player through sign-in', async ({ page }) => {
   await page.getByRole('link', { name: 'Cancel' }).click();
 
   // Sign out lives on the merged account and settings page (ST-088).
-  await page
-    .getByRole('navigation', { name: 'Account' })
-    .getByRole('link', { name: 'Settings' })
-    .click();
+  await openSettingsViaNav(page);
   await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Sign out' }).click();
+  // The walk starts from a settled page: tabbing while the settings route is
+  // still mounted lands focus on it, not on the sign-in form.
+  await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
   await page.keyboard.press('Tab');
   await expect(page.getByLabel('Email')).toBeFocused();
   await page.keyboard.type(email);
@@ -152,10 +152,7 @@ test('signs up and persists a player through sign-in', async ({ page }) => {
     page.getByRole('heading', { name: 'No analyzed games in this stream yet' }),
   ).toBeVisible();
   await expectNoAxeViolations(page);
-  await page
-    .getByRole('navigation', { name: 'Account' })
-    .getByRole('link', { name: 'Settings' })
-    .click();
+  await openSettingsViaNav(page);
   await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
   // The report returns 404 until a player has analyzed games, which is the
   // honest state Mina is in here, not a failed request. Sign-out clears the
@@ -194,10 +191,7 @@ test('walks report to focus to the verification trend', async ({ page }) => {
     page.getByRole('heading', { name: 'No analyzed games in this stream yet' }),
   ).toBeVisible();
   await expectNoAxeViolations(page);
-  await page
-    .getByRole('navigation', { name: 'Account' })
-    .getByRole('link', { name: 'Settings' })
-    .click();
+  await openSettingsViaNav(page);
   await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
 
   // Focus and verification are paid (ST-044); flip the account through the
