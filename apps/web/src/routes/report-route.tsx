@@ -405,7 +405,7 @@ export function ReportRoute() {
 
   const onStreamChange = (next: Stream) => {
     void navigate({
-      to: '/account/report',
+      to: '/report',
       search: { stream: next },
     });
   };

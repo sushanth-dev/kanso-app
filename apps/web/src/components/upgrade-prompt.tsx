@@ -16,7 +16,7 @@ export function UpgradePrompt({ title }: { title: string }) {
         Your first diagnosis is free. A focus, verification afterwards, and the proof sheet you send
         a parent are paid.
       </Text>
-      <Button label="See plans" href="/account/upgrade" variant="primary" className="mt-6" />
+      <Button label="See plans" href="/upgrade" variant="primary" className="mt-6" />
     </Card>
   );
 }

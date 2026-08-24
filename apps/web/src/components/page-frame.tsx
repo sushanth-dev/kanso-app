@@ -22,20 +22,20 @@ const NAV_ENTRIES: NavEntry[] = [
   {
     label: 'Progress',
     items: [
-      { label: 'Report', to: '/account/report' },
-      { label: 'Focus', to: '/account/focus' },
-      { label: 'Proof sheet', to: '/account/proof-sheet' },
+      { label: 'Report', to: '/report' },
+      { label: 'Focus', to: '/focus' },
+      { label: 'Proof sheet', to: '/proof-sheet' },
     ],
   },
   {
     label: 'Games',
     items: [
-      { label: 'Games', to: '/account/games' },
-      { label: 'Import', to: '/account/import' },
+      { label: 'Games', to: '/games' },
+      { label: 'Import', to: '/import' },
     ],
   },
-  { label: 'Plans', to: '/account/upgrade' },
-  { label: 'Settings', to: '/account/settings' },
+  { label: 'Plans', to: '/upgrade' },
+  { label: 'Settings', to: '/settings' },
 ];
 
 function navEntryKey(entry: NavEntry): string {
@@ -46,7 +46,16 @@ export function PageFrame({ children }: PageFrameProps) {
   const pathname = useLocation({ select: (location) => location.pathname });
   const { flash, markPresented, clearMessage } = useStatusMessage();
   const atDestination = flash !== null && pathname === flash.destination;
-  const showNav = pathname === '/account' || pathname.startsWith('/account/');
+  const showNav = [
+    '/settings',
+    '/report',
+    '/focus',
+    '/proof-sheet',
+    '/games',
+    '/import',
+    '/upgrade',
+    '/player',
+  ].some((base) => pathname === base || pathname.startsWith(`${base}/`));
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {

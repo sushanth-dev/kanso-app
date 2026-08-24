@@ -303,39 +303,22 @@ stays.
 
 ### Account
 
-The account and its settings are one page at `/account/settings` (ST-088),
-because one account became one player (ST-072) and left each page thinner
-than its reason for existing. It reads as one page, not two stapled
-together: an H1 "Your account" over the identity block (`me.name`), the
-player card, then the settings sections, Account details (email, See
-plans), Sign out, and Change password, each under its own H2, the ladder
-both pages already used internally. `/account` redirects here rather than
-404ing, and every child route's "Back to your account" button is gone with
-the separate page: the navbar (ST-087) is the way back. The card states
-where the player stands with their diagnosis before the six actions are
-reached, view report, import games, set focus, share proof sheet, review
-games, and edit, each keeping its target, under the diagnosis line.
-
-The last-diagnosis state is read from the existing per-player report and games
-endpoints over the tournament stream, the same stream the "View report" link
-opens, so the card agrees with the report it links to. No figure is computed
-in the browser; every number is the API's own, and the empty and in-progress
-states are prose rather than a zero or a spinner. The card resolves to one of
-six states:
-
-- **Diagnosis:** the top weakness label, with the `gamesCovered` count behind
-  it in IBM Plex Mono.
-- **Honest empty:** "Could not identify a defensible weakness yet."
-- **Still analyzing:** "Analysis in progress. Come back in a couple of
-  minutes."
-- **No diagnosis yet:** "No diagnosis yet. Import games to get a ranked
-  report."
-- **Unavailable:** "Diagnosis unavailable right now.", the player and actions
-  still shown.
-- **Pending:** a two-line skeleton, never a spinner.
+The account and its settings are one page at `/settings` (ST-088), because
+one account became one player (ST-072) and left each page thinner than its
+reason for existing. It reads as one page, not two stapled together: an H1
+"Your account" over the identity block (`me.name`), then the settings
+sections, Account details (email, See plans), Sign out, and Change password,
+each under its own H2, the ladder both pages already used internally. The
+former player card is a bare standing section: the streak and level badges
+the card already carried, plus the "Edit player" link, and nothing else. The
+diagnosis line and the six action links are gone with the card; the navbar
+(ST-087) is the way to every surface. The `/account` path prefix is gone
+entirely: every authenticated route is top-level (`/settings`, `/report`,
+`/focus`, `/proof-sheet`, `/games`, `/import`, `/upgrade`, `/player`), and no
+`/account` URL remains.
 
 Sign-up creates the player from the account name, so the page always has a
-card to show. A gated minor never reaches this surface because the router
+standing to show. A gated minor never reaches this surface because the router
 redirects the `consent_required` answer to the waiting screen.
 
 ### Player

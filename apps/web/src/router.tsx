@@ -114,7 +114,7 @@ const signUpRoute = createRoute({
 
 const accountRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/account',
+  id: 'account',
   errorComponent: RouteError,
   beforeLoad: async ({ context }) => {
     try {
@@ -130,15 +130,6 @@ const accountRoute = createRoute({
       }
       throw error;
     }
-  },
-});
-
-const accountIndexRoute = createRoute({
-  getParentRoute: () => accountRoute,
-  path: '/',
-  beforeLoad: () => {
-    // eslint-disable-next-line @typescript-eslint/only-throw-error -- redirect() throws a Response, not an Error.
-    throw redirect({ to: '/account/settings', replace: true });
   },
 });
 
@@ -243,7 +234,7 @@ const guardianWaitingRoute = createRoute({
       throw error;
     }
     // eslint-disable-next-line @typescript-eslint/only-throw-error -- redirect() throws a Response, not an Error.
-    throw redirect({ to: '/account/settings' });
+    throw redirect({ to: '/settings' });
   },
   component: GuardianWaitingRoute,
 });
@@ -253,7 +244,6 @@ const routeTree = rootRoute.addChildren([
   signInRoute,
   signUpRoute,
   accountRoute.addChildren([
-    accountIndexRoute,
     playerEditRoute,
     settingsRoute,
     reportRoute,

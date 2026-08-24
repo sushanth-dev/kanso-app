@@ -42,25 +42,18 @@ test('header nav groups routes into dropdowns and every route stays reachable', 
 
   // Desktop: the singletons are visible links; the grouped routes sit inside
   // closed <details> until opened.
-  await expect(nav.getByRole('link', { name: 'Plans' })).toHaveAttribute(
-    'href',
-    '/account/upgrade',
-  );
-  await expect(nav.getByRole('link', { name: 'Settings' })).toHaveAttribute(
-    'href',
-    '/account/settings',
-  );
+  await expect(nav.getByRole('link', { name: 'Plans' })).toHaveAttribute('href', '/upgrade');
+  await expect(nav.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings');
 
   // Open each dropdown by keyboard (Enter on the focused summary) and assert
   // every grouped route link is present with the right href.
   const groupedRoutes: Array<[string, string, string]> = [
-    ['Progress', 'Report', '/account/report'],
-    ['Progress', 'Focus', '/account/focus'],
-    ['Progress', 'Proof sheet', '/account/proof-sheet'],
-    ['Games', 'Games', '/account/games'],
-    ['Games', 'Import', '/account/import'],
+    ['Progress', 'Report', '/report'],
+    ['Progress', 'Focus', '/focus'],
+    ['Progress', 'Proof sheet', '/proof-sheet'],
+    ['Games', 'Games', '/games'],
+    ['Games', 'Import', '/import'],
   ];
-
   const openedGroups = new Set<string>();
   for (const [group, label, href] of groupedRoutes) {
     if (!openedGroups.has(group)) {
@@ -88,17 +81,14 @@ test('header nav groups routes into dropdowns and every route stays reachable', 
   await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
   await expectNoAxeViolations(page);
 
-  // The account page is gone (ST-088): /account redirects to the merged
-  // settings page rather than 404ing.
-  await page.goto('/account');
-  await expect(page).toHaveURL(/\/account\/settings$/);
+  // The /account prefix is gone (ST-088): settings lives at /settings.
+  await page.goto('/settings');
   await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
 });
 
 test('mobile menu icon opens the same grouped structure', async ({ page }) => {
-  const email = `nav-m-${randomUUID()}@example.com`;
+  const email = `nav-mobile-${randomUUID()}@example.com`;
   const password = `E2e-${randomUUID()}-Aa1!`;
-
   await page.goto('/sign-up');
   await signUp(page, 'E2E Nav Mobile', email, password);
   await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();

@@ -189,7 +189,7 @@ export function UpgradeRoute() {
       const me = await queryClient.fetchQuery(meQueryOptions());
       if (me.tier === tier) {
         track('converted_to_paid', { tier });
-        await navigate({ to: '/account/settings' });
+        await navigate({ to: '/settings' });
         return;
       }
       await delay(1500);

@@ -88,30 +88,30 @@ describe('router', () => {
     ).toBeVisible();
   });
 
-  test('redirects /account to /sign-in when getMe returns 401', async () => {
+  test('redirects /settings to /sign-in when getMe returns 401', async () => {
     getMe.mockRejectedValue(new ApiRequestError(401, 'unauthorized', undefined, 'No session.'));
-    renderAt('/account');
+    renderAt('/settings');
     expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeVisible();
   });
 
   test('recovers from a 500 fallback via Retry once getMe succeeds', async () => {
     const user = userEvent.setup();
     getMe.mockRejectedValue(new ApiRequestError(500, 'server_error', undefined, 'Boom.'));
-    const { router } = renderAt('/account');
+    const { router } = renderAt('/settings');
     expect(await screen.findByRole('button', { name: 'Retry' })).toBeVisible();
 
     getMe.mockResolvedValue(meFixture);
     await user.click(screen.getByRole('button', { name: 'Retry' }));
 
     expect(await screen.findByRole('heading', { name: 'Your account' })).toBeVisible();
-    expect(router.state.location.pathname).toBe('/account/settings');
+    expect(router.state.location.pathname).toBe('/settings');
   });
 
   test('sign-out navigates away before clearing the me query, then lands on /sign-in', async () => {
     const user = userEvent.setup();
     getMe.mockResolvedValue(meFixture);
     signOut.mockResolvedValue({ data: { success: true }, error: null });
-    const { router, queryClient } = renderAt('/account/settings');
+    const { router, queryClient } = renderAt('/settings');
     expect(await screen.findByRole('heading', { name: 'Your account' })).toBeVisible();
 
     queryClient.setQueryData(ME_QUERY_KEY, meFixture);
@@ -143,7 +143,7 @@ describe('router', () => {
       data: null,
       error: { status: 500, statusText: 'Internal Server Error' },
     });
-    const { router, queryClient } = renderAt('/account/settings');
+    const { router, queryClient } = renderAt('/settings');
     expect(await screen.findByRole('heading', { name: 'Your account' })).toBeVisible();
     queryClient.setQueryData(ME_QUERY_KEY, meFixture);
 
@@ -151,50 +151,44 @@ describe('router', () => {
 
     expect(await screen.findByText('Sign out failed.', { exact: true })).toBeVisible();
     expect(queryClient.getQueryData(ME_QUERY_KEY)).toEqual(meFixture);
-    expect(router.state.location.pathname).toBe('/account/settings');
+    expect(router.state.location.pathname).toBe('/settings');
   });
 
-  test('renders the edit form at /account/player', async () => {
+  test('renders the edit form at /player', async () => {
     getMe.mockResolvedValue(meFixture);
-    renderAt('/account/player');
+    renderAt('/player');
     expect(await screen.findByRole('heading', { name: 'Edit player' })).toBeVisible();
   });
 
-  test('renders the import screen at /account/import', async () => {
+  test('renders the import screen at /import', async () => {
     getMe.mockResolvedValue(meFixture);
-    renderAt('/account/import');
+    renderAt('/import');
     expect(await screen.findByRole('heading', { name: 'Import games' })).toBeVisible();
   });
 
-  test('redirects /account to the merged settings page', async () => {
+  test('renders the merged account and settings page at /settings', async () => {
     getMe.mockResolvedValue(meFixture);
-    const { router } = renderAt('/account');
-    expect(await screen.findByRole('heading', { name: 'Your account' })).toBeVisible();
-    expect(router.state.location.pathname).toBe('/account/settings');
-  });
-
-  test('renders the merged account and settings page at /account/settings', async () => {
-    getMe.mockResolvedValue(meFixture);
-    renderAt('/account/settings');
+    renderAt('/settings');
     expect(await screen.findByRole('heading', { name: 'Your account', level: 1 })).toBeVisible();
-    expect(await screen.findByRole('heading', { name: 'Mina', level: 2 })).toBeVisible();
+    expect(await screen.findByText('0-day streak')).toBeVisible();
+    expect(screen.getByText('Level 1')).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Account details' })).toBeVisible();
     expect(screen.queryByRole('link', { name: 'Back to your account' })).not.toBeInTheDocument();
   });
 
   test('shows every authenticated route in the header nav on the account section', async () => {
     getMe.mockResolvedValue(meFixture);
-    renderAt('/account/settings');
+    renderAt('/settings');
     expect(await screen.findByRole('heading', { name: 'Your account' })).toBeVisible();
     const nav = screen.getByRole('navigation', { name: 'Account' });
     const expected = [
-      ['Report', '/account/report'],
-      ['Focus', '/account/focus'],
-      ['Games', '/account/games'],
-      ['Import', '/account/import'],
-      ['Proof sheet', '/account/proof-sheet'],
-      ['Plans', '/account/upgrade'],
-      ['Settings', '/account/settings'],
+      ['Report', '/report'],
+      ['Focus', '/focus'],
+      ['Games', '/games'],
+      ['Import', '/import'],
+      ['Proof sheet', '/proof-sheet'],
+      ['Plans', '/upgrade'],
+      ['Settings', '/settings'],
     ] as const;
     for (const [label, href] of expected) {
       const link = within(nav).getByRole('link', { name: label });
@@ -203,7 +197,7 @@ describe('router', () => {
     expect(within(nav).queryByRole('link', { name: 'Account' })).not.toBeInTheDocument();
   });
 
-  test('redirects /account to the guardian waiting screen when consent is required', async () => {
+  test('redirects /settings to the guardian waiting screen when consent is required', async () => {
     getMe.mockRejectedValue(
       new ApiRequestError(
         403,
@@ -212,7 +206,7 @@ describe('router', () => {
         'A guardian must confirm consent before you can use KansoChess.',
       ),
     );
-    renderAt('/account');
+    renderAt('/settings');
     expect(
       await screen.findByRole('heading', { name: 'Waiting for guardian consent' }),
     ).toBeVisible();
