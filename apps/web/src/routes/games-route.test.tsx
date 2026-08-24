@@ -105,6 +105,10 @@ describe('GamesRoute', () => {
 
     expect(await screen.findByText('Analysis in progress.')).toBeVisible();
     expect(screen.queryByRole('link', { name: 'Review' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View game' })).toHaveAttribute(
+      'href',
+      `/games/${gameFixture().id}`,
+    );
   });
 
   test('shows an EmptyState when there are no games in this stream', async () => {
