@@ -1,11 +1,11 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { accountApi, ApiRequestError, type Me } from '../api/account-api.ts';
 import { diagnosisApi, type GameSummary } from '../api/diagnosis-api.ts';
 import { createAppRouter } from '../router.tsx';
-
 const meFixture: Me = {
   userId: 'user-1',
   email: 'player@example.com',
@@ -69,6 +69,10 @@ function renderRoute(path = '/games?stream=tournament') {
 describe('GamesRoute', () => {
   beforeEach(() => {
     vi.spyOn(accountApi, 'getMe').mockResolvedValue(meFixture);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   test('renders each game card through Heading/Text, not raw markup', async () => {
@@ -136,5 +140,75 @@ describe('GamesRoute', () => {
     renderRoute();
 
     expect(await screen.findByRole('status', { name: 'Loading games' })).toBeVisible();
+  });
+
+  test('shows a failed-analysis label with a Retry action, not silence', async () => {
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [gameFixture({ analysisStatus: 'failed' })],
+      total: 1,
+      page: 1,
+      limit: 100,
+    });
+
+    renderRoute();
+
+    expect(await screen.findByText('Analysis failed.')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeVisible();
+    expect(screen.queryByRole('link', { name: 'Review' })).not.toBeInTheDocument();
+  });
+
+  test('Retry re-queues analysis for a failed game', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [gameFixture({ analysisStatus: 'failed' })],
+      total: 1,
+      page: 1,
+      limit: 100,
+    });
+    const queueAnalysis = vi.spyOn(diagnosisApi, 'queueAnalysis').mockResolvedValue(undefined);
+
+    renderRoute();
+
+    await user.click(await screen.findByRole('button', { name: 'Retry' }));
+    await waitFor(() => expect(queueAnalysis).toHaveBeenCalledWith(gameFixture().id));
+  });
+
+  test('deleting a game from its card removes it after confirmation', async () => {
+    const user = userEvent.setup();
+    const game = gameFixture();
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [game],
+      total: 1,
+      page: 1,
+      limit: 100,
+    });
+    const deleteGame = vi.spyOn(diagnosisApi, 'deleteGame').mockResolvedValue(undefined);
+
+    renderRoute();
+
+    await user.click(await screen.findByRole('button', { name: 'Delete' }));
+    const dialog = await screen.findByRole('alertdialog', { name: 'Delete this game?' });
+    expect(dialog).toBeVisible();
+
+    await user.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(deleteGame).toHaveBeenCalledWith(game.id));
+  });
+
+  test('cancelling the delete dialog does not call deleteGame', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [gameFixture()],
+      total: 1,
+      page: 1,
+      limit: 100,
+    });
+    const deleteGame = vi.spyOn(diagnosisApi, 'deleteGame').mockResolvedValue(undefined);
+
+    renderRoute();
+
+    await user.click(await screen.findByRole('button', { name: 'Delete' }));
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(deleteGame).not.toHaveBeenCalled();
   });
 });
