@@ -6,7 +6,7 @@
  */
 import { Chess } from 'chess.js';
 import { describe, expect, test } from 'vitest';
-import { mergeAdjacentComments } from './analyse-game.ts';
+import { mergeAdjacentComments } from './walk-pgn.ts';
 import { parseClockMs } from './clock.ts';
 
 /** `{ ... } { ... }` after one move is the shape that fails raw and loads merged. */
