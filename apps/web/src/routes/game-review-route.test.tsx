@@ -269,10 +269,10 @@ describe('GameReviewScreen', () => {
     );
   });
 
-  test('shows the AI explanation and Socratic question for the mistake', async () => {
+  test('says honestly when the explanation could not be loaded', async () => {
+    vi.spyOn(diagnosisApi, 'getExplanation').mockRejectedValue(new Error('502'));
     renderScreen(gameFixture());
-    expect(await screen.findByText(/Qf6 hangs the queen to Nc6/)).toBeInTheDocument();
-    expect(screen.getByText('What does Nc6 attack that Qf6 ignored?')).toBeInTheDocument();
+    expect(await screen.findByText('The explanation could not be loaded.')).toBeInTheDocument();
   });
 
   test('deletes the game from the review page after confirmation', async () => {
