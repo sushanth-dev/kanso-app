@@ -285,9 +285,17 @@ stays.
 ### Navigation
 
 - **Style:** a hairline bottom border (subtle) under the wordmark: a small
-  terracotta mark beside "Kanso Chess" in Source Serif 4. The single centered
-  column is the whole navigation model at this stage; no persistent side or
-  top nav exists yet.
+  terracotta mark beside "Kanso Chess" in Source Serif 4. Below the wordmark,
+  the signed-in header carries a horizontal top nav that groups routes into
+  native `<details>`/`<summary>` dropdowns (Progress, Games) alongside
+  singleton links (Account, Plans, Settings). The summary is a md-radius
+  control with the teal focus ring; the open panel is a raised-paper surface
+  with a hairline border, flat by the elevation rule. Below the 768px
+  breakpoint the row collapses to a single menu icon (Astryx `IconButton`
+  with the `menu`/`close` glyphs) that opens the same grouped structure,
+  so one source of truth carries both widths. No drop shadows; depth stays
+  the three brightness steps. ST-075's "wraps to two rows, no hamburger"
+  decision is superseded; every route it made reachable stays reachable.
 
 ### Account
 
