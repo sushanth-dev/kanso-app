@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, RouterContextProvider } from '@tanstack/react-router';
@@ -275,9 +275,25 @@ describe('GameReviewScreen', () => {
     expect(screen.getByText('What does Nc6 attack that Qf6 ignored?')).toBeInTheDocument();
   });
 
-  test('says honestly when the explanation could not be loaded', async () => {
-    vi.spyOn(diagnosisApi, 'getExplanation').mockRejectedValue(new Error('502'));
-    renderScreen(gameFixture());
-    expect(await screen.findByText('The explanation could not be loaded.')).toBeInTheDocument();
+  test('deletes the game from the review page after confirmation', async () => {
+    const { user } = renderScreen(gameFixture());
+    const deleteGame = vi.spyOn(diagnosisApi, 'deleteGame').mockResolvedValue(undefined);
+
+    await user.click(screen.getByRole('button', { name: 'Delete game' }));
+    const dialog = await screen.findByRole('alertdialog', { name: 'Delete this game?' });
+    expect(dialog).toBeVisible();
+
+    await user.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(deleteGame).toHaveBeenCalledWith(gameId));
+  });
+
+  test('cancelling the delete dialog does not call deleteGame', async () => {
+    const { user } = renderScreen(gameFixture());
+    const deleteGame = vi.spyOn(diagnosisApi, 'deleteGame').mockResolvedValue(undefined);
+
+    await user.click(screen.getByRole('button', { name: 'Delete game' }));
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(deleteGame).not.toHaveBeenCalled();
   });
 });

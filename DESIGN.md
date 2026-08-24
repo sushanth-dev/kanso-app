@@ -382,6 +382,25 @@ centipawn loss, and the motif where one applies. The game result reveals
 through Canvas UI's Particle Reveal, a decorative effect that renders a still
 frame under `prefers-reduced-motion` and is `aria-hidden`, per ADR-0017.
 
+Every game card and the review page carry a destructive **Delete** action
+(ST-089). The games list shows a `Delete` button on each card and the review
+header a `Delete game` button beside "Back to games"; both open the same
+Astryx `AlertDialog` confirmation ("Delete this game?"), which is the only
+place the danger colour appears, so deletion reads as a deliberate, confirmed
+act rather than a casual control. Confirming calls `DELETE /games/{gameId}`,
+then the list invalidates its `['games', stream]` query so the card disappears,
+and the review page navigates back to the games list. The dialog does not
+auto-close: it stays open with a loading state while the request is in flight,
+and an honest error line ("The game could not be deleted. Please try again.")
+is shown if the delete fails rather than a silent reset.
+
+The games list states analysis status explicitly, never with silence. A
+`complete` game shows its `Review` link; `pending`, `queued`, and `analyzing`
+show "Analysis in progress."; a `failed` game shows "Analysis failed." with a
+`Retry` action that re-queues `POST /games/{gameId}/analysis` and refetches
+the list. The status text and the Delete button are separate channels, so the
+state never travels by hue alone.
+
 ### Import
 
 The import form is one `Card` at `/account/players/$playerId/import` with a

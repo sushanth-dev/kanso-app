@@ -1,11 +1,15 @@
+import { useState } from 'react';
+import { AlertDialog } from '@astryxdesign/core/AlertDialog';
+import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Heading } from '@astryxdesign/core/Heading';
 import { Link } from '@astryxdesign/core/Link';
 import { Text } from '@astryxdesign/core/Text';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import type { Stream } from '../api/diagnosis-api.ts';
+import type { GameSummary, Stream } from '../api/diagnosis-api.ts';
+import { diagnosisApi } from '../api/diagnosis-api.ts';
 import { StreamToggle } from '../components/stream-toggle.tsx';
 import { gamesQueryOptions } from '../query-client.ts';
 
@@ -14,6 +18,103 @@ const dateFormatter = new Intl.DateTimeFormat('en-US', {
   day: 'numeric',
   year: 'numeric',
 });
+
+function GameCard({ game, stream }: { game: GameSummary; stream: Stream }) {
+  const queryClient = useQueryClient();
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const deleteMutation = useMutation({
+    mutationFn: () => diagnosisApi.deleteGame(game.id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['games', stream] });
+    },
+  });
+
+  const analysed = game.analysisStatus === 'complete';
+  const failed = game.analysisStatus === 'failed';
+
+  const onConfirmDelete = async () => {
+    setDeleteError(null);
+    try {
+      await deleteMutation.mutateAsync();
+      setIsDeleteOpen(false);
+    } catch {
+      setDeleteError('The game could not be deleted. Please try again.');
+    }
+  };
+
+  const onRetry = async () => {
+    setIsRetrying(true);
+    try {
+      await diagnosisApi.queueAnalysis(game.id);
+      void queryClient.invalidateQueries({ queryKey: ['games', stream] });
+    } catch {
+      // A failed re-queue stays failed; the refetch shows the current state.
+      void queryClient.invalidateQueries({ queryKey: ['games', stream] });
+    } finally {
+      setIsRetrying(false);
+    }
+  };
+
+  return (
+    <Card>
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <div>
+          <Text as="p" display="block" className="text-base">
+            {game.whiteName ?? 'Unknown'} vs {game.blackName ?? 'Unknown'}
+          </Text>
+          <Text as="p" display="block" type="supporting" className="mt-1 text-sm">
+            {game.event ?? 'Game'}
+            {game.playedAt !== null ? ` · ${dateFormatter.format(new Date(game.playedAt))}` : ''}
+          </Text>
+        </div>
+        <Text className="font-mono text-base">{game.result}</Text>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+        {analysed ? (
+          <Link href={`/games/${game.id}`}>Review</Link>
+        ) : failed ? (
+          <div className="flex items-center gap-3">
+            <Text as="p" display="block" type="supporting" className="text-sm">
+              Analysis failed.
+            </Text>
+            <Button
+              label="Retry"
+              variant="secondary"
+              isDisabled={isRetrying}
+              onClick={() => {
+                void onRetry();
+              }}
+            />
+          </div>
+        ) : (
+          <Text as="p" display="block" type="supporting" className="text-sm">
+            Analysis in progress.
+          </Text>
+        )}
+        <Button label="Delete" variant="destructive" onClick={() => setIsDeleteOpen(true)} />
+      </div>
+      <AlertDialog
+        isOpen={isDeleteOpen}
+        onOpenChange={setIsDeleteOpen}
+        title="Delete this game?"
+        description="This removes the game and its analysis. This cannot be undone."
+        actionLabel="Delete"
+        isActionLoading={deleteMutation.isPending}
+        onAction={() => {
+          void onConfirmDelete();
+        }}
+      />
+      {deleteError !== null ? (
+        <Text as="p" display="block" type="supporting" className="mt-3 text-sm text-danger">
+          {deleteError}
+        </Text>
+      ) : null}
+    </Card>
+  );
+}
 
 export function GamesRoute() {
   const navigate = useNavigate();
@@ -55,38 +156,11 @@ export function GamesRoute() {
         />
       ) : (
         <ul className="stagger-in space-y-3">
-          {gamesQuery.data.games.map((game) => {
-            const analysed = game.analysisStatus === 'complete';
-            return (
-              <li key={game.id}>
-                <Card>
-                  <div className="flex flex-wrap items-baseline justify-between gap-3">
-                    <div>
-                      <Text as="p" display="block" className="text-base">
-                        {game.whiteName ?? 'Unknown'} vs {game.blackName ?? 'Unknown'}
-                      </Text>
-                      <Text as="p" display="block" type="supporting" className="mt-1 text-sm">
-                        {game.event ?? 'Game'}
-                        {game.playedAt !== null
-                          ? ` · ${dateFormatter.format(new Date(game.playedAt))}`
-                          : ''}
-                      </Text>
-                    </div>
-                    <Text className="font-mono text-base">{game.result}</Text>
-                  </div>
-                  {analysed ? (
-                    <div className="mt-3">
-                      <Link href={`/games/${game.id}`}>Review</Link>
-                    </div>
-                  ) : (
-                    <Text as="p" display="block" type="supporting" className="mt-3 text-sm">
-                      Analysis in progress.
-                    </Text>
-                  )}
-                </Card>
-              </li>
-            );
-          })}
+          {gamesQuery.data.games.map((game) => (
+            <li key={game.id}>
+              <GameCard game={game} stream={stream} />
+            </li>
+          ))}
         </ul>
       )}
     </div>
