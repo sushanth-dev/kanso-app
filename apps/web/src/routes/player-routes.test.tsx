@@ -266,12 +266,15 @@ describe('PlayerFormScreen', () => {
     });
 
     resolveInvalidate();
-    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: '/account' }));
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: '/account/settings' }));
   });
 
-  test('Cancel is a link to /account', () => {
+  test('Cancel is a link to /account/settings', () => {
     renderScreen();
-    expect(screen.getByRole('link', { name: 'Cancel' })).toHaveAttribute('href', '/account');
+    expect(screen.getByRole('link', { name: 'Cancel' })).toHaveAttribute(
+      'href',
+      '/account/settings',
+    );
   });
 
   test('pre-fills the account player', () => {

@@ -190,7 +190,6 @@ export function ActiveFocusView({
   return (
     <div className="space-y-6">
       <header className="space-y-4">
-        <Button label="Back to your account" href="/account" variant="secondary" />
         <Heading level={1}>
           {focus.unverified ? "Your coach's focus" : (focus.catalogue?.title ?? 'Your focus')}
         </Heading>
@@ -445,7 +444,6 @@ export function FocusChoiceView({
   return (
     <div className="space-y-6">
       <header className="space-y-4">
-        <Button label="Back to your account" href="/account" variant="secondary" />
         <Heading level={1}>Set your focus</Heading>
         {replacing !== null ? (
           <Text as="p" display="block" type="supporting">
@@ -562,7 +560,6 @@ export function FocusRoute() {
     return (
       <div className="space-y-6">
         <header className="space-y-4">
-          <Button label="Back to your account" href="/account" variant="secondary" />
           <Heading level={1}>Your focus</Heading>
         </header>
         <FocusSkeleton />
@@ -578,7 +575,6 @@ export function FocusRoute() {
     return (
       <div className="space-y-6">
         <header className="space-y-4">
-          <Button label="Back to your account" href="/account" variant="secondary" />
           <Heading level={1}>Your focus</Heading>
         </header>
         <UpgradePrompt title="Your focus is part of the paid loop" />
@@ -593,7 +589,6 @@ export function FocusRoute() {
     return (
       <div className="space-y-6">
         <header className="space-y-4">
-          <Button label="Back to your account" href="/account" variant="secondary" />
           <Heading level={1}>Your focus</Heading>
         </header>
         <FocusError />

@@ -38,7 +38,6 @@ test('header nav groups routes into dropdowns and every route stays reachable', 
 
   // Desktop: the singletons are visible links; the grouped routes sit inside
   // closed <details> until opened.
-  await expect(nav.getByRole('link', { name: 'Account' })).toHaveAttribute('href', '/account');
   await expect(nav.getByRole('link', { name: 'Plans' })).toHaveAttribute(
     'href',
     '/account/upgrade',
@@ -80,10 +79,13 @@ test('header nav groups routes into dropdowns and every route stays reachable', 
   await expectNoAxeViolations(page);
 
   await nav.getByRole('link', { name: 'Settings' }).click();
-  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
   await expectNoAxeViolations(page);
 
-  await nav.getByRole('link', { name: 'Account' }).click();
+  // The account page is gone (ST-088): /account redirects to the merged
+  // settings page rather than 404ing.
+  await page.goto('/account');
+  await expect(page).toHaveURL(/\/account\/settings$/);
   await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
 });
 
@@ -102,10 +104,10 @@ test('mobile menu icon opens the same grouped structure', async ({ page }) => {
 
   // Desktop links are hidden below the breakpoint; the menu button is the way in.
   await expect(menuButton).toBeVisible();
-  await expect(nav.getByRole('link', { name: 'Account' })).not.toBeVisible();
+  await expect(nav.getByRole('link', { name: 'Plans' })).not.toBeVisible();
 
   await menuButton.click();
-  await expect(nav.getByRole('link', { name: 'Account' })).toBeVisible();
+  await expect(nav.getByRole('link', { name: 'Plans' })).toBeVisible();
   await expect(nav.getByRole('link', { name: 'Settings' })).toBeVisible();
 
   // A grouped route opens and reaches its destination.

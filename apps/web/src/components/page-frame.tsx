@@ -18,10 +18,7 @@ function isGroup(entry: NavEntry): entry is NavGroup {
   return (entry as NavGroup).items !== undefined;
 }
 
-// One source of truth for the nav. ST-088 will drop the Account leaf once the
-// account page merges into settings; removing one entry is a one-line change.
 const NAV_ENTRIES: NavEntry[] = [
-  { label: 'Account', to: '/account' },
   {
     label: 'Progress',
     items: [

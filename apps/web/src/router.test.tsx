@@ -104,7 +104,7 @@ describe('router', () => {
     await user.click(screen.getByRole('button', { name: 'Retry' }));
 
     expect(await screen.findByRole('heading', { name: 'Your account' })).toBeVisible();
-    expect(router.state.location.pathname).toBe('/account');
+    expect(router.state.location.pathname).toBe('/account/settings');
   });
 
   test('sign-out navigates away before clearing the me query, then lands on /sign-in', async () => {
@@ -112,7 +112,7 @@ describe('router', () => {
     getMe.mockResolvedValue(meFixture);
     signOut.mockResolvedValue({ data: { success: true }, error: null });
     const { router, queryClient } = renderAt('/account/settings');
-    expect(await screen.findByRole('heading', { name: 'Settings' })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Your account' })).toBeVisible();
 
     queryClient.setQueryData(ME_QUERY_KEY, meFixture);
     let pathAtRemoval: string | undefined;
@@ -144,7 +144,7 @@ describe('router', () => {
       error: { status: 500, statusText: 'Internal Server Error' },
     });
     const { router, queryClient } = renderAt('/account/settings');
-    expect(await screen.findByRole('heading', { name: 'Settings' })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Your account' })).toBeVisible();
     queryClient.setQueryData(ME_QUERY_KEY, meFixture);
 
     await user.click(screen.getByRole('button', { name: 'Sign out' }));
@@ -166,23 +166,28 @@ describe('router', () => {
     expect(await screen.findByRole('heading', { name: 'Import games' })).toBeVisible();
   });
 
-  test('renders the settings screen at /account/settings with a back link', async () => {
+  test('redirects /account to the merged settings page', async () => {
+    getMe.mockResolvedValue(meFixture);
+    const { router } = renderAt('/account');
+    expect(await screen.findByRole('heading', { name: 'Your account' })).toBeVisible();
+    expect(router.state.location.pathname).toBe('/account/settings');
+  });
+
+  test('renders the merged account and settings page at /account/settings', async () => {
     getMe.mockResolvedValue(meFixture);
     renderAt('/account/settings');
-    expect(await screen.findByRole('heading', { name: 'Settings' })).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Back to your account' })).toHaveAttribute(
-      'href',
-      '/account',
-    );
+    expect(await screen.findByRole('heading', { name: 'Your account', level: 1 })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Mina', level: 2 })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Account details' })).toBeVisible();
+    expect(screen.queryByRole('link', { name: 'Back to your account' })).not.toBeInTheDocument();
   });
 
   test('shows every authenticated route in the header nav on the account section', async () => {
     getMe.mockResolvedValue(meFixture);
-    renderAt('/account');
+    renderAt('/account/settings');
     expect(await screen.findByRole('heading', { name: 'Your account' })).toBeVisible();
     const nav = screen.getByRole('navigation', { name: 'Account' });
     const expected = [
-      ['Account', '/account'],
       ['Report', '/account/report'],
       ['Focus', '/account/focus'],
       ['Games', '/account/games'],
@@ -195,6 +200,7 @@ describe('router', () => {
       const link = within(nav).getByRole('link', { name: label });
       expect(link).toHaveAttribute('href', href);
     }
+    expect(within(nav).queryByRole('link', { name: 'Account' })).not.toBeInTheDocument();
   });
 
   test('redirects /account to the guardian waiting screen when consent is required', async () => {
