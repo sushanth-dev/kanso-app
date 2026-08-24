@@ -333,6 +333,26 @@ export const setGameColor = createRoute({
   },
 });
 
+export const deleteGame = createRoute({
+  method: 'delete',
+  path: '/games/{gameId}',
+  tags: ['Games'],
+  summary: 'Delete a game the player owns',
+  description:
+    'ST-089. Removes a game a player imported by mistake, from the wrong PGN or the wrong stream. The delete is scoped to the session’s own player the same way every other game route is, and it removes the game and its per-game analysis rows (evaluations, mistakes) via the existing cascade. Aggregate data a report or focus measurement still supports is untouched, because neither references a game row.',
+  request: {
+    params: z.object({
+      gameId: Uuid.openapi({ param: { name: 'gameId', in: 'path' } }),
+    }),
+  },
+  responses: {
+    204: { description: 'Deleted.' },
+    401: error('No session.'),
+    403: error('Not your game.'),
+    404: error('No such game.'),
+  },
+});
+
 export const queueAnalysis = createRoute({
   method: 'post',
   path: '/games/{gameId}/analysis',
@@ -656,6 +676,7 @@ export const routes = [
   listGames,
   getGame,
   setGameColor,
+  deleteGame,
   queueAnalysis,
   analysisEvents,
   listTournaments,

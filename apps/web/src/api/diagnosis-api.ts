@@ -28,6 +28,8 @@ export interface DiagnosisApi {
   getPhases(stream: Stream): Promise<PhaseReport>;
   listGames(stream: Stream): Promise<GameList>;
   getGame(gameId: string): Promise<GameDetail>;
+  queueAnalysis(gameId: string): Promise<void>;
+  deleteGame(gameId: string): Promise<void>;
   getCctScan(mistakeId: string): Promise<CctScan>;
   getExplanation(mistakeId: string): Promise<Explanation>;
   getSocraticQuestion(mistakeId: string): Promise<SocraticQuestion>;
@@ -77,6 +79,20 @@ export function createDiagnosisApi(
         params: { path: { gameId } },
       });
       if (result.data !== undefined) return result.data;
+      throw failure(result.response.status, result.error);
+    },
+    async queueAnalysis(gameId) {
+      const result = await client.POST('/games/{gameId}/analysis', {
+        params: { path: { gameId } },
+      });
+      if (result.response.status === 202) return;
+      throw failure(result.response.status, result.error);
+    },
+    async deleteGame(gameId) {
+      const result = await client.DELETE('/games/{gameId}', {
+        params: { path: { gameId } },
+      });
+      if (result.response.status === 204) return;
       throw failure(result.response.status, result.error);
     },
     async getCctScan(mistakeId) {
