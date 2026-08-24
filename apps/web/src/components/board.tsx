@@ -1,12 +1,14 @@
 import type { ReactNode } from 'react';
 
+// Both colours use the solid (black) glyph set so every piece renders filled;
+// the white set is hollow and shows as an outline. Colour is applied via fill.
 const PIECE_GLYPHS: Record<string, string> = {
-  K: '\u2654',
-  Q: '\u2655',
-  R: '\u2656',
-  B: '\u2657',
-  N: '\u2658',
-  P: '\u2659',
+  K: '\u265A',
+  Q: '\u265B',
+  R: '\u265C',
+  B: '\u265D',
+  N: '\u265E',
+  P: '\u265F',
   k: '\u265A',
   q: '\u265B',
   r: '\u265C',
@@ -54,6 +56,7 @@ interface PlacedPiece {
   file: number;
   rank: number;
   glyph: string;
+  white: boolean;
 }
 
 function placedPieces(fen: string): PlacedPiece[] {
@@ -68,7 +71,12 @@ function placedPieces(fen: string): PlacedPiece[] {
         file += char.charCodeAt(0) - 48;
         continue;
       }
-      pieces.push({ file, rank: 7 - rankIndex, glyph: PIECE_GLYPHS[char] ?? '' });
+      pieces.push({
+        file,
+        rank: 7 - rankIndex,
+        glyph: PIECE_GLYPHS[char] ?? '',
+        white: char === char.toUpperCase(),
+      });
       file += 1;
     }
   }
@@ -166,7 +174,6 @@ export function Board({
     if (piece.glyph === '') continue;
     const column = flipped ? 7 - piece.file : piece.file;
     const row = flipped ? piece.rank : 7 - piece.rank;
-    const white = piece.glyph === piece.glyph.toUpperCase();
     cells.push(
       <text
         key={`piece-${piece.file}-${piece.rank}`}
@@ -175,8 +182,8 @@ export function Board({
         textAnchor="middle"
         dominantBaseline="central"
         fontSize={0.8}
-        fill={white ? '#fffdf8' : '#241d16'}
-        stroke={white ? '#241d16' : '#fffdf8'}
+        fill={piece.white ? '#fffdf8' : '#241d16'}
+        stroke={piece.white ? '#241d16' : '#fffdf8'}
         strokeWidth={0.035}
         paintOrder="stroke"
         style={{ fontFamily: '"Segoe UI Symbol", "Noto Sans Symbols 2", sans-serif' }}

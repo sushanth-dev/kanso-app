@@ -265,6 +265,9 @@ export function GameReviewScreen({ game }: { game: GameDetail }) {
   const navigate = useNavigate();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  // Default the board to the player's own colour at the bottom; the player can
+  // flip it manually rather than the board auto-flipping to the side to move.
+  const [flipped, setFlipped] = useState(() => game.playerColor === 'black');
 
   const deleteMutation = useMutation({
     mutationFn: () => diagnosisApi.deleteGame(game.id),
@@ -371,7 +374,7 @@ export function GameReviewScreen({ game }: { game: GameDetail }) {
                 to={currentPly.uci.slice(2, 4)}
                 bestFrom={currentPly.bestMoveUci?.slice(0, 2)}
                 bestTo={currentPly.bestMoveUci?.slice(2, 4)}
-                flipped={movingColorOf(currentPly) === 'black'}
+                flipped={flipped}
                 label={`Position before move ${Math.ceil(currentPly.ply / 2)}, ${movingColorOf(currentPly)} to move. ${describePosition(currentPly.fenBefore)}`}
               />
             </div>
@@ -388,6 +391,11 @@ export function GameReviewScreen({ game }: { game: GameDetail }) {
                 variant="secondary"
                 isDisabled={plyIndex === game.plies.length - 1}
                 onClick={() => stepBy(1)}
+              />
+              <Button
+                label="Flip board"
+                variant="secondary"
+                onClick={() => setFlipped((value) => !value)}
               />
               <Text type="supporting" className="font-mono text-sm">
                 Move {plyIndex + 1} of {game.plies.length}
