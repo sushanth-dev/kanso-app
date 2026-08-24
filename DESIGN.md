@@ -285,17 +285,21 @@ stays.
 ### Navigation
 
 - **Style:** a hairline bottom border (subtle) under the wordmark: a small
-  terracotta mark beside "Kanso Chess" in Source Serif 4. Below the wordmark,
-  the signed-in header carries a horizontal top nav that groups routes into
-  native `<details>`/`<summary>` dropdowns (Progress, Games) alongside
-  singleton links (Account, Plans, Settings). The summary is a md-radius
-  control with the teal focus ring; the open panel is a raised-paper surface
-  with a hairline border, flat by the elevation rule. Below the 768px
-  breakpoint the row collapses to a single menu icon (Astryx `IconButton`
-  with the `menu`/`close` glyphs) that opens the same grouped structure,
-  so one source of truth carries both widths. No drop shadows; depth stays
-  the three brightness steps. ST-075's "wraps to two rows, no hamburger"
-  decision is superseded; every route it made reachable stays reachable.
+  terracotta mark beside "Kanso Chess" in Source Serif 4. The signed-in
+  header carries the wordmark and the horizontal top nav on one row: the nav
+  sits to the right of the wordmark and groups routes into native
+  `<details>`/`<summary>` dropdowns (Progress, Games) alongside singleton
+  links (Account, Plans, Settings). All nav text, summaries and leaves alike,
+  is the terracotta accent; the active page is bold, not a hue shift. The
+  dropdown opens on hover and closes on mouse leave so it follows the pointer.
+  The summary is a md-radius control with the teal focus ring; the open panel
+  is a raised-paper surface at 90% opacity with a hairline border, flat by the
+  elevation rule. Below the 768px breakpoint the row collapses to a single
+  menu icon (Astryx `IconButton` with the `menu`/`close` glyphs) that
+  opens the same grouped structure, so one source of truth carries both
+  widths. No drop shadows; depth stays the three brightness steps. ST-075's
+  "wraps to two rows, no hamburger" decision is superseded; every route it
+  made reachable stays reachable.
 
 ### Account
 
