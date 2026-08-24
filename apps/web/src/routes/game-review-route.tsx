@@ -281,7 +281,6 @@ export function GameReviewScreen({ game }: { game: GameDetail }) {
       setDeleteError('The game could not be deleted. Please try again.');
     }
   };
-  const opponent = game.playerColor === 'white' ? game.blackName : game.whiteName;
   const gloss = resultGloss(game.result, game.playerColor);
   const currentPly = game.plies[plyIndex];
   const currentMistake = game.mistakes.find((mistake) => mistake.ply === currentPly?.ply);
@@ -318,7 +317,7 @@ export function GameReviewScreen({ game }: { game: GameDetail }) {
         </div>
         <Heading level={1}>Game review</Heading>
         <Text as="p" display="block" type="supporting">
-          {opponent ? `vs ${opponent}` : 'Opponent unknown'}
+          {game.whiteName ?? 'Unknown'} vs {game.blackName ?? 'Unknown'}
         </Text>
         {/* The result reveal is the Canvas UI effect ADR-0017 names. The
             background is the Study Room page colour, so the shader can tell
