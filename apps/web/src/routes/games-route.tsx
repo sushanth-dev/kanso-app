@@ -1,4 +1,3 @@
-import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Heading } from '@astryxdesign/core/Heading';
@@ -31,7 +30,6 @@ export function GamesRoute() {
   return (
     <div className="space-y-6">
       <header className="space-y-4">
-        <Button label="Back to your account" href="/account" variant="secondary" />
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Heading level={1}>Your games</Heading>
           <StreamToggle stream={stream} onChange={onStreamChange} ariaLabel="Games stream" />

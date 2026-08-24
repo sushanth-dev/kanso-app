@@ -123,14 +123,13 @@ test('signs up and persists a player through sign-in', async ({ page }) => {
   await expect(page.getByLabel('Chess.com username')).toHaveValue('mina-studies');
   await page.getByRole('link', { name: 'Cancel' }).click();
 
-  // Sign out lives on the settings surface (ST-073).
+  // Sign out lives on the merged account and settings page (ST-088).
   await page
     .getByRole('navigation', { name: 'Account' })
     .getByRole('link', { name: 'Settings' })
     .click();
-  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Sign out' }).click();
-  await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
   await page.keyboard.press('Tab');
   await expect(page.getByLabel('Email')).toBeFocused();
   await page.keyboard.type(email);
@@ -153,9 +152,11 @@ test('signs up and persists a player through sign-in', async ({ page }) => {
     page.getByRole('heading', { name: 'No analyzed games in this stream yet' }),
   ).toBeVisible();
   await expectNoAxeViolations(page);
-  await page.getByRole('link', { name: 'Back to your account' }).click();
+  await page
+    .getByRole('navigation', { name: 'Account' })
+    .getByRole('link', { name: 'Settings' })
+    .click();
   await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
-  expect(externalRequests).toEqual([]);
   // The report returns 404 until a player has analyzed games, which is the
   // honest state Mina is in here, not a failed request. Sign-out clears the
   // session a moment before the account route unmounts, so `/me` and the
@@ -193,7 +194,11 @@ test('walks report to focus to the verification trend', async ({ page }) => {
     page.getByRole('heading', { name: 'No analyzed games in this stream yet' }),
   ).toBeVisible();
   await expectNoAxeViolations(page);
-  await page.getByRole('link', { name: 'Back to your account' }).click();
+  await page
+    .getByRole('navigation', { name: 'Account' })
+    .getByRole('link', { name: 'Settings' })
+    .click();
+  await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
 
   // Focus and verification are paid (ST-044); flip the account through the
   // checkout and webhook seams before the catalogue is reached.

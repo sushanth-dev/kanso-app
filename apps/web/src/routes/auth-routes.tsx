@@ -114,7 +114,7 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
         : await authClient.signIn.email({ email, password });
       if (error === null) {
         queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
-        await navigate({ to: '/account' });
+        await navigate({ to: '/account/settings' });
         return;
       }
       setErrorMessage(error.status === 429 ? RATE_LIMIT_COPY : REJECTION_COPY);
