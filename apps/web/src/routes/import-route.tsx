@@ -236,7 +236,7 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
           gamesImported: job.gamesImported,
         });
         if (job.source !== 'uscf') {
-          await navigate({ to: '/account/report', search: { stream: job.stream } });
+          await navigate({ to: '/report', search: { stream: job.stream } });
         }
       }
     } catch (error) {

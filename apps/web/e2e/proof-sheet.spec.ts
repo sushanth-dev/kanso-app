@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
-import { upgradeToPaid } from './helpers.ts';
+import { openNavGroupLink, upgradeToPaid } from './helpers.ts';
 
 // Axe scans a settled page; reduced motion collapses the reveal animations so
 // it never measures mid-fade text, and exercises the reduced-motion collapse.
@@ -25,7 +25,8 @@ async function signUp(page: Page, name: string, email: string, password: string)
 // Sign-up creates the player from the account name (ST-072); only the focus
 // is still a separate act.
 async function setFocus(page: Page) {
-  await page.getByRole('link', { name: 'Set focus' }).click();
+  await openNavGroupLink(page, 'Progress', 'Focus');
+  await expect(page.getByRole('heading', { level: 1, name: 'Set your focus' })).toBeVisible();
   await page.getByRole('button', { name: 'Set Converting won positions' }).click();
   await expect(
     page.getByRole('heading', { level: 1, name: 'Converting won positions' }),

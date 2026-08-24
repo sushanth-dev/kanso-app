@@ -22,7 +22,7 @@ export function GamesRoute() {
 
   const onStreamChange = (next: Stream) => {
     void navigate({
-      to: '/account/games',
+      to: '/games',
       search: { stream: next },
     });
   };
@@ -76,7 +76,7 @@ export function GamesRoute() {
                   </div>
                   {analysed ? (
                     <div className="mt-3">
-                      <Link href={`/account/games/${game.id}`}>Review</Link>
+                      <Link href={`/games/${game.id}`}>Review</Link>
                     </div>
                   ) : (
                     <Text as="p" display="block" type="supporting" className="mt-3 text-sm">

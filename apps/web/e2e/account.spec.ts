@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { openSettingsViaNav, upgradeToPaid } from './helpers.ts';
+import { openNavGroupLink, openSettingsViaNav, upgradeToPaid } from './helpers.ts';
 
 // Axe scans a settled page; reduced motion collapses the reveal animations so
 // it never measures mid-fade text, and exercises the reduced-motion collapse.
@@ -75,16 +75,15 @@ test('signs up and persists a player through sign-in', async ({ page }) => {
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
 
-  // Sign-up creates the player from the account name (ST-072), so the account
-  // page already shows it.
-  await expect(page.getByRole('heading', { name: 'Mina' })).toBeVisible();
-  await expect(
-    page.getByText('No diagnosis yet. Import games to get a ranked report.'),
-  ).toBeVisible();
+  // Sign-up creates the player from the account name (ST-072), so the merged
+  // page shows the identity and the standing badges.
+  await expect(page.getByText('Mina')).toBeVisible();
+  await expect(page.getByText(/\d+-day streak/)).toBeVisible();
+  await expect(page.getByText(/Level \d+/)).toBeVisible();
 
   // The edit form keeps the keyboard walk: field order through to submit.
-  await page.getByRole('link', { name: 'Edit' }).focus();
-  await expect(page.getByRole('link', { name: 'Edit' })).toBeFocused();
+  await page.getByRole('link', { name: 'Edit player' }).focus();
+  await expect(page.getByRole('link', { name: 'Edit player' })).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(
     page.getByRole('heading', { name: 'Edit player' }),
@@ -113,13 +112,13 @@ test('signs up and persists a player through sign-in', async ({ page }) => {
   await page.keyboard.press('Enter');
 
   await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Mina' })).toBeVisible();
-  await page.getByRole('link', { name: 'Edit' }).click();
+  await expect(page.getByText('Mina')).toBeVisible();
+  await page.getByRole('link', { name: 'Edit player' }).click();
   await page.getByLabel('Chess.com username').fill('mina-studies');
   await page.getByRole('button', { name: 'Save changes' }).click();
 
-  await expect(page.getByRole('heading', { name: 'Mina' })).toBeVisible();
-  await page.getByRole('link', { name: 'Edit' }).click();
+  await expect(page.getByText('Mina')).toBeVisible();
+  await page.getByRole('link', { name: 'Edit player' }).click();
   await expect(page.getByLabel('Chess.com username')).toHaveValue('mina-studies');
   await page.getByRole('link', { name: 'Cancel' }).click();
 
@@ -145,8 +144,8 @@ test('signs up and persists a player through sign-in', async ({ page }) => {
   await page.keyboard.press('Enter');
 
   await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Mina' })).toBeVisible();
-  await page.getByRole('link', { name: 'View report' }).click();
+  await expect(page.getByText('Mina')).toBeVisible();
+  await openNavGroupLink(page, 'Progress', 'Report');
   await expect(page.getByRole('heading', { name: 'Tournament report' })).toBeVisible();
   await expect(
     page.getByRole('heading', { name: 'No analyzed games in this stream yet' }),
@@ -182,10 +181,10 @@ test('walks report to focus to the verification trend', async ({ page }) => {
   await expectNoAxeViolations(page);
 
   // Sign-up creates the player from the account name (ST-072).
-  await expect(page.getByRole('heading', { name: 'Mina' })).toBeVisible();
+  await expect(page.getByText('Mina')).toBeVisible();
 
   // The report is the honest empty state before a focus exists.
-  await page.getByRole('link', { name: 'View report' }).click();
+  await openNavGroupLink(page, 'Progress', 'Report');
   await expect(page.getByRole('heading', { name: 'Tournament report' })).toBeVisible();
   await expect(
     page.getByRole('heading', { name: 'No analyzed games in this stream yet' }),
@@ -199,7 +198,7 @@ test('walks report to focus to the verification trend', async ({ page }) => {
   await upgradeToPaid(page);
 
   // The choice: the catalogue, with the ranking beside it.
-  await page.getByRole('link', { name: 'Set focus' }).click();
+  await openNavGroupLink(page, 'Progress', 'Focus');
   await expect(page.getByRole('heading', { level: 1, name: 'Set your focus' })).toBeVisible();
   await expect(
     page.getByRole('heading', { level: 3, name: 'Converting won positions' }),

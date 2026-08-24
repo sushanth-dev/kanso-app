@@ -241,7 +241,7 @@ function gameFixture(overrides: Partial<GameSummary> = {}): GameSummary {
 
 const reportNotFound = new ApiRequestError(404, 'not_found', undefined, 'Not found.');
 
-function renderRoute(path = '/account/report?stream=online') {
+function renderRoute(path = '/report?stream=online') {
   const history = createMemoryHistory({ initialEntries: [path] });
   const queryClient = new QueryClient();
   const router = createAppRouter({ history, queryClient });

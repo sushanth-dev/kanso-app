@@ -136,7 +136,7 @@ export function ProofSheetScreen() {
           </Text>
           <Button
             label="Set a focus"
-            href="/account/focus?stream=tournament"
+            href="/focus?stream=tournament"
             variant="primary"
             className="mt-6"
           />

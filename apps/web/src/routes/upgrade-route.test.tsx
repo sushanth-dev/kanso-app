@@ -88,7 +88,7 @@ describe('UpgradeRoute', () => {
   });
 
   test('states the boundary and the three plans', async () => {
-    renderAt('/account/upgrade');
+    renderAt('/upgrade');
 
     expect(await screen.findByRole('heading', { name: 'Choose a plan' })).toBeInTheDocument();
     expect(screen.getByText(/Your first diagnosis is free/)).toBeInTheDocument();
@@ -101,13 +101,13 @@ describe('UpgradeRoute', () => {
   });
 
   test('marks intermediate as most popular', async () => {
-    renderAt('/account/upgrade');
+    renderAt('/upgrade');
 
     expect(await screen.findByText('Most popular')).toBeInTheDocument();
   });
 
   test('gives intermediate and pro a pay button, and beginner none', async () => {
-    renderAt('/account/upgrade');
+    renderAt('/upgrade');
 
     expect(await screen.findByRole('button', { name: 'Pay $9' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Pay $15' })).toBeInTheDocument();
@@ -123,7 +123,7 @@ describe('UpgradeRoute', () => {
         }),
     );
 
-    renderAt('/account/upgrade');
+    renderAt('/upgrade');
 
     await waitFor(() => {
       expect(screen.queryByRole('button', { name: 'Pay $9' })).not.toBeInTheDocument();
@@ -136,7 +136,7 @@ describe('UpgradeRoute', () => {
   test('shows which plan a pro account is already on, and no pay buttons', async () => {
     getMe.mockResolvedValue(meWithTier('pro'));
 
-    renderAt('/account/upgrade');
+    renderAt('/upgrade');
 
     expect(
       await screen.findByRole('heading', { name: 'You are on the Pro plan' }),
@@ -148,7 +148,7 @@ describe('UpgradeRoute', () => {
   test('shows which plan an intermediate account is already on', async () => {
     getMe.mockResolvedValue(meWithTier('intermediate'));
 
-    renderAt('/account/upgrade');
+    renderAt('/upgrade');
 
     expect(
       await screen.findByRole('heading', { name: 'You are on the Intermediate plan' }),
@@ -164,7 +164,7 @@ describe('UpgradeRoute', () => {
       orderId: 'order_1',
     });
 
-    renderAt('/account/upgrade');
+    renderAt('/upgrade');
     await user.click(await screen.findByRole('button', { name: 'Pay $9' }));
 
     const script = await waitFor(() => {
@@ -186,7 +186,7 @@ describe('UpgradeRoute', () => {
     const user = userEvent.setup();
     checkoutMock.mockRejectedValue(new Error('checkout failed'));
 
-    renderAt('/account/upgrade');
+    renderAt('/upgrade');
     await user.click(await screen.findByRole('button', { name: 'Pay $9' }));
 
     expect(await screen.findByText(/payment could not be started/i)).toBeInTheDocument();
@@ -211,7 +211,7 @@ describe('UpgradeRoute', () => {
       open(): void {}
     };
 
-    renderAt('/account/upgrade');
+    renderAt('/upgrade');
     await user.click(await screen.findByRole('button', { name: 'Pay $9' }));
 
     await waitFor(() => expect(razorpayHandler).toBeDefined());

@@ -260,7 +260,7 @@ function RankingSection({
           </ol>
         </>
       )}
-      <Link href={`/account/report?stream=${stream}`}>View full report</Link>
+      <Link href={`/report?stream=${stream}`}>View full report</Link>
     </section>
   );
 }
@@ -518,7 +518,7 @@ export function FocusRoute() {
 
   const onStreamChange = (next: Stream) => {
     void navigate({
-      to: '/account/focus',
+      to: '/focus',
       search: { stream: next },
     });
   };

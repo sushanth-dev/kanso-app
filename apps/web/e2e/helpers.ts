@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
 /**
  * Flips the signed-in account to paid through the real checkout and webhook
@@ -47,4 +47,29 @@ export async function openSettingsViaNav(page: Page): Promise<void> {
     await page.getByRole('button', { name: 'Open menu' }).click();
   }
   await settingsLink.click();
+}
+
+/**
+ * Navigates through the real UI to a link inside a nav dropdown group:
+ * open the phone menu if closed, open the group if closed, click the link.
+ */
+export async function openNavGroupLink(
+  page: Page,
+  group: 'Progress' | 'Games',
+  label: string,
+): Promise<void> {
+  const nav = page.getByRole('navigation', { name: 'Account' });
+  const link = nav.getByRole('link', { name: label, exact: true });
+  if (!(await link.isVisible())) {
+    await page.getByRole('button', { name: 'Open menu' }).click();
+  }
+  if (!(await link.isVisible())) {
+    // Hover opens the group (the panel follows the pointer) and a click on an
+    // open <details> toggles it shut, so open it by keyboard.
+    const summary = nav.locator('summary', { hasText: group });
+    await summary.focus();
+    await page.keyboard.press('Enter');
+    await expect(link).toBeVisible();
+  }
+  await link.click();
 }
