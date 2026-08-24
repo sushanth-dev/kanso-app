@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
+import { AlertDialog } from '@astryxdesign/core/AlertDialog';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Heading } from '@astryxdesign/core/Heading';
 import { Text } from '@astryxdesign/core/Text';
-import { useQuery } from '@tanstack/react-query';
-import { useParams } from '@tanstack/react-router';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate, useParams } from '@tanstack/react-router';
 import type { CctMove, GameDetail, Mistake, MovePly } from '../api/diagnosis-api.ts';
+import { diagnosisApi } from '../api/diagnosis-api.ts';
 import { ParticleReveal } from '../components/canvas-ui/ParticleReveal.tsx';
 import { Board, describePosition } from '../components/board.tsx';
 import { EvalBar, evalLabel } from '../components/eval-bar.tsx';
@@ -259,6 +261,26 @@ function GameSkeleton() {
 
 export function GameReviewScreen({ game }: { game: GameDetail }) {
   const [plyIndex, setPlyIndex] = useState(() => initialPlyIndex(game));
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const deleteMutation = useMutation({
+    mutationFn: () => diagnosisApi.deleteGame(game.id),
+  });
+
+  const onConfirmDelete = async () => {
+    setDeleteError(null);
+    try {
+      await deleteMutation.mutateAsync();
+      setIsDeleteOpen(false);
+      await navigate({ to: '/games', search: { stream: game.stream } });
+      void queryClient.invalidateQueries({ queryKey: ['games', game.stream] });
+    } catch {
+      setDeleteError('The game could not be deleted. Please try again.');
+    }
+  };
   const opponent = game.playerColor === 'white' ? game.blackName : game.whiteName;
   const gloss = resultGloss(game.result, game.playerColor);
   const currentPly = game.plies[plyIndex];
@@ -290,7 +312,10 @@ export function GameReviewScreen({ game }: { game: GameDetail }) {
   return (
     <div className="space-y-6">
       <header className="space-y-4">
-        <Button label="Back to games" href={`/games?stream=${game.stream}`} variant="secondary" />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Button label="Back to games" href={`/games?stream=${game.stream}`} variant="secondary" />
+          <Button label="Delete game" variant="destructive" onClick={() => setIsDeleteOpen(true)} />
+        </div>
         <Heading level={1}>Game review</Heading>
         <Text as="p" display="block" type="supporting">
           {opponent ? `vs ${opponent}` : 'Opponent unknown'}
@@ -305,6 +330,22 @@ export function GameReviewScreen({ game }: { game: GameDetail }) {
         {gloss !== null ? (
           <Text as="p" display="block">
             You {gloss}.
+          </Text>
+        ) : null}
+        <AlertDialog
+          isOpen={isDeleteOpen}
+          onOpenChange={setIsDeleteOpen}
+          title="Delete this game?"
+          description="This removes the game and its analysis. This cannot be undone."
+          actionLabel="Delete"
+          isActionLoading={deleteMutation.isPending}
+          onAction={() => {
+            void onConfirmDelete();
+          }}
+        />
+        {deleteError !== null ? (
+          <Text as="p" display="block" type="supporting" className="text-danger">
+            {deleteError}
           </Text>
         ) : null}
       </header>

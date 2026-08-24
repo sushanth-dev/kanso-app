@@ -81,3 +81,23 @@ test('lists an imported game and opens its review to the honest unanalysed state
   await page.goto('/games/00000000-0000-4000-8000-000000000000');
   await expect(page.getByText('This game could not be loaded')).toBeVisible();
 });
+
+test('deletes an imported game from the list after confirmation', async ({ page }) => {
+  await signUp(page);
+  await importPgn(page);
+
+  await page.goto('/games?stream=online');
+  await expect(page.getByRole('heading', { name: 'Your games' })).toBeVisible();
+  await expect(page.getByText('Analysis in progress.')).toBeVisible();
+
+  // The card's Delete button opens the confirmation dialog; confirming removes
+  // the game and its card from the list.
+  await page.getByRole('button', { name: 'Delete' }).click();
+  await expect(page.getByRole('alertdialog', { name: 'Delete this game?' })).toBeVisible();
+  await page
+    .getByRole('alertdialog', { name: 'Delete this game?' })
+    .getByRole('button', { name: 'Delete', exact: true })
+    .click();
+  await expect(page.getByText('Analysis in progress.')).not.toBeVisible();
+  await expectNoAxeViolations(page);
+});

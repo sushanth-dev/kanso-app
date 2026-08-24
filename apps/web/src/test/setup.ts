@@ -20,10 +20,18 @@ Object.defineProperty(window, 'matchMedia', {
   }),
 });
 
-// jsdom does not implement the async clipboard; the share section's copy
-// affordance reads it. A real browser provides writeText.
 Object.defineProperty(window.navigator, 'clipboard', {
   writable: true,
   configurable: true,
   value: { writeText: () => Promise.resolve() },
 });
+
+// jsdom does not implement the native <dialog> modal API, which Astryx's
+// AlertDialog/Dialog rely on. Polyfill the two methods the components call so
+// the delete confirmations can be exercised in unit tests.
+HTMLDialogElement.prototype.showModal = function () {
+  this.setAttribute('open', '');
+};
+HTMLDialogElement.prototype.close = function () {
+  this.removeAttribute('open');
+};
