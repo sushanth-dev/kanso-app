@@ -81,47 +81,48 @@ export function PageFrame({ children }: PageFrameProps) {
             <span aria-hidden="true" className="size-2.5 shrink-0 rounded-control bg-accent" />
             <Text className="font-display text-xl leading-tight tracking-tight">Kanso Chess</Text>
             {showNav ? (
-              <IconButton
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="ml-auto md:hidden"
-                label={mobileOpen ? 'Close menu' : 'Open menu'}
-                icon={<Icon icon={mobileOpen ? 'close' : 'menu'} size="sm" />}
-                aria-expanded={mobileOpen}
-                aria-controls="account-nav"
-                onClick={() => setMobileOpen((open) => !open)}
-              />
+              <>
+                {/* Desktop: same row as the wordmark. */}
+                <nav aria-label="Account" className="ml-auto hidden md:block">
+                  <ul className="flex flex-row flex-nowrap gap-1">
+                    {NAV_ENTRIES.map((entry) => (
+                      <li key={navEntryKey(entry)} className="relative">
+                        {isGroup(entry) ? (
+                          <NavGroupDesktop group={entry} pathname={pathname} />
+                        ) : (
+                          <NavLinkLeaf leaf={entry} pathname={pathname} />
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </nav>
+                <IconButton
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="ml-auto md:hidden"
+                  label={mobileOpen ? 'Close menu' : 'Open menu'}
+                  icon={<Icon icon={mobileOpen ? 'close' : 'menu'} size="sm" />}
+                  aria-expanded={mobileOpen}
+                  aria-controls="account-nav"
+                  onClick={() => setMobileOpen((open) => !open)}
+                />
+              </>
             ) : null}
           </div>
-          {showNav ? (
-            <nav aria-label="Account" id="account-nav" className="mt-3">
-              {/* Desktop: single horizontal row, grouped dropdowns via native <details>. */}
-              <ul className="hidden flex-row flex-nowrap gap-1 md:flex">
+          {showNav && mobileOpen ? (
+            <nav aria-label="Account" id="account-nav" className="mt-2 md:hidden">
+              <ul className="flex flex-col gap-1">
                 {NAV_ENTRIES.map((entry) => (
-                  <li key={navEntryKey(entry)} className="relative">
+                  <li key={navEntryKey(entry)}>
                     {isGroup(entry) ? (
-                      <NavGroupDesktop group={entry} pathname={pathname} />
+                      <NavGroupMobile group={entry} pathname={pathname} />
                     ) : (
-                      <NavLinkLeaf leaf={entry} pathname={pathname} />
+                      <NavLinkLeaf leaf={entry} pathname={pathname} block />
                     )}
                   </li>
                 ))}
               </ul>
-              {/* Mobile: the same entries behind the menu icon. */}
-              {mobileOpen ? (
-                <ul className="flex flex-col gap-1 md:hidden">
-                  {NAV_ENTRIES.map((entry) => (
-                    <li key={navEntryKey(entry)}>
-                      {isGroup(entry) ? (
-                        <NavGroupMobile group={entry} pathname={pathname} />
-                      ) : (
-                        <NavLinkLeaf leaf={entry} pathname={pathname} block />
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
             </nav>
           ) : null}
         </div>
@@ -151,9 +152,9 @@ function NavLinkLeaf({ leaf, pathname, block }: NavLinkLeafProps) {
       href={leaf.to}
       aria-current={active ? 'page' : undefined}
       className={[
-        'inline-flex min-h-11 items-center rounded-control px-3 py-2 text-sm transition-colors',
+        'inline-flex min-h-11 items-center rounded-control px-3 py-2 text-sm text-accent transition-colors',
         'hover:bg-overlay-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus',
-        active ? 'font-semibold text-text-accent' : 'text-text-secondary',
+        active ? 'font-semibold' : '',
         block ? 'w-full' : '',
       ].join(' ')}
     >
@@ -206,9 +207,9 @@ function GroupItems({ items, pathname }: GroupItemsProps) {
               href={item.to}
               aria-current={active ? 'page' : undefined}
               className={[
-                'inline-flex min-h-11 w-full items-center rounded-control px-3 py-2 text-sm transition-colors',
+                'inline-flex min-h-11 w-full items-center whitespace-nowrap rounded-control px-3 py-2 text-sm text-accent transition-colors',
                 'hover:bg-overlay-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus',
-                active ? 'font-semibold text-text-accent' : 'text-text-secondary',
+                active ? 'font-semibold' : '',
               ].join(' ')}
             >
               {item.label}
@@ -246,19 +247,38 @@ function DetailsDropdown({ summary, children }: DetailsDropdownProps) {
     }
   }
 
+  // Open on mouse enter and close on mouse leave so the panel follows the
+  // pointer. Native <details> only toggles on click.
+  function onMouseEnter() {
+    if (detailsRef.current !== null && !detailsRef.current.open) {
+      detailsRef.current.open = true;
+    }
+  }
+
+  function onMouseLeave() {
+    if (detailsRef.current?.open) {
+      detailsRef.current.open = false;
+    }
+  }
+
   return (
-    <details ref={detailsRef} onKeyDown={onKeyDown} className="group relative rounded-control">
+    <details
+      ref={detailsRef}
+      onKeyDown={onKeyDown}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      className="group relative rounded-control"
+    >
       <summary
         ref={summaryRef}
         className={[
-          'inline-flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-control px-3 py-2 text-sm text-text-secondary transition-colors',
+          'inline-flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-control px-3 py-2 text-sm text-accent transition-colors',
           'hover:bg-overlay-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus',
-          'group-open:text-text-primary',
         ].join(' ')}
       >
         {summary}
       </summary>
-      <div className="absolute left-0 top-full z-30 min-w-full rounded-control border border-border-subtle bg-background-surface px-1 py-1 shadow-none motion-safe:transition-colors">
+      <div className="absolute left-0 top-full z-30 w-max min-w-full rounded-control border border-border-subtle bg-raised/90 px-1 py-1 shadow-none backdrop-blur-sm motion-safe:transition-colors">
         {children}
       </div>
     </details>
