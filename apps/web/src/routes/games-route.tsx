@@ -4,7 +4,6 @@ import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Heading } from '@astryxdesign/core/Heading';
-import { Link } from '@astryxdesign/core/Link';
 import { Text } from '@astryxdesign/core/Text';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
@@ -73,27 +72,32 @@ function GameCard({ game, stream }: { game: GameSummary; stream: Stream }) {
         <Text className="font-mono text-base">{game.result}</Text>
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-        {analysed ? (
-          <Link href={`/games/${game.id}`}>Review</Link>
-        ) : failed ? (
-          <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {analysed ? (
+            <Button label="Review" href={`/games/${game.id}`} />
+          ) : failed ? (
+            <>
+              <Text as="p" display="block" type="supporting" className="text-sm">
+                Analysis failed.
+              </Text>
+              <Button
+                label="Retry"
+                variant="secondary"
+                isDisabled={isRetrying}
+                onClick={() => {
+                  void onRetry();
+                }}
+              />
+            </>
+          ) : (
             <Text as="p" display="block" type="supporting" className="text-sm">
-              Analysis failed.
+              Analysis in progress.
             </Text>
-            <Button
-              label="Retry"
-              variant="secondary"
-              isDisabled={isRetrying}
-              onClick={() => {
-                void onRetry();
-              }}
-            />
-          </div>
-        ) : (
-          <Text as="p" display="block" type="supporting" className="text-sm">
-            Analysis in progress.
-          </Text>
-        )}
+          )}
+          {!analysed ? (
+            <Button label="View game" href={`/games/${game.id}`} variant="secondary" />
+          ) : null}
+        </div>
         <Button label="Delete" variant="destructive" onClick={() => setIsDeleteOpen(true)} />
       </div>
       <AlertDialog
