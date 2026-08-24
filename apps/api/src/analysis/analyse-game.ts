@@ -21,12 +21,11 @@
 import { Chess } from 'chess.js';
 import { eq } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
-import type { Color, EvalScore } from '../chess/lichess-utils.ts';
+import type { EvalScore } from '../chess/lichess-utils.ts';
 import * as schema from '../db/schema.ts';
 import { game, mistake, movePly } from '../db/schema.ts';
 import { evaluatePositions, type EngineOptions, type EvaluatedPosition } from './engine.ts';
 import { toMistakeRow, type MistakeInsert } from './to-mistake.ts';
-import { parseClockMs } from './clock.ts';
 import { phaseFor } from './phase.ts';
 import { costMicrosFor, DEFAULT_MEMORY_MB } from './cost.ts';
 import { lookupEvaluations, storeEvaluations } from './evaluation-cache.ts';
@@ -36,6 +35,7 @@ import {
   DEEP_PASS_EXTRA_DEPTH,
   SWING_WIN_PROB_EPSILON,
 } from './budget.ts';
+import { walkGame, type WalkedPly } from './walk-pgn.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
 type MovePlyInsert = typeof movePly.$inferInsert;
@@ -51,87 +51,6 @@ export interface AnalysisOutcome {
 
 /** `analysis_error` is read by people. Long enough to diagnose, short enough to read. */
 const MAX_ERROR_LENGTH = 500;
-
-interface Ply {
-  ply: number;
-  moveNumber: number;
-  movingColor: Color;
-  san: string;
-  uci: string;
-  fenBefore: string;
-  /** Remaining clock after the move, from `%clk`; null for games without it. */
-  clockMs: number | null;
-  /** Time spent on the move; null for the first move of each side. */
-  moveTimeMs: number | null;
-}
-
-/** The position each ply was played from, plus the position the game ended in. */
-interface Walk {
-  plies: Ply[];
-  positions: string[];
-}
-
-/**
- * Merge adjacent brace comments so chess.js accepts the movetext.
- *
- * chess.js takes one comment after a move and throws on a second immediately
- * after the first (`Expected ... but "{" found`). Provider and study exports
- * write two (`5. b4 { 0.12/0 } { [%cal Gb4b5] }`). Merging the two into one
- * comment keeps both texts, so `%clk` still reaches `getComments()` and then
- * `clockMs`; stripping would make the game parse and silently drop the clock.
- *
- * The pattern is one linear pass with no nesting and no alternation, so it
- * cannot backtrack. The input is attacker-supplied PGN, and the transform must
- * stay linear, never a regex that revisits its input.
- */
-export function mergeAdjacentComments(pgn: string): string {
-  return pgn.replace(/\}\s*\{/g, ' ');
-}
-
-function walkGame(pgn: string): Walk {
-  const chess = new Chess();
-  chess.loadPgn(mergeAdjacentComments(pgn));
-  const history = chess.history({ verbose: true });
-  if (history.length === 0) throw new Error('game has no moves to analyse');
-
-  // `%clk` rides on the position a move reached. chess.js exposes it through
-  // `getComments()`, keyed by the after-move FEN, so a ply's remaining clock is
-  // the comment attached to that ply's `after` position.
-  const clockAfter = new Map<string, number>();
-  for (const { fen, comment } of chess.getComments()) {
-    const ms = parseClockMs(comment);
-    if (ms !== null) clockAfter.set(fen, ms);
-  }
-
-  // Time spent on a move is the same side's previous remaining clock minus this
-  // one; the first move of each side has no previous clock, so it is null.
-  const prevClock: Record<Color, number | null> = { white: null, black: null };
-
-  const plies = history.map((move, index) => {
-    // Move number and side to move are read off the FEN rather than counted
-    // from one, so a game that starts from a position mid-game still numbers
-    // its moves the way a player would say them.
-    const fields = move.before.split(' ');
-    const movingColor = fields[1] === 'b' ? ('black' as const) : ('white' as const);
-    const clockMs = clockAfter.get(move.after) ?? null;
-    const previous = prevClock[movingColor];
-    const moveTimeMs = clockMs !== null && previous !== null ? previous - clockMs : null;
-    if (clockMs !== null) prevClock[movingColor] = clockMs;
-    return {
-      ply: index + 1,
-      moveNumber: Number(fields[5]),
-      movingColor,
-      san: move.san,
-      uci: move.lan,
-      fenBefore: move.before,
-      clockMs,
-      moveTimeMs,
-    };
-  });
-
-  const final = history[history.length - 1]!.after;
-  return { plies, positions: [...plies.map((p) => p.fenBefore), final] };
-}
 
 /** SAN for a UCI move, or null where there was no move to make. */
 function sanFor(fen: string, uci: string | null): string | null {
@@ -203,7 +122,7 @@ async function evaluatePositionsCached(
 async function evaluateWalk(
   db: Db,
   positions: string[],
-  plies: Ply[],
+  plies: WalkedPly[],
   options: EngineOptions,
 ): Promise<{ scores: EvalScore[]; bestMoveUci: (string | null)[]; nodes: number }> {
   // Never skip the first position: with nothing before it there is nothing to

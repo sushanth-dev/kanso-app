@@ -18,7 +18,7 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { startImport } from '../contract/routes.ts';
 import * as schema from '../db/schema.ts';
-import { game, importJob, player } from '../db/schema.ts';
+import { game, importJob, player, movePly } from '../db/schema.ts';
 import { enqueueAnalysis } from '../analysis/queue.ts';
 import { analysisRemaining } from '../billing/entitlement.ts';
 import { getOwnPlayerId } from '../players/claim.ts';
@@ -29,6 +29,7 @@ import { readSession } from '../session.ts';
 import { log } from '../logging.ts';
 import type { GameFetcher } from './game-fetcher.ts';
 import { ONLINE_IMPORT_DAILY_CAP_GAMES } from './game-fetch-constants.ts';
+import { pliesForImport } from '../analysis/walk-pgn.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
 
@@ -138,15 +139,21 @@ export async function importGames(db: Db, input: ImportGamesInput): Promise<Impo
               site: game.site,
               playedAt: game.playedAt,
               moveCount: game.moveCount,
+              pgnHash: game.pgnHash,
             });
 
     const undetermined = inserted.filter((row) => row.playerColor === null).length;
 
-    queued.push(
-      ...inserted
-        .filter((row) => row.playerColor !== null && (row.moveCount ?? 0) > 0)
-        .map((row) => row.id),
-    );
+    // A pending game is reviewable before analysis runs: write the PGN's moves
+    // as un-evaluated plies now, so the board and notation render immediately.
+    // Analysis later replaces these rows with evaluated ones.
+    const pgnByHash = new Map(games.map((g) => [g.pgnHash, g.pgn]));
+    const plyRows = inserted.flatMap((row) => {
+      const pgn = pgnByHash.get(row.pgnHash);
+      if (pgn === undefined || (row.moveCount ?? 0) === 0) return [];
+      return pliesForImport(row.id, pgn);
+    });
+    if (plyRows.length > 0) await tx.insert(movePly).values(plyRows);
 
     await attachGames(
       tx,
