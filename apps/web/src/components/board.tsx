@@ -1,20 +1,16 @@
 import type { ReactNode } from 'react';
 
-// Both colours use the solid (black) glyph set so every piece renders filled;
-// the white set is hollow and shows as an outline. Colour is applied via fill.
-const PIECE_GLYPHS: Record<string, string> = {
-  K: '\u265A',
-  Q: '\u265B',
-  R: '\u265C',
-  B: '\u265D',
-  N: '\u265E',
-  P: '\u265F',
-  k: '\u265A',
-  q: '\u265B',
-  r: '\u265C',
-  b: '\u265D',
-  n: '\u265E',
-  p: '\u265F',
+// The cburnett piece set (the standard used by lichess/chess.com). Each piece
+// is one path; white and black differ only in fill/stroke, so the shape is
+// defined once and recoloured per side. Far easier to tell apart than Unicode
+// glyphs at board size.
+const PIECE_PATHS: Record<string, string> = {
+  K: 'M22.5 11.63V6M20 8h5M22.5 25s4.5-7.5 3-10.5c0 0-1-2.5-3-2.5s-3 2.5-3 2.5c-1.5 3 3 10.5 3 10.5M12.5 37c5.5 3.5 14.5 3.5 20 0v-7s9-4.5 6-10.5c-4-6.5-13.5-3.5-16 4V27v-3.5c-2.5-7.5-12-10.5-16-4-3 6 6 10.5 6 10.5v7M12.5 30c5.5-3 14.5-3 20 0m-20 3.5c5.5-3 14.5-3 20 0m-20 3.5c5.5-3 14.5-3 20 0',
+  Q: 'M9 26C17.5 24.5 30 24.5 36 26L38.5 13.5 31 25 30.7 10.9 25.5 24.5 22.5 10 19.5 24.5 14.3 10.9 14 25 6.5 13.5 9 26zM9 26c0 2 1.5 2 2.5 4 1 1.5 1 1 .5 3.5-1.5 1-1 2.5-1 2.5-1.5 1.5 0 2.5 0 2.5 6.5 1 16.5 1 23 0 0 0 1.5-1 0-2.5 0 0 .5-1.5-1-2.5-.5-2.5-.5-2 .5-3.5 1-2 2.5-2 2.5-4-8.5-1.5-18.5-1.5-27 0zM11.5 30C15 29 30 29 33.5 30M12 33.5C18 32.5 27 32.5 33 33.5M4 12a2 2 0 1 1 4 0 2 2 0 1 1-4 0M12 9a2 2 0 1 1 4 0 2 2 0 1 1-4 0M20.5 8a2 2 0 1 1 4 0 2 2 0 1 1-4 0M29 9a2 2 0 1 1 4 0 2 2 0 1 1-4 0M37 12a2 2 0 1 1 4 0 2 2 0 1 1-4 0',
+  R: 'M9 39h27v-3H9v3zM12 36v-4h21v4H12zM11 14V9h4v2h5V9h5v2h5V9h4v5M11 14h23l-3 14H14l-3-14zM12 17.5l3.5 3.5M14 15l3.5 3.5M12 21.5l3.5 3.5M14 19l3.5 3.5M20 17.5l3.5 3.5M22 15l3.5 3.5M20 21.5l3.5 3.5M22 19l3.5 3.5M28 17.5l3.5 3.5M30 15l3.5 3.5M28 21.5l3.5 3.5M30 19l3.5 3.5',
+  B: 'M9 36c3.39-.97 10.11.43 13.5-2 3.39 2.43 10.11 1.03 13.5 2 0 0 1.65.54 3 2-.68.97-1.65.99-3 .5-3.39-.97-10.11.46-13.5-1-3.39 1.46-10.11.03-13.5 1-1.35.49-2.32.47-3-.5 1.35-1.46 3-2 3-2zM15 32c2.5 2.5 12.5 2.5 15 0 .5-1.5 0-2 0-2 0-2.5-2.5-4-2.5-4 5.5-1.5 6-11.5-5-15.5-11 4-10.5 14-5 15.5 0 0-2.5 1.5-2.5 4 0 0-.5.5 0 2zM25 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 1 1 5 0zM17.5 26h10M15 30h15M22.5 15.5v5M20 18h5',
+  N: 'M22 10C32.5 11 38.5 18 38 39H15c0-9 10-11.5 8-21M24 18c.38 2.91-5.55 7.37-8 9-3 2-3.18 4.34-5 4-1.04-.94 1.41-3.04 0-3-1 0 .19 1.23-1 2-1 0-4.003 1-4-6 0-2 6-12 6-12s1.89-1.9 2-3.5c-.73-.994-.5-2-.5-3 .5-1 2.5 2.5 2.5 2.5h2s.78-1.992 2.5-3c1 0 1 3 1 3M9.5 25.5a.5.5 0 1 1-1 0 .5.5 0 1 1 1 0M15 15.5a.5 1.5 0 1 1-1 0 .5 1.5 0 1 1 1 0',
+  P: 'm22.5 9c-2.21 0-4 1.79-4 4 0 .89.29 1.71.78 2.38C17.33 16.5 16 18.59 16 21c0 2.03.94 3.84 2.41 5.03C15.41 27.09 11 31.58 11 39.5h23C34 31.58 29.59 27.09 26.59 26.03 28.06 24.84 29 23.03 29 21c0-2.41-1.33-4.5-3.28-5.62.49-.67.78-1.49.78-2.38 0-2.21-1.79-4-4-4z',
 };
 
 const PIECE_NAMES: Record<string, string> = {
@@ -55,7 +51,7 @@ export interface BoardProps {
 interface PlacedPiece {
   file: number;
   rank: number;
-  glyph: string;
+  type: string;
   white: boolean;
 }
 
@@ -74,7 +70,7 @@ function placedPieces(fen: string): PlacedPiece[] {
       pieces.push({
         file,
         rank: 7 - rankIndex,
-        glyph: PIECE_GLYPHS[char] ?? '',
+        type: char.toUpperCase(),
         white: char === char.toUpperCase(),
       });
       file += 1;
@@ -171,25 +167,23 @@ export function Board({
   }
 
   for (const piece of pieces) {
-    if (piece.glyph === '') continue;
+    const path = PIECE_PATHS[piece.type];
+    if (path === undefined) continue;
     const column = flipped ? 7 - piece.file : piece.file;
     const row = flipped ? piece.rank : 7 - piece.rank;
+    // The cburnett paths are drawn on a 45x45 grid; scale to the square and
+    // centre it. White pieces fill light with a dark outline, black the reverse.
+    const fill = piece.white ? '#fffdf8' : '#241d16';
+    const stroke = piece.white ? '#241d16' : '#fffdf8';
     cells.push(
-      <text
+      <g
         key={`piece-${piece.file}-${piece.rank}`}
-        x={1 + column + 0.5}
-        y={1 + row + 0.5}
-        textAnchor="middle"
-        dominantBaseline="central"
-        fontSize={0.8}
-        fill={piece.white ? '#fffdf8' : '#241d16'}
-        stroke={piece.white ? '#241d16' : '#fffdf8'}
-        strokeWidth={0.035}
-        paintOrder="stroke"
-        style={{ fontFamily: '"Segoe UI Symbol", "Noto Sans Symbols 2", sans-serif' }}
+        transform={`translate(${1 + column}, ${1 + row}) scale(0.0222)`}
+        role="img"
+        aria-label={`${piece.white ? 'white' : 'black'} ${PIECE_NAMES[piece.type]}`}
       >
-        {piece.glyph}
-      </text>,
+        <path d={path} fill={fill} stroke={stroke} strokeWidth={1.5} strokeLinejoin="round" />
+      </g>,
     );
   }
   if (bestFrom !== undefined && bestTo !== undefined) {
