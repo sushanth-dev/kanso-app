@@ -31,6 +31,9 @@ import { ReportRoute } from './routes/report-route.tsx';
 import { SettingsRoute } from './routes/settings-route.tsx';
 import { SharedProofSheetRoute } from './routes/shared-proof-sheet-route.tsx';
 import { UpgradeRoute } from './routes/upgrade-route.tsx';
+import { TournamentsRoute } from './routes/tournaments-route.tsx';
+import { TournamentDetailRoute } from './routes/tournament-detail-route.tsx';
+import { TransferGapRoute } from './routes/transfer-gap-route.tsx';
 import { ForgotPasswordRoute } from './routes/forgot-password-route.tsx';
 import { ResetPasswordRoute } from './routes/reset-password-route.tsx';
 
@@ -193,6 +196,24 @@ const gameReviewRoute = createRoute({
   component: GameReviewRoute,
 });
 
+const tournamentsRoute = createRoute({
+  getParentRoute: () => accountRoute,
+  path: '/tournaments',
+  component: TournamentsRoute,
+});
+
+const tournamentDetailRoute = createRoute({
+  getParentRoute: () => accountRoute,
+  path: '/tournaments/$tournamentId',
+  component: TournamentDetailRoute,
+});
+
+const transferGapRoute = createRoute({
+  getParentRoute: () => accountRoute,
+  path: '/transfer-gap',
+  component: TransferGapRoute,
+});
+
 const sharedProofSheetRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/shared/proof-sheets/$token',
@@ -252,6 +273,9 @@ const routeTree = rootRoute.addChildren([
     importRoute,
     gamesRoute,
     gameReviewRoute,
+    tournamentsRoute,
+    tournamentDetailRoute,
+    transferGapRoute,
     upgradeRoute,
   ]),
   sharedProofSheetRoute,

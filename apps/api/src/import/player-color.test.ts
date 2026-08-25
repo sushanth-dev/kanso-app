@@ -40,4 +40,12 @@ describe('decidePlayerColor', () => {
       decidePlayerColor('S. Kamabathula', 'Kamabathula, Sushanth', 'Kamabathula, S.'),
     ).toBeNull();
   });
+
+  test('matches a player who typed only their given name to a full PGN name', () => {
+    expect(decidePlayerColor('Sushanth', 'Sushanth Kamabathula', 'Poeck, Ole')).toBe('white');
+  });
+
+  test('does not match a bare given name to a namesake with a different surname', () => {
+    expect(decidePlayerColor('Sushanth', 'Sushanth Kamabathula', 'Sushanth Patel')).toBeNull();
+  });
 });
