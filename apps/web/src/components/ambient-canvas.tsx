@@ -12,7 +12,19 @@ import { useEffect, useRef } from 'react';
  * via IntersectionObserver, and caps DPR so low-end devices stay cheap.
  */
 
-export type AmbientVariant = 'clouds' | 'pieces' | 'sparkle' | 'waves' | 'orbit' | 'grid';
+export type AmbientVariant =
+  | 'clouds'
+  | 'pieces'
+  | 'sparkle'
+  | 'waves'
+  | 'orbit'
+  | 'grid'
+  | 'confetti'
+  | 'rings'
+  | 'rays'
+  | 'bubbles'
+  | 'pulse'
+  | 'drops';
 
 interface AmbientCanvasProps {
   variant: AmbientVariant;
@@ -41,10 +53,10 @@ function hexToRgba(hex: string, alpha: number): string {
 /** Soft translucent blobs drifting sideways - the auth and default backdrop. */
 function drawClouds(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
   const blobs = [
-    { x: 0.12, y: 0.18, r: 0.32, color: PALETTE.terracotta, speed: 0.012, alpha: 0.16 },
-    { x: 0.7, y: 0.28, r: 0.26, color: PALETTE.teal, speed: 0.009, alpha: 0.13 },
-    { x: 0.42, y: 0.72, r: 0.34, color: PALETTE.gold, speed: 0.015, alpha: 0.15 },
-    { x: 0.85, y: 0.82, r: 0.22, color: PALETTE.periwinkle, speed: 0.011, alpha: 0.12 },
+    { x: 0.12, y: 0.18, r: 0.32, color: PALETTE.terracotta, speed: 0.012, alpha: 0.26 },
+    { x: 0.7, y: 0.28, r: 0.26, color: PALETTE.teal, speed: 0.009, alpha: 0.22 },
+    { x: 0.42, y: 0.72, r: 0.34, color: PALETTE.gold, speed: 0.015, alpha: 0.24 },
+    { x: 0.85, y: 0.82, r: 0.22, color: PALETTE.periwinkle, speed: 0.011, alpha: 0.2 },
   ];
   for (const b of blobs) {
     const cx = ((b.x + t * b.speed) % 1.3) * w;
@@ -60,7 +72,7 @@ function drawClouds(ctx: CanvasRenderingContext2D, w: number, h: number, t: numb
   }
 }
 
-/** Chess-piece glyphs drifting upward - report, proof sheet, transfer gap. */
+/** Chess-piece glyphs drifting upward - report. */
 function drawPieces(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
   const glyphs = ['♟', '♞', '♝', '♜', '♛', '♚'];
   const count = 14;
@@ -73,7 +85,7 @@ function drawPieces(ctx: CanvasRenderingContext2D, w: number, h: number, t: numb
     const span = h + 80;
     const y = (((seed * 97) % 100) / 100) * span - ((t * speed) % span);
     const size = 14 + (i % 4) * 6;
-    const alpha = 0.1 + ((i * 37) % 10) / 100;
+    const alpha = 0.18 + ((i * 37) % 10) / 100;
     ctx.font = `${size}px serif`;
     ctx.fillStyle = hexToRgba(PALETTE.ink, alpha);
     ctx.fillText(glyphs[i % glyphs.length] ?? '♟', x, y);
@@ -90,19 +102,19 @@ function drawSparkle(ctx: CanvasRenderingContext2D, w: number, h: number, t: num
     const phase = (t * (0.6 + (i % 5) * 0.15) + seed * 7) % (Math.PI * 2);
     const alpha = 0.5 + 0.5 * Math.sin(phase);
     const r = 1.5 + (i % 3);
-    ctx.fillStyle = hexToRgba(i % 2 === 0 ? PALETTE.gold : PALETTE.terracotta, alpha * 0.6);
+    ctx.fillStyle = hexToRgba(i % 2 === 0 ? PALETTE.gold : PALETTE.terracotta, alpha * 0.75);
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
   }
 }
 
-/** Gentle horizontal waves drifting - games and tournaments. */
+/** Gentle horizontal waves drifting - games. */
 function drawWaves(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
   const waves = [
-    { y: 0.3, amp: 0.05, freq: 0.02, speed: 0.4, color: PALETTE.teal, alpha: 0.14 },
-    { y: 0.55, amp: 0.07, freq: 0.014, speed: 0.28, color: PALETTE.terracotta, alpha: 0.12 },
-    { y: 0.8, amp: 0.04, freq: 0.026, speed: 0.5, color: PALETTE.gold, alpha: 0.16 },
+    { y: 0.3, amp: 0.05, freq: 0.02, speed: 0.4, color: PALETTE.teal, alpha: 0.24 },
+    { y: 0.55, amp: 0.07, freq: 0.014, speed: 0.28, color: PALETTE.terracotta, alpha: 0.2 },
+    { y: 0.8, amp: 0.04, freq: 0.026, speed: 0.5, color: PALETTE.gold, alpha: 0.26 },
   ];
   for (const wave of waves) {
     ctx.strokeStyle = hexToRgba(wave.color, wave.alpha);
@@ -122,14 +134,14 @@ function drawOrbit(ctx: CanvasRenderingContext2D, w: number, h: number, t: numbe
   const cx = w * 0.5;
   const cy = h * 0.4;
   const rings = [
-    { radius: Math.min(w, h) * 0.28, speed: 0.5, count: 5, color: PALETTE.gold, alpha: 0.5 },
-    { radius: Math.min(w, h) * 0.4, speed: -0.35, count: 7, color: PALETTE.teal, alpha: 0.4 },
+    { radius: Math.min(w, h) * 0.28, speed: 0.5, count: 5, color: PALETTE.gold, alpha: 0.75 },
+    { radius: Math.min(w, h) * 0.4, speed: -0.35, count: 7, color: PALETTE.teal, alpha: 0.6 },
     {
       radius: Math.min(w, h) * 0.52,
       speed: 0.28,
       count: 9,
       color: PALETTE.terracotta,
-      alpha: 0.35,
+      alpha: 0.55,
     },
   ];
   for (const ring of rings) {
@@ -149,13 +161,136 @@ function drawOrbit(ctx: CanvasRenderingContext2D, w: number, h: number, t: numbe
 function drawGrid(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
   const spacing = 46;
   const offset = (t * 8) % spacing;
-  ctx.fillStyle = hexToRgba(PALETTE.ink, 0.08);
+  ctx.fillStyle = hexToRgba(PALETTE.ink, 0.14);
   for (let x = -spacing + offset; x < w + spacing; x += spacing) {
     for (let y = -spacing + offset; y < h + spacing; y += spacing) {
       ctx.beginPath();
       ctx.arc(x, y, 1.5, 0, Math.PI * 2);
       ctx.fill();
     }
+  }
+}
+
+/** Small coloured confetti rectangles falling and rotating - proof sheet. */
+function drawConfetti(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
+  const colors = [
+    PALETTE.gold,
+    PALETTE.teal,
+    PALETTE.terracotta,
+    PALETTE.periwinkle,
+    PALETTE.green,
+  ];
+  const count = 24;
+  for (let i = 0; i < count; i++) {
+    const seed = i * 1.91;
+    const x = (((seed * 137.5) % 100) / 100) * w;
+    const speed = 30 + (i % 6) * 12;
+    const span = h + 60;
+    const y = (((seed * 53) % 100) / 100) * span - ((t * speed) % span);
+    const size = 5 + (i % 4) * 3;
+    const rot = t * (0.6 + (i % 4) * 0.4) + seed;
+    const alpha = 0.34 + ((i * 29) % 10) / 100;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rot);
+    ctx.fillStyle = hexToRgba(colors[i % colors.length] ?? PALETTE.gold, alpha);
+    ctx.fillRect(-size / 2, -size / 2, size, size * 0.6);
+    ctx.restore();
+  }
+}
+
+/** Concentric rings expanding from the centre - transfer gap. */
+function drawRings(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
+  const cx = w * 0.5;
+  const cy = h * 0.5;
+  const maxR = Math.max(w, h) * 0.7;
+  const colors = [PALETTE.teal, PALETTE.terracotta, PALETTE.gold];
+  for (let i = 0; i < 6; i++) {
+    const phase = (t * 40 + i * (maxR / 6)) % maxR;
+    const r = phase;
+    const alpha = 0.4 * (1 - r / maxR);
+    ctx.strokeStyle = hexToRgba(colors[i % colors.length] ?? PALETTE.teal, alpha);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
+/** Rotating radial light rays - tournaments. */
+function drawRays(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
+  const cx = w * 0.5;
+  const cy = h * 0.45;
+  const rays = 12;
+  const len = Math.max(w, h) * 0.6;
+  const rot = t * 0.08;
+  for (let i = 0; i < rays; i++) {
+    const angle = (i / rays) * Math.PI * 2 + rot;
+    const alpha = 0.16 + ((i % 3) / 3) * 0.12;
+    ctx.strokeStyle = hexToRgba(i % 2 === 0 ? PALETTE.gold : PALETTE.terracotta, alpha);
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(angle) * 40, cy + Math.sin(angle) * 40);
+    ctx.lineTo(cx + Math.cos(angle) * len, cy + Math.sin(angle) * len);
+    ctx.stroke();
+  }
+}
+
+/** Translucent bubbles rising - tournament detail. */
+function drawBubbles(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
+  const count = 16;
+  for (let i = 0; i < count; i++) {
+    const seed = i * 2.13;
+    const x = (((seed * 137.5) % 100) / 100) * w;
+    const speed = 12 + (i % 5) * 6;
+    const span = h + 60;
+    const y = h - (((seed * 61) % 100) / 100) * span + ((t * speed) % span);
+    const r = 4 + (i % 5) * 4;
+    const alpha = 0.2 + ((i * 31) % 8) / 100;
+    ctx.strokeStyle = hexToRgba(PALETTE.cyan, alpha);
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
+/** Soft pulsing radial glows - game review. */
+function drawPulse(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
+  const centers = [
+    { x: 0.25, y: 0.3, color: PALETTE.teal },
+    { x: 0.75, y: 0.6, color: PALETTE.terracotta },
+    { x: 0.5, y: 0.85, color: PALETTE.gold },
+  ];
+  for (const c of centers) {
+    const pulse = 0.5 + 0.5 * Math.sin(t * 1.2 + c.x * 9);
+    const r = (0.12 + pulse * 0.1) * Math.min(w, h);
+    const alpha = 0.16 + pulse * 0.14;
+    const g = ctx.createRadialGradient(c.x * w, c.y * h, 0, c.x * w, c.y * h, r);
+    g.addColorStop(0, hexToRgba(c.color, alpha));
+    g.addColorStop(1, hexToRgba(c.color, 0));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(c.x * w, c.y * h, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+/** Falling ink drops - player edit. */
+function drawDrops(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
+  const count = 14;
+  for (let i = 0; i < count; i++) {
+    const seed = i * 1.37;
+    const x = (((seed * 137.5) % 100) / 100) * w;
+    const speed = 20 + (i % 5) * 8;
+    const span = h + 40;
+    const y = (((seed * 71) % 100) / 100) * span - ((t * speed) % span);
+    const r = 2 + (i % 4) * 2;
+    const alpha = 0.2 + ((i * 23) % 8) / 100;
+    ctx.fillStyle = hexToRgba(PALETTE.ink, alpha);
+    ctx.beginPath();
+    ctx.ellipse(x, y, r, r * 1.4, 0, 0, Math.PI * 2);
+    ctx.fill();
   }
 }
 
@@ -166,6 +301,12 @@ const DRAWERS: Record<AmbientVariant, DrawFn> = {
   waves: drawWaves,
   orbit: drawOrbit,
   grid: drawGrid,
+  confetti: drawConfetti,
+  rings: drawRings,
+  rays: drawRays,
+  bubbles: drawBubbles,
+  pulse: drawPulse,
+  drops: drawDrops,
 };
 
 export function AmbientCanvas({ variant, className }: AmbientCanvasProps) {
