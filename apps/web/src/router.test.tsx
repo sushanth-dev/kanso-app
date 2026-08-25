@@ -184,9 +184,11 @@ describe('router', () => {
     const expected = [
       ['Report', '/report'],
       ['Focus', '/focus'],
-      ['Games', '/games'],
-      ['Import', '/import'],
       ['Proof sheet', '/proof-sheet'],
+      ['Rating gap', '/transfer-gap'],
+      ['Games', '/games'],
+      ['Tournaments', '/tournaments'],
+      ['Import', '/import'],
       ['Plans', '/upgrade'],
       ['Settings', '/settings'],
     ] as const;

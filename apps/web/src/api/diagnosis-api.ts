@@ -21,6 +21,8 @@ export type CctScan = components['schemas']['CctScan'];
 export type CctMove = components['schemas']['CctMove'];
 export type Explanation = components['schemas']['Explanation'];
 export type SocraticQuestion = components['schemas']['SocraticQuestion'];
+export type TransferGap = components['schemas']['TransferGap'];
+export type Color = components['schemas']['Color'];
 
 export interface DiagnosisApi {
   getReport(stream: Stream): Promise<Report>;
@@ -30,9 +32,11 @@ export interface DiagnosisApi {
   getGame(gameId: string): Promise<GameDetail>;
   queueAnalysis(gameId: string): Promise<void>;
   deleteGame(gameId: string): Promise<void>;
+  setGameColor(gameId: string, playerColor: Color): Promise<GameSummary>;
   getCctScan(mistakeId: string): Promise<CctScan>;
   getExplanation(mistakeId: string): Promise<Explanation>;
   getSocraticQuestion(mistakeId: string): Promise<SocraticQuestion>;
+  getTransferGap(refresh?: boolean): Promise<TransferGap>;
 }
 
 export function createDiagnosisApi(
@@ -95,6 +99,14 @@ export function createDiagnosisApi(
       if (result.response.status === 204) return;
       throw failure(result.response.status, result.error);
     },
+    async setGameColor(gameId, playerColor) {
+      const result = await client.PATCH('/games/{gameId}', {
+        params: { path: { gameId } },
+        body: { playerColor },
+      });
+      if (result.data !== undefined) return result.data;
+      throw failure(result.response.status, result.error);
+    },
     async getCctScan(mistakeId) {
       const result = await client.GET('/mistakes/{mistakeId}/cct', {
         params: { path: { mistakeId } },
@@ -112,6 +124,13 @@ export function createDiagnosisApi(
     async getSocraticQuestion(mistakeId) {
       const result = await client.GET('/mistakes/{mistakeId}/question', {
         params: { path: { mistakeId } },
+      });
+      if (result.data !== undefined) return result.data;
+      throw failure(result.response.status, result.error);
+    },
+    async getTransferGap(refresh = false) {
+      const result = await client.GET('/transfer-gap', {
+        params: { query: refresh ? { refresh: 'true' } : {} },
       });
       if (result.data !== undefined) return result.data;
       throw failure(result.response.status, result.error);

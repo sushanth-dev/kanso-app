@@ -25,12 +25,14 @@ const NAV_ENTRIES: NavEntry[] = [
       { label: 'Report', to: '/report' },
       { label: 'Focus', to: '/focus' },
       { label: 'Proof sheet', to: '/proof-sheet' },
+      { label: 'Rating gap', to: '/transfer-gap' },
     ],
   },
   {
     label: 'Games',
     items: [
       { label: 'Games', to: '/games' },
+      { label: 'Tournaments', to: '/tournaments' },
       { label: 'Import', to: '/import' },
     ],
   },
@@ -51,10 +53,12 @@ export function PageFrame({ children }: PageFrameProps) {
     '/report',
     '/focus',
     '/proof-sheet',
+    '/transfer-gap',
     '/games',
     '/import',
     '/upgrade',
     '/player',
+    '/tournaments',
   ].some((base) => pathname === base || pathname.startsWith(`${base}/`));
   const [mobileOpen, setMobileOpen] = useState(false);
 
