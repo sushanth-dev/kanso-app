@@ -19,6 +19,7 @@ import type { OpenAPIHono } from '@hono/zod-openapi';
 import { startImport } from '../contract/routes.ts';
 import * as schema from '../db/schema.ts';
 import { game, importJob, player, movePly } from '../db/schema.ts';
+import { user } from '../db/auth-schema.ts';
 import { enqueueAnalysis } from '../analysis/queue.ts';
 import { analysisRemaining } from '../billing/entitlement.ts';
 import { getOwnPlayerId } from '../players/claim.ts';
@@ -228,8 +229,9 @@ export function mountImport(
       return c.json({ code: 'not_found', message: 'No such player.' }, 404);
     }
     const [owner] = await deps.db
-      .select({ displayName: player.displayName })
+      .select({ name: user.name })
       .from(player)
+      .innerJoin(user, eq(player.ownerUserId, user.id))
       .where(eq(player.id, playerId))
       .limit(1);
     if (!owner) {
@@ -261,7 +263,7 @@ export function mountImport(
         source: 'pgn_upload',
         username: null,
         stream: body.stream,
-        matchName: owner.displayName,
+        matchName: owner.name,
         games: parsed.games.map((g) => ({ ...g, externalId: null })),
         gamesRejected: 0,
       }));

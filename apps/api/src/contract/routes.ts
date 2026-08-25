@@ -102,6 +102,7 @@ export const updatePlayer = createRoute({
     200: json(Player, 'Updated.'),
     ...authErrors,
     404: error('No such player.'),
+    409: error('That username is taken.'),
   },
 });
 

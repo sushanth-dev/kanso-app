@@ -31,7 +31,7 @@ function readValue(data: FormData, key: string): string {
 export function playerBody(formData: FormData): UpdatePlayer {
   const displayName = readValue(formData, 'displayName');
   if (displayName === '') {
-    throw new Error('Display name is required.');
+    throw new Error('Username is required.');
   }
   const body: UpdatePlayer = { displayName };
   for (const field of textFields) {
@@ -113,6 +113,10 @@ export function PlayerFormScreen({ me, accountApi, queryClient, navigate }: Play
           setFormError('No player for this account.');
           return;
         }
+        if (error.status === 409) {
+          setFormError('That username is already taken.');
+          return;
+        }
         if (error.status === 400) {
           const issues = error.issues ?? [];
           if (issues.length > 0) {
@@ -150,7 +154,7 @@ export function PlayerFormScreen({ me, accountApi, queryClient, navigate }: Play
           <fieldset className="flex flex-col gap-4">
             <legend className="text-sm text-muted">Identity</legend>
             <Field
-              label="Display name"
+              label="Username"
               inputID="displayName"
               status={fieldStatus(fieldErrors.displayName)}
             >
