@@ -132,6 +132,24 @@ a {
     ),
     var(--kanso-color-surface-page);
 }
+/* Subtle warm backdrop for the authenticated shell: the html-in-canvas Clouds
+   engine only paints behind Chrome's experimental canvas-draw-element flag, so
+   without it the shell ambient has nothing to diffuse. A low-contrast warm
+   gradient over the page surface keeps it visible yet never hurts readability. */
+.shell-ambient-glow {
+  background:
+    radial-gradient(
+      ellipse 80% 65% at 20% 15%,
+      color-mix(in srgb, var(--kanso-color-action-primary-default) 12%, transparent),
+      transparent
+    ),
+    radial-gradient(
+      ellipse 75% 60% at 85% 90%,
+      color-mix(in srgb, var(--kanso-color-action-primary-default) 8%, transparent),
+      transparent
+    ),
+    var(--kanso-color-surface-page);
+}
 
 .glass {
   background-color: color-mix(in srgb, var(--kanso-color-surface-page) 40%, transparent);

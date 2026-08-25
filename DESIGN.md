@@ -241,11 +241,14 @@ it was dropped and each surface mounts statically in the shared shell.
 Surface-level motion (`.stagger-in`, `.press`, `.reveal-in`) remains. The
 evaluation bar's fill transitions over the slow
 320ms board transition, and the proof sheet's verdict reveals with the base
-200ms fade and rise. The game result on the review surface reveals through
-Canvas UI's Particle Reveal, a still frame under reduced motion. Browser
-surfaces are themed from the palette: text selection is terracotta on white,
-the text caret is terracotta, links carry a 0.06em underline with a 0.22em
-offset, and `color-scheme: light` keeps native controls in the Study Room.
+200ms fade and rise. The authenticated shell carries a single `Clouds` ambient behind every
+signed-in route, fixed and `aria-hidden`, restyled to the Study Room palette
+(warm paper tint, low density and opacity) so it stays subtle at one GPU cost
+rather than a canvas per route; a CSS glow fallback keeps it visible where the
+html-in-canvas flag is off. The two surfaces that earn a distinct moment, the
+report's rank-one weakness and the focus verdict, reveal their headline number
+through the same Particle Reveal as the game result.
+The landing hero adds a decorative 3D pawn on a fixed three.js canvas, driven
 The landing hero adds a decorative 3D pawn on a fixed three.js canvas, driven
 by scroll (a slow spin plus a tilt that settles upright at the bottom) and
 `aria-hidden`; under reduced motion the loop never starts and one static frame
@@ -364,9 +367,10 @@ carries its evidence on the row and does not expand, because no opening
 endpoint exists. The report has three states: the ranked list, an honest empty
 statement ("could not identify a defensible weakness"), and a not-ready state
 that separates "still being analyzed" from "no analyzed games."
-The header states how current the report is and how much is behind it
-(`generatedAt` and `gamesCovered`). The time-trouble figure leads on the online
-report; on the tournament report it is replaced by a stated reason, never a
+blank or a zero. The rank-one weakness's `ratingLeak` number, the one thing to
+fix, reveals through Canvas UI's Particle Reveal (a still frame under reduced
+motion, `aria-hidden`) so the headline lands as a moment; the remaining
+weaknesses render as plain mono text.
 blank or a zero.
 
 ### Game review
@@ -471,10 +475,9 @@ what cannot be said yet, and what would change it. A coach instruction is shown
 verbatim as text, marked "Unverified", with the paired focus named and its
 numbers labelled as the paired number rather than a measurement of the
 instruction.
-The choice and the active-focus view each carry an explicit loading and error
-state, matching the import and report surfaces rather than one generic
-failure. The surface carries no share affordance (that is the proof sheet's,
-F14) and no recommendation: a player chooses from the ranking, and the system
+does not pick (F8). The active-focus verdict number reveals through Canvas
+UI's Particle Reveal (a still frame under reduced motion, `aria-hidden`),
+mirroring the game result and the report's rank-one weakness.
 does not pick (F8).
 
 ### Entry and guardian consent
