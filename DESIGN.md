@@ -372,9 +372,17 @@ The board is an in-house SVG component that renders a FEN position with the
 mistake's from and to squares marked in the last-move treatment (gold fill,
 ink border), in the two board themes and orientable to the mover's side.
 Pieces are Unicode chess glyphs with a dark or light outline, so fill contrast
-never decides legibility alone. The evaluation bar is an in-house component: a
-white and black fill split with a numeric label, never red-to-green, its fill
-transitioning over the slow 320ms board transition.
+never decides legibility alone. A small circle beside the board marks the
+player's own colour (white or black, or a neutral grey when the game has no
+player colour set), so the player always knows which side they are; the board
+defaults to that colour at the bottom and the player can flip it. The board
+renders large, as the brightest object on the screen. The move counter reads in
+full moves (a ply pair), not plies. The notation panel sits beside the board
+in a bordered, scrollable column that keeps about six moves visible and
+auto-scrolls the active move into view; the arrow keys step through the game
+(up and down jump to the first and last move). The advantage is shown as a
+signed number in the move card (a plus for White's edge, a minus for Black's),
+not as a separate bar.
 
 The route lists the game's mistakes in move order; selecting one shows its
 position, the move played versus the engine's best, the judgement and
