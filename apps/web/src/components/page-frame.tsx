@@ -49,13 +49,16 @@ function navEntryKey(entry: NavEntry): string {
 function ambientVariantFor(pathname: string): AmbientVariant {
   if (pathname === '/focus' || pathname.startsWith('/focus/')) return 'sparkle';
   if (pathname === '/report' || pathname.startsWith('/report/')) return 'pieces';
-  if (pathname === '/proof-sheet' || pathname.startsWith('/proof-sheet/')) return 'pieces';
-  if (pathname === '/transfer-gap' || pathname.startsWith('/transfer-gap/')) return 'pieces';
-  if (pathname === '/games' || pathname.startsWith('/games/')) return 'waves';
-  if (pathname === '/tournaments' || pathname.startsWith('/tournaments/')) return 'waves';
-  if (pathname === '/import' || pathname.startsWith('/import/')) return 'waves';
+  if (pathname === '/proof-sheet' || pathname.startsWith('/proof-sheet/')) return 'confetti';
+  if (pathname === '/transfer-gap' || pathname.startsWith('/transfer-gap/')) return 'rings';
+  if (pathname === '/games') return 'waves';
+  if (pathname.startsWith('/games/')) return 'pulse';
+  if (pathname === '/tournaments') return 'rays';
+  if (pathname.startsWith('/tournaments/')) return 'bubbles';
+  if (pathname === '/import' || pathname.startsWith('/import/')) return 'drops';
   if (pathname === '/upgrade' || pathname.startsWith('/upgrade/')) return 'orbit';
   if (pathname === '/settings' || pathname.startsWith('/settings/')) return 'grid';
+  if (pathname === '/player' || pathname.startsWith('/player/')) return 'clouds';
   return 'clouds';
 }
 
