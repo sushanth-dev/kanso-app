@@ -188,15 +188,24 @@ describe('GameReviewScreen', () => {
 
   test('a game with plies but no mistakes is still steppable', () => {
     renderScreen(gameFixture({ mistakes: [] }));
-    expect(screen.getByText(/you played/)).toHaveTextContent('Nf3');
+    expect(screen.getByText(/played/)).toHaveTextContent('Nf3');
     expect(screen.getByRole('button', { name: 'Next move' })).toBeEnabled();
   });
 
   test('shows the plain move line on a non-mistake ply', async () => {
     const { user } = renderScreen(gameFixture());
     await user.click(screen.getByRole('button', { name: /Nc3/ }));
-    expect(screen.getByText(/you played/)).toHaveTextContent('Nc3');
+    expect(screen.getByText(/played/)).toHaveTextContent('Nc3');
     expect(screen.queryByText(/best was/)).not.toBeInTheDocument();
+  });
+
+  test('attributes a move to the player or the opponent by colour', async () => {
+    const { user } = renderScreen(gameFixture());
+    // The board opens on the first mistake (ply 6, Qf6), Black's move: the player's own.
+    expect(screen.getByText(/you played/)).toHaveTextContent('Qf6');
+    // Step to ply 7 (Nc3), White's move: the opponent's (Alice).
+    await user.click(screen.getByRole('button', { name: /Nc3/ }));
+    expect(screen.getByText(/Alice played/)).toHaveTextContent('Nc3');
   });
 
   test('shows the mistake glyph in the notation panel', () => {
@@ -220,7 +229,7 @@ describe('GameReviewScreen', () => {
     expect(screen.getByText(/you played/)).toHaveTextContent('Qf6');
   });
 
-  test('ArrowRight and ArrowLeft step through the game, and no-op at the boundaries', async () => {
+  test('ArrowRight and ArrowLeft step through the game', async () => {
     const { user } = renderScreen(gameFixture());
     await user.click(screen.getByRole('button', { name: /^Nf3$/ }));
     await user.keyboard('{ArrowRight}');
@@ -229,9 +238,31 @@ describe('GameReviewScreen', () => {
     expect(screen.getByText(/you played/)).toHaveTextContent('Nf3');
   });
 
-  test("labels the evaluation as White's advantage", () => {
+  test('ArrowDown jumps to the last move and ArrowUp to the first', async () => {
+    const { user } = renderScreen(gameFixture());
+    await user.keyboard('{ArrowDown}');
+    expect(screen.getByText(/played/)).toHaveTextContent('Qxf3');
+    await user.keyboard('{ArrowUp}');
+    expect(screen.getByText(/played/)).toHaveTextContent('Nf3');
+  });
+
+  test('labels the evaluation as the advantage', () => {
     renderScreen(gameFixture());
-    expect(screen.getByText(/White's advantage/)).toBeInTheDocument();
+    expect(screen.getByText(/Advantage:/)).toBeInTheDocument();
+  });
+
+  test('shows a neutral circle and mover names when the player colour is unknown', () => {
+    renderScreen(gameFixture({ playerColor: null }));
+    expect(
+      screen.getByRole('img', { name: 'Your colour is not set for this game' }),
+    ).toBeInTheDocument();
+    // The board opens on the first mistake (ply 6, Qf6), Black's move: Mina.
+    expect(screen.getByText(/Mina played/)).toHaveTextContent('Qf6');
+  });
+
+  test('shows the move count in full moves, not plies', () => {
+    renderScreen(gameFixture());
+    expect(screen.getByText('Move 1 of 2')).toBeInTheDocument();
   });
 
   test("glosses the result from the player's side", () => {

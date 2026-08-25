@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AlertDialog } from '@astryxdesign/core/AlertDialog';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
@@ -12,7 +12,7 @@ import type { CctMove, GameDetail, Mistake, MovePly } from '../api/diagnosis-api
 import { diagnosisApi } from '../api/diagnosis-api.ts';
 import { ParticleReveal } from '../components/canvas-ui/ParticleReveal.tsx';
 import { Board, describePosition } from '../components/board.tsx';
-import { EvalBar, evalLabel } from '../components/eval-bar.tsx';
+import { evalLabel } from '../components/eval-bar.tsx';
 import {
   cctScanQueryOptions,
   explanationQueryOptions,
@@ -42,6 +42,11 @@ const MOTIF_LABEL: Record<string, string> = {
 /** The side to move at a ply's pre-move position, read off the FEN. */
 function movingColorOf(ply: MovePly): 'white' | 'black' {
   return ply.fenBefore.split(' ')[1] === 'b' ? 'black' : 'white';
+}
+
+/** The name of the side that made a move, falling back to a generic label. */
+function moverName(color: 'white' | 'black', game: GameDetail): string {
+  return color === 'white' ? (game.whiteName ?? 'White') : (game.blackName ?? 'Black');
 }
 
 /** The index into `plies` for the game's first recorded mistake, else 0. */
@@ -117,12 +122,23 @@ function Notation({
   onSelect: (ply: number) => void;
 }) {
   const mistakeByPly = new Map(mistakes.map((mistake) => [mistake.ply, mistake]));
+  const listRef = useRef<HTMLOListElement>(null);
+  useEffect(() => {
+    const current = listRef.current?.querySelector('[aria-pressed="true"]');
+    current?.scrollIntoView?.({ block: 'nearest' });
+  }, [currentPly.ply]);
   return (
-    <section aria-labelledby="notation-heading">
+    <section
+      aria-labelledby="notation-heading"
+      className="w-56 shrink-0 rounded-surface border border-border-strong p-4"
+    >
       <Heading level={2} id="notation-heading">
         Moves
       </Heading>
-      <ol className="mt-3 grid grid-cols-[auto_1fr_1fr] items-center gap-x-2 gap-y-1">
+      <ol
+        ref={listRef}
+        className="mt-3 grid max-h-60 grid-cols-[auto_1fr_1fr] items-center gap-x-2 gap-y-1 overflow-y-auto pr-1"
+      >
         {toMoveRows(plies).map((row) => (
           <li key={row.moveNumber} className="contents">
             <Text type="supporting" className="font-mono text-sm">
@@ -305,6 +321,12 @@ export function GameReviewScreen({ game }: { game: GameDetail }) {
       } else if (event.key === 'ArrowRight') {
         event.preventDefault();
         stepBy(1);
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        setPlyIndex(0);
+      } else if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        setPlyIndex(game.plies.length - 1);
       }
     }
     window.addEventListener('keydown', onKeyDown);
@@ -361,21 +383,41 @@ export function GameReviewScreen({ game }: { game: GameDetail }) {
       ) : (
         <>
           <section aria-label="Position" className="space-y-4">
-            <div className="flex max-w-md items-stretch gap-4">
-              <EvalBar
-                evaluation={
-                  currentMistake === undefined ? currentPly.evaluation : currentMistake.evalAfter
-                }
-                label={`White's advantage: ${evalLabel(currentMistake === undefined ? currentPly.evaluation : currentMistake.evalAfter)}`}
-              />
-              <Board
-                fen={currentPly.fenBefore}
-                from={currentPly.uci.slice(0, 2)}
-                to={currentPly.uci.slice(2, 4)}
-                bestFrom={currentPly.bestMoveUci?.slice(0, 2)}
-                bestTo={currentPly.bestMoveUci?.slice(2, 4)}
-                flipped={flipped}
-                label={`Position before move ${Math.ceil(currentPly.ply / 2)}, ${movingColorOf(currentPly)} to move. ${describePosition(currentPly.fenBefore)}`}
+            <div className="flex flex-wrap items-start gap-6">
+              <div className="flex max-w-lg items-stretch gap-4">
+                <Board
+                  fen={currentPly.fenBefore}
+                  from={currentPly.uci.slice(0, 2)}
+                  to={currentPly.uci.slice(2, 4)}
+                  bestFrom={currentPly.bestMoveUci?.slice(0, 2)}
+                  bestTo={currentPly.bestMoveUci?.slice(2, 4)}
+                  flipped={flipped}
+                  label={`Position before move ${Math.ceil(currentPly.ply / 2)}, ${movingColorOf(currentPly)} to move. ${describePosition(currentPly.fenBefore)}`}
+                />
+                <div className="flex flex-col items-center gap-2">
+                  <span
+                    aria-label={
+                      game.playerColor === null
+                        ? 'Your colour is not set for this game'
+                        : `You play ${game.playerColor}`
+                    }
+                    role="img"
+                    className={`block size-5 rounded-full border border-border-strong ${
+                      game.playerColor === 'white'
+                        ? 'bg-white'
+                        : game.playerColor === 'black'
+                          ? 'bg-ink'
+                          : 'bg-sunken'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              <Notation
+                plies={game.plies}
+                mistakes={game.mistakes}
+                currentPly={currentPly}
+                onSelect={selectPly}
               />
             </div>
 
@@ -398,18 +440,27 @@ export function GameReviewScreen({ game }: { game: GameDetail }) {
                 onClick={() => setFlipped((value) => !value)}
               />
               <Text type="supporting" className="font-mono text-sm">
-                Move {plyIndex + 1} of {game.plies.length}
+                Move {Math.ceil((plyIndex + 1) / 2)} of {Math.ceil(game.plies.length / 2)}
               </Text>
             </div>
 
             {currentMistake === undefined ? (
               <Card className="space-y-2">
                 <Text as="p" display="block">
-                  Move {Math.ceil(currentPly.ply / 2)}: you played{' '}
-                  <span className="font-mono">{currentPly.san}</span>.
+                  Move {Math.ceil(currentPly.ply / 2)}:{' '}
+                  {movingColorOf(currentPly) === game.playerColor ? (
+                    <>
+                      you played <span className="font-mono">{currentPly.san}</span>.
+                    </>
+                  ) : (
+                    <>
+                      {moverName(movingColorOf(currentPly), game)} played{' '}
+                      <span className="font-mono">{currentPly.san}</span>.
+                    </>
+                  )}
                 </Text>
                 <Text as="p" display="block" type="supporting" className="font-mono text-sm">
-                  White's advantage: {evalLabel(currentPly.evaluation)}
+                  Advantage: {evalLabel(currentPly.evaluation)}
                 </Text>
               </Card>
             ) : (
@@ -421,12 +472,22 @@ export function GameReviewScreen({ game }: { game: GameDetail }) {
                   </Text>
                 </div>
                 <Text as="p" display="block">
-                  Move {currentMistake.moveNumber}: you played{' '}
-                  <span className="font-mono">{currentMistake.moveSan}</span>; best was{' '}
-                  <span className="font-mono">{currentMistake.bestMoveSan}</span>.
+                  Move {currentMistake.moveNumber}:{' '}
+                  {currentMistake.movingColor === game.playerColor ? (
+                    <>
+                      you played <span className="font-mono">{currentMistake.moveSan}</span>; best
+                      was <span className="font-mono">{currentMistake.bestMoveSan}</span>.
+                    </>
+                  ) : (
+                    <>
+                      {moverName(currentMistake.movingColor, game)} played{' '}
+                      <span className="font-mono">{currentMistake.moveSan}</span>; best was{' '}
+                      <span className="font-mono">{currentMistake.bestMoveSan}</span>.
+                    </>
+                  )}
                 </Text>
                 <Text as="p" display="block" type="supporting" className="font-mono text-sm">
-                  White's advantage: {evalLabel(currentMistake.evalBefore)} →{' '}
+                  Advantage: {evalLabel(currentMistake.evalBefore)} →{' '}
                   {evalLabel(currentMistake.evalAfter)}
                 </Text>
                 {currentMistake.motif !== null ? (
@@ -443,13 +504,6 @@ export function GameReviewScreen({ game }: { game: GameDetail }) {
               </>
             ) : null}
           </section>
-
-          <Notation
-            plies={game.plies}
-            mistakes={game.mistakes}
-            currentPly={currentPly}
-            onSelect={selectPly}
-          />
         </>
       )}
     </div>
