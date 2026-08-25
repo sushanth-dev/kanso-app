@@ -3,6 +3,7 @@ import { accountApi, ApiRequestError } from './api/account-api.ts';
 import { diagnosisApi, type Stream } from './api/diagnosis-api.ts';
 import { focusApi } from './api/focus-api.ts';
 import { proofSheetApi } from './api/proof-sheet-api.ts';
+import { tournamentApi } from './api/tournament-api.ts';
 export const ME_QUERY_KEY = ['me'] as const;
 export const meQueryOptions = () =>
   queryOptions({
@@ -101,6 +102,38 @@ export const proofSheetsQueryOptions = () =>
   queryOptions({
     queryKey: ['proof-sheets'] as const,
     queryFn: () => proofSheetApi.listProofSheets(),
+    retry: false,
+    staleTime: 30_000,
+  });
+
+export const tournamentsQueryOptions = () =>
+  queryOptions({
+    queryKey: ['tournaments'] as const,
+    queryFn: () => tournamentApi.listTournaments(),
+    retry: false,
+    staleTime: 30_000,
+  });
+
+export const tournamentQueryOptions = (tournamentId: string) =>
+  queryOptions({
+    queryKey: ['tournament', tournamentId] as const,
+    queryFn: () => tournamentApi.getTournament(tournamentId),
+    retry: false,
+    staleTime: 30_000,
+  });
+
+export const roundDecayQueryOptions = (tournamentId: string) =>
+  queryOptions({
+    queryKey: ['round-decay', tournamentId] as const,
+    queryFn: () => tournamentApi.getRoundDecay(tournamentId),
+    retry: false,
+    staleTime: 30_000,
+  });
+
+export const transferGapQueryOptions = () =>
+  queryOptions({
+    queryKey: ['transfer-gap'] as const,
+    queryFn: () => diagnosisApi.getTransferGap(),
     retry: false,
     staleTime: 30_000,
   });

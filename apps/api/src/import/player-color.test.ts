@@ -40,4 +40,12 @@ describe('decidePlayerColor', () => {
       decidePlayerColor('T. Player', 'Player, Test', 'Player, T.'),
     ).toBeNull();
   });
+
+  test('matches a player who typed only their given name to a full PGN name', () => {
+    expect(decidePlayerColor('Test', 'Test Player', 'Player, 24')).toBe('white');
+  });
+
+  test('does not match a bare given name to a namesake with a different surname', () => {
+    expect(decidePlayerColor('Test', 'Test Player', 'Test Patel')).toBeNull();
+  });
 });
