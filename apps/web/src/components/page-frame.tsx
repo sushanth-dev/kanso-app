@@ -5,6 +5,7 @@ import { IconButton } from '@astryxdesign/core/IconButton';
 import { Link } from '@astryxdesign/core/Link';
 import { Text } from '@astryxdesign/core/Text';
 import { StatusMessage, useStatusMessage } from './status-message.tsx';
+import { Clouds } from './canvas-ui/Clouds.tsx';
 
 export interface PageFrameProps {
   children: ReactNode;
@@ -79,6 +80,20 @@ export function PageFrame({ children }: PageFrameProps) {
 
   return (
     <div className="flex min-h-screen flex-col font-ui">
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10">
+        <Clouds
+          className="h-full w-full"
+          color={[1, 1, 1]}
+          opacity={0.5}
+          cover={0.3}
+          shading={0.6}
+          shadow={0.12}
+          density={1.0}
+          speed={0.3}
+        >
+          <div className="shell-ambient-glow h-full w-full" />
+        </Clouds>
+      </div>
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-control focus:bg-accent focus:px-3 focus:py-2 focus:text-on-accent focus:outline-none focus:ring-2 focus:ring-focus"
