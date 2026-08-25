@@ -5,6 +5,7 @@ import { IconButton } from '@astryxdesign/core/IconButton';
 import { Link } from '@astryxdesign/core/Link';
 import { Text } from '@astryxdesign/core/Text';
 import { StatusMessage, useStatusMessage } from './status-message.tsx';
+import { AmbientCanvas, type AmbientVariant } from './ambient-canvas.tsx';
 
 export interface PageFrameProps {
   children: ReactNode;
@@ -44,6 +45,23 @@ function navEntryKey(entry: NavEntry): string {
   return isGroup(entry) ? entry.label : entry.to;
 }
 
+/** One distinct ambient motif per authenticated route (ST-085). */
+function ambientVariantFor(pathname: string): AmbientVariant {
+  if (pathname === '/focus' || pathname.startsWith('/focus/')) return 'sparkle';
+  if (pathname === '/report' || pathname.startsWith('/report/')) return 'pieces';
+  if (pathname === '/proof-sheet' || pathname.startsWith('/proof-sheet/')) return 'confetti';
+  if (pathname === '/transfer-gap' || pathname.startsWith('/transfer-gap/')) return 'rings';
+  if (pathname === '/games') return 'waves';
+  if (pathname.startsWith('/games/')) return 'pulse';
+  if (pathname === '/tournaments') return 'rays';
+  if (pathname.startsWith('/tournaments/')) return 'bubbles';
+  if (pathname === '/import' || pathname.startsWith('/import/')) return 'drops';
+  if (pathname === '/upgrade' || pathname.startsWith('/upgrade/')) return 'orbit';
+  if (pathname === '/settings' || pathname.startsWith('/settings/')) return 'grid';
+  if (pathname === '/player' || pathname.startsWith('/player/')) return 'clouds';
+  return 'clouds';
+}
+
 export function PageFrame({ children }: PageFrameProps) {
   const pathname = useLocation({ select: (location) => location.pathname });
   const { flash, markPresented, clearMessage } = useStatusMessage();
@@ -79,6 +97,9 @@ export function PageFrame({ children }: PageFrameProps) {
 
   return (
     <div className="flex min-h-screen flex-col font-ui">
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10">
+        <AmbientCanvas variant={ambientVariantFor(pathname)} className="h-full w-full" />
+      </div>
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-control focus:bg-accent focus:px-3 focus:py-2 focus:text-on-accent focus:outline-none focus:ring-2 focus:ring-focus"

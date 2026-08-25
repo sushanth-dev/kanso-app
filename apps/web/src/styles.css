@@ -72,12 +72,32 @@ a {
   transition-timing-function: var(--kanso-motion-ease-standard);
 }
 .press {
+  position: relative;
+  overflow: hidden;
   transition-property: color, background-color, border-color, box-shadow, transform;
   transition-duration: var(--kanso-motion-duration-fast);
   transition-timing-function: var(--kanso-motion-ease-standard);
 }
 .press:active:not(:disabled) {
   transform: scale(0.98);
+}
+/* A soft light sweep across the control on hover, so the action feels tactile.
+   Mirrors the Canvas UI button treatment without the html-in-canvas flag. */
+.press::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.35) 50%,
+    transparent 60%
+  );
+  transform: translateX(-120%);
+  transition: transform var(--kanso-motion-duration-slow) var(--kanso-motion-ease-standard);
+}
+.press:hover:not(:disabled)::after {
+  transform: translateX(120%);
 }
 @keyframes reveal-in {
   from {
@@ -113,24 +133,21 @@ a {
 .stagger-in > :nth-child(n + 7) {
   animation-delay: 225ms;
 }
-/* Flagless backdrop for the auth screens: the html-in-canvas Clouds engine
-   (apps/web/src/components/canvas-ui) only paints behind Chrome's experimental
-   canvas-draw-element flag, so without it AuthAmbient's children are the only
-   thing the .astryx-card glass blur has to diffuse. A flat page colour makes
-   that blur invisible in every default browser. */
-.auth-ambient-glow {
-  background:
-    radial-gradient(
-      ellipse 80% 65% at 20% 15%,
-      color-mix(in srgb, var(--kanso-color-action-primary-default) 38%, transparent),
-      transparent
-    ),
-    radial-gradient(
-      ellipse 75% 60% at 85% 90%,
-      color-mix(in srgb, var(--kanso-color-action-primary-default) 24%, transparent),
-      transparent
-    ),
-    var(--kanso-color-surface-page);
+/* Animated focus ring for text inputs: a teal glow sweeps around the field so
+   the focused input reads as alive, not just outlined. Mirrors the Canvas UI
+   input treatment without the html-in-canvas flag. Only runs while focused. */
+.input-focus-anim:focus {
+  border-color: var(--kanso-color-focus-ring);
+  animation: input-focus-pulse 2.4s ease-in-out infinite;
+}
+@keyframes input-focus-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px var(--kanso-color-focus-ring);
+  }
+  50% {
+    box-shadow: 0 0 0 2px var(--kanso-color-action-primary-default);
+  }
 }
 
 .glass {
