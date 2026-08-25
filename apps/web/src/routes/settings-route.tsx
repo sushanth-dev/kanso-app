@@ -36,7 +36,7 @@ export function SettingsScreen({ me, signOut }: SettingsScreenProps) {
           Your account
         </Heading>
         <Text as="p" display="block" className="font-display text-lg leading-tight">
-          {me.name}
+          {me.player.displayName}
         </Text>
       </section>
 

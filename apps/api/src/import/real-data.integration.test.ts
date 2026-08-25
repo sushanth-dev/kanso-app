@@ -36,14 +36,14 @@ afterAll(async () => {
   await harness?.close();
 });
 
-async function seedPlayer(displayName = 'Sushanth Kamabathula'): Promise<string> {
+async function seedPlayer(name = 'Sushanth Kamabathula'): Promise<string> {
   await harness.db
     .insert(user)
-    .values({ id: OWNER, name: 'Owner', email: 'owner@example.com', emailVerified: true })
+    .values({ id: OWNER, name, email: 'owner@example.com', emailVerified: true })
     .onConflictDoNothing();
   const [row] = await harness.db
     .insert(player)
-    .values({ ownerUserId: OWNER, displayName })
+    .values({ ownerUserId: OWNER, displayName: name })
     .returning({ id: player.id });
   return row!.id;
 }

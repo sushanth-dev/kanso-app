@@ -306,16 +306,22 @@ stays.
 The account and its settings are one page at `/settings` (ST-088), because
 one account became one player (ST-072) and left each page thinner than its
 reason for existing. It reads as one page, not two stapled together: an H1
-"Your account" over the identity block (`me.name`), then the settings
-sections, Account details (email, See plans), Sign out, and Change password,
-each under its own H2, the ladder both pages already used internally. The
-former player card is a bare standing section: the streak and level badges
-the card already carried, plus the "Edit player" link, and nothing else. The
-diagnosis line and the six action links are gone with the card; the navbar
-(ST-087) is the way to every surface. The `/account` path prefix is gone
+"Your account" over the identity block (the username, `me.player.displayName`),
+then the settings sections, Account details (email, See plans), Sign out, and
+Change password, each under its own H2, the ladder both pages already used
+internally. The former player card is a bare standing section: the streak and
+level badges the card already carried, plus the "Edit player" link, and nothing
+else. The diagnosis line and the six action links are gone with the card; the
+navbar (ST-087) is the way to every surface. The `/account` path prefix is gone
 entirely: every authenticated route is top-level (`/settings`, `/report`,
 `/focus`, `/proof-sheet`, `/games`, `/import`, `/upgrade`, `/player`), and no
 `/account` URL remains.
+
+The username is the player's public handle: what a kid shows to other players
+instead of their real name. It is set in the player form and must be unique
+across accounts (ST-084). The real name (`me.name`) is kept for guardian-facing
+and legal contexts (consent emails, guardian confirmations) and for matching
+games against PGN tags and crosstables; it is never the face of the product.
 
 Sign-up creates the player from the account name, so the page always has a
 standing to show. A gated minor never reaches this surface because the router
@@ -326,9 +332,11 @@ redirects the `consent_required` answer to the waiting screen.
 The player form is one `Card` at `/account/players/new` and
 `/account/players/$playerId/edit`, built from `FormLayout`, `Field`, and
 `TextInput`. It renders exactly the `CreatePlayer` and `UpdatePlayer` fields,
-grouped into three labelled sections: Identity (display name, birth year),
+grouped into three labelled sections: Identity (username, birth year),
 Federation (FIDE and USCF ids and ratings), and Platforms (Chess.com and
-Lichess usernames). The owner is the session, never a field.
+Lichess usernames). The owner is the session, never a field. The username is
+the public handle (ST-084): it must be unique across accounts, and a taken
+name answers `409 username_taken` rather than silently overwriting.
 
 A muted line under the heading states the consent model: consent is confirmed
 from the guardian email entered at sign-up, and the form records a birth year,
@@ -420,7 +428,7 @@ asks for the stream explicitly through the `StreamToggle`; tournament by name
 states "Imports tournament results, not moves." The username is validated
 client-side against the provider's charset before any request; a PGN file is
 read as text, never rendered; the tournament player name is prefilled from the
-player.
+real name (`me.name`), which is what matches a crosstable (ST-084).
 
 The import has six outcomes, never one generic failure. A username success
 names the count with a rejected-games sentence appended when any game was

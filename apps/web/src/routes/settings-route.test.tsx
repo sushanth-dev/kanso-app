@@ -65,7 +65,7 @@ describe('SettingsScreen', () => {
   test('renders one page: identity, streak, and settings sections under one H1', () => {
     renderSettings();
     expect(screen.getByRole('heading', { name: 'Your account', level: 1 })).toBeVisible();
-    expect(screen.getByText('Player')).toBeVisible();
+    expect(screen.getByText('Mina')).toBeVisible();
     expect(screen.getByText('0-day streak')).toBeVisible();
     expect(screen.getByText('Level 1')).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Account details', level: 2 })).toBeVisible();

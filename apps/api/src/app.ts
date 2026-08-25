@@ -27,6 +27,7 @@ import { httpGameFetcher, type GameFetcher } from './import/game-fetcher.ts';
 import { mountListGames } from './games/list-games.ts';
 import { mountGetGame } from './games/get-game.ts';
 import { mountSetGameColor } from './games/set-game-color.ts';
+import { mountDeleteGame } from './games/delete-game.ts';
 import { mountListTournaments } from './tournaments/list-tournaments.ts';
 import { mountGetTournament } from './tournaments/get-tournament.ts';
 import { mountRoundDecay } from './tournaments/round-decay.ts';
@@ -51,6 +52,7 @@ import {
 import { mountRazorpayWebhook } from './billing/webhook.ts';
 import { mountExplanation, mountSocraticQuestion } from './coaching/explanation.ts';
 import { mountCctScan } from './coaching/cct.ts';
+import { mountQueueAnalysis } from './analysis/queue-analysis.ts';
 import { httpGeminiClient, geminiConfigFromEnv, type AiClient } from './coaching/gemini.ts';
 import { log } from './logging.ts';
 
@@ -307,6 +309,8 @@ export function createApp({
     mountListGames(app, { db, getSession: effectiveGetSession });
     mountGetGame(app, { db, getSession: effectiveGetSession });
     mountSetGameColor(app, { db, getSession: effectiveGetSession });
+    mountDeleteGame(app, { db, getSession: effectiveGetSession });
+    mountQueueAnalysis(app, { db, getSession: effectiveGetSession });
     mountListTournaments(app, { db, getSession: effectiveGetSession });
     mountGetTournament(app, { db, getSession: effectiveGetSession });
     mountRoundDecay(app, { db, getSession: effectiveGetSession });
