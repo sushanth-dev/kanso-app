@@ -159,15 +159,20 @@ export function isNameMatch(user: string, pgn: string): boolean {
   // Path A: the prototype's subset match, over a tokenizer that now strips
   // brackets, titles, and identifiers. Order does not matter here, which is
   // what catches a reversed name with no comma. It is anchored on the surname:
-  // a comma-bearing name states its surname, and that surname must appear
-  // contiguously in the other name, or the two are different people who happen
-  // to share a given name and a surname fragment.
+  // the user's own surname must appear contiguously in the PGN name. When the
+  // PGN name is the smaller set, its surname must also appear in the user's
+  // name. A user who typed a real surname must not match a namesake whose
+  // compound surname merely contains it as a fragment ("Magnus Berg" vs
+  // "Van der Berg, Magnus" are two people, DEBT-007), so the user-subset
+  // branch only relaxes the symmetric surname check for a bare given name.
   const userIsSubset = Array.from(userTokens).every((token) => pgnTokens.has(token));
   const pgnIsSubset = Array.from(pgnTokens).every((token) => userTokens.has(token));
+  const mineInPgn = surnameAppearsContiguously(mine.surname, Array.from(pgnTokens));
+  const theirsInUser = surnameAppearsContiguously(theirs.surname, Array.from(userTokens));
+  const userIsBareGiven = mine.given.length === 0;
   if (
-    (userIsSubset || pgnIsSubset) &&
-    surnameAppearsContiguously(mine.surname, Array.from(pgnTokens)) &&
-    surnameAppearsContiguously(theirs.surname, Array.from(userTokens))
+    (userIsSubset && mineInPgn && (theirsInUser || userIsBareGiven)) ||
+    (pgnIsSubset && mineInPgn && theirsInUser)
   ) {
     return true;
   }

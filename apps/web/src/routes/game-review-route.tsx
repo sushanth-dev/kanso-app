@@ -130,14 +130,14 @@ function Notation({
   return (
     <section
       aria-labelledby="notation-heading"
-      className="w-56 shrink-0 rounded-surface border border-border-strong p-4"
+      className="flex h-[480px] w-56 shrink-0 flex-col rounded-surface border border-border-strong p-4"
     >
       <Heading level={2} id="notation-heading">
         Moves
       </Heading>
       <ol
         ref={listRef}
-        className="mt-3 grid max-h-60 grid-cols-[auto_1fr_1fr] items-center gap-x-2 gap-y-1 overflow-y-auto pr-1"
+        className="mt-3 grid flex-1 grid-cols-[auto_1fr_1fr] items-start gap-x-2 gap-y-1 overflow-y-auto py-1 pr-1"
       >
         {toMoveRows(plies).map((row) => (
           <li key={row.moveNumber} className="contents">
@@ -281,13 +281,36 @@ export function GameReviewScreen({ game }: { game: GameDetail }) {
   const navigate = useNavigate();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [colorError, setColorError] = useState<string | null>(null);
   // Default the board to the player's own colour at the bottom; the player can
   // flip it manually rather than the board auto-flipping to the side to move.
   const [flipped, setFlipped] = useState(() => game.playerColor === 'black');
 
+  // When the player sets their colour (the game starts undecided), orient the
+  // board to their side. A manual flip is left alone while the colour is still
+  // unknown.
+  useEffect(() => {
+    if (game.playerColor !== null) setFlipped(game.playerColor === 'black');
+  }, [game.playerColor]);
+
   const deleteMutation = useMutation({
     mutationFn: () => diagnosisApi.deleteGame(game.id),
   });
+
+  const setColorMutation = useMutation({
+    mutationFn: (playerColor: 'white' | 'black') => diagnosisApi.setGameColor(game.id, playerColor),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['game', game.id] });
+      void queryClient.invalidateQueries({ queryKey: ['games'] });
+    },
+  });
+
+  const onSetColor = (playerColor: 'white' | 'black') => {
+    setColorError(null);
+    setColorMutation.mutate(playerColor, {
+      onError: () => setColorError('Your colour could not be saved. Please try again.'),
+    });
+  };
 
   const onConfirmDelete = async () => {
     setDeleteError(null);
@@ -356,6 +379,34 @@ export function GameReviewScreen({ game }: { game: GameDetail }) {
             You {gloss}.
           </Text>
         ) : null}
+        {game.playerColor === null ? (
+          <div className="space-y-2">
+            <Text as="p" display="block" type="supporting">
+              Your side was not recorded for this game. Which colour were you?
+            </Text>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                label="I was White"
+                variant="secondary"
+                onClick={() => onSetColor('white')}
+                isDisabled={setColorMutation.isPending}
+                className="press"
+              />
+              <Button
+                label="I was Black"
+                variant="secondary"
+                onClick={() => onSetColor('black')}
+                isDisabled={setColorMutation.isPending}
+                className="press"
+              />
+            </div>
+            {colorError !== null ? (
+              <Text as="p" display="block" type="supporting" className="text-danger">
+                {colorError}
+              </Text>
+            ) : null}
+          </div>
+        ) : null}
         <AlertDialog
           isOpen={isDeleteOpen}
           onOpenChange={setIsDeleteOpen}
@@ -384,7 +435,7 @@ export function GameReviewScreen({ game }: { game: GameDetail }) {
         <>
           <section aria-label="Position" className="space-y-4">
             <div className="flex flex-wrap items-start gap-6">
-              <div className="flex max-w-lg items-stretch gap-4">
+              <div className="flex w-[480px] max-w-full items-stretch gap-4">
                 <Board
                   fen={currentPly.fenBefore}
                   from={currentPly.uci.slice(0, 2)}

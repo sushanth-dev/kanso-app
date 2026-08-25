@@ -318,13 +318,24 @@ describe('GameReviewScreen', () => {
     await waitFor(() => expect(deleteGame).toHaveBeenCalledWith(gameId));
   });
 
-  test('cancelling the delete dialog does not call deleteGame', async () => {
-    const { user } = renderScreen(gameFixture());
-    const deleteGame = vi.spyOn(diagnosisApi, 'deleteGame').mockResolvedValue(undefined);
+  test('offers to set the player colour when it is undecided', async () => {
+    const { user } = renderScreen(gameFixture({ playerColor: null }));
+    const setGameColor = vi
+      .spyOn(diagnosisApi, 'setGameColor')
+      .mockResolvedValue(gameFixture({ playerColor: 'white' }));
 
-    await user.click(screen.getByRole('button', { name: 'Delete game' }));
-    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(
+      screen.getByText('Your side was not recorded for this game. Which colour were you?'),
+    ).toBeInTheDocument();
 
-    expect(deleteGame).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'I was White' }));
+    await waitFor(() => expect(setGameColor).toHaveBeenCalledWith(gameId, 'white'));
+  });
+
+  test('does not offer to set the colour when it is already known', () => {
+    renderScreen(gameFixture());
+    expect(
+      screen.queryByText('Your side was not recorded for this game. Which colour were you?'),
+    ).not.toBeInTheDocument();
   });
 });
