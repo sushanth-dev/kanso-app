@@ -126,8 +126,8 @@ describe('PlayerFormScreen', () => {
     const api = accountApi({ updateMe });
     const { user } = renderScreen({ api });
 
-    await user.clear(screen.getByLabelText('Display name'));
-    await user.type(screen.getByLabelText('Display name'), 'Mina');
+    await user.clear(screen.getByLabelText('Username'));
+    await user.type(screen.getByLabelText('Username'), 'Mina');
     await user.clear(screen.getByLabelText('Birth year'));
     await user.type(screen.getByLabelText('Birth year'), '2013');
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
@@ -150,8 +150,8 @@ describe('PlayerFormScreen', () => {
       );
     const { user } = renderScreen({ api: accountApi({ updateMe }) });
 
-    await user.clear(screen.getByLabelText('Display name'));
-    await user.type(screen.getByLabelText('Display name'), 'Mina');
+    await user.clear(screen.getByLabelText('Username'));
+    await user.type(screen.getByLabelText('Username'), 'Mina');
     await user.clear(screen.getByLabelText('Birth year'));
     await user.type(screen.getByLabelText('Birth year'), '2013');
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
@@ -159,25 +159,46 @@ describe('PlayerFormScreen', () => {
     expect(
       (await screen.findAllByText('Birth year must be between 1900 and 2100.')).length,
     ).toBeGreaterThan(0);
-    expect(screen.getByLabelText('Display name')).toHaveValue('Mina');
+    expect(screen.getByLabelText('Username')).toHaveValue('Mina');
     expect(screen.getByLabelText('Birth year')).toHaveValue(2013);
   });
 
-  test('does not map field issues for a non-400 status', async () => {
+  test('surfaces the taken message on a 409 and does not leak server details', async () => {
     const updateMe = vi
       .fn()
       .mockRejectedValue(
         new ApiRequestError(
           409,
-          'conflict',
-          [{ path: 'birthYear', message: 'SERVER DETAIL SHOULD NOT LEAK' }],
-          'Conflict.',
+          'username_taken',
+          [{ path: 'displayName', message: 'SERVER DETAIL SHOULD NOT LEAK' }],
+          'That username is already taken.',
         ),
       );
     const { user } = renderScreen({ api: accountApi({ updateMe }) });
 
-    await user.clear(screen.getByLabelText('Display name'));
-    await user.type(screen.getByLabelText('Display name'), 'Mina');
+    await user.clear(screen.getByLabelText('Username'));
+    await user.type(screen.getByLabelText('Username'), 'Mina');
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    expect(await screen.findByText('That username is already taken.')).toBeVisible();
+    expect(screen.queryByText('SERVER DETAIL SHOULD NOT LEAK')).not.toBeInTheDocument();
+  });
+
+  test('does not map field issues for an unknown non-400 status', async () => {
+    const updateMe = vi
+      .fn()
+      .mockRejectedValue(
+        new ApiRequestError(
+          500,
+          'internal',
+          [{ path: 'birthYear', message: 'SERVER DETAIL SHOULD NOT LEAK' }],
+          'Internal.',
+        ),
+      );
+    const { user } = renderScreen({ api: accountApi({ updateMe }) });
+
+    await user.clear(screen.getByLabelText('Username'));
+    await user.type(screen.getByLabelText('Username'), 'Mina');
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     expect(
@@ -195,8 +216,8 @@ describe('PlayerFormScreen', () => {
     queryClient.setQueryData(ME_QUERY_KEY, meFixture());
     const removeSpy = vi.spyOn(queryClient, 'removeQueries');
 
-    await user.clear(screen.getByLabelText('Display name'));
-    await user.type(screen.getByLabelText('Display name'), 'Mina');
+    await user.clear(screen.getByLabelText('Username'));
+    await user.type(screen.getByLabelText('Username'), 'Mina');
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: '/sign-in' }));
@@ -212,12 +233,12 @@ describe('PlayerFormScreen', () => {
       .mockRejectedValue(new ApiRequestError(404, 'not_found', undefined, 'No such player.'));
     const { user } = renderScreen({ api: accountApi({ updateMe }) });
 
-    await user.clear(screen.getByLabelText('Display name'));
-    await user.type(screen.getByLabelText('Display name'), 'Mina');
+    await user.clear(screen.getByLabelText('Username'));
+    await user.type(screen.getByLabelText('Username'), 'Mina');
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     expect(await screen.findByText('No player for this account.')).toBeVisible();
-    expect(screen.getByLabelText('Display name')).toHaveValue('Mina');
+    expect(screen.getByLabelText('Username')).toHaveValue('Mina');
   });
 
   test('keeps submit disabled and blocks duplicate mutations until invalidation resolves', async () => {
@@ -229,8 +250,8 @@ describe('PlayerFormScreen', () => {
     const { user, queryClient } = renderScreen({ api: accountApi({ updateMe }) });
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockReturnValue(pending);
 
-    await user.clear(screen.getByLabelText('Display name'));
-    await user.type(screen.getByLabelText('Display name'), 'Mina');
+    await user.clear(screen.getByLabelText('Username'));
+    await user.type(screen.getByLabelText('Username'), 'Mina');
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ME_QUERY_KEY }));
@@ -256,8 +277,8 @@ describe('PlayerFormScreen', () => {
     const { user, queryClient } = renderScreen({ api: accountApi({ updateMe }), navigate });
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockReturnValue(pending);
 
-    await user.clear(screen.getByLabelText('Display name'));
-    await user.type(screen.getByLabelText('Display name'), 'Mina');
+    await user.clear(screen.getByLabelText('Username'));
+    await user.type(screen.getByLabelText('Username'), 'Mina');
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => {
@@ -276,7 +297,7 @@ describe('PlayerFormScreen', () => {
 
   test('pre-fills the account player', () => {
     renderScreen();
-    expect(screen.getByLabelText('Display name')).toHaveValue('Mina');
+    expect(screen.getByLabelText('Username')).toHaveValue('Mina');
     expect(screen.getByLabelText('Birth year')).toHaveValue(2013);
   });
 });

@@ -145,6 +145,28 @@ describe('the signed-in user and their player', () => {
     expect(meBody.player.lichessUsername).toBe('alice-new');
   });
 
+  test('PATCH /me rejects a display name another account already holds', async () => {
+    const aliceCookie = await signIn(EMAIL_A);
+    await signIn(EMAIL_B);
+    const a = app();
+
+    // Alice takes the name "bob" that Bob's player already holds.
+    const res = await a.request('/me', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json', cookie: aliceCookie },
+      body: JSON.stringify({ displayName: 'bob' }),
+    });
+    expect(res.status).toBe(409);
+    const body = (await res.json()) as { code: string; message: string };
+    expect(body.code).toBe('username_taken');
+    expect(body.message).toBe('That username is already taken.');
+
+    // Alice's own name is unchanged.
+    const me = await a.request('/me', { headers: { cookie: aliceCookie } });
+    const meBody = (await me.json()) as { player: { displayName: string } };
+    expect(meBody.player.displayName).toBe('alice');
+  });
+
   test('the account routes answer 401 with no cookie', async () => {
     const a = app();
     const me = await a.request('/me');

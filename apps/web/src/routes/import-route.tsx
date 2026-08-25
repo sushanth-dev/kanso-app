@@ -155,7 +155,7 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
   const [stream, setStream] = useState<Stream>('online');
   const [tournamentName, setTournamentName] = useState('');
   const [tournamentError, setTournamentError] = useState<string | undefined>(undefined);
-  const [playerName, setPlayerName] = useState(player.displayName);
+  const [playerName, setPlayerName] = useState(me.name);
   const [playerNameError, setPlayerNameError] = useState<string | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
   const [outcome, setOutcome] = useState<ImportOutcome | null>(null);

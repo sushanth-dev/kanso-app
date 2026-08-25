@@ -315,7 +315,7 @@ describe('ImportScreen', () => {
     renderScreen({ navigate });
     await user.selectOptions(screen.getByLabelText('Method'), 'uscf');
     await user.type(screen.getByLabelText('Tournament name'), 'State Champs');
-    expect(screen.getByLabelText('Player name')).toHaveValue('Mina');
+    expect(screen.getByLabelText('Player name')).toHaveValue('Player');
     await user.click(screen.getByRole('button', { name: 'Import games' }));
     expect(await screen.findByText('Imported 3 games.')).toBeVisible();
     expect(
@@ -324,7 +324,7 @@ describe('ImportScreen', () => {
     expect(startImport).toHaveBeenCalledWith({
       source: 'uscf',
       tournamentName: 'State Champs',
-      playerName: 'Mina',
+      playerName: 'Player',
     });
     expect(navigate).not.toHaveBeenCalled();
   });
@@ -338,7 +338,7 @@ describe('ImportScreen', () => {
     await user.selectOptions(screen.getByLabelText('Method'), 'uscf');
     await user.type(screen.getByLabelText('Tournament name'), 'State Champs');
     await user.click(screen.getByRole('button', { name: 'Import games' }));
-    expect(await screen.findByText('No games found for Mina in State Champs.')).toBeVisible();
+    expect(await screen.findByText('No games found for Player in State Champs.')).toBeVisible();
   });
 
   test('reports an unknown tournament name on 422', async () => {
