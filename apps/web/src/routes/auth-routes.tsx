@@ -9,7 +9,7 @@ import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { Link } from '@astryxdesign/core/Link';
 import { authClient } from '../auth-client.ts';
-import { Clouds } from '../components/canvas-ui/Clouds.tsx';
+import { AmbientCanvas } from '../components/ambient-canvas.tsx';
 import { PasswordInput } from '../components/password-input.tsx';
 import { StatusMessage } from '../components/status-message.tsx';
 import { TextInput } from '../components/text-input.tsx';
@@ -45,23 +45,10 @@ function isMinorDob(dateOfBirth: string): boolean {
   return new Date() < thirteenthBirthday;
 }
 
-const AMBIENT_CLOUD_COLOR: [number, number, number] = [1, 1, 1];
-
 export function AuthAmbient() {
   return (
     <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10">
-      <Clouds
-        className="h-full w-full"
-        color={AMBIENT_CLOUD_COLOR}
-        opacity={0.7}
-        cover={0.35}
-        shading={0.6}
-        shadow={0.12}
-        density={1.2}
-        speed={0.35}
-      >
-        <div className="auth-ambient-glow h-full w-full" />
-      </Clouds>
+      <AmbientCanvas variant="clouds" className="h-full w-full" />
     </div>
   );
 }

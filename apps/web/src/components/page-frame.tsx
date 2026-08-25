@@ -5,7 +5,7 @@ import { IconButton } from '@astryxdesign/core/IconButton';
 import { Link } from '@astryxdesign/core/Link';
 import { Text } from '@astryxdesign/core/Text';
 import { StatusMessage, useStatusMessage } from './status-message.tsx';
-import { Clouds } from './canvas-ui/Clouds.tsx';
+import { AmbientCanvas, type AmbientVariant } from './ambient-canvas.tsx';
 
 export interface PageFrameProps {
   children: ReactNode;
@@ -45,6 +45,20 @@ function navEntryKey(entry: NavEntry): string {
   return isGroup(entry) ? entry.label : entry.to;
 }
 
+/** One distinct ambient motif per authenticated route (ST-085). */
+function ambientVariantFor(pathname: string): AmbientVariant {
+  if (pathname === '/focus' || pathname.startsWith('/focus/')) return 'sparkle';
+  if (pathname === '/report' || pathname.startsWith('/report/')) return 'pieces';
+  if (pathname === '/proof-sheet' || pathname.startsWith('/proof-sheet/')) return 'pieces';
+  if (pathname === '/transfer-gap' || pathname.startsWith('/transfer-gap/')) return 'pieces';
+  if (pathname === '/games' || pathname.startsWith('/games/')) return 'waves';
+  if (pathname === '/tournaments' || pathname.startsWith('/tournaments/')) return 'waves';
+  if (pathname === '/import' || pathname.startsWith('/import/')) return 'waves';
+  if (pathname === '/upgrade' || pathname.startsWith('/upgrade/')) return 'orbit';
+  if (pathname === '/settings' || pathname.startsWith('/settings/')) return 'grid';
+  return 'clouds';
+}
+
 export function PageFrame({ children }: PageFrameProps) {
   const pathname = useLocation({ select: (location) => location.pathname });
   const { flash, markPresented, clearMessage } = useStatusMessage();
@@ -81,18 +95,7 @@ export function PageFrame({ children }: PageFrameProps) {
   return (
     <div className="flex min-h-screen flex-col font-ui">
       <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10">
-        <Clouds
-          className="h-full w-full"
-          color={[1, 1, 1]}
-          opacity={0.5}
-          cover={0.3}
-          shading={0.6}
-          shadow={0.12}
-          density={1.0}
-          speed={0.3}
-        >
-          <div className="shell-ambient-glow h-full w-full" />
-        </Clouds>
+        <AmbientCanvas variant={ambientVariantFor(pathname)} className="h-full w-full" />
       </div>
       <a
         href="#main-content"
