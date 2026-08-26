@@ -70,7 +70,7 @@ describe('AuthScreen sign-in', () => {
     });
   });
 
-  test('navigates to /settings only when the response has no error', async () => {
+  test('navigates to /report only when the response has no error', async () => {
     const { user, navigate, queryClient } = renderSignIn();
     queryClient.setQueryData(ME_QUERY_KEY, { name: 'Previous account' });
     signInEmail.mockResolvedValue({ data: { user: {} }, error: null });
@@ -79,7 +79,7 @@ describe('AuthScreen sign-in', () => {
     await user.type(screen.getByLabelText('Password'), 'not-the-password');
     await user.click(screen.getByRole('button', { name: 'Sign in' }));
 
-    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: '/settings' }));
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: '/report' }));
     expect(queryClient.getQueryData(ME_QUERY_KEY)).toBeUndefined();
   });
 
@@ -206,7 +206,7 @@ describe('AuthScreen sign-up', () => {
           password: 'a-secure-password',
         }),
       );
-      expect(navigate).toHaveBeenCalledWith({ to: '/settings' });
+      expect(navigate).toHaveBeenCalledWith({ to: '/report' });
     });
     expect(queryClient.getQueryData(ME_QUERY_KEY)).toBeUndefined();
   });

@@ -95,15 +95,19 @@ describe('ImportScreen', () => {
     expect(screen.getByText('Imports the last 12 months of online games.')).toBeVisible();
   });
 
-  test('offers all four import methods in order', () => {
-    renderScreen();
-    const options = screen.getAllByRole('option').map((option) => option.textContent);
-    expect(options).toEqual([
-      'Chess.com username',
-      'Lichess username',
-      'PGN upload',
-      'Tournament by name',
-    ]);
+  test('prefills the username from the default when the method is picked', async () => {
+    const user = userEvent.setup();
+    renderScreen({
+      me: {
+        ...me,
+        player: { ...ownedPlayer, chesscomUsername: 'mina-chess', lichessUsername: 'mina-lichess' },
+      },
+    });
+
+    expect(screen.getByLabelText('Username')).toHaveValue('mina-chess');
+
+    await user.selectOptions(screen.getByLabelText('Method'), 'lichess');
+    expect(screen.getByLabelText('Username')).toHaveValue('mina-lichess');
   });
 
   test('states the stream per method', async () => {

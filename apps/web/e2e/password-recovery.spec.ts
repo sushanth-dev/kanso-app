@@ -39,7 +39,8 @@ async function signUp(page: Page, email: string, password: string) {
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByLabel('Confirm password').fill(password);
   await page.getByRole('button', { name: 'Sign up' }).click();
-  await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
+  // Sign-up lands on the report (ST-092).
+  await expect(page.getByRole('heading', { name: 'Tournament report', exact: true })).toBeVisible();
 }
 
 async function signOut(page: Page) {
@@ -82,7 +83,7 @@ test('resets a forgotten password through the emailed link', async ({ page }) =>
   await signIn(page, email, oldPassword);
   await expect(page.getByText(/email or password was not accepted/i)).toBeVisible();
   await signIn(page, email, newPassword);
-  await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tournament report', exact: true })).toBeVisible();
 });
 
 test('a bad reset link reads as no longer available', async ({ page }) => {
@@ -104,9 +105,10 @@ test('a signed-in user changes their password from the settings surface', async 
   await signUp(page, email, oldPassword);
 
   // The change-password form lives on the merged account and settings page
-  // (ST-088).
+  // (ST-088); its inputs reveal behind a button (ST-092).
   await openSettingsViaNav(page);
   await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Change password' }).click();
   await page.getByLabel('Current password').fill(oldPassword);
   await page.getByLabel('New password', { exact: true }).fill(newPassword);
   await page.getByLabel('Confirm new password').fill(newPassword);
@@ -117,5 +119,5 @@ test('a signed-in user changes their password from the settings surface', async 
   await signIn(page, email, oldPassword);
   await expect(page.getByText(/email or password was not accepted/i)).toBeVisible();
   await signIn(page, email, newPassword);
-  await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tournament report', exact: true })).toBeVisible();
 });

@@ -261,24 +261,21 @@ describe('ReportRoute', () => {
     vi.useRealTimers();
   });
 
-  test('shows a live analysing state with the games-analysed count', async () => {
+  test('links to import from the no-games empty state', async () => {
     vi.spyOn(diagnosisApi, 'getReport').mockRejectedValue(reportNotFound);
     vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
-      games: [
-        gameFixture({ id: 'g-1', analysisStatus: 'complete' }),
-        gameFixture({ id: 'g-2', analysisStatus: 'analyzing' }),
-        gameFixture({ id: 'g-3', analysisStatus: 'pending' }),
-      ],
-      total: 3,
+      games: [],
+      total: 0,
       page: 1,
       limit: 100,
     });
 
     renderRoute();
 
-    expect(await screen.findByText('1 of 3 games analysed')).toBeVisible();
-    expect(screen.getByText('Analyzing: Mina vs Opponent, Mina vs Opponent')).toBeVisible();
-    expect(screen.getByRole('status', { name: 'Loading' })).toBeVisible();
+    expect(
+      await screen.findByRole('heading', { name: 'No analyzed games in this stream yet' }),
+    ).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Import games' })).toHaveAttribute('href', '/import');
   });
 
   test('keeps showing the report with a per-game banner while a game analyses', async () => {

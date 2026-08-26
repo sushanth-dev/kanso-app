@@ -19,6 +19,7 @@ function readText(data: FormData, key: string): string {
 
 export function ChangePasswordForm() {
   const formRef = useRef<HTMLFormElement>(null);
+  const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -66,53 +67,62 @@ export function ChangePasswordForm() {
           <StatusMessage tone="error">{errorMessage}</StatusMessage>
         </div>
       ) : null}
-      <form
-        ref={formRef}
-        className="mt-3 max-w-sm"
-        onSubmit={(event) => {
-          void handleSubmit(event);
-        }}
-      >
-        <FormLayout>
-          <Field label="Current password" inputID="currentPassword">
-            <TextInput
-              id="currentPassword"
-              name="currentPassword"
-              type="password"
-              autoComplete="current-password"
-              required
+      {open ? (
+        <form
+          ref={formRef}
+          className="mt-3 max-w-sm"
+          onSubmit={(event) => {
+            void handleSubmit(event);
+          }}
+        >
+          <FormLayout>
+            <Field label="Current password" inputID="currentPassword">
+              <TextInput
+                id="currentPassword"
+                name="currentPassword"
+                type="password"
+                autoComplete="current-password"
+                required
+              />
+            </Field>
+            <Field label="New password" inputID="newPassword">
+              <TextInput
+                id="newPassword"
+                name="newPassword"
+                type="password"
+                autoComplete="new-password"
+                required
+                minLength={8}
+              />
+            </Field>
+            <Field label="Confirm new password" inputID="confirmation">
+              <TextInput
+                id="confirmation"
+                name="confirmation"
+                type="password"
+                autoComplete="new-password"
+                required
+                minLength={8}
+              />
+            </Field>
+            <Button
+              type="submit"
+              label="Change password"
+              variant="secondary"
+              isDisabled={submitting}
+              isLoading={submitting}
+              className="min-h-11 press"
             />
-          </Field>
-          <Field label="New password" inputID="newPassword">
-            <TextInput
-              id="newPassword"
-              name="newPassword"
-              type="password"
-              autoComplete="new-password"
-              required
-              minLength={8}
-            />
-          </Field>
-          <Field label="Confirm new password" inputID="confirmation">
-            <TextInput
-              id="confirmation"
-              name="confirmation"
-              type="password"
-              autoComplete="new-password"
-              required
-              minLength={8}
-            />
-          </Field>
-          <Button
-            type="submit"
-            label="Change password"
-            variant="secondary"
-            isDisabled={submitting}
-            isLoading={submitting}
-            className="min-h-11 press"
-          />
-        </FormLayout>
-      </form>
+          </FormLayout>
+        </form>
+      ) : (
+        <Button
+          label="Change password"
+          variant="secondary"
+          clickAction={() => setOpen(true)}
+          className="mt-3 press"
+        />
+      )}
     </section>
   );
 }
