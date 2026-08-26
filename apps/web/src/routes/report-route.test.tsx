@@ -277,6 +277,7 @@ describe('ReportRoute', () => {
     renderRoute();
 
     expect(await screen.findByText('1 of 3 games analysed')).toBeVisible();
+    expect(screen.getByText('Analyzing: Mina vs Opponent, Mina vs Opponent')).toBeVisible();
     expect(screen.getByRole('status', { name: 'Loading' })).toBeVisible();
   });
 
