@@ -2,9 +2,9 @@ import { describe, expect, test } from 'vitest';
 import { ANALYSIS_MONTHLY_CAP, PLAN_PRICES, nextRenewal } from './plans.ts';
 
 describe('plans', () => {
-  test('prices are the ST-074 numbers in cents', () => {
-    expect(PLAN_PRICES.intermediate.amountCents).toBe(900);
-    expect(PLAN_PRICES.pro.amountCents).toBe(1500);
+  test('prices are the ST-074 numbers in paise', () => {
+    expect(PLAN_PRICES.intermediate.amountMinor).toBe(79900);
+    expect(PLAN_PRICES.pro.amountMinor).toBe(129900);
   });
 
   test('analysis caps: beginner and intermediate are capped, pro is not', () => {

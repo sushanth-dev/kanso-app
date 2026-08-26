@@ -214,9 +214,9 @@ export const processedPayment = pgTable('processed_payment', {
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
   tier: tierEnum('tier').notNull(),
-  /** Minor units: cents for USD. */
+  /** Minor units: paise for INR. */
   amount: integer('amount').notNull(),
-  currency: text('currency').notNull().default('USD'),
+  currency: text('currency').notNull().default('INR'),
   razorpayOrderId: text('razorpay_order_id').notNull().unique(),
   razorpayPaymentId: text('razorpay_payment_id').unique(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

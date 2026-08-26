@@ -126,14 +126,14 @@ describe('the three tiers', () => {
 
     expect(orderId).toBe('order_test_1');
     expect(createdOrders).toHaveLength(1);
-    expect(createdOrders[0]).toMatchObject({ amount: 1500, currency: 'USD' });
+    expect(createdOrders[0]).toMatchObject({ amount: 129900, currency: 'INR' });
 
     const [row] = await harness.db.select().from(processedPayment);
     expect(row).toMatchObject({
       userId,
       tier: 'pro',
-      amount: 1500,
-      currency: 'USD',
+      amount: 129900,
+      currency: 'INR',
       razorpayOrderId: 'order_test_1',
       razorpayPaymentId: null,
     });
