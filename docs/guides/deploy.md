@@ -117,11 +117,10 @@ The repository is created by the first `sst deploy`, so on a brand new stage
 deploy once, then build and push, then deploy again with `ANALYSIS_IMAGE_TAG`
 set.
 
-## Bring it up
-
-```sh
-npx sst deploy --stage dev
-```
+The `production` stage is live as of 26 August 2026 at `app.kansochess.app` and
+`api.kansochess.app` (ST-081). A re-deploy of it is the same command with
+`--stage production` and `ANALYSIS_IMAGE_TAG` set to the commit the analysis
+image was built from.
 
 The deploy also uploads the web bundle to a Cloudflare Worker, which needs the
 scoped `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_DEFAULT_ACCOUNT_ID` in `.env`.
@@ -357,9 +356,6 @@ even by accident.
 
 ## What is deliberately not here yet
 
-* **The queue and the analysis worker.** ST-007 adds them. Adding the
-  components now would mean paying for and reasoning about infrastructure no
-  code uses.
 * **RDS Proxy.** ADR-0014 defers it until connection counts justify it. One
   Lambda environment with one connection does not.
 * **Cloudflare DNS managed by SST.** A token scoped to `Zone:DNS:Edit` on this
