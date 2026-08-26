@@ -241,22 +241,21 @@ it was dropped and each surface mounts statically in the shared shell.
 Surface-level motion (`.stagger-in`, `.press`, `.reveal-in`) remains. The
 evaluation bar's fill transitions over the slow
 320ms board transition, and the proof sheet's verdict reveals with the base
-200ms fade and rise. The authenticated shell carries a fixed, `aria-hidden`
-`AmbientCanvas` behind every signed-in route, drawn straight to a 2D canvas so
-it renders in every browser without the experimental html-in-canvas flag. Each
-route gets a distinct motif - pieces on the report, sparkle on focus, confetti
-on the proof sheet, rings on the rating gap, waves on games, pulse on game
-review, rays on tournaments, bubbles on tournament detail, drops on import,
-orbit on upgrade, grid on settings, clouds on player - at low opacity so text
-stays readable. The two surfaces that earn a distinct moment, the report's
-rank-one weakness and the focus verdict, reveal their headline number through
-the same Particle Reveal as the game result. Controls carry their own motion:
-text inputs sweep a teal glow around the border on focus (`.input-focus-anim`),
-and `.press` buttons run a soft light sheen across the surface on hover.
-The landing hero adds a decorative 3D pawn on a fixed three.js canvas, driven
-by scroll (a slow spin plus a tilt that settles upright at the bottom) and
-`aria-hidden`; under reduced motion the loop never starts and one static frame
-stays.
+200ms fade and rise. Every non-landing surface carries the same `aria-hidden` ThreeUI background
+(ST-091): a shared 3D particle-field core (`RibbonFieldBackground`) behind the
+authenticated shell and the auth surfaces, ported to the shared `three` and
+restyled to sit on the light cream paper (`neutral-bg`), so the animated
+accents read in the semantic colors against the theme's warm background rather
+than against a dark void. The 3D core uses a perspective camera, so near
+particles are larger and move faster than far ones, and it is interactive: the
+pointer repels particles within a radius and pulls the camera into a subtle
+parallax, so the field visibly responds to the cursor. The landing keeps its
+own WarpField tunnel of warm light streaks and tiles, which carries the same
+pointer parallax. All effects are `aria-hidden` and capped at 2x DPR. They
+pause offscreen and in background tabs, and under `prefers-reduced-motion`
+render one static frame and mark the canvas. Keeping one background across
+the surfaces keeps the pages calm and consistent, so the content stays the
+brightest object.
 
 ## Components
 

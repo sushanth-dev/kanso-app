@@ -23,3 +23,5 @@ frontend decisions. The format and rules are in
 * [0031. Refine frontend surfaces with the Impeccable
   plugin](0031-impeccable-frontend-refinement.md)
 * [0038. Record product events with PostHog](0038-record-product-events-posthog.md)
+* [0040. Use ThreeUI for decorative effects on non-board
+  surfaces](0040-threeui-decorative-effects.md)
