@@ -13,10 +13,10 @@ export default defineConfig({
     proxy: {
       '/api': 'http://127.0.0.1:3000',
       '/me': 'http://127.0.0.1:3000',
-      // The SPA routes /report, /focus, and /games share their path with an
-      // API endpoint now that the /account prefix is gone (ST-088): a browser
-      // navigation (Accept: text/html) is the page; a fetch is the API read,
-      // the same split /guardians and /shared use below.
+      // The SPA routes /report, /focus, /games, /tournaments, and /transfer-gap
+      // share their path with an API endpoint now that the /account prefix is
+      // gone (ST-088): a browser navigation (Accept: text/html) is the page; a
+      // fetch is the API read, the same split /guardians and /shared use below.
       '/report': {
         target: 'http://127.0.0.1:3000',
         bypass: htmlBypass,
@@ -40,6 +40,14 @@ export default defineConfig({
       },
       '/players': 'http://127.0.0.1:3000',
       '/games': {
+        target: 'http://127.0.0.1:3000',
+        bypass: htmlBypass,
+      },
+      '/tournaments': {
+        target: 'http://127.0.0.1:3000',
+        bypass: htmlBypass,
+      },
+      '/transfer-gap': {
         target: 'http://127.0.0.1:3000',
         bypass: htmlBypass,
       },
