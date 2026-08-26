@@ -20,7 +20,6 @@ export type AmbientVariant =
   | 'orbit'
   | 'grid'
   | 'confetti'
-  | 'rings'
   | 'rays'
   | 'bubbles'
   | 'pulse'
@@ -93,22 +92,24 @@ function drawClouds(
   }
 }
 
-/** Chess-piece glyphs drifting upward - report. */
+/** Chess-piece glyphs drifting upward, faint and slow so they read as a wash
+ * rather than bleeding ink - report. */
 function drawPieces(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
   const glyphs = ['♟', '♞', '♝', '♜', '♛', '♚'];
-  const count = 14;
+  const colors = [PALETTE.terracotta, PALETTE.teal, PALETTE.gold, PALETTE.periwinkle];
+  const count = 10;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   for (let i = 0; i < count; i++) {
     const seed = i * 1.618;
     const x = (((seed * 137.5) % 100) / 100) * w;
-    const speed = 14 + (i % 5) * 6;
-    const span = h + 80;
+    const speed = 8 + (i % 4) * 3;
+    const span = h + 60;
     const y = (((seed * 97) % 100) / 100) * span - ((t * speed) % span);
-    const size = 14 + (i % 4) * 6;
-    const alpha = 0.18 + ((i * 37) % 10) / 100;
+    const size = 12 + (i % 3) * 4;
+    const alpha = 0.1 + ((i * 37) % 6) / 100;
     ctx.font = `${size}px serif`;
-    ctx.fillStyle = hexToRgba(PALETTE.ink, alpha);
+    ctx.fillStyle = hexToRgba(colors[i % colors.length] ?? PALETTE.terracotta, alpha);
     ctx.fillText(glyphs[i % glyphs.length] ?? '♟', x, y);
   }
 }
@@ -130,19 +131,34 @@ function drawSparkle(ctx: CanvasRenderingContext2D, w: number, h: number, t: num
   }
 }
 
-/** Gentle horizontal waves drifting - games. */
-function drawWaves(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
+/** Gentle horizontal waves drifting - games. A pointer ripple bends the waves
+ * toward the cursor so the field reacts without dominating the page. */
+function drawWaves(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  t: number,
+  pointer: AmbientPointer,
+) {
   const waves = [
     { y: 0.3, amp: 0.05, freq: 0.02, speed: 0.4, color: PALETTE.teal, alpha: 0.24 },
     { y: 0.55, amp: 0.07, freq: 0.014, speed: 0.28, color: PALETTE.terracotta, alpha: 0.2 },
     { y: 0.8, amp: 0.04, freq: 0.026, speed: 0.5, color: PALETTE.gold, alpha: 0.26 },
   ];
+  const px = pointer.active ? pointer.x * w : -999;
+  const py = pointer.active ? pointer.y * h : -999;
   for (const wave of waves) {
     ctx.strokeStyle = hexToRgba(wave.color, wave.alpha);
     ctx.lineWidth = 2;
     ctx.beginPath();
     for (let x = 0; x <= w; x += 8) {
-      const y = wave.y * h + Math.sin(x * wave.freq + t * wave.speed) * wave.amp * h;
+      let y = wave.y * h + Math.sin(x * wave.freq + t * wave.speed) * wave.amp * h;
+      // ripple: a gentle bulge in the wave near the pointer, decaying with distance
+      const dx = x - px;
+      const dy = y - py;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      const ripple = Math.exp(-d / (w * 0.22)) * Math.sin(t * 3 + d * 0.02);
+      y += ripple * wave.amp * h * 2.2;
       if (x === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
@@ -223,24 +239,6 @@ function drawConfetti(ctx: CanvasRenderingContext2D, w: number, h: number, t: nu
     ctx.fillStyle = hexToRgba(colors[i % colors.length] ?? PALETTE.gold, alpha);
     ctx.fillRect(-size / 2, -size / 2, size, size * 0.6);
     ctx.restore();
-  }
-}
-
-/** Concentric rings expanding from the centre - transfer gap. */
-function drawRings(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
-  const cx = w * 0.5;
-  const cy = h * 0.5;
-  const maxR = Math.max(w, h) * 0.7;
-  const colors = [PALETTE.teal, PALETTE.terracotta, PALETTE.gold];
-  for (let i = 0; i < 6; i++) {
-    const phase = (t * 40 + i * (maxR / 6)) % maxR;
-    const r = phase;
-    const alpha = 0.4 * (1 - r / maxR);
-    ctx.strokeStyle = hexToRgba(colors[i % colors.length] ?? PALETTE.teal, alpha);
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.stroke();
   }
 }
 
@@ -329,7 +327,6 @@ const DRAWERS: Record<AmbientVariant, DrawFn> = {
   orbit: drawOrbit,
   grid: drawGrid,
   confetti: drawConfetti,
-  rings: drawRings,
   rays: drawRays,
   bubbles: drawBubbles,
   pulse: drawPulse,

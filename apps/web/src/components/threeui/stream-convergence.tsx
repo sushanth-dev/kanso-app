@@ -9,14 +9,14 @@ import { createThreeSceneRenderer, type ThreeSceneConfig } from './three-scene.t
 const UPGRADE_SCENE: ThreeSceneConfig = {
   bg: 0xf7f2ea, // neutral-bg cream paper
   palette: ['#0f5e66', '#7b9dff', '#e8a33d', '#a03f22'], // teal, periwinkle, gold, terracotta
-  particleCount: 800,
+  particleCount: 480,
   spread: [16, 12, 14],
-  speed: 5,
+  speed: 3.5,
   motion: 'orbit',
-  interactStrength: 1.2,
+  interactStrength: 0.8,
   interactRadius: 4,
-  parallax: 0.7,
-  floaters: 6,
+  parallax: 0.45,
+  floaters: 3,
 };
 
 export function StreamConvergenceBackground({ className }: { className?: string }) {
