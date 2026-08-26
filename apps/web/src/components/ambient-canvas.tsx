@@ -92,25 +92,31 @@ function drawClouds(
   }
 }
 
-/** Chess-piece glyphs drifting upward, faint and slow so they read as a wash
- * rather than bleeding ink - report. */
+/** Chess-piece watermark: a few even, faint glyphs that gently pulse in place
+ * rather than drifting, so the report page stays calm and nothing bleeds. */
 function drawPieces(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
   const glyphs = ['♟', '♞', '♝', '♜', '♛', '♚'];
-  const colors = [PALETTE.terracotta, PALETTE.teal, PALETTE.gold, PALETTE.periwinkle];
-  const count = 10;
+  const colors = [PALETTE.terracotta, PALETTE.teal, PALETTE.gold];
+  // A loose 3x2 grid, inset from the edges, so the pieces read as a deliberate
+  // watermark instead of scattered drops.
+  const cols = 3;
+  const rows = 2;
+  const cellW = w / (cols + 1);
+  const cellH = h / (rows + 1);
+  const size = Math.min(w, h) * 0.05;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  for (let i = 0; i < count; i++) {
-    const seed = i * 1.618;
-    const x = (((seed * 137.5) % 100) / 100) * w;
-    const speed = 8 + (i % 4) * 3;
-    const span = h + 60;
-    const y = (((seed * 97) % 100) / 100) * span - ((t * speed) % span);
-    const size = 12 + (i % 3) * 4;
-    const alpha = 0.1 + ((i * 37) % 6) / 100;
-    ctx.font = `${size}px serif`;
-    ctx.fillStyle = hexToRgba(colors[i % colors.length] ?? PALETTE.terracotta, alpha);
-    ctx.fillText(glyphs[i % glyphs.length] ?? '♟', x, y);
+  ctx.font = `${size}px serif`;
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const i = row * cols + col;
+      const x = cellW * (col + 1);
+      const y = cellH * (row + 1);
+      const pulse = 0.5 + 0.5 * Math.sin(t * 0.6 + i * 1.3);
+      const alpha = 0.05 + pulse * 0.05;
+      ctx.fillStyle = hexToRgba(colors[i % colors.length] ?? PALETTE.terracotta, alpha);
+      ctx.fillText(glyphs[i % glyphs.length] ?? '♟', x, y);
+    }
   }
 }
 

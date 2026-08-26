@@ -83,10 +83,10 @@ function makeParticles(cfg: ThreeSceneConfig): {
   geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
   const material = new THREE.PointsMaterial({
-    size: 0.3,
+    size: 0.24,
     vertexColors: true,
     transparent: true,
-    opacity: 0.55,
+    opacity: 0.38,
     sizeAttenuation: true,
     depthWrite: false,
   });
@@ -170,7 +170,7 @@ function makeFloaters(cfg: ThreeSceneConfig): { group: THREE.Group; update: (t: 
     const material = new THREE.MeshBasicMaterial({
       color: palette[i % palette.length],
       transparent: true,
-      opacity: 0.08,
+      opacity: 0.045,
       wireframe: i % 2 === 0,
       depthWrite: false,
     });
