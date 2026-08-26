@@ -5,6 +5,8 @@ import { createApp } from '../app.ts';
 import { player } from '../db/schema.ts';
 import { user } from '../db/auth-schema.ts';
 import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-harness.ts';
+import { importGames } from './import-games.ts';
+import { parsePgn } from './parse-pgn.ts';
 
 const fixture = (name: string): string =>
   readFileSync(new URL(`./fixtures/${name}`, import.meta.url), 'utf8');
@@ -340,5 +342,32 @@ describe('POST /imports (pgn_upload)', () => {
     const [row] = await harness.sql`
       SELECT tournament_id FROM game WHERE player_id = ${playerId}`;
     expect(row!.tournament_id).toBeNull();
+  });
+
+  test('returns the inserted game ids to enqueue for analysis', async () => {
+    // The route enqueues whatever `importGames` reports as `queued` after the
+    // commit. A freshly inserted game with moves must be in that list, or it
+    // stays `pending` forever with nothing behind it. A game with no moves is
+    // already `failed` and must not be queued.
+    const playerId = await seedPlayer('Test Player');
+    const parsed = parsePgn(fixture('clean-tournament.pgn'));
+    expect(parsed.ok).toBe(true);
+    const games = parsed.ok ? parsed.games.map((g) => ({ ...g, externalId: null })) : [];
+
+    const { queued } = await importGames(harness.db, {
+      playerId,
+      source: 'pgn_upload',
+      username: null,
+      stream: 'tournament',
+      matchName: 'Test Player',
+      games,
+      gamesRejected: 0,
+    });
+
+    expect(queued).toHaveLength(games.length);
+    const rows = (await harness.sql`SELECT id FROM game WHERE player_id = ${playerId}`) as Array<{
+      id: string;
+    }>;
+    expect(queued.sort()).toEqual(rows.map((r) => r.id).sort());
   });
 });
