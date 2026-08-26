@@ -44,18 +44,18 @@ tournaments (`EmeraldHorizonBackground`). Board routes keep their existing
 `AmbientCanvas` motifs and are excluded from this record; growing the list
 beyond these five is a deliberate decision, not a per-story judgement call.
 
-* ThreeUI components are vendored by hand into
-  `apps/web/src/components/threeui/`, not installed from npm. The
-  `@designcodeio/threeui` package bundles its own two copies of three.js
-  (`three128`, `three165`) and its WebGL components import from those
-  aliases rather than the shared `three`, so installing it would drag in
-  two extra rendering runtimes. Vendoring the two chosen components and
-  porting them to the shared `three` keeps one rendering runtime. The
-  source is MIT-licensed, so it can be shipped inside the product without
-  restriction.
-* Copied component source is treated as our code, reviewed on arrival,
-  and restyled to semantic tokens per ADR-0004 rather than left on its
-  own hardcoded palette.
+The vendored shader backgrounds are consolidated into one shared 3D
+particle-field core (`three-scene.ts`) plus the WarpField tunnel, all
+ported to the shared `three` and restyled to the semantic tokens per
+ADR-0004. The shared core uses a perspective camera, so near particles are
+larger and move faster than far ones, giving a real depth cue rather than a
+flat full-screen shader, and it is interactive: the pointer repels particles
+within a radius and pulls the camera into a subtle parallax. The WarpField
+tunnel carries the same pointer parallax, and the 2D `AmbientCanvas` motifs
+are pointer-aware. The `@designcodeio/threeui` package is never installed
+from npm; the components are vendored by hand into
+`apps/web/src/components/threeui/` so the shared `three` stays the one
+rendering runtime.
 * Every effect honors `prefers-reduced-motion` (one static frame), is
   `aria-hidden`, degrades to a static fallback where WebGL is
   unavailable, and is measured on a mid-range phone before it ships,

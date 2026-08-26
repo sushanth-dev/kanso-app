@@ -160,6 +160,19 @@ export function createWarpFieldRenderer(canvas: HTMLCanvasElement) {
   const tileOpacity = 0.9;
   const effects = [createStreaks(group, streakOpacity), createTiles(group, tileOpacity)];
 
+  // pointer parallax: the camera drifts toward the cursor so the tunnel reads
+  // as a 3D space that responds to the pointer
+  const pointer = new THREE.Vector2(0.5, 0.5);
+  const target = new THREE.Vector2(0.5, 0.5);
+  const onPointer = (event: PointerEvent) => {
+    const rect = canvas.getBoundingClientRect();
+    target.set(
+      (event.clientX - rect.left) / Math.max(1, rect.width),
+      (event.clientY - rect.top) / Math.max(1, rect.height),
+    );
+  };
+  window.addEventListener('pointermove', onPointer, { passive: true });
+
   return {
     resize(width: number, height: number) {
       camera.aspect = width / Math.max(1, height);
@@ -172,9 +185,13 @@ export function createWarpFieldRenderer(canvas: HTMLCanvasElement) {
         effect.setOpacity?.(streakOpacity, tileOpacity);
         effect.update?.(delta);
       });
+      pointer.lerp(target, 0.08);
+      camera.position.x += ((pointer.x - 0.5) * 60 - camera.position.x) * 0.06;
+      camera.position.y += ((pointer.y - 0.5) * 40 - camera.position.y) * 0.06;
       renderer.render(scene, camera);
     },
     dispose() {
+      window.removeEventListener('pointermove', onPointer);
       effects.forEach((effect) => effect.dispose());
       renderer.dispose();
     },
