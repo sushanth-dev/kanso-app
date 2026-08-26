@@ -9,7 +9,7 @@ import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { Link } from '@astryxdesign/core/Link';
 import { authClient } from '../auth-client.ts';
-import { AmbientCanvas } from '../components/ambient-canvas.tsx';
+import { RibbonFieldBackground } from '../components/threeui/ribbon-field.tsx';
 import { PasswordInput } from '../components/password-input.tsx';
 import { StatusMessage } from '../components/status-message.tsx';
 import { TextInput } from '../components/text-input.tsx';
@@ -48,7 +48,7 @@ function isMinorDob(dateOfBirth: string): boolean {
 export function AuthAmbient() {
   return (
     <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10">
-      <AmbientCanvas variant="clouds" className="h-full w-full" />
+      <RibbonFieldBackground className="h-full w-full" />
     </div>
   );
 }
