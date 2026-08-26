@@ -64,7 +64,7 @@ const PLANS: PlanOption[] = [
   {
     tier: 'intermediate',
     name: 'Intermediate',
-    price: '$9',
+    price: '₹799',
     limit: '150 games analysed a month',
     features: [
       'A focus, and verification afterwards, checked honestly.',
@@ -76,7 +76,7 @@ const PLANS: PlanOption[] = [
   {
     tier: 'pro',
     name: 'Pro',
-    price: '$15',
+    price: '₹1,299',
     limit: 'Unlimited games analysed',
     features: [
       'Everything intermediate gives, with no monthly cap.',
@@ -290,20 +290,30 @@ export function UpgradeRoute() {
           {PLANS.map((plan) => {
             const payableTier = isPayable(plan.tier) ? plan.tier : null;
             return (
-              <Card key={plan.tier} className="flex flex-col p-6">
+              <Card
+                key={plan.tier}
+                className={`flex flex-col p-6 ${plan.mostPopular === true ? 'border-2 border-accent' : ''}`}
+              >
                 <div className="flex items-center justify-between gap-2">
                   <Heading level={3}>{plan.name}</Heading>
                   {plan.mostPopular === true ? (
                     <Badge label="Most popular" variant="orange" />
                   ) : null}
                 </div>
-                <Text
-                  as="p"
-                  display="block"
-                  className="mt-3 font-mono text-3xl leading-tight tracking-tight"
-                >
-                  {plan.price}
-                </Text>
+                <div className="mt-3 flex items-baseline gap-1">
+                  <Text
+                    as="p"
+                    display="block"
+                    className="font-mono text-3xl leading-tight tracking-tight"
+                  >
+                    {plan.price}
+                  </Text>
+                  {plan.tier !== 'beginner' ? (
+                    <Text as="p" display="block" type="supporting" className="text-sm">
+                      /month
+                    </Text>
+                  ) : null}
+                </div>
                 <Text as="p" display="block" type="supporting" className="mt-1 text-sm">
                   {plan.limit}
                 </Text>

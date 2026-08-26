@@ -28,7 +28,7 @@ test('lands a new visitor on a coherent, axe-clean front door', async ({ page })
   // The free/paid boundary is fact-only, matching the upgrade page's plans.
   await expect(page.getByRole('heading', { name: 'Free today' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Paid for the loop' })).toBeVisible();
-  await expect(page.getByText(/From \$9 a month, uncapped on the Pro plan/)).toBeVisible();
+  await expect(page.getByText(/From ₹799 a month, uncapped on the Pro plan/)).toBeVisible();
 
   await expectNoAxeViolations(page);
 
