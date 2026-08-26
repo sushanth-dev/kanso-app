@@ -113,8 +113,8 @@ describe('ImportScreen', () => {
 
     await user.selectOptions(screen.getByLabelText('Method'), 'pgn_upload');
     expect(
-      screen.getByRole('radiogroup', { name: 'Where were these games played?' }),
-    ).toBeVisible();
+      screen.queryByRole('radiogroup', { name: 'Where were these games played?' }),
+    ).not.toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText('Method'), 'uscf');
     expect(screen.getByText('Imports tournament results, not moves.')).toBeVisible();
@@ -226,12 +226,12 @@ describe('ImportScreen', () => {
     });
   });
 
-  test('imports a PGN upload, states the chosen stream, and navigates to the report', async () => {
+  test('imports a PGN upload as a tournament and navigates to the report', async () => {
     const user = userEvent.setup();
     const navigate = vi.fn();
     const pgn = '[Event "Test"]\n1. e4 e5 1-0';
     startImport.mockResolvedValue(
-      makeJob({ source: 'pgn_upload', stream: 'online', gamesFound: 2, gamesImported: 2 }),
+      makeJob({ source: 'pgn_upload', stream: 'tournament', gamesFound: 2, gamesImported: 2 }),
     );
     renderScreen({ navigate });
     await user.selectOptions(screen.getByLabelText('Method'), 'pgn_upload');
@@ -244,11 +244,11 @@ describe('ImportScreen', () => {
     expect(startImport).toHaveBeenCalledWith({
       source: 'pgn_upload',
       pgn,
-      stream: 'online',
+      stream: 'tournament',
     });
     expect(navigate).toHaveBeenCalledWith({
       to: '/report',
-      search: { stream: 'online' },
+      search: { stream: 'tournament' },
     });
   });
 
@@ -256,7 +256,7 @@ describe('ImportScreen', () => {
     const user = userEvent.setup();
     const pgn = '[Event "Test"]\n1. e4 e5 1-0';
     startImport.mockResolvedValue(
-      makeJob({ source: 'pgn_upload', stream: 'online', gamesFound: 1, gamesImported: 1 }),
+      makeJob({ source: 'pgn_upload', stream: 'tournament', gamesFound: 1, gamesImported: 1 }),
     );
     renderScreen();
     await user.selectOptions(screen.getByLabelText('Method'), 'pgn_upload');
@@ -270,7 +270,7 @@ describe('ImportScreen', () => {
     expect(startImport).toHaveBeenCalledWith({
       source: 'pgn_upload',
       pgn,
-      stream: 'online',
+      stream: 'tournament',
     });
   });
 

@@ -351,12 +351,26 @@ function Analysing({ games }: { games: GameSummary[] }) {
   const analysed = games.filter(
     (game) => game.analysisStatus === 'complete' || game.analysisStatus === 'failed',
   ).length;
+  const active = games.filter(
+    (game) =>
+      game.analysisStatus === 'pending' ||
+      game.analysisStatus === 'queued' ||
+      game.analysisStatus === 'analyzing',
+  );
   return (
     <div className="flex flex-col items-center gap-3 py-8 text-center">
       <Spinner size="md" />
       <Text as="p" display="block" className="text-primary">
         {analysed} of {total} games analysed
       </Text>
+      {active.length > 0 ? (
+        <Text as="p" display="block" className="text-primary">
+          Analyzing:{' '}
+          {active
+            .map((game) => `${game.whiteName ?? 'White'} vs ${game.blackName ?? 'Black'}`)
+            .join(', ')}
+        </Text>
+      ) : null}
       <Text as="p" display="block" type="supporting" className="text-sm">
         This report will appear as soon as it is ready.
       </Text>

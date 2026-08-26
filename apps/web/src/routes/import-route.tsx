@@ -9,7 +9,6 @@ import { Text } from '@astryxdesign/core/Text';
 import { useQueryClient, useSuspenseQuery, type QueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { ApiRequestError, type Me } from '../api/account-api.ts';
-import type { Stream } from '../api/diagnosis-api.ts';
 import type { ImportApi, ImportJob, ImportSource, StartImportBody } from '../api/import-api.ts';
 import {
   importApi,
@@ -17,7 +16,6 @@ import {
   isPlausibleLichessUsername,
 } from '../api/import-api.ts';
 import { StatusMessage, type StatusTone } from '../components/status-message.tsx';
-import { StreamToggle } from '../components/stream-toggle.tsx';
 import { TextInput } from '../components/text-input.tsx';
 import { ME_QUERY_KEY, meQueryOptions } from '../query-client.ts';
 import type { NavigateTo } from './auth-routes.tsx';
@@ -152,7 +150,6 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
   const [usernameError, setUsernameError] = useState<string | undefined>(undefined);
   const [pgn, setPgn] = useState<string | null>(null);
   const [pgnError, setPgnError] = useState<string | undefined>(undefined);
-  const [stream, setStream] = useState<Stream>('online');
   const [tournamentName, setTournamentName] = useState('');
   const [tournamentError, setTournamentError] = useState<string | undefined>(undefined);
   const [playerName, setPlayerName] = useState(me.name);
@@ -202,7 +199,9 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
         setPgnError('Choose a PGN file.');
         return;
       }
-      body = { source: 'pgn_upload', pgn, stream };
+      // A PGN upload is always tournament games; a username import is always
+      // online. The stream is fixed per method, not chosen.
+      body = { source: 'pgn_upload', pgn, stream: 'tournament' };
     } else {
       const trimmedTournament = tournamentName.trim();
       const trimmedPlayer = playerName.trim();
@@ -375,11 +374,6 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
                 status={
                   pgnError === undefined ? undefined : { type: 'error' as const, message: pgnError }
                 }
-              />
-              <StreamToggle
-                stream={stream}
-                onChange={setStream}
-                ariaLabel="Where were these games played?"
               />
             </>
           ) : (
