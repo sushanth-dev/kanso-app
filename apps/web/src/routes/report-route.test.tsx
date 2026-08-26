@@ -281,6 +281,29 @@ describe('ReportRoute', () => {
     expect(screen.getByRole('status', { name: 'Loading' })).toBeVisible();
   });
 
+  test('keeps showing the report with a per-game banner while a game analyses', async () => {
+    vi.spyOn(diagnosisApi, 'getReport').mockResolvedValue(
+      reportFixture({ stream: 'online', gamesCovered: 1 }),
+    );
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [
+        gameFixture({ id: 'g-1', analysisStatus: 'analyzing' }),
+        gameFixture({ id: 'g-2', analysisStatus: 'complete' }),
+      ],
+      total: 2,
+      page: 1,
+      limit: 100,
+    });
+
+    renderRoute();
+
+    // The report is visible, not replaced by an analysing screen.
+    expect(await screen.findByRole('heading', { name: 'Online report' })).toBeVisible();
+    // A compact banner names the game still analysing.
+    expect(await screen.findByRole('status', { name: 'Analyzing games' })).toBeVisible();
+    expect(screen.getByText('Analyzing: Mina vs Opponent')).toBeVisible();
+  });
+
   test('polls and swaps to the report once every game is analysed', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const getReport = vi.spyOn(diagnosisApi, 'getReport').mockRejectedValue(reportNotFound);
