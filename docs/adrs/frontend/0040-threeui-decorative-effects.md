@@ -36,26 +36,20 @@ Sushanth asked for.
 
 ## Decision
 
-Use ThreeUI Community components for decorative effects on non-board
-surfaces. The closed list is: the landing page (`WarpFieldBackground`), the
-settings surface (`RibbonFieldBackground`), the auth surfaces
-(`BellFieldBackground`), upgrade (`StreamConvergenceBackground`), and
-tournaments (`EmeraldHorizonBackground`). Board routes keep their existing
-`AmbientCanvas` motifs and are excluded from this record; growing the list
-beyond these five is a deliberate decision, not a per-story judgement call.
-
-The vendored shader backgrounds are consolidated into one shared 3D
-particle-field core (`three-scene.ts`) plus the WarpField tunnel, all
+Use ThreeUI Community components for decorative effects. The landing page
+keeps its own `WarpFieldBackground` tunnel. Every other surface - the
+authenticated shell and the auth surfaces - carries the same
+`RibbonFieldBackground`, a shared 3D particle-field core (`three-scene.ts`)
 ported to the shared `three` and restyled to the semantic tokens per
 ADR-0004. The shared core uses a perspective camera, so near particles are
 larger and move faster than far ones, giving a real depth cue rather than a
 flat full-screen shader, and it is interactive: the pointer repels particles
 within a radius and pulls the camera into a subtle parallax. The WarpField
-tunnel carries the same pointer parallax, and the 2D `AmbientCanvas` motifs
-are pointer-aware. The `@designcodeio/threeui` package is never installed
-from npm; the components are vendored by hand into
-`apps/web/src/components/threeui/` so the shared `three` stays the one
-rendering runtime.
+tunnel carries the same pointer parallax. Keeping one background across the
+non-landing surfaces keeps the pages calm and consistent. The
+`@designcodeio/threeui` package is never installed from npm; the components
+are vendored by hand into `apps/web/src/components/threeui/` so the shared
+`three` stays the one rendering runtime.
 * Every effect honors `prefers-reduced-motion` (one static frame), is
   `aria-hidden`, degrades to a static fallback where WebGL is
   unavailable, and is measured on a mid-range phone before it ships,
@@ -64,9 +58,9 @@ rendering runtime.
   gates an interaction. Removing every ThreeUI component leaves the
   application working and reading the same.
 
-This extends ADR-0017 rather than supersedes it. The Canvas UI list and
-the `AmbientCanvas` motifs remain for the board routes and as the fallback
-identity; ThreeUI adds a richer tier on the named non-board surfaces.
+This extends ADR-0017 rather than supersedes it. The Canvas UI list remains
+as the fallback identity where WebGL is unavailable; ThreeUI carries the
+non-landing surfaces with one shared background.
 
 ## Consequences
 
@@ -79,10 +73,10 @@ identity; ThreeUI adds a richer tier on the named non-board surfaces.
 * **The COPPA boundary is untouched.** Effects are decorative and local;
   no game data, no child identity, and no network call to a third party
   (ADR-0030, ADR-0038).
-* **Two visual tiers now exist.** A richer ThreeUI effect on the named
-  non-board surfaces, and the lighter 2D `AmbientCanvas` everywhere else.
-  Keeping them apart is a design decision, not an accident: the board
-  routes stay quiet so the board stays brightest.
-* **The list is closed and grows by decision.** Adding a third non-board
-  surface is a new decision recorded here, not a judgement call at
+* **One background across the non-landing surfaces.** The authenticated
+  shell and auth surfaces share the same `RibbonFieldBackground`, so the
+  pages stay calm and consistent and the content stays the brightest
+  object. The landing keeps its own WarpField tunnel.
+* **The list is closed and grows by decision.** Changing the background
+  on a surface is a new decision recorded here, not a judgement call at
   implementation time, matching ADR-0017's closed-list rule.
