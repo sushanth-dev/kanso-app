@@ -143,6 +143,13 @@ export async function importGames(db: Db, input: ImportGamesInput): Promise<Impo
               pgnHash: game.pgnHash,
             });
 
+    // A freshly inserted game with moves is queued for analysis after the
+    // commit. A game with no moves is already `failed`; a conflict that
+    // deduped to nothing has no row to queue.
+    for (const row of inserted) {
+      if ((row.moveCount ?? 0) > 0) queued.push(row.id);
+    }
+
     const undetermined = inserted.filter((row) => row.playerColor === null).length;
 
     // A pending game is reviewable before analysis runs: write the PGN's moves
