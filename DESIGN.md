@@ -241,25 +241,21 @@ it was dropped and each surface mounts statically in the shared shell.
 Surface-level motion (`.stagger-in`, `.press`, `.reveal-in`) remains. The
 evaluation bar's fill transitions over the slow
 320ms board transition, and the proof sheet's verdict reveals with the base
-200ms fade and rise. The authenticated shell carries a fixed, `aria-hidden`
-`AmbientCanvas` behind every signed-in route, drawn straight to a 2D canvas so
-it renders in every browser without the experimental html-in-canvas flag. The
-richer ThreeUI backgrounds (ST-091) replace the 2D ambient on the non-board
-surfaces: a WarpField tunnel of warm light streaks and tiles behind the
-landing, and a shared 3D particle-field core behind settings, the auth
-surfaces, upgrade, and tournaments. Each is ported to the shared `three` and
+200ms fade and rise. Every non-landing surface carries the same `aria-hidden` ThreeUI background
+(ST-091): a shared 3D particle-field core (`RibbonFieldBackground`) behind the
+authenticated shell and the auth surfaces, ported to the shared `three` and
 restyled to sit on the light cream paper (`neutral-bg`), so the animated
 accents read in the semantic colors against the theme's warm background rather
 than against a dark void. The 3D core uses a perspective camera, so near
 particles are larger and move faster than far ones, and it is interactive: the
 pointer repels particles within a radius and pulls the camera into a subtle
-parallax, so the field visibly responds to the cursor. The WarpField tunnel
-carries the same pointer parallax. The 2D `AmbientCanvas` motifs are
-pointer-aware too, drifting and shifting with the cursor. All effects are
-`aria-hidden` and capped at 2x DPR. They pause offscreen and in background
-tabs, and under `prefers-reduced-motion` render one static frame and mark the
-canvas, matching the `AmbientCanvas` guarantees. The board routes keep their
-quiet 2D motifs so the board stays the brightest object.
+parallax, so the field visibly responds to the cursor. The landing keeps its
+own WarpField tunnel of warm light streaks and tiles, which carries the same
+pointer parallax. All effects are `aria-hidden` and capped at 2x DPR. They
+pause offscreen and in background tabs, and under `prefers-reduced-motion`
+render one static frame and mark the canvas. Keeping one background across
+the surfaces keeps the pages calm and consistent, so the content stays the
+brightest object.
 
 ## Components
 
