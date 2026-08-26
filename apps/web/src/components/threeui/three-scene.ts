@@ -83,10 +83,10 @@ function makeParticles(cfg: ThreeSceneConfig): {
   geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
   const material = new THREE.PointsMaterial({
-    size: 0.35,
+    size: 0.3,
     vertexColors: true,
     transparent: true,
-    opacity: 0.85,
+    opacity: 0.55,
     sizeAttenuation: true,
     depthWrite: false,
   });

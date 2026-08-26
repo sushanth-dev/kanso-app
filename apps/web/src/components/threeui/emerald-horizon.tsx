@@ -9,14 +9,14 @@ import { createThreeSceneRenderer, type ThreeSceneConfig } from './three-scene.t
 const TOURNAMENTS_SCENE: ThreeSceneConfig = {
   bg: 0xf7f2ea, // neutral-bg cream paper
   palette: ['#0f5e66', '#e8a33d', '#4e9b8a', '#a03f22'], // teal, gold, patina, terracotta
-  particleCount: 750,
+  particleCount: 440,
   spread: [20, 13, 13],
-  speed: 4.5,
+  speed: 3,
   motion: 'wave',
-  interactStrength: 0.7,
+  interactStrength: 0.5,
   interactRadius: 3.5,
-  parallax: 0.6,
-  floaters: 5,
+  parallax: 0.4,
+  floaters: 2,
 };
 
 export function EmeraldHorizonBackground({ className }: { className?: string }) {

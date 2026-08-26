@@ -53,7 +53,7 @@ function ambientVariantFor(pathname: string): AmbientVariant {
   if (pathname === '/focus' || pathname.startsWith('/focus/')) return 'sparkle';
   if (pathname === '/report' || pathname.startsWith('/report/')) return 'pieces';
   if (pathname === '/proof-sheet' || pathname.startsWith('/proof-sheet/')) return 'confetti';
-  if (pathname === '/transfer-gap' || pathname.startsWith('/transfer-gap/')) return 'rings';
+  if (pathname === '/transfer-gap' || pathname.startsWith('/transfer-gap/')) return 'clouds';
   if (pathname === '/games') return 'waves';
   if (pathname.startsWith('/games/')) return 'pulse';
   if (pathname === '/tournaments') return 'rays';
