@@ -6,6 +6,9 @@ import { Link } from '@astryxdesign/core/Link';
 import { Text } from '@astryxdesign/core/Text';
 import { StatusMessage, useStatusMessage } from './status-message.tsx';
 import { AmbientCanvas, type AmbientVariant } from './ambient-canvas.tsx';
+import { RibbonFieldBackground } from './threeui/ribbon-field.tsx';
+import { StreamConvergenceBackground } from './threeui/stream-convergence.tsx';
+import { EmeraldHorizonBackground } from './threeui/emerald-horizon.tsx';
 
 export interface PageFrameProps {
   children: ReactNode;
@@ -57,7 +60,6 @@ function ambientVariantFor(pathname: string): AmbientVariant {
   if (pathname.startsWith('/tournaments/')) return 'bubbles';
   if (pathname === '/import' || pathname.startsWith('/import/')) return 'drops';
   if (pathname === '/upgrade' || pathname.startsWith('/upgrade/')) return 'orbit';
-  if (pathname === '/settings' || pathname.startsWith('/settings/')) return 'grid';
   if (pathname === '/player' || pathname.startsWith('/player/')) return 'clouds';
   return 'clouds';
 }
@@ -87,7 +89,7 @@ export function PageFrame({ children }: PageFrameProps) {
     } else if (flash.presented) {
       clearMessage();
     }
-  }, [clearMessage, flash, markPresented, pathname]);
+  }, [flash, clearMessage, markPresented, pathname]);
 
   // Close the mobile menu on route change so a navigated-to page does not
   // render behind a stale open panel.
@@ -98,7 +100,15 @@ export function PageFrame({ children }: PageFrameProps) {
   return (
     <div className="flex min-h-screen flex-col font-ui">
       <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10">
-        <AmbientCanvas variant={ambientVariantFor(pathname)} className="h-full w-full" />
+        {pathname === '/settings' || pathname.startsWith('/settings/') ? (
+          <RibbonFieldBackground className="h-full w-full" />
+        ) : pathname === '/upgrade' || pathname.startsWith('/upgrade/') ? (
+          <StreamConvergenceBackground className="h-full w-full" />
+        ) : pathname === '/tournaments' || pathname.startsWith('/tournaments/') ? (
+          <EmeraldHorizonBackground className="h-full w-full" />
+        ) : (
+          <AmbientCanvas variant={ambientVariantFor(pathname)} className="h-full w-full" />
+        )}
       </div>
       <a
         href="#main-content"

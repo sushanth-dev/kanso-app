@@ -29,8 +29,9 @@ import { Card } from '@astryxdesign/core/Card';
 import { Heading } from '@astryxdesign/core/Heading';
 import { Link } from '@astryxdesign/core/Link';
 import { Text } from '@astryxdesign/core/Text';
-import { ParallaxPiece } from '../components/parallax-piece.tsx';
 
+import { ParallaxPiece } from '../components/parallax-piece.tsx';
+import { WarpFieldBackground } from '../components/threeui/warp-field.tsx';
 const SAMPLE_TOURNAMENT = 'A scholastic tournament · K-8 U1200 · 5 rounds';
 
 interface SampleWeakness {
@@ -97,6 +98,9 @@ export function LandingRoute() {
   return (
     <div className="flex min-h-screen flex-col font-ui text-primary">
       <ParallaxPiece />
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10">
+        <WarpFieldBackground className="h-full w-full" />
+      </div>
       <div className="relative z-10 flex min-h-screen flex-col">
         <a
           href="#main-content"
