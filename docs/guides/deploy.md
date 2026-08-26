@@ -117,7 +117,7 @@ The repository is created by the first `sst deploy`, so on a brand new stage
 deploy once, then build and push, then deploy again with `ANALYSIS_IMAGE_TAG`
 set.
 
-The `production` stage is live as of 26 August 2026 at `app.kansochess.app` and
+The `production` stage is live as of 26 August 2026 at `kansochess.app` and
 `api.kansochess.app` (ST-081). A re-deploy of it is the same command with
 `--stage production` and `ANALYSIS_IMAGE_TAG` set to the commit the analysis
 image was built from.
