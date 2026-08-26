@@ -78,6 +78,8 @@ export interface ReportScreenProps {
   stream: Stream;
   report: Report;
   onStreamChange: (stream: Stream) => void;
+  /** Games still being analysed; shown as a compact banner, never hiding the report. */
+  analyzingGames?: GameSummary[];
 }
 
 function ReportHeader({
@@ -101,12 +103,18 @@ function ReportHeader({
     </header>
   );
 }
-export function ReportScreen({ stream, report, onStreamChange }: ReportScreenProps) {
+export function ReportScreen({
+  stream,
+  report,
+  onStreamChange,
+  analyzingGames = [],
+}: ReportScreenProps) {
   const isEmpty = report.weaknesses.length === 0;
   const meta = `Reported ${generatedAtFormatter.format(new Date(report.generatedAt))} covering ${report.gamesCovered} games.`;
   return (
     <div className="space-y-6">
       <ReportHeader stream={stream} onStreamChange={onStreamChange} meta={meta} />
+      {analyzingGames.length > 0 ? <AnalyzingBanner games={analyzingGames} /> : null}
       {report.timeTroubleFromMove !== null ? (
         <Text as="p" display="block" className="text-sm">
           Time trouble starts around move{' '}
@@ -346,6 +354,32 @@ function hasActiveGame(games: GameSummary[]): boolean {
   );
 }
 
+function isActiveGame(game: GameSummary): boolean {
+  return (
+    game.analysisStatus === 'pending' ||
+    game.analysisStatus === 'queued' ||
+    game.analysisStatus === 'analyzing'
+  );
+}
+
+function AnalyzingBanner({ games }: { games: GameSummary[] }) {
+  return (
+    <div
+      role="status"
+      aria-label="Analyzing games"
+      className="flex items-center gap-3 rounded-surface border border-border-strong bg-raised px-4 py-3"
+    >
+      <Spinner size="sm" />
+      <Text as="p" display="block" className="text-sm text-primary">
+        Analyzing:{' '}
+        {games
+          .map((game) => `${game.whiteName ?? 'White'} vs ${game.blackName ?? 'Black'}`)
+          .join(', ')}
+      </Text>
+    </div>
+  );
+}
+
 function Analysing({ games }: { games: GameSummary[] }) {
   const total = games.length;
   const analysed = games.filter(
@@ -418,11 +452,11 @@ export function ReportRoute() {
     refetchInterval: (query) =>
       query.state.data !== undefined && hasActiveGame(query.state.data.games) ? 5000 : false,
   });
-  const stillAnalyzing = gamesQuery.data !== undefined && hasActiveGame(gamesQuery.data.games);
+  const analyzingGames = (gamesQuery.data?.games ?? []).filter(isActiveGame);
 
   const reportQuery = useQuery({
     ...reportQueryOptions(stream),
-    refetchInterval: stillAnalyzing ? 5000 : false,
+    refetchInterval: analyzingGames.length > 0 ? 5000 : false,
   });
   useEffect(() => {
     if (reportQuery.data !== undefined) track('report_viewed', { stream });
@@ -435,38 +469,43 @@ export function ReportRoute() {
     });
   };
 
-  if (reportQuery.isPending) {
+  // A report exists: show it, plus a compact banner for any game still
+  // analysing. Never swap the whole page to an "analysing" screen, which hid
+  // the report and flickered as polling progressed.
+  if (reportQuery.data !== undefined) {
     return (
-      <div className="space-y-6">
-        <ReportHeader stream={stream} onStreamChange={onStreamChange} />
+      <ReportScreen
+        stream={stream}
+        report={reportQuery.data}
+        onStreamChange={onStreamChange}
+        analyzingGames={analyzingGames}
+      />
+    );
+  }
+
+  // No report yet. The report endpoint answers 404 until one exists; while
+  // games are analysing we show the live progress, otherwise an empty state.
+  const isNotReady =
+    reportQuery.isError &&
+    reportQuery.error instanceof ApiRequestError &&
+    reportQuery.error.status === 404;
+
+  return (
+    <div className="space-y-6">
+      <ReportHeader stream={stream} onStreamChange={onStreamChange} />
+      {reportQuery.isPending ? (
         <ReportSkeleton />
-      </div>
-    );
-  }
-
-  if (reportQuery.isError) {
-    const error = reportQuery.error;
-    if (error instanceof ApiRequestError && error.status === 404) {
-      return (
-        <div className="space-y-6">
-          <ReportHeader stream={stream} onStreamChange={onStreamChange} />
-          {gamesQuery.isPending ? (
-            <ReportSkeleton />
-          ) : stillAnalyzing ? (
-            <Analysing games={gamesQuery.data?.games ?? []} />
-          ) : (
-            <NotReady />
-          )}
-        </div>
-      );
-    }
-    return (
-      <div className="space-y-6">
-        <ReportHeader stream={stream} onStreamChange={onStreamChange} />
+      ) : isNotReady ? (
+        gamesQuery.isPending ? (
+          <ReportSkeleton />
+        ) : analyzingGames.length > 0 ? (
+          <Analysing games={gamesQuery.data?.games ?? []} />
+        ) : (
+          <NotReady />
+        )
+      ) : (
         <ReportError />
-      </div>
-    );
-  }
-
-  return <ReportScreen stream={stream} report={reportQuery.data} onStreamChange={onStreamChange} />;
+      )}
+    </div>
+  );
 }
