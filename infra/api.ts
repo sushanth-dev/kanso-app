@@ -69,6 +69,18 @@ export const api = new sst.aws.ApiGatewayV2('Api', {
     dns: false,
     cert: certificateArn,
   },
+  // SST enables CORS by default with `allowOrigins: ["*"]` and no
+  // credentials. A wildcard origin is invalid for the credentialed session
+  // requests the browser sends to better-auth, so pin the origin to the web
+  // app and allow its cookies. The Lambda's Hono CORS is a second, redundant
+  // layer for the same allowlist; API Gateway's runs first and is what the
+  // browser sees.
+  cors: {
+    allowOrigins: [`https://${webHostname}`],
+    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization'],
+    allowCredentials: true,
+  },
   // The Cloudflare-only ingress rule, as a native close (ADR-0033): disable
   // the default `execute-api` URL so the custom domain behind Cloudflare is
   // the only public entry. HTTP API cannot take a WAF Web ACL.
