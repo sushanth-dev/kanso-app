@@ -48,10 +48,10 @@ test('states the fact-only boundary and the three plans at the 320px floor', asy
 
   // Three plans, exactly as decided: beginner free, the other two paid.
   await expect(page.getByText('Free', { exact: true })).toBeVisible();
-  await expect(page.getByText('$9', { exact: true })).toBeVisible();
-  await expect(page.getByText('$15', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Pay $9', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Pay $15', exact: true })).toBeVisible();
+  await expect(page.getByText('₹799', { exact: true })).toBeVisible();
+  await expect(page.getByText('₹1,299', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Pay ₹799', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Pay ₹1,299', exact: true })).toBeVisible();
   await expectNoAxeViolations(page);
 
   // The smallest phone does not scroll sideways and stays axe-clean.
@@ -75,6 +75,6 @@ test('shows the already-subscribed state and never offers to charge again', asyn
 
   await expect(page.getByRole('heading', { name: 'You are on the Pro plan' })).toBeVisible();
   await expect(page.getByText('Pro', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: /Pay \$/ })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Pay ₹/ })).toHaveCount(0);
   await expectNoAxeViolations(page);
 });

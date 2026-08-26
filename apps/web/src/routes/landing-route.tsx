@@ -176,7 +176,7 @@ export function LandingRoute() {
                   </Heading>
                   <Text as="p" display="block" type="supporting" className="mt-2">
                     Everything after the diagnosis: a focus, verification of whether it worked, and
-                    a proof sheet to send your parents. From $9 a month, uncapped on the Pro plan.
+                    a proof sheet to send your parents. From ₹799 a month, uncapped on the Pro plan.
                   </Text>
                 </div>
               </div>
