@@ -96,8 +96,8 @@ describe('UpgradeRoute', () => {
     expect(screen.getByRole('heading', { name: 'Intermediate' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Pro' })).toBeInTheDocument();
     expect(screen.getByText('Free')).toBeInTheDocument();
-    expect(screen.getByText('$9')).toBeInTheDocument();
-    expect(screen.getByText('$15')).toBeInTheDocument();
+    expect(screen.getByText('₹799')).toBeInTheDocument();
+    expect(screen.getByText('₹1,299')).toBeInTheDocument();
   });
 
   test('marks intermediate as most popular', async () => {
@@ -109,8 +109,8 @@ describe('UpgradeRoute', () => {
   test('gives intermediate and pro a pay button, and beginner none', async () => {
     renderAt('/upgrade');
 
-    expect(await screen.findByRole('button', { name: 'Pay $9' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Pay $15' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Pay ₹799' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Pay ₹1,299' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Pay Free' })).not.toBeInTheDocument();
   });
 
@@ -126,11 +126,11 @@ describe('UpgradeRoute', () => {
     renderAt('/upgrade');
 
     await waitFor(() => {
-      expect(screen.queryByRole('button', { name: 'Pay $9' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Pay ₹799' })).not.toBeInTheDocument();
     });
 
     resolveMe(meWithTier());
-    expect(await screen.findByRole('button', { name: 'Pay $9' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Pay ₹799' })).toBeInTheDocument();
   });
 
   test('shows which plan a pro account is already on, and no pay buttons', async () => {
@@ -159,13 +159,13 @@ describe('UpgradeRoute', () => {
     const user = userEvent.setup();
     checkoutMock.mockResolvedValue({
       keyId: 'rzp_test',
-      amount: 900,
-      currency: 'USD',
+      amount: 79900,
+      currency: 'INR',
       orderId: 'order_1',
     });
 
     renderAt('/upgrade');
-    await user.click(await screen.findByRole('button', { name: 'Pay $9' }));
+    await user.click(await screen.findByRole('button', { name: 'Pay ₹799' }));
 
     const script = await waitFor(() => {
       const el = document.querySelector<HTMLScriptElement>(
@@ -187,7 +187,7 @@ describe('UpgradeRoute', () => {
     checkoutMock.mockRejectedValue(new Error('checkout failed'));
 
     renderAt('/upgrade');
-    await user.click(await screen.findByRole('button', { name: 'Pay $9' }));
+    await user.click(await screen.findByRole('button', { name: 'Pay ₹799' }));
 
     expect(await screen.findByText(/payment could not be started/i)).toBeInTheDocument();
     expect(screen.queryByText(/payment received/i)).not.toBeInTheDocument();
@@ -199,8 +199,8 @@ describe('UpgradeRoute', () => {
     getMe.mockImplementation(() => Promise.resolve(meWithTier(tier)));
     checkoutMock.mockResolvedValue({
       keyId: 'rzp_test',
-      amount: 900,
-      currency: 'USD',
+      amount: 79900,
+      currency: 'INR',
       orderId: 'order_1',
     });
     let razorpayHandler: (() => void) | undefined;
@@ -212,7 +212,7 @@ describe('UpgradeRoute', () => {
     };
 
     renderAt('/upgrade');
-    await user.click(await screen.findByRole('button', { name: 'Pay $9' }));
+    await user.click(await screen.findByRole('button', { name: 'Pay ₹799' }));
 
     await waitFor(() => expect(razorpayHandler).toBeDefined());
     tier = 'intermediate';

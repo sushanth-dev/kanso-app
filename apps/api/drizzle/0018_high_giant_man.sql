@@ -1,0 +1,1 @@
+ALTER TABLE "processed_payment" ALTER COLUMN "currency" SET DEFAULT 'INR';

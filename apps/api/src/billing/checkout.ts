@@ -31,10 +31,10 @@ export function mountCheckout(
     }
 
     const { tier } = c.req.valid('json');
-    const { amountCents } = PLAN_PRICES[tier];
+    const { amountMinor } = PLAN_PRICES[tier];
 
     const outcome = await deps.razorpay.createOrder({
-      amount: amountCents,
+      amount: amountMinor,
       currency: CURRENCY,
       receipt: randomUUID(),
     });
@@ -48,7 +48,7 @@ export function mountCheckout(
     await deps.db.insert(processedPayment).values({
       userId: session.userId,
       tier,
-      amount: amountCents,
+      amount: amountMinor,
       currency: CURRENCY,
       razorpayOrderId: outcome.orderId,
     });
@@ -56,7 +56,7 @@ export function mountCheckout(
     return c.json(
       {
         orderId: outcome.orderId,
-        amount: amountCents,
+        amount: amountMinor,
         currency: CURRENCY,
         keyId: deps.razorpay.keyId,
       },

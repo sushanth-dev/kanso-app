@@ -33,7 +33,7 @@ describe('httpRazorpayClient.createOrder', () => {
     vi.stubGlobal('fetch', fetcher);
 
     const client = httpRazorpayClient(config);
-    const outcome = await client.createOrder({ amount: 1500, currency: 'USD', receipt: 'r1' });
+    const outcome = await client.createOrder({ amount: 129900, currency: 'INR', receipt: 'r1' });
 
     expect(outcome).toEqual({ ok: true, orderId: 'order_abc' });
     expect(fetcher).toHaveBeenCalledOnce();
@@ -44,8 +44,8 @@ describe('httpRazorpayClient.createOrder', () => {
       Authorization: `Basic ${Buffer.from(`${config.keyId}:${config.keySecret}`).toString('base64')}`,
     });
     expect(JSON.parse(init.body as string)).toEqual({
-      amount: 1500,
-      currency: 'USD',
+      amount: 129900,
+      currency: 'INR',
       receipt: 'r1',
     });
   });
@@ -53,7 +53,7 @@ describe('httpRazorpayClient.createOrder', () => {
   test('returns ok:false when the API answers with a failure status', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status: 401 })));
     const client = httpRazorpayClient(config);
-    expect(await client.createOrder({ amount: 1, currency: 'USD', receipt: 'r' })).toEqual({
+    expect(await client.createOrder({ amount: 1, currency: 'INR', receipt: 'r' })).toEqual({
       ok: false,
     });
   });

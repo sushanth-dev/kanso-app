@@ -557,8 +557,8 @@ boundary, and a closing call to action. The value proposition states the
 three positioning claims as plain headings, never icon-and-heading cards. The
 board is absent by design as the proof: the ranked diagnosis is the proof, so the raised
 sample card is the brightest object on the screen, and a decorative, `aria-hidden` 3D pawn on a fixed three.js canvas recedes behind the hero. The boundary is fact-only
-from `pricing.md`: free is the diagnosis, paid is the loop, at $15 a month,
-$130 a season, or $150 a year. The join call to action routes to `/sign-up`;
+from `pricing.md`: free is the diagnosis, paid is the loop, from ₹799 a month
+on the paid plans. The join call to action routes to `/sign-up`;
 a secondary link routes to `/sign-in`. Copy states only facts, and the sample
 carries a visible "Synthetic example" label so no visitor mistakes it for a
 real diagnosis. One authored reveal eases the sample card in on load through the shared
@@ -571,15 +571,24 @@ mounts statically like every other surface.
 ### Upgrade
 
 The upgrade surface is the one screen where money changes hands, and it
-renders that fact as a fact sheet rather than a pitch. At `/account/upgrade`, a
-free account sees the boundary stated in plain words: a "What free gives" list
-(import by Chess.com or Lichess username plus PGN upload, one diagnosis ranked
-by rating cost, and the rating leak number for the top weakness), a "What paid
-gives" list of four (a focus with verification, the proof sheet, history across
-seasons, and unlimited imports and re-analysis), and three plan cards priced at
-exactly $15 a month, $130 a season (September to May), and $150 a year (twelve
-months for the price of ten). No discount, no other price, no invented feature;
+renders that fact as a fact sheet rather than a pitch. At `/upgrade`, a
+free account sees the boundary stated in plain words - "Your first diagnosis is
+free. The loop after it is paid." - and three plan cards, each stating its
+games-analysed limit, its feature list, and its one monthly price. Beginner
+is free (30 games a month, one ranked diagnosis); Intermediate is ₹799 a
+month (150 games, the full loop: focus, verification, proof sheet, unlimited
+imports) and is marked "Most popular"; Pro is ₹1,299 a month (uncapped, plus
+history across seasons). No discount, no other price, no invented feature;
 the copy states facts, never persuasion.
+
+The three cards sit in a three-column grid that collapses to one column at
+the 320px floor. Intermediate is given visual prominence beyond the orange
+"Most popular" badge: its card carries a terracotta border (`border-accent`),
+the single place the accent appears on the surface besides the primary pay
+action, so the recommended plan reads as raised without breaking the
+flat-by-default rule. Prices render in IBM Plex Mono (the tabular rule) with
+a `/month` unit in supporting type beside them; the terracotta accent stays
+on the pay action and the recommended card only.
 
 The tier is read from `/me` on load. While it resolves, a skeleton renders in
 the page frame (`aria-busy`, `role="status"`), never the pay buttons, so a
@@ -596,7 +605,7 @@ alone:
 - **Confirming** (success): "Payment received. Confirming your upgrade..."
   renders only after the Razorpay handler fires.
 - **Processing** (success): "Payment received. Your account has not updated
-  yet. Refresh to see your paid tier." renders only after the confirmation poll
+  yet. Refresh to see your new plan." renders only after the confirmation poll
   exhausts without a tier flip.
 - **Provider unreachable** (error): "Checkout could not open. The payment
   provider could not be reached. Please try again." when the checkout script
@@ -605,8 +614,8 @@ alone:
   again." when creating the order failed.
 
 None of the four claims a payment that did not start. Prices render in IBM Plex
-Mono (the tabular rule), and the single terracotta accent stays on the pay
-action only.
+Mono (the tabular rule), and the terracotta accent stays on the pay action and
+the recommended card's border only.
 
 ## Do's and Don'ts
 
