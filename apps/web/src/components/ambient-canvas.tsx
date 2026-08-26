@@ -41,7 +41,21 @@ const PALETTE = {
   green: '#4c7a26',
 };
 
-type DrawFn = (ctx: CanvasRenderingContext2D, w: number, h: number, t: number) => void;
+export interface AmbientPointer {
+  /** normalized pointer position, 0..1 across the canvas */
+  x: number;
+  y: number;
+  /** true while the pointer is over the canvas */
+  active: boolean;
+}
+
+type DrawFn = (
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  t: number,
+  pointer: AmbientPointer,
+) => void;
 
 function hexToRgba(hex: string, alpha: number): string {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -51,16 +65,23 @@ function hexToRgba(hex: string, alpha: number): string {
 }
 
 /** Soft translucent blobs drifting sideways - the auth and default backdrop. */
-function drawClouds(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
+function drawClouds(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  t: number,
+  pointer: AmbientPointer,
+) {
   const blobs = [
     { x: 0.12, y: 0.18, r: 0.32, color: PALETTE.terracotta, speed: 0.012, alpha: 0.26 },
     { x: 0.7, y: 0.28, r: 0.26, color: PALETTE.teal, speed: 0.009, alpha: 0.22 },
     { x: 0.42, y: 0.72, r: 0.34, color: PALETTE.gold, speed: 0.015, alpha: 0.24 },
     { x: 0.85, y: 0.82, r: 0.22, color: PALETTE.periwinkle, speed: 0.011, alpha: 0.2 },
   ];
+  const drift = pointer.active ? (pointer.x - 0.5) * 0.1 : 0;
   for (const b of blobs) {
-    const cx = ((b.x + t * b.speed) % 1.3) * w;
-    const cy = b.y * h;
+    const cx = ((b.x + t * b.speed + drift) % 1.3) * w;
+    const cy = b.y * h + (pointer.active ? (pointer.y - 0.5) * h * 0.04 : 0);
     const r = b.r * Math.min(w, h);
     const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
     g.addColorStop(0, hexToRgba(b.color, b.alpha));
@@ -130,9 +151,15 @@ function drawWaves(ctx: CanvasRenderingContext2D, w: number, h: number, t: numbe
 }
 
 /** Dots orbiting a centre point - upgrade. */
-function drawOrbit(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
-  const cx = w * 0.5;
-  const cy = h * 0.4;
+function drawOrbit(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  t: number,
+  pointer: AmbientPointer,
+) {
+  const cx = w * 0.5 + (pointer.active ? (pointer.x - 0.5) * w * 0.08 : 0);
+  const cy = h * 0.4 + (pointer.active ? (pointer.y - 0.5) * h * 0.06 : 0);
   const rings = [
     { radius: Math.min(w, h) * 0.28, speed: 0.5, count: 5, color: PALETTE.gold, alpha: 0.75 },
     { radius: Math.min(w, h) * 0.4, speed: -0.35, count: 7, color: PALETTE.teal, alpha: 0.6 },
@@ -329,6 +356,23 @@ export function AmbientCanvas({ variant, className }: AmbientCanvasProps) {
     let dpr = 1;
     let visible = true;
 
+    // pointer state, shared by every motif so the field reacts to the cursor
+    const pointer: AmbientPointer = { x: 0.5, y: 0.5, active: false };
+    const onPointer = (event: PointerEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      pointer.x = (event.clientX - rect.left) / Math.max(1, rect.width);
+      pointer.y = (event.clientY - rect.top) / Math.max(1, rect.height);
+    };
+    const onPointerEnter = () => {
+      pointer.active = true;
+    };
+    const onPointerLeave = () => {
+      pointer.active = false;
+    };
+    canvas.addEventListener('pointermove', onPointer, { passive: true });
+    canvas.addEventListener('pointerenter', onPointerEnter, { passive: true });
+    canvas.addEventListener('pointerleave', onPointerLeave, { passive: true });
+
     const resize = () => {
       dpr = Math.min(window.devicePixelRatio || 1, 2);
       width = canvas.clientWidth;
@@ -352,18 +396,15 @@ export function AmbientCanvas({ variant, className }: AmbientCanvasProps) {
       },
       { threshold: 0 },
     );
-    observer.observe(canvas);
-
     function loop(now: number) {
-      context.clearRect(0, 0, width, height);
-      DRAWERS[variantRef.current](context, width, height, now / 1000);
+      DRAWERS[variantRef.current](context, width, height, now / 1000, pointer);
       raf = requestAnimationFrame(loop);
     }
 
     if (reduced) {
       // One static frame, then nothing.
       context.clearRect(0, 0, width, height);
-      DRAWERS[variantRef.current](context, width, height, 0);
+      DRAWERS[variantRef.current](context, width, height, 0, pointer);
       canvas.dataset.reducedMotion = 'true';
     } else {
       raf = requestAnimationFrame(loop);
@@ -375,6 +416,9 @@ export function AmbientCanvas({ variant, className }: AmbientCanvasProps) {
       if (raf) cancelAnimationFrame(raf);
       observer.disconnect();
       window.removeEventListener('resize', resize);
+      canvas.removeEventListener('pointermove', onPointer);
+      canvas.removeEventListener('pointerenter', onPointerEnter);
+      canvas.removeEventListener('pointerleave', onPointerLeave);
     };
   }, []);
 
