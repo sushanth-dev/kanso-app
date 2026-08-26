@@ -323,6 +323,16 @@ entirely: every authenticated route is top-level (`/settings`, `/report`,
 `/focus`, `/proof-sheet`, `/games`, `/import`, `/upgrade`, `/player`), and no
 `/account` URL remains.
 
+ST-092 groups the page into three H2 sections: Account details (email and See
+plans), Default usernames, and Security. Security owns both the change-password
+form and Sign out. The change-password inputs reveal behind a "Change password"
+button (progressive disclosure, not a security control; the rate limiting and
+rejection copy are unchanged). The Default usernames section holds the
+Chess.com and Lichess usernames that prefill the import form, written through
+the same `PATCH /me` the player form uses. Sign-in and sign-up land on the
+report, not settings, and the report's empty state links to import, so a player
+with no games is never stranded.
+
 The username is the player's public handle: what a kid shows to other players
 instead of their real name. It is set in the player form and must be unique
 across accounts (ST-084). The real name (`me.name`) is kept for guardian-facing

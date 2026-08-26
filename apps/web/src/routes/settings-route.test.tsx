@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, RouterContextProvider } from '@tanstack/react-router';
 import { describe, expect, test, vi } from 'vitest';
 import type { Me, Player } from '../api/account-api.ts';
+import { accountApi } from '../api/account-api.ts';
 import { createAppRouter } from '../router.tsx';
 import { SettingsScreen } from './settings-route.tsx';
 
@@ -55,7 +56,12 @@ function renderSettings(
   return render(
     <QueryClientProvider client={queryClient}>
       <RouterContextProvider router={router}>
-        <SettingsScreen me={me} signOut={signOut} />
+        <SettingsScreen
+          me={me}
+          signOut={signOut}
+          accountApi={accountApi}
+          queryClient={queryClient}
+        />
       </RouterContextProvider>
     </QueryClientProvider>,
   );
@@ -69,7 +75,9 @@ describe('SettingsScreen', () => {
     expect(screen.getByText('0-day streak')).toBeVisible();
     expect(screen.getByText('Level 1')).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Account details', level: 2 })).toBeVisible();
-    expect(screen.getByRole('heading', { name: 'Sign out', level: 2 })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Default usernames', level: 2 })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Security', level: 2 })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Sign out', level: 3 })).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Change password', level: 2 })).toBeVisible();
     expect(screen.queryByRole('link', { name: 'Back to your account' })).not.toBeInTheDocument();
   });
@@ -110,5 +118,44 @@ describe('SettingsScreen', () => {
 
     expect(await screen.findByText('Sign out failed.', { exact: true })).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Your account' })).toBeVisible();
+  });
+
+  test('prefills the default usernames from the player', () => {
+    renderSettings(
+      meFixture({
+        player: player({ chesscomUsername: 'mina-chess', lichessUsername: 'mina-lichess' }),
+      }),
+    );
+    expect(screen.getByLabelText('Chess.com username')).toHaveValue('mina-chess');
+    expect(screen.getByLabelText('Lichess username')).toHaveValue('mina-lichess');
+  });
+
+  test('saves the default usernames through PATCH /me', async () => {
+    const user = userEvent.setup();
+    const updateMe = vi
+      .spyOn(accountApi, 'updateMe')
+      .mockResolvedValue(
+        player({ chesscomUsername: 'mina-chess', lichessUsername: 'mina-lichess' }),
+      );
+    renderSettings();
+
+    await user.type(screen.getByLabelText('Chess.com username'), 'mina-chess');
+    await user.type(screen.getByLabelText('Lichess username'), 'mina-lichess');
+    await user.click(screen.getByRole('button', { name: 'Save default usernames' }));
+
+    expect(await screen.findByText('Default usernames saved.')).toBeVisible();
+    expect(updateMe).toHaveBeenCalledWith({
+      chesscomUsername: 'mina-chess',
+      lichessUsername: 'mina-lichess',
+    });
+  });
+
+  test('shows the change-password form only after the reveal button is clicked', async () => {
+    const user = userEvent.setup();
+    renderSettings();
+
+    expect(screen.queryByLabelText('Current password')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Change password' }));
+    expect(screen.getByLabelText('Current password')).toBeVisible();
   });
 });
