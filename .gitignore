@@ -51,9 +51,10 @@ apps/web/test-results/
 # graphify knowledge graph output; regenerated from the repo, not a source of record
 graphify-out/
 
-
 # Local agent/tooling state and scratch files
 .dev-logs/
 .docmancer/
 .serena/
+.impeccable/
 scratch-check.ts
+
