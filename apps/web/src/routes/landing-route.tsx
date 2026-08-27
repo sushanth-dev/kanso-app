@@ -29,9 +29,11 @@ import { Card } from '@astryxdesign/core/Card';
 import { Heading } from '@astryxdesign/core/Heading';
 import { Link } from '@astryxdesign/core/Link';
 import { Text } from '@astryxdesign/core/Text';
+import { useQuery } from '@tanstack/react-query';
 
 import { ParallaxPiece } from '../components/parallax-piece.tsx';
 import { WarpFieldBackground } from '../components/threeui/warp-field.tsx';
+import { meQueryOptions } from '../query-client.ts';
 const SAMPLE_TOURNAMENT = 'A scholastic tournament · K-8 U1200 · 5 rounds';
 
 interface SampleWeakness {
@@ -95,6 +97,8 @@ function SampleDiagnosis() {
 }
 
 export function LandingRoute() {
+  const meQuery = useQuery(meQueryOptions());
+  const signedIn = meQuery.isSuccess;
   return (
     <div className="flex min-h-screen flex-col font-ui text-primary">
       <ParallaxPiece />
@@ -115,7 +119,11 @@ export function LandingRoute() {
               <span aria-hidden="true" className="size-2.5 shrink-0 rounded-control bg-accent" />
               <Text className="font-display text-xl leading-tight tracking-tight">Kanso Chess</Text>
             </span>
-            <Link href="/sign-in">Sign in</Link>
+            {signedIn ? (
+              <Link href="/report">Go to report</Link>
+            ) : (
+              <Link href="/sign-in">Sign in</Link>
+            )}
           </div>
         </header>
 
@@ -139,7 +147,11 @@ export function LandingRoute() {
                   For parents, it makes every lesson you already pay for work harder.
                 </Text>
                 <div className="mt-8">
-                  <Button label="Get your free diagnosis" href="/sign-up" variant="primary" />
+                  {signedIn ? (
+                    <Button label="Go to report" href="/report" variant="primary" />
+                  ) : (
+                    <Button label="Get your free diagnosis" href="/sign-up" variant="primary" />
+                  )}
                 </div>
               </div>
               <SampleDiagnosis />
@@ -193,12 +205,18 @@ export function LandingRoute() {
                 See what is actually costing you rating
               </Heading>
               <div className="mt-8 flex flex-col items-center gap-3">
-                <Button label="Get your free diagnosis" href="/sign-up" variant="primary" />
-                <Button
-                  label="Already have an account? Sign in"
-                  href="/sign-in"
-                  variant="secondary"
-                />
+                {signedIn ? (
+                  <Button label="Go to report" href="/report" variant="primary" />
+                ) : (
+                  <>
+                    <Button label="Get your free diagnosis" href="/sign-up" variant="primary" />
+                    <Button
+                      label="Already have an account? Sign in"
+                      href="/sign-in"
+                      variant="secondary"
+                    />
+                  </>
+                )}
               </div>
             </div>
           </section>

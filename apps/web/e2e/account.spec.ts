@@ -62,14 +62,13 @@ test('signs up and persists a player through sign-in', async ({ page }) => {
     }
   });
 
-  await page.goto('/sign-in');
-  await page.getByRole('link', { name: 'Sign up' }).focus();
-  await expect(page.getByRole('link', { name: 'Sign up' })).toBeFocused();
-  await page.keyboard.press('Enter');
-  await expect(page.getByRole('heading', { name: 'Create your account' })).toBeVisible();
-  await expectNoAxeViolations(page);
+  // Sign-up lands on the report (ST-092); the settings page is reached through
+  // the nav.
+  await page.goto('/sign-up');
   await signUp(page, 'Mina', email, password);
-
+  await expect(page.getByRole('heading', { name: 'Tournament report', exact: true })).toBeVisible();
+  await expectNoAxeViolations(page);
+  await openSettingsViaNav(page);
   await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
   await expectNoAxeViolations(page);
   await page.reload();
@@ -91,8 +90,8 @@ test('signs up and persists a player through sign-in', async ({ page }) => {
   ).toBeVisible();
   await expectNoAxeViolations(page);
 
-  await page.getByLabel('Display name').focus();
-  await expect(page.getByLabel('Display name')).toHaveValue('Mina');
+  await page.getByLabel('Username', { exact: true }).focus();
+  await expect(page.getByLabel('Username', { exact: true })).toHaveValue('Mina');
   await page.keyboard.press('Tab');
   await expect(page.getByLabel('Birth year')).toBeFocused();
   await page.keyboard.type('2013');
@@ -143,10 +142,9 @@ test('signs up and persists a player through sign-in', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Sign in' })).toBeFocused();
   await page.keyboard.press('Enter');
 
-  await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
-  await expect(page.getByText('Mina')).toBeVisible();
-  await openNavGroupLink(page, 'Progress', 'Report');
-  await expect(page.getByRole('heading', { name: 'Tournament report' })).toBeVisible();
+  // Sign-in lands on the report (ST-092), which is the honest empty state
+  // before a player has games.
+  await expect(page.getByRole('heading', { name: 'Tournament report', exact: true })).toBeVisible();
   await expect(
     page.getByRole('heading', { name: 'No analyzed games in this stream yet' }),
   ).toBeVisible();
@@ -177,21 +175,20 @@ test('walks report to focus to the verification trend', async ({ page }) => {
 
   await page.goto('/sign-up');
   await signUp(page, 'Mina', email, password);
-  await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
+  // Sign-up lands on the report (ST-092), the honest empty state.
+  await expect(page.getByRole('heading', { name: 'Tournament report', exact: true })).toBeVisible();
   await expectNoAxeViolations(page);
 
-  // Sign-up creates the player from the account name (ST-072).
-  await expect(page.getByText('Mina')).toBeVisible();
-
   // The report is the honest empty state before a focus exists.
-  await openNavGroupLink(page, 'Progress', 'Report');
-  await expect(page.getByRole('heading', { name: 'Tournament report' })).toBeVisible();
   await expect(
     page.getByRole('heading', { name: 'No analyzed games in this stream yet' }),
   ).toBeVisible();
-  await expectNoAxeViolations(page);
   await openSettingsViaNav(page);
   await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
+  await expectNoAxeViolations(page);
+  // Sign-up creates the player from the account name (ST-072); the settings
+  // page shows the identity.
+  await expect(page.getByText('Mina')).toBeVisible();
 
   // Focus and verification are paid (ST-044); flip the account through the
   // checkout and webhook seams before the catalogue is reached.

@@ -35,7 +35,7 @@ test('header nav groups routes into dropdowns and every route stays reachable', 
 
   await page.goto('/sign-up');
   await signUp(page, 'E2E Nav', email, password);
-  await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tournament report', exact: true })).toBeVisible();
   await expectNoAxeViolations(page);
 
   const nav = page.getByRole('navigation', { name: 'Account' });
@@ -91,7 +91,7 @@ test('mobile menu icon opens the same grouped structure', async ({ page }) => {
   const password = `E2e-${randomUUID()}-Aa1!`;
   await page.goto('/sign-up');
   await signUp(page, 'E2E Nav Mobile', email, password);
-  await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tournament report', exact: true })).toBeVisible();
 
   const nav = page.getByRole('navigation', { name: 'Account' });
   // The menu button lives in the header banner, outside the nav it toggles.

@@ -15,9 +15,16 @@ describe('ChangePasswordForm', () => {
     changePassword.mockReset();
   });
 
+  test('hides the inputs until the reveal button is clicked', () => {
+    render(<ChangePasswordForm />);
+    expect(screen.queryByLabelText('Current password')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Change password' })).toBeVisible();
+  });
+
   test('guards a mismatch client-side without calling the API', async () => {
     const user = userEvent.setup();
     render(<ChangePasswordForm />);
+    await user.click(screen.getByRole('button', { name: 'Change password' }));
 
     await user.type(screen.getByLabelText('Current password'), 'old-password');
     await user.type(screen.getByLabelText('New password'), 'new-password-1');
@@ -32,6 +39,7 @@ describe('ChangePasswordForm', () => {
     changePassword.mockResolvedValue({ data: { token: null, user: {} }, error: null });
     const user = userEvent.setup();
     render(<ChangePasswordForm />);
+    await user.click(screen.getByRole('button', { name: 'Change password' }));
 
     await user.type(screen.getByLabelText('Current password'), 'old-password');
     await user.type(screen.getByLabelText('New password'), 'new-password-1');
@@ -54,6 +62,7 @@ describe('ChangePasswordForm', () => {
     });
     const user = userEvent.setup();
     render(<ChangePasswordForm />);
+    await user.click(screen.getByRole('button', { name: 'Change password' }));
 
     await user.type(screen.getByLabelText('Current password'), 'wrong-password');
     await user.type(screen.getByLabelText('New password'), 'new-password-1');

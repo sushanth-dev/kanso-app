@@ -418,6 +418,7 @@ function NotReady() {
       title="No analyzed games in this stream yet"
       description="Import your games to get a ranked report. Tournament and online games are reported separately."
       headingLevel={2}
+      actions={<Link href="/import">Import games</Link>}
     />
   );
 }

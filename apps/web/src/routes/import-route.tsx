@@ -146,7 +146,7 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
   const player = me.player;
 
   const [method, setMethod] = useState<ImportSource>('chesscom');
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState(me.player.chesscomUsername ?? '');
   const [usernameError, setUsernameError] = useState<string | undefined>(undefined);
   const [pgn, setPgn] = useState<string | null>(null);
   const [pgnError, setPgnError] = useState<string | undefined>(undefined);
@@ -235,6 +235,9 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
           gamesImported: job.gamesImported,
         });
         if (job.source !== 'uscf') {
+          // The report's games query may hold a stale empty cache from before
+          // the import; drop it so the freshly imported games show as analysing.
+          void queryClient.invalidateQueries({ queryKey: ['games'] });
           await navigate({ to: '/report', search: { stream: job.stream } });
         }
       }
@@ -322,8 +325,11 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
               name="method"
               value={method}
               onChange={(event) => {
-                setMethod(event.target.value as ImportSource);
+                const next = event.target.value as ImportSource;
+                setMethod(next);
                 clearFieldErrors();
+                if (next === 'chesscom') setUsername(me.player.chesscomUsername ?? '');
+                if (next === 'lichess') setUsername(me.player.lichessUsername ?? '');
               }}
               className={selectClassName}
             >

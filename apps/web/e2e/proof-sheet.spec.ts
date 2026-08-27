@@ -50,7 +50,8 @@ test('creates, shares, reads, and revokes a proof sheet', async ({ page, browser
 
   await page.goto('/sign-up');
   await signUp(page, 'E2E Proof', email, password);
-  await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
+  // Sign-up lands on the report (ST-092).
+  await expect(page.getByRole('heading', { name: 'Tournament report', exact: true })).toBeVisible();
 
   // The proof sheet and the focus behind it are paid (ST-044); flip the
   // account through the checkout and webhook seams before the share act.

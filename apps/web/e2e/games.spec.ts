@@ -24,8 +24,9 @@ async function signUp(page: Page): Promise<void> {
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByLabel('Confirm password').fill(password);
   await page.getByRole('button', { name: 'Sign up' }).click();
-  // Sign-up creates the player from the account name (ST-072).
-  await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
+  // Sign-up creates the player from the account name (ST-072) and lands on
+  // the report (ST-092).
+  await expect(page.getByRole('heading', { name: 'Tournament report', exact: true })).toBeVisible();
 }
 
 async function importPgn(page: Page): Promise<void> {
@@ -51,7 +52,7 @@ async function importPgn(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Import games' }).click();
   // A successful import navigates straight to the report (ST-029), which shows
   // the still-analysing state until the analysis worker finishes.
-  await expect(page.getByRole('heading', { name: 'Online report' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tournament report' })).toBeVisible();
   await expect(page.getByText('This report will appear as soon as it is ready.')).toBeVisible();
 }
 
@@ -62,19 +63,21 @@ test('lists an imported game and opens its review to the honest unanalysed state
   await importPgn(page);
 
   // The games list shows the imported, still-analysing game, not a shell.
-  await page.goto('/games?stream=online');
+  await page.goto('/games?stream=tournament');
   await expect(page.getByRole('heading', { name: 'Your games' })).toBeVisible();
   await expect(page.getByText('Analysis in progress.')).toBeVisible();
   await expectNoAxeViolations(page);
 
   // The review route, reached directly, renders the honest no-moves state for
   // a still-analysing game rather than a shell or a 500.
-  const list = await page.request.get('/games?stream=online&limit=100');
+  const list = await page.request.get('/games?stream=tournament&limit=100');
   const body = (await list.json()) as { games: Array<{ id: string }> };
   expect(body.games.length).toBeGreaterThan(0);
   await page.goto(`/games/${body.games[0]!.id}`);
   await expect(page.getByRole('heading', { name: 'Game review' })).toBeVisible();
-  await expect(page.getByText('No recorded moves in this game.')).toBeVisible();
+  await expect(
+    page.getByText('Your side was not recorded for this game. Which colour were you?'),
+  ).toBeVisible();
   await expectNoAxeViolations(page);
 
   // A game this player does not own answers the designed error state, not 500.
@@ -86,7 +89,7 @@ test('deletes an imported game from the list after confirmation', async ({ page 
   await signUp(page);
   await importPgn(page);
 
-  await page.goto('/games?stream=online');
+  await page.goto('/games?stream=tournament');
   await expect(page.getByRole('heading', { name: 'Your games' })).toBeVisible();
   await expect(page.getByText('Analysis in progress.')).toBeVisible();
 
