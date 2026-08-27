@@ -130,9 +130,18 @@ export function PageFrame({ children }: PageFrameProps) {
                 {NAV_ENTRIES.map((entry) => (
                   <li key={navEntryKey(entry)}>
                     {isGroup(entry) ? (
-                      <NavGroupMobile group={entry} pathname={pathname} />
+                      <NavGroupMobile
+                        group={entry}
+                        pathname={pathname}
+                        onNavigate={() => setMobileOpen(false)}
+                      />
                     ) : (
-                      <NavLinkLeaf leaf={entry} pathname={pathname} block />
+                      <NavLinkLeaf
+                        leaf={entry}
+                        pathname={pathname}
+                        block
+                        onNavigate={() => setMobileOpen(false)}
+                      />
                     )}
                   </li>
                 ))}
@@ -157,13 +166,15 @@ interface NavLinkLeafProps {
   leaf: NavLeaf;
   pathname: string;
   block?: boolean;
+  onNavigate?: () => void;
 }
 
-function NavLinkLeaf({ leaf, pathname, block }: NavLinkLeafProps) {
+function NavLinkLeaf({ leaf, pathname, block, onNavigate }: NavLinkLeafProps) {
   const active = pathname === leaf.to;
   return (
     <Link
       href={leaf.to}
+      onClick={onNavigate}
       aria-current={active ? 'page' : undefined}
       className={[
         'inline-flex min-h-11 items-center rounded-control px-3 py-2 text-sm text-accent transition-colors',
@@ -180,6 +191,7 @@ function NavLinkLeaf({ leaf, pathname, block }: NavLinkLeafProps) {
 interface NavGroupProps {
   group: NavGroup;
   pathname: string;
+  onNavigate?: () => void;
 }
 
 function NavGroupDesktop({ group, pathname }: NavGroupProps) {
@@ -197,10 +209,10 @@ function NavGroupDesktop({ group, pathname }: NavGroupProps) {
   );
 }
 
-function NavGroupMobile({ group, pathname }: NavGroupProps) {
+function NavGroupMobile({ group, pathname, onNavigate }: NavGroupProps) {
   return (
     <DetailsDropdown summary={<span>{group.label}</span>}>
-      <GroupItems items={group.items} pathname={pathname} />
+      <GroupItems items={group.items} pathname={pathname} onNavigate={onNavigate} />
     </DetailsDropdown>
   );
 }
@@ -208,9 +220,10 @@ function NavGroupMobile({ group, pathname }: NavGroupProps) {
 interface GroupItemsProps {
   items: NavLeaf[];
   pathname: string;
+  onNavigate?: () => void;
 }
 
-function GroupItems({ items, pathname }: GroupItemsProps) {
+function GroupItems({ items, pathname, onNavigate }: GroupItemsProps) {
   return (
     <ul className="flex flex-col gap-0.5 py-1">
       {items.map((item) => {
@@ -219,6 +232,7 @@ function GroupItems({ items, pathname }: GroupItemsProps) {
           <li key={item.to}>
             <Link
               href={item.to}
+              onClick={onNavigate}
               aria-current={active ? 'page' : undefined}
               className={[
                 'inline-flex min-h-11 w-full items-center whitespace-nowrap rounded-control px-3 py-2 text-sm text-accent transition-colors',
