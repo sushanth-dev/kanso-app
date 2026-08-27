@@ -37,10 +37,11 @@ async function signUp(page: Page): Promise<void> {
 
   await page.goto('/sign-up');
   await expect(page.getByRole('heading', { name: 'Create your account' })).toBeVisible();
-  await page.getByLabel('Name').fill('Mina');
+  await page.getByLabel('Name').fill('Mina Import');
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByLabel('Confirm password').fill(password);
+  await page.getByRole('button', { name: 'Sign up' }).click();
   // Sign-up creates the player from the account name (ST-072) and lands on
   // the report (ST-092).
   await expect(page.getByRole('heading', { name: 'Tournament report', exact: true })).toBeVisible();
@@ -104,7 +105,7 @@ test('imports a PGN upload and reports the imported count', async ({ page }) => 
   expect((await importResponse).status()).toBe(202);
   // A successful import navigates straight to the report (ST-029), which shows
   // the still-analysing state until the analysis worker finishes.
-  await expect(page.getByRole('heading', { name: 'Online report' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tournament report' })).toBeVisible();
   await expect(page.getByText('This report will appear as soon as it is ready.')).toBeVisible();
   await expectNoAxeViolations(page);
 
@@ -118,12 +119,12 @@ test('imports a tournament by name and reports the honest empty crosstable', asy
 
   await page.getByLabel('Method').selectOption('uscf');
   await page.getByLabel('Tournament name').fill('State Champs');
-  await expect(page.getByLabel('Player name')).toHaveValue('Mina');
+  await expect(page.getByLabel('Player name')).toHaveValue('Mina Import');
 
   const importResponse = waitForImportResponse(page);
   await page.getByRole('button', { name: 'Import games' }).click();
   expect((await importResponse).status()).toBe(202);
-  await expect(page.getByText('No games found for Mina in State Champs.')).toBeVisible();
+  await expect(page.getByText('No games found for Mina Import in State Champs.')).toBeVisible();
   await expectNoAxeViolations(page);
 
   expect(externalRequests).toEqual([]);

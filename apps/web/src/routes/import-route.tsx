@@ -235,6 +235,9 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
           gamesImported: job.gamesImported,
         });
         if (job.source !== 'uscf') {
+          // The report's games query may hold a stale empty cache from before
+          // the import; drop it so the freshly imported games show as analysing.
+          void queryClient.invalidateQueries({ queryKey: ['games'] });
           await navigate({ to: '/report', search: { stream: job.stream } });
         }
       }
