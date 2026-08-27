@@ -1,8 +1,34 @@
 import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
-import { describe, expect, test } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { accountApi, ApiRequestError, type Me } from '../api/account-api.ts';
+import { ME_QUERY_KEY } from '../query-client.ts';
 import { createAppRouter } from '../router.tsx';
+
+const meFixture: Me = {
+  userId: 'user-1',
+  email: 'player@example.com',
+  name: 'Player',
+  tier: 'beginner',
+  player: {
+    id: '00000000-0000-4000-8000-000000000001',
+    displayName: 'Mina',
+    birthYear: 2013,
+    fideId: null,
+    fideRating: null,
+    uscfId: null,
+    uscfRating: null,
+    chesscomUsername: null,
+    lichessUsername: null,
+    chesscomRating: null,
+    lichessRating: null,
+    currentStreak: 0,
+    xp: 0,
+    level: 1,
+    createdAt: '2026-08-14T00:00:00.000Z',
+  },
+};
 
 function renderLanding() {
   const history = createMemoryHistory({ initialEntries: ['/'] });
@@ -13,9 +39,17 @@ function renderLanding() {
       <RouterProvider router={router} />
     </QueryClientProvider>,
   );
+  return { queryClient };
 }
 
 describe('LandingRoute', () => {
+  beforeEach(() => {
+    // The landing page is public; a visitor has no session, so getMe rejects.
+    vi.spyOn(accountApi, 'getMe').mockRejectedValue(
+      new ApiRequestError(401, 'unauthorized', undefined, 'No session.'),
+    );
+  });
+
   test('states the promise, the free promise, and the parent line', async () => {
     renderLanding();
 
@@ -60,5 +94,18 @@ describe('LandingRoute', () => {
       'href',
       '/sign-in',
     );
+  });
+
+  test('shows a go-to-report link instead of sign-in when already signed in', async () => {
+    const { queryClient } = renderLanding();
+    queryClient.setQueryData(ME_QUERY_KEY, meFixture);
+
+    const reports = await screen.findAllByRole('link', { name: 'Go to report' });
+    expect(reports.length).toBeGreaterThan(0);
+    for (const link of reports) {
+      expect(link).toHaveAttribute('href', '/report');
+    }
+    expect(screen.queryByRole('link', { name: 'Sign in' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Get your free diagnosis' })).not.toBeInTheDocument();
   });
 });

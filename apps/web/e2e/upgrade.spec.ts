@@ -28,7 +28,7 @@ test('states the fact-only boundary and the three plans at the 320px floor', asy
 
   await page.goto('/sign-up');
   await signUp(page, 'E2E Upgrade', email, password);
-  await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tournament report', exact: true })).toBeVisible();
 
   await page.goto('/upgrade');
 
@@ -68,7 +68,7 @@ test('shows the already-subscribed state and never offers to charge again', asyn
 
   await page.goto('/sign-up');
   await signUp(page, 'E2E Paid', email, password);
-  await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tournament report', exact: true })).toBeVisible();
 
   await upgradeToPaid(page);
   await page.goto('/upgrade');
