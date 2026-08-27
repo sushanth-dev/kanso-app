@@ -1,10 +1,11 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, RouterContextProvider } from '@tanstack/react-router';
 import { describe, expect, test, vi } from 'vitest';
-import type { Me, Player } from '../api/account-api.ts';
+import { ApiRequestError, type Me, type Player } from '../api/account-api.ts';
 import { accountApi } from '../api/account-api.ts';
+import { ME_QUERY_KEY } from '../query-client.ts';
 import { createAppRouter } from '../router.tsx';
 import { SettingsScreen } from './settings-route.tsx';
 
@@ -78,7 +79,7 @@ describe('SettingsScreen', () => {
     expect(screen.getByRole('heading', { name: 'Default usernames', level: 2 })).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Security', level: 2 })).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Sign out', level: 3 })).toBeVisible();
-    expect(screen.getByRole('heading', { name: 'Change password', level: 2 })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Change password', level: 3 })).toBeVisible();
     expect(screen.queryByRole('link', { name: 'Back to your account' })).not.toBeInTheDocument();
   });
 
@@ -157,5 +158,49 @@ describe('SettingsScreen', () => {
     expect(screen.queryByLabelText('Current password')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Change password' }));
     expect(screen.getByLabelText('Current password')).toBeVisible();
+  });
+
+  test('reports a non-401 username save failure and keeps the form', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(accountApi, 'updateMe').mockRejectedValue(
+      new ApiRequestError(500, 'internal', undefined, 'boom'),
+    );
+    renderSettings();
+
+    await user.type(screen.getByLabelText('Chess.com username'), 'mina-chess');
+    await user.click(screen.getByRole('button', { name: 'Save default usernames' }));
+
+    expect(await screen.findByText('The default usernames could not be saved.')).toBeVisible();
+    expect(screen.getByLabelText('Chess.com username')).toBeVisible();
+  });
+
+  test('clears the me cache on a 401 while saving default usernames', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(accountApi, 'updateMe').mockRejectedValue(
+      new ApiRequestError(401, 'unauthorized', undefined, 'No session.'),
+    );
+    const queryClient = new QueryClient();
+    const history = createMemoryHistory();
+    const router = createAppRouter({ history, queryClient });
+    queryClient.setQueryData(ME_QUERY_KEY, meFixture());
+    render(
+      <QueryClientProvider client={queryClient}>
+        <RouterContextProvider router={router}>
+          <SettingsScreen
+            me={meFixture()}
+            signOut={vi.fn().mockResolvedValue(undefined)}
+            accountApi={accountApi}
+            queryClient={queryClient}
+          />
+        </RouterContextProvider>
+      </QueryClientProvider>,
+    );
+
+    await user.type(screen.getByLabelText('Chess.com username'), 'mina-chess');
+    await user.click(screen.getByRole('button', { name: 'Save default usernames' }));
+
+    await waitFor(() => {
+      expect(queryClient.getQueryData(ME_QUERY_KEY)).toBeUndefined();
+    });
   });
 });
