@@ -53,8 +53,8 @@ export function ChangePasswordForm() {
   }
 
   return (
-    <section aria-labelledby="password-heading" className="mt-8">
-      <Heading level={2} id="password-heading">
+    <section aria-labelledby="password-heading">
+      <Heading level={3} id="password-heading">
         Change password
       </Heading>
       {success ? (
