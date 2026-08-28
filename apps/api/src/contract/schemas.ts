@@ -191,6 +191,8 @@ export const ImportJob = z
     error: z.string().nullable(),
     createdAt: z.iso.datetime(),
     finishedAt: z.iso.datetime().nullable(),
+    /** The games this import created; the analysing screen counts only these (ST-093). */
+    gameIds: z.array(Uuid),
   })
   .openapi('ImportJob');
 

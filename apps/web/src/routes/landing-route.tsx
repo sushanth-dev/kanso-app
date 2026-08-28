@@ -113,7 +113,7 @@ export function LandingRoute() {
           Skip to main content
         </a>
 
-        <header className="glass sticky top-0 z-20 border-b border-border-subtle">
+        <header className="glass-top sticky top-0 z-20 border-b border-border-subtle">
           <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-4">
             <span className="flex items-center gap-2">
               <span aria-hidden="true" className="size-2.5 shrink-0 rounded-control bg-accent" />
