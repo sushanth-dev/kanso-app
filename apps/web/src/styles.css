@@ -159,6 +159,18 @@ a {
     0 12px 32px -20px rgba(61, 40, 20, 0.35);
 }
 
+/* The sticky navigation header needs scrolled content to stay unreadable
+   behind it: the same tokens as .glass at a near-opaque mix (ST-093). The
+   landing page's mid-page glass sections keep the lighter .glass above. */
+.glass-top {
+  background-color: color-mix(in srgb, var(--kanso-color-surface-page) 88%, transparent);
+  backdrop-filter: blur(6px) saturate(1.08);
+  -webkit-backdrop-filter: blur(6px) saturate(1.08);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 250, 240, 0.45),
+    0 12px 32px -20px rgba(61, 40, 20, 0.35);
+}
+
 /* Every Card across the app: frosted surface plus warm elevation, so depth and
    glassmorphism hold on auth, account, games, report and review - not just the
    landing. High enough opacity that card text stays at full contrast. */
@@ -179,5 +191,12 @@ a {
     transition-duration: 0ms !important;
     animation-duration: 0ms !important;
     animation-delay: 0ms !important;
+  }
+  /* ST-093: the Spinner's own fallback under this media query slows it to 3s
+     rather than freezing it, because a frozen spinner reads as broken. The
+     blanket rule above would override that, so give the spinner's canvas its
+     slow duration back. */
+  [role='status'] canvas {
+    animation-duration: 3s !important;
   }
 }

@@ -345,6 +345,13 @@
               "null"
             ],
             "format": "date-time"
+          },
+          "gameIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         },
         "required": [
@@ -360,7 +367,8 @@
           "gamesUndetermined",
           "error",
           "createdAt",
-          "finishedAt"
+          "finishedAt",
+          "gameIds"
         ]
       },
       "GameSource": {
@@ -2155,6 +2163,16 @@
           },
           "404": {
             "description": "No such player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "That username is taken.",
             "content": {
               "application/json": {
                 "schema": {

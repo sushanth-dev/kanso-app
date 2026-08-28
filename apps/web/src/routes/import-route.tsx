@@ -238,7 +238,17 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
           // The report's games query may hold a stale empty cache from before
           // the import; drop it so the freshly imported games show as analysing.
           void queryClient.invalidateQueries({ queryKey: ['games'] });
-          await navigate({ to: '/report', search: { stream: job.stream } });
+          // ST-093: an import creates or grows tournaments; the tournament
+          // queries hold 30s-stale caches that would hide the new rows.
+          void queryClient.invalidateQueries({ queryKey: ['tournaments'] });
+          void queryClient.invalidateQueries({ queryKey: ['tournament'] });
+          void queryClient.invalidateQueries({ queryKey: ['round-decay'] });
+          // ST-093: carry the batch's game ids so the analysing counter counts
+          // this upload only, not every game already in the stream.
+          await navigate({
+            to: '/report',
+            search: { stream: job.stream, gameIds: job.gameIds },
+          });
         }
       }
     } catch (error) {

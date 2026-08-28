@@ -229,7 +229,10 @@ run on the decelerate ease `cubic-bezier(0, 0, 0, 1)`, the cleaner entrance
 curve the `.reveal-in` and `.stagger-in` utilities ship. Control transitions
 move color, border, and box-shadow; reveals fade and rise 6px. Every duration
 collapses to zero under `prefers-reduced-motion`, both in the token theme and
-in a CSS override, so no motion runs when reduced motion is requested.
+in a CSS override, so no motion runs when reduced motion is requested. The one
+exception is the Spinner (ST-093): its canvas keeps the library's slow 3s
+rotation under that media query, because a frozen spinner reads as broken
+rather than calm.
 
 The shipped surfaces layer concrete moves over the tokens. A `.press` utility
 scales controls to 0.98 on `:active`, merging the color transition with a
@@ -256,6 +259,12 @@ pause offscreen and in background tabs, and under `prefers-reduced-motion`
 render one static frame and mark the canvas. Keeping one background across
 the surfaces keeps the pages calm and consistent, so the content stays the
 brightest object.
+
+The sticky navigation header is the one glass surface that must hide what
+passes under it (ST-093): `.glass-top` keeps the `.glass` recipe but mixes the
+page surface token at 88% instead of 40%, so scrolled content no longer reads
+through the bar. Landing sections and the footer keep the lighter `.glass`,
+where nothing scrolls beneath.
 
 ## Components
 

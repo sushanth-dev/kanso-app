@@ -151,8 +151,20 @@ const settingsRoute = createRoute({
 const reportRoute = createRoute({
   getParentRoute: () => accountRoute,
   path: '/report',
-  validateSearch: (search: Record<string, unknown>) =>
-    search.stream === 'online' ? { stream: 'online' as const } : { stream: 'tournament' as const },
+  validateSearch: (search: Record<string, unknown>) => {
+    // ST-093: the current upload's game ids scope the analysing counter to that
+    // batch. Absent (a direct visit) the counter covers every active game.
+    const gameIds =
+      typeof search.gameIds === 'string'
+        ? [search.gameIds]
+        : Array.isArray(search.gameIds)
+          ? search.gameIds.filter((v): v is string => typeof v === 'string')
+          : undefined;
+    return {
+      stream: search.stream === 'online' ? ('online' as const) : ('tournament' as const),
+      ...(gameIds !== undefined ? { gameIds } : {}),
+    };
+  },
   component: ReportRoute,
 });
 

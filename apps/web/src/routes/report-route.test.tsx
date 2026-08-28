@@ -328,4 +328,44 @@ describe('ReportRoute', () => {
       expect(screen.getByRole('heading', { name: 'Online report' })).toBeVisible();
     });
   });
+
+  test('scopes the analysing counter to the current upload when game ids are present', async () => {
+    vi.spyOn(diagnosisApi, 'getReport').mockRejectedValue(reportNotFound);
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [
+        gameFixture({ id: 'g-1', analysisStatus: 'analyzing' }),
+        gameFixture({ id: 'g-2', analysisStatus: 'analyzing' }),
+        gameFixture({ id: 'g-3', analysisStatus: 'complete' }),
+      ],
+      total: 3,
+      page: 1,
+      limit: 100,
+    });
+
+    renderRoute('/report?stream=online&gameIds=g-2&gameIds=g-3');
+
+    // The old batch (g-1) does not enter the count.
+    expect(await screen.findByText('1 of 2 games analysed')).toBeVisible();
+  });
+
+  test('caps the analysing names at three and states the rest as a count', async () => {
+    vi.spyOn(diagnosisApi, 'getReport').mockRejectedValue(reportNotFound);
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: ['g-1', 'g-2', 'g-3', 'g-4', 'g-5'].map((id) =>
+        gameFixture({ id, analysisStatus: 'analyzing' }),
+      ),
+      total: 5,
+      page: 1,
+      limit: 100,
+    });
+
+    renderRoute();
+
+    expect(await screen.findByText('0 of 5 games analysed')).toBeVisible();
+    expect(
+      screen.getByText(
+        /^Analyzing: Mina vs Opponent, Mina vs Opponent, Mina vs Opponent \+2 more$/,
+      ),
+    ).toBeVisible();
+  });
 });

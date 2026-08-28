@@ -398,11 +398,15 @@ function Analysing({ games }: { games: GameSummary[] }) {
         {analysed} of {total} games analysed
       </Text>
       {active.length > 0 ? (
+        // ST-093: at most three names, so the block stops re-wrapping on every
+        // poll tick as games finish. That churn read as a screen flicker.
         <Text as="p" display="block" className="text-primary">
           Analyzing:{' '}
           {active
+            .slice(0, 3)
             .map((game) => `${game.whiteName ?? 'White'} vs ${game.blackName ?? 'Black'}`)
             .join(', ')}
+          {active.length > 3 ? ` +${active.length - 3} more` : ''}
         </Text>
       ) : null}
       <Text as="p" display="block" type="supporting" className="text-sm">
@@ -443,16 +447,21 @@ function ReportSkeleton() {
     </div>
   );
 }
-
 export function ReportRoute() {
   const navigate = useNavigate();
-  const { stream } = useSearch({ from: '/account/report' });
-
+  const { stream, gameIds } = useSearch({ from: '/account/report' });
   const gamesQuery = useQuery({
     ...gamesQueryOptions(stream),
     refetchInterval: (query) =>
       query.state.data !== undefined && hasActiveGame(query.state.data.games) ? 5000 : false,
   });
+  // ST-093: when the import handed us its own game ids, the analysing counter
+  // counts only that batch; every other use of the games list stays stream-wide.
+  const batchIdSet = new Set(gameIds ?? []);
+  const batchGames =
+    gameIds !== undefined && gameIds.length > 0
+      ? (gamesQuery.data?.games ?? []).filter((game) => batchIdSet.has(game.id))
+      : (gamesQuery.data?.games ?? []);
   const analyzingGames = (gamesQuery.data?.games ?? []).filter(isActiveGame);
 
   const reportQuery = useQuery({
@@ -500,7 +509,7 @@ export function ReportRoute() {
         gamesQuery.isPending ? (
           <ReportSkeleton />
         ) : analyzingGames.length > 0 ? (
-          <Analysing games={gamesQuery.data?.games ?? []} />
+          <Analysing games={batchGames} />
         ) : (
           <NotReady />
         )
