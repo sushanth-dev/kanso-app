@@ -60,6 +60,7 @@ function makeJob(overrides: Partial<ImportJob> = {}): ImportJob {
     error: null,
     createdAt: '2026-08-14T00:00:00.000Z',
     finishedAt: '2026-08-14T00:00:00.000Z',
+    gameIds: ['00000000-0000-4000-8000-0000000000b1'],
     ...overrides,
   };
 }
@@ -79,6 +80,7 @@ function renderScreen(overrides: Partial<ImportScreenProps> = {}) {
       />
     </RouterContextProvider>,
   );
+  return { queryClient };
 }
 
 beforeEach(() => {
@@ -168,8 +170,20 @@ describe('ImportScreen', () => {
     expect(await screen.findByText('Imported 3 games.')).toBeVisible();
     expect(navigate).toHaveBeenCalledWith({
       to: '/report',
-      search: { stream: 'online' },
+      search: { stream: 'online', gameIds: ['00000000-0000-4000-8000-0000000000b1'] },
     });
+  });
+
+  test('invalidates the tournament caches on an import success', async () => {
+    const user = userEvent.setup();
+    startImport.mockResolvedValue(makeJob({ gamesFound: 3, gamesImported: 3, stream: 'online' }));
+    const { queryClient } = renderScreen();
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
+    await user.type(screen.getByLabelText('Username'), 'mina123');
+    await user.click(screen.getByRole('button', { name: 'Import games' }));
+    await screen.findByText('Imported 3 games.');
+    const invalidated = invalidate.mock.calls.map(([options]) => options?.queryKey);
+    expect(invalidated).toEqual([['games'], ['tournaments'], ['tournament'], ['round-decay']]);
   });
 
   test('reports no games found for a valid username with an empty period', async () => {
@@ -252,7 +266,7 @@ describe('ImportScreen', () => {
     });
     expect(navigate).toHaveBeenCalledWith({
       to: '/report',
-      search: { stream: 'tournament' },
+      search: { stream: 'tournament', gameIds: ['00000000-0000-4000-8000-0000000000b1'] },
     });
   });
 
