@@ -83,10 +83,17 @@ describe('POST /imports (pgn_upload)', () => {
       gamesFound: number;
       gamesImported: number;
       stream: string;
+      gameIds: string[];
     };
     expect(job.stream).toBe('tournament');
     expect(job.gamesFound).toBe(3);
     expect(job.gamesImported).toBe(3);
+    // ST-093: the batch ids let the analysing counter scope to this upload.
+    expect(job.gameIds).toHaveLength(3);
+    const idRows = (await harness.sql`SELECT id FROM game WHERE player_id = ${playerId}`) as Array<{
+      id: string;
+    }>;
+    expect(job.gameIds.sort()).toEqual(idRows.map((r) => r.id).sort());
 
     const rows = await harness.sql`SELECT stream FROM game WHERE player_id = ${playerId}`;
     expect(rows).toHaveLength(3);

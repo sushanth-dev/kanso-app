@@ -57,6 +57,8 @@ export interface ImportGamesResult {
   job: typeof importJob.$inferSelect;
   /** Game ids the route enqueues for analysis after commit. */
   queued: string[];
+  /** Every game the import stored; the response's batch for the analysing counter. */
+  gameIds: string[];
 }
 
 /**
@@ -69,6 +71,7 @@ export interface ImportGamesResult {
 export async function importGames(db: Db, input: ImportGamesInput): Promise<ImportGamesResult> {
   const { playerId, source, username, stream, matchName, games, gamesRejected } = input;
   const queued: string[] = [];
+  const gameIds: string[] = [];
   const { job } = await db.transaction(async (tx) => {
     const [created] = await tx
       .insert(importJob)
@@ -147,6 +150,7 @@ export async function importGames(db: Db, input: ImportGamesInput): Promise<Impo
     // commit. A game with no moves is already `failed`; a conflict that
     // deduped to nothing has no row to queue.
     for (const row of inserted) {
+      gameIds.push(row.id);
       if ((row.moveCount ?? 0) > 0) queued.push(row.id);
     }
 
@@ -184,7 +188,7 @@ export async function importGames(db: Db, input: ImportGamesInput): Promise<Impo
     return { job: updated! };
   });
 
-  return { job, queued };
+  return { job, queued, gameIds };
 }
 
 /**
@@ -247,6 +251,7 @@ export function mountImport(
 
     let job: typeof importJob.$inferSelect;
     let queued: string[];
+    let gameIds: string[];
 
     if (body.source === 'pgn_upload') {
       const parsed = parsePgn(body.pgn);
@@ -265,7 +270,7 @@ export function mountImport(
         );
       }
 
-      ({ job, queued } = await importGames(deps.db, {
+      ({ job, queued, gameIds } = await importGames(deps.db, {
         playerId,
         source: 'pgn_upload',
         username: null,
@@ -333,7 +338,7 @@ export function mountImport(
         games.push({ ...parsed, externalId: providerGame.externalId });
       });
 
-      ({ job, queued } = await importGames(deps.db, {
+      ({ job, queued, gameIds } = await importGames(deps.db, {
         playerId,
         source: 'uscf',
         username: null,
@@ -400,7 +405,7 @@ export function mountImport(
         games.push({ ...parsed, externalId: providerGame.externalId });
       });
 
-      ({ job, queued } = await importGames(deps.db, {
+      ({ job, queued, gameIds } = await importGames(deps.db, {
         playerId,
         source: body.source,
         username,
@@ -447,6 +452,7 @@ export function mountImport(
         error: job.error,
         createdAt: job.createdAt.toISOString(),
         finishedAt: job.finishedAt?.toISOString() ?? null,
+        gameIds,
       },
       202,
     );
