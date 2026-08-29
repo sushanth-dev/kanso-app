@@ -39,7 +39,10 @@ async function patch(userId: string | null, gameId: string, body: unknown) {
 }
 
 /** A player owned by `ownerId`, with one stored game whose side was not decided. */
-async function seedUndecidedGame(ownerId: string): Promise<string> {
+async function seedUndecidedGame(
+  ownerId: string,
+  overrides: Partial<typeof game.$inferInsert> = {},
+): Promise<string> {
   await harness.db
     .insert(user)
     .values([
@@ -60,6 +63,7 @@ async function seedUndecidedGame(ownerId: string): Promise<string> {
       pgnHash: `hash_${ownerId}`,
       pgn: '[Result "1-0"]\n\n1. e4 e5 1-0',
       result: '1-0',
+      ...overrides,
     })
     .returning({ id: game.id });
   return created!.id;
@@ -117,5 +121,59 @@ describe('PATCH /games/{gameId}', () => {
     expect(res.status).toBe(200);
     const [row] = await harness.sql`SELECT player_color FROM game WHERE id = ${gameId}`;
     expect(row!.player_color).toBe('black');
+  });
+
+  test('a first colour on a pending game with moves queues it for analysis', async () => {
+    // ST-094: the import leaves colourless games unqueued; naming a side is
+    // what starts the analysis. Without a queue configured the send is a
+    // no-op, so the test pins the status flip the player can see either way.
+    const gameId = await seedUndecidedGame(OWNER, { moveCount: 30, analysisStatus: 'pending' });
+    const res = await patch(OWNER, gameId, { playerColor: 'white' });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { analysisStatus: string };
+    expect(body.analysisStatus).toBe('queued');
+    const [row] = await harness.sql`SELECT analysis_status FROM game WHERE id = ${gameId}`;
+    expect(row!.analysis_status).toBe('queued');
+  });
+
+  test('re-colouring a decided game does not touch analysis state', async () => {
+    const gameId = await seedUndecidedGame(OWNER, {
+      moveCount: 30,
+      playerColor: 'white',
+      analysisStatus: 'complete',
+    });
+    const res = await patch(OWNER, gameId, { playerColor: 'black' });
+    expect(res.status).toBe(200);
+    const [row] = await harness.sql`SELECT analysis_status FROM game WHERE id = ${gameId}`;
+    expect(row!.analysis_status).toBe('complete');
+  });
+
+  test('at the monthly analysis cap the game keeps waiting instead of queuing', async () => {
+    const gameId = await seedUndecidedGame(OWNER, { moveCount: 30, analysisStatus: 'pending' });
+    // The beginner cap is 30 games this calendar month across the account's
+    // players. Filling it with analysed games on the same player leaves no
+    // budget, so the colour saves but the queue send does not fire.
+    const [row] = await harness.sql`SELECT player_id FROM game WHERE id = ${gameId}`;
+    const playerId = row!.player_id as string;
+    for (let i = 0; i < 30; i++) {
+      await harness.db.insert(game).values({
+        playerId,
+        stream: 'tournament',
+        source: 'pgn_upload',
+        pgnHash: `hash_cap_${i}`,
+        pgn: '[Result "1-0"]\n\n1. e4 e5 1-0',
+        result: '1-0',
+        playerColor: 'white',
+        analysisStatus: 'complete',
+        analyzedAt: new Date(),
+      });
+    }
+
+    const res = await patch(OWNER, gameId, { playerColor: 'white' });
+    expect(res.status).toBe(200);
+    const [after] =
+      await harness.sql`SELECT analysis_status, player_color FROM game WHERE id = ${gameId}`;
+    expect(after!.player_color).toBe('white');
+    expect(after!.analysis_status).toBe('pending');
   });
 });

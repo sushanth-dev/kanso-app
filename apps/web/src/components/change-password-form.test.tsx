@@ -26,9 +26,11 @@ describe('ChangePasswordForm', () => {
     render(<ChangePasswordForm />);
     await user.click(screen.getByRole('button', { name: 'Change password' }));
 
-    await user.type(screen.getByLabelText('Current password'), 'old-password');
-    await user.type(screen.getByLabelText('New password'), 'new-password-1');
-    await user.type(screen.getByLabelText('Confirm new password'), 'different-password');
+    // Astryx's clickAction reveal is deferred, and under a loaded machine the
+    // commit loses the race with a synchronous lookup; await it instead.
+    await user.type(await screen.findByLabelText('Current password'), 'old-password');
+    await user.type(await screen.findByLabelText('New password'), 'new-password-1');
+    await user.type(await screen.findByLabelText('Confirm new password'), 'different-password');
     await user.click(screen.getByRole('button', { name: 'Change password' }));
 
     expect(await screen.findByText(/passwords do not match/i)).toBeVisible();
@@ -41,9 +43,9 @@ describe('ChangePasswordForm', () => {
     render(<ChangePasswordForm />);
     await user.click(screen.getByRole('button', { name: 'Change password' }));
 
-    await user.type(screen.getByLabelText('Current password'), 'old-password');
-    await user.type(screen.getByLabelText('New password'), 'new-password-1');
-    await user.type(screen.getByLabelText('Confirm new password'), 'new-password-1');
+    await user.type(await screen.findByLabelText('Current password'), 'old-password');
+    await user.type(await screen.findByLabelText('New password'), 'new-password-1');
+    await user.type(await screen.findByLabelText('Confirm new password'), 'new-password-1');
     await user.click(screen.getByRole('button', { name: 'Change password' }));
 
     await waitFor(() => {
@@ -64,9 +66,9 @@ describe('ChangePasswordForm', () => {
     render(<ChangePasswordForm />);
     await user.click(screen.getByRole('button', { name: 'Change password' }));
 
-    await user.type(screen.getByLabelText('Current password'), 'wrong-password');
-    await user.type(screen.getByLabelText('New password'), 'new-password-1');
-    await user.type(screen.getByLabelText('Confirm new password'), 'new-password-1');
+    await user.type(await screen.findByLabelText('Current password'), 'wrong-password');
+    await user.type(await screen.findByLabelText('New password'), 'new-password-1');
+    await user.type(await screen.findByLabelText('Confirm new password'), 'new-password-1');
     await user.click(screen.getByRole('button', { name: 'Change password' }));
 
     expect(await screen.findByText(/current password was not accepted/i)).toBeVisible();

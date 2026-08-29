@@ -14,7 +14,7 @@
  * already writes, so no new column and no cache.
  */
 import type { Context } from 'hono';
-import { and, asc, desc, eq, max } from 'drizzle-orm';
+import { and, asc, desc, eq, max, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { z } from 'zod';
@@ -25,7 +25,7 @@ import { game, report, weakness } from '../db/schema.ts';
 import { readSession } from '../session.ts';
 import { getOwnPlayerId } from '../players/claim.ts';
 import { leakBaseline, scoreLeaks, weaknessLeakRows } from '../analysis/leak.ts';
-import { SEASON_WINDOW_MS } from '../analysis/performance-rating.ts';
+import { MIN_RATED_GAMES, SEASON_WINDOW_MS } from '../analysis/performance-rating.ts';
 import { scoreTimeTrouble, timeTroubleCounts } from '../phases/phases.ts';
 import { composeReport, type ComposedWeakness } from './compose.ts';
 
@@ -184,7 +184,35 @@ export function mountReport(
 
     const baseline = await leakBaseline(deps.db, playerId, stream);
     if (baseline.kind === 'not_enough_evidence') {
-      return c.json({ code: 'not_found', message: 'No analyzed games in this stream yet.' }, 404);
+      // ST-094. Two different refusals shared one 404, and the web read both
+      // as "import your games" - a lie for a player whose games are analysed
+      // but too few. Zero analysed games stays the 404 the not-ready state
+      // renders; a thin history answers the same 422 the motifs and phase
+      // endpoints use, with the numbers in the message.
+      const [row] = await deps.db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(game)
+        .where(
+          and(
+            eq(game.playerId, playerId),
+            eq(game.stream, stream),
+            eq(game.analysisStatus, 'complete'),
+          ),
+        );
+      const analysed = row?.n ?? 0;
+      if (analysed === 0) {
+        return c.json({ code: 'not_found', message: 'No analyzed games in this stream yet.' }, 404);
+      }
+      return c.json(
+        {
+          code: 'not_enough_evidence',
+          message:
+            `${analysed} analyzed ${analysed === 1 ? 'game' : 'games'} in this stream, but a report needs ` +
+            `${MIN_RATED_GAMES} rated games in the last year: a decided result, a date, ` +
+            `and both players' ratings.`,
+        },
+        422,
+      );
     }
 
     const rows = await weaknessLeakRows(deps.db, playerId, stream, baseline.windowStart);

@@ -160,6 +160,23 @@ describe('ImportScreen', () => {
     ).toBeVisible();
   });
 
+  test('tells the player when games need their side before analysis', async () => {
+    // ST-094: colourless games are stored but never queued; the success
+    // message is where the player learns analysis is waiting on them.
+    const user = userEvent.setup();
+    startImport.mockResolvedValue(
+      makeJob({ gamesFound: 3, gamesImported: 3, gamesUndetermined: 2 }),
+    );
+    renderScreen();
+    await user.type(screen.getByLabelText('Username'), 'mina123');
+    await user.click(screen.getByRole('button', { name: 'Import games' }));
+    expect(
+      await screen.findByText(
+        'Imported 3 games. 2 of them could not be tied to your side; open each under Games and pick the colour you played to start its analysis.',
+      ),
+    ).toBeVisible();
+  });
+
   test('navigates to the report on a username success', async () => {
     const user = userEvent.setup();
     const navigate = vi.fn();
