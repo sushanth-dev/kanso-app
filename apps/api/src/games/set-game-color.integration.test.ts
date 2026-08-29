@@ -124,7 +124,7 @@ describe('PATCH /games/{gameId}', () => {
   });
 
   test('a first colour on a pending game with moves queues it for analysis', async () => {
-    // ST-094: the import leaves colourless games unqueued; naming a side is
+    // ST-095: the import leaves colourless games unqueued; naming a side is
     // what starts the analysis. Without a queue configured the send is a
     // no-op, so the test pins the status flip the player can see either way.
     const gameId = await seedUndecidedGame(OWNER, { moveCount: 30, analysisStatus: 'pending' });

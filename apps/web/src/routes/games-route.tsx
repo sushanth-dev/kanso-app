@@ -33,7 +33,7 @@ function GameCard({ game, stream }: { game: GameSummary; stream: Stream }) {
 
   const analysed = game.analysisStatus === 'complete';
   const failed = game.analysisStatus === 'failed';
-  // ST-094: a pending game with no recorded side never starts on its own.
+  // ST-095: a pending game with no recorded side never starts on its own.
   const needsSide = game.analysisStatus === 'pending' && game.playerColor === null;
 
   const onConfirmDelete = async () => {

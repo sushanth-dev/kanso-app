@@ -315,7 +315,7 @@ describe('GET /report', () => {
   });
 
   test('a player with analysed but too few rated games answers 422 with the count', async () => {
-    // ST-094: this state used to share the zero-games 404, and the web told a
+    // ST-095: this state used to share the zero-games 404, and the web told a
     // player with analysed games to go import games they already had.
     const playerId = await makePlayer(OWNER);
     for (let i = 0; i < 9; i++) await seedRatedGame(playerId);
