@@ -149,7 +149,7 @@ export async function importGames(db: Db, input: ImportGamesInput): Promise<Impo
     // A freshly inserted game with moves and a decided colour is queued for
     // analysis after the commit. A game with no moves is already `failed`; a
     // colourless game has nobody to analyse, so queuing one only earns a
-    // guaranteed-failing job (ST-094): it stays `pending`, and setting the
+    // guaranteed-failing job (ST-095): it stays `pending`, and setting the
     // colour on the game review page is what puts it on the queue.
     for (const row of inserted) {
       gameIds.push(row.id);

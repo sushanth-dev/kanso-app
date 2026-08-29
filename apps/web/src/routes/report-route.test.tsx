@@ -370,7 +370,7 @@ describe('ReportRoute', () => {
   });
 
   test('answers 422 with the honest thin-history state, not the import nudge', async () => {
-    // ST-094: analysed games below the rated threshold used to share the
+    // ST-095: analysed games below the rated threshold used to share the
     // zero-games 404, telling a player with games to import games.
     vi.spyOn(diagnosisApi, 'getReport').mockRejectedValue(
       new ApiRequestError(

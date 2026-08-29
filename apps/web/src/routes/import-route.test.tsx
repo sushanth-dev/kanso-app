@@ -161,7 +161,7 @@ describe('ImportScreen', () => {
   });
 
   test('tells the player when games need their side before analysis', async () => {
-    // ST-094: colourless games are stored but never queued; the success
+    // ST-095: colourless games are stored but never queued; the success
     // message is where the player learns analysis is waiting on them.
     const user = userEvent.setup();
     startImport.mockResolvedValue(
