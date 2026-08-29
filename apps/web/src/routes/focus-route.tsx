@@ -237,7 +237,9 @@ function RankingSection({
         <Text as="p" display="block" type="supporting">
           {reportQuery.error instanceof ApiRequestError && reportQuery.error.status === 404
             ? 'No analysed games in this stream yet. Import games to get a ranking.'
-            : 'Your ranking could not be loaded right now.'}
+            : reportQuery.error instanceof ApiRequestError && reportQuery.error.status === 422
+              ? 'Analysed games so far are too few rated ones for a ranking. Import more rated games.'
+              : 'Your ranking could not be loaded right now.'}
         </Text>
       ) : reportQuery.data.weaknesses.length === 0 ? (
         <Text as="p" display="block" type="supporting">

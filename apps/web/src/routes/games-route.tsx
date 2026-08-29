@@ -33,6 +33,8 @@ function GameCard({ game, stream }: { game: GameSummary; stream: Stream }) {
 
   const analysed = game.analysisStatus === 'complete';
   const failed = game.analysisStatus === 'failed';
+  // ST-094: a pending game with no recorded side never starts on its own.
+  const needsSide = game.analysisStatus === 'pending' && game.playerColor === null;
 
   const onConfirmDelete = async () => {
     setDeleteError(null);
@@ -89,6 +91,10 @@ function GameCard({ game, stream }: { game: GameSummary; stream: Stream }) {
                 }}
               />
             </>
+          ) : needsSide ? (
+            <Text as="p" display="block" type="supporting" className="text-sm">
+              Waiting for your side: open the game and pick the colour you played.
+            </Text>
           ) : (
             <Text as="p" display="block" type="supporting" className="text-sm">
               Analysis in progress.

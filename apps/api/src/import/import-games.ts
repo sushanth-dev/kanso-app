@@ -146,12 +146,14 @@ export async function importGames(db: Db, input: ImportGamesInput): Promise<Impo
               pgnHash: game.pgnHash,
             });
 
-    // A freshly inserted game with moves is queued for analysis after the
-    // commit. A game with no moves is already `failed`; a conflict that
-    // deduped to nothing has no row to queue.
+    // A freshly inserted game with moves and a decided colour is queued for
+    // analysis after the commit. A game with no moves is already `failed`; a
+    // colourless game has nobody to analyse, so queuing one only earns a
+    // guaranteed-failing job (ST-094): it stays `pending`, and setting the
+    // colour on the game review page is what puts it on the queue.
     for (const row of inserted) {
       gameIds.push(row.id);
-      if ((row.moveCount ?? 0) > 0) queued.push(row.id);
+      if ((row.moveCount ?? 0) > 0 && row.playerColor !== null) queued.push(row.id);
     }
 
     const undetermined = inserted.filter((row) => row.playerColor === null).length;

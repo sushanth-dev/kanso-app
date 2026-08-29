@@ -354,11 +354,14 @@ function hasActiveGame(games: GameSummary[]): boolean {
   );
 }
 
+// ST-094. A pending game whose side is unknown is not going anywhere: the
+// import refuses to queue a game it cannot attribute, and analysis needs a
+// player to diagnose. Only a set colour (on the game review page) moves it.
 function isActiveGame(game: GameSummary): boolean {
   return (
-    game.analysisStatus === 'pending' ||
     game.analysisStatus === 'queued' ||
-    game.analysisStatus === 'analyzing'
+    game.analysisStatus === 'analyzing' ||
+    (game.analysisStatus === 'pending' && game.playerColor !== null)
   );
 }
 
@@ -380,16 +383,22 @@ function AnalyzingBanner({ games }: { games: GameSummary[] }) {
   );
 }
 
-function Analysing({ games }: { games: GameSummary[] }) {
+function Analysing({
+  games,
+  needsSideCount = 0,
+}: {
+  games: GameSummary[];
+  needsSideCount?: number;
+}) {
   const total = games.length;
   const analysed = games.filter(
     (game) => game.analysisStatus === 'complete' || game.analysisStatus === 'failed',
   ).length;
   const active = games.filter(
     (game) =>
-      game.analysisStatus === 'pending' ||
       game.analysisStatus === 'queued' ||
-      game.analysisStatus === 'analyzing',
+      game.analysisStatus === 'analyzing' ||
+      (game.analysisStatus === 'pending' && game.playerColor !== null),
   );
   return (
     <div className="flex flex-col items-center gap-3 py-8 text-center">
@@ -409,6 +418,14 @@ function Analysing({ games }: { games: GameSummary[] }) {
           {active.length > 3 ? ` +${active.length - 3} more` : ''}
         </Text>
       ) : null}
+      {needsSideCount > 0 ? (
+        // ST-094: these games are not analysing and never will on their own;
+        // naming a side on the game review page is what starts them.
+        <Text as="p" display="block" type="supporting" className="text-sm">
+          {needsSideCount} {needsSideCount === 1 ? 'game needs' : 'games need'} your side before
+          analysis can start. Open it under Games and pick the colour you played.
+        </Text>
+      ) : null}
       <Text as="p" display="block" type="supporting" className="text-sm">
         This report will appear as soon as it is ready.
       </Text>
@@ -421,6 +438,30 @@ function NotReady() {
     <EmptyState
       title="No analyzed games in this stream yet"
       description="Import your games to get a ranked report. Tournament and online games are reported separately."
+      headingLevel={2}
+      actions={<Link href="/import">Import games</Link>}
+    />
+  );
+}
+
+/** ST-094. Games imported, but the import could not tell which side was yours. */
+function NeedsSide({ count }: { count: number }) {
+  return (
+    <EmptyState
+      title={`${count} ${count === 1 ? 'game needs' : 'games need'} your side before analysis`}
+      description="The import could not tell which colour you were in these games. Open each one under Games and pick the side you played; analysis starts as soon as you do."
+      headingLevel={2}
+      actions={<Link href="/games">Open Games</Link>}
+    />
+  );
+}
+
+/** ST-094. Analysed games exist, but too few rated ones for a report. */
+function NotEnoughRatedGames({ message }: { message: string }) {
+  return (
+    <EmptyState
+      title="Not enough rated games for a report yet"
+      description={message}
       headingLevel={2}
       actions={<Link href="/import">Import games</Link>}
     />
@@ -463,6 +504,12 @@ export function ReportRoute() {
       ? (gamesQuery.data?.games ?? []).filter((game) => batchIdSet.has(game.id))
       : (gamesQuery.data?.games ?? []);
   const analyzingGames = (gamesQuery.data?.games ?? []).filter(isActiveGame);
+  // ST-094: imported games whose side the import could not decide. They sit
+  // `pending` until the player names a colour on the game review page, and no
+  // amount of polling moves them.
+  const needsSideCount = (gamesQuery.data?.games ?? []).filter(
+    (game) => game.analysisStatus === 'pending' && game.playerColor === null,
+  ).length;
 
   const reportQuery = useQuery({
     ...reportQueryOptions(stream),
@@ -493,23 +540,30 @@ export function ReportRoute() {
     );
   }
 
-  // No report yet. The report endpoint answers 404 until one exists; while
-  // games are analysing we show the live progress, otherwise an empty state.
-  const isNotReady =
-    reportQuery.isError &&
-    reportQuery.error instanceof ApiRequestError &&
-    reportQuery.error.status === 404;
+  // No report yet. The endpoint answers 404 when the stream has no analysed
+  // games and 422 (ST-094) when it has analysed games but too few rated ones
+  // for a report; each gets its own honest empty state.
+  const notReadyError =
+    reportQuery.isError && reportQuery.error instanceof ApiRequestError
+      ? reportQuery.error.status === 404 || reportQuery.error.status === 422
+        ? reportQuery.error
+        : null
+      : null;
 
   return (
     <div className="space-y-6">
       <ReportHeader stream={stream} onStreamChange={onStreamChange} />
       {reportQuery.isPending ? (
         <ReportSkeleton />
-      ) : isNotReady ? (
+      ) : notReadyError !== null ? (
         gamesQuery.isPending ? (
           <ReportSkeleton />
+        ) : notReadyError.status === 422 ? (
+          <NotEnoughRatedGames message={notReadyError.message} />
         ) : analyzingGames.length > 0 ? (
-          <Analysing games={batchGames} />
+          <Analysing games={batchGames} needsSideCount={needsSideCount} />
+        ) : needsSideCount > 0 ? (
+          <NeedsSide count={needsSideCount} />
         ) : (
           <NotReady />
         )

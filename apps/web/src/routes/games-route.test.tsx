@@ -111,6 +111,22 @@ describe('GamesRoute', () => {
     );
   });
 
+  test('tells the player a colourless pending game is waiting for their side', async () => {
+    // ST-094: this game will never analyse on its own; the card must not
+    // claim the analysis is in progress.
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [gameFixture({ analysisStatus: 'pending', playerColor: null })],
+      total: 1,
+      page: 1,
+      limit: 100,
+    });
+
+    renderRoute();
+
+    expect(await screen.findByText(/Waiting for your side/)).toBeVisible();
+    expect(screen.queryByText('Analysis in progress.')).toBeNull();
+  });
+
   test('shows an EmptyState when there are no games in this stream', async () => {
     vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
       games: [],
