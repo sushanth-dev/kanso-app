@@ -11,7 +11,7 @@
  * refusal are answered apart — 404 for a game that does not exist, 403 for one
  * that is not the caller's — because the ids are UUIDs, so a 404 for another
  * account's game would tell the caller nothing they could act on anyway.
- * ST-094. Naming a side is also what puts an analysable game on the queue:
+ * ST-095. Naming a side is also what puts an analysable game on the queue:
  * the import never queues a colourless game, so a first colour here enqueues
  * the game, cap permitting.
  */
@@ -68,7 +68,7 @@ export function mountSetGameColor(
       return {
         kind: 'updated' as const,
         row: updated!,
-        // ST-094: a colourless game is never auto-queued at import (there is
+        // ST-095: a colourless game is never auto-queued at import (there is
         // nobody to analyse). Answering the question is what earns the queue
         // send - but only for a game analysis can still run on. A re-colour of
         // an already decided game changes no queue state.

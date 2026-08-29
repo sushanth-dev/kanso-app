@@ -379,7 +379,7 @@ describe('POST /imports (pgn_upload)', () => {
   });
 
   test('withholds colourless games from the queue instead of queuing a guaranteed failure', async () => {
-    // ST-094: analysis has nobody to diagnose without a colour, so a queued
+    // ST-095: analysis has nobody to diagnose without a colour, so a queued
     // colourless game could only fail. It stays `pending`, and naming a side
     // on the game review page is what puts it on the queue.
     const playerId = await seedPlayer('Test Player');

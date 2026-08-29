@@ -112,7 +112,7 @@ describe('GamesRoute', () => {
   });
 
   test('tells the player a colourless pending game is waiting for their side', async () => {
-    // ST-094: this game will never analyse on its own; the card must not
+    // ST-095: this game will never analyse on its own; the card must not
     // claim the analysis is in progress.
     vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
       games: [gameFixture({ analysisStatus: 'pending', playerColor: null })],

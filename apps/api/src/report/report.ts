@@ -184,7 +184,7 @@ export function mountReport(
 
     const baseline = await leakBaseline(deps.db, playerId, stream);
     if (baseline.kind === 'not_enough_evidence') {
-      // ST-094. Two different refusals shared one 404, and the web read both
+      // ST-095. Two different refusals shared one 404, and the web read both
       // as "import your games" - a lie for a player whose games are analysed
       // but too few. Zero analysed games stays the 404 the not-ready state
       // renders; a thin history answers the same 422 the motifs and phase
