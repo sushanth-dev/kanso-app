@@ -210,6 +210,16 @@ an off-system signal.
 **The Flat-By-Default Rule.** Surfaces are flat at rest. Depth is conveyed by
 the three brightness steps, never by drop shadows.
 
+Glass is the one exception to flat, and it is a recipe, not a mood (ST-071,
+ST-094): every Card frosts the raised-paper token at 60% opacity over a 16px
+backdrop blur, so the ThreeUI particle field and the auth clouds read through
+the card, blurred. The recipe keeps one inset top highlight and one soft
+ambient shadow as part of the glass treatment; the shadow belongs to the
+glass, not to a shadow vocabulary. Muted ink holds 7.7:1 over the mix, so the
+contrast floors survive the transparency. Under
+`prefers-reduced-transparency: reduce`, the glass surfaces (cards, `.glass`,
+`.glass-top`) fall back to their opaque token surfaces with no blur.
+
 ## Shapes
 
 Gentle, not sharp, not pill-everything. Radius comes in four steps: sm
@@ -285,8 +295,11 @@ where nothing scrolls beneath.
 ### Cards / Containers
 
 - **Corner Style:** lg radius (0.75rem).
-- **Background:** raised paper (#fffdf8).
-- **Shadow Strategy:** none; see Elevation.
+- **Background:** frosted raised paper: the raised token at 60% opacity over
+  a 16px backdrop blur (ST-094); opaque raised under
+  `prefers-reduced-transparency`.
+- **Shadow Strategy:** flat by default; the glass recipe carries its own one
+  soft ambient shadow and inset highlight, see Elevation & Depth.
 - **Internal Padding:** inset base (1rem).
 
 ### Inputs / Fields
