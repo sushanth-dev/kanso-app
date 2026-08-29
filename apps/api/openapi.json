@@ -2994,6 +2994,16 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Analysed games in the stream are too few for a report.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }

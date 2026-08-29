@@ -368,4 +368,72 @@ describe('ReportRoute', () => {
       ),
     ).toBeVisible();
   });
+
+  test('answers 422 with the honest thin-history state, not the import nudge', async () => {
+    // ST-094: analysed games below the rated threshold used to share the
+    // zero-games 404, telling a player with games to import games.
+    vi.spyOn(diagnosisApi, 'getReport').mockRejectedValue(
+      new ApiRequestError(
+        422,
+        'not_enough_evidence',
+        undefined,
+        '3 analyzed games in this stream, but a report needs 10 rated games in the last year.',
+      ),
+    );
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [gameFixture({ id: 'g-1', analysisStatus: 'complete' })],
+      total: 1,
+      page: 1,
+      limit: 100,
+    });
+
+    renderRoute();
+
+    expect(
+      await screen.findByRole('heading', { name: 'Not enough rated games for a report yet' }),
+    ).toBeVisible();
+    expect(screen.getByText(/3 analyzed games in this stream/)).toBeVisible();
+    expect(screen.queryByRole('heading', { name: 'No analyzed games in this stream yet' })).toBe(
+      null,
+    );
+  });
+
+  test('points colourless pending games at the games list instead of the spinner', async () => {
+    vi.spyOn(diagnosisApi, 'getReport').mockRejectedValue(reportNotFound);
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [
+        gameFixture({ id: 'g-1', playerColor: null, analysisStatus: 'pending' }),
+        gameFixture({ id: 'g-2', playerColor: null, analysisStatus: 'pending' }),
+      ],
+      total: 2,
+      page: 1,
+      limit: 100,
+    });
+
+    renderRoute();
+
+    expect(
+      await screen.findByRole('heading', { name: '2 games need your side before analysis' }),
+    ).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Open Games' })).toHaveAttribute('href', '/games');
+    expect(screen.queryByText('This report will appear as soon as it is ready.')).toBeNull();
+  });
+
+  test('names the needs-side games inside the analysing screen', async () => {
+    vi.spyOn(diagnosisApi, 'getReport').mockRejectedValue(reportNotFound);
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [
+        gameFixture({ id: 'g-1', analysisStatus: 'analyzing' }),
+        gameFixture({ id: 'g-2', playerColor: null, analysisStatus: 'pending' }),
+      ],
+      total: 2,
+      page: 1,
+      limit: 100,
+    });
+
+    renderRoute();
+
+    expect(await screen.findByText('0 of 2 games analysed')).toBeVisible();
+    expect(screen.getByText(/1 game needs your side before analysis can start/)).toBeVisible();
+  });
 });

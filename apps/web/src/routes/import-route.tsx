@@ -73,7 +73,13 @@ function outcomeStatus(outcome: ImportOutcome): { tone: StatusTone; message: str
         outcome.job.gamesRejected > 0
           ? ` ${outcome.job.gamesRejected} ${gamesLabel(outcome.job.gamesRejected)} ${outcome.job.gamesRejected === 1 ? 'was' : 'were'} rejected and not imported.`
           : '';
-      return { tone: 'success', message: imported + rejected };
+      // ST-094: these games are stored but analysis will not start on its own.
+      // The player names a side on each game review page; that is the queue.
+      const undetermined =
+        outcome.job.gamesUndetermined > 0
+          ? ` ${outcome.job.gamesUndetermined} of them could not be tied to your side; open each under Games and pick the colour you played to start its analysis.`
+          : '';
+      return { tone: 'success', message: imported + rejected + undetermined };
     }
     case 'none-found':
       return {

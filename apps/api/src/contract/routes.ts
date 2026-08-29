@@ -446,6 +446,7 @@ export const getReport = createRoute({
     200: json(Report, 'The report.'),
     ...authErrors,
     404: error('No such player, or no analyzed games in that stream yet.'),
+    422: error('Analysed games in the stream are too few for a report.'),
   },
 });
 

@@ -30,12 +30,18 @@ const client = new SQSClient({
 console.log(`dev-worker polling ${queueUrl}`);
 
 for (;;) {
+  // AttributeNames must be requested or SQS returns no Attributes at all, and
+  // ApproximateReceiveCount would read 1 forever: the drop-after-maxAttempts
+  // branch below could never fire, and a permanently failing message (a game
+  // with no row, say) would cycle through the queue forever instead of being
+  // dropped after three looks.
   const res = await client.send(
     new ReceiveMessageCommand({
       QueueUrl: queueUrl,
       MaxNumberOfMessages: 10,
       WaitTimeSeconds: 20,
       VisibilityTimeout: 300,
+      AttributeNames: ['All'],
     }),
   );
 
