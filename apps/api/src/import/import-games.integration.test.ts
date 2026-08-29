@@ -377,4 +377,33 @@ describe('POST /imports (pgn_upload)', () => {
     }>;
     expect(queued.sort()).toEqual(rows.map((r) => r.id).sort());
   });
+
+  test('withholds colourless games from the queue instead of queuing a guaranteed failure', async () => {
+    // ST-094: analysis has nobody to diagnose without a colour, so a queued
+    // colourless game could only fail. It stays `pending`, and naming a side
+    // on the game review page is what puts it on the queue.
+    const playerId = await seedPlayer('Sushanth Kamabathula');
+    const parsed = parsePgn(fixture('multi-game.pgn'));
+    expect(parsed.ok).toBe(true);
+    const games = parsed.ok ? parsed.games.map((g) => ({ ...g, externalId: null })) : [];
+    expect(games.length).toBeGreaterThan(0);
+
+    const { queued, gameIds } = await importGames(harness.db, {
+      playerId,
+      source: 'pgn_upload',
+      username: null,
+      stream: 'tournament',
+      matchName: 'Sushanth Kamabathula',
+      games,
+      gamesRejected: 0,
+    });
+
+    expect(queued).toEqual([]);
+    expect(gameIds).toHaveLength(games.length);
+    const rows =
+      (await harness.sql`SELECT analysis_status FROM game WHERE player_id = ${playerId}`) as Array<{
+        analysis_status: string;
+      }>;
+    expect(rows.every((r) => r.analysis_status === 'pending')).toBe(true);
+  });
 });
