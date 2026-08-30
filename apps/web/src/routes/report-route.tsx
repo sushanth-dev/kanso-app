@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Card } from '@astryxdesign/core/Card';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
@@ -10,24 +10,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { MIN_REPORT_GAMES, isActiveGame } from '../analysis-status.ts';
 import { ApiRequestError } from '../api/account-api.ts';
-import type {
-  GameSummary,
-  MotifReport,
-  PhaseReport,
-  Report,
-  Stream,
-  Weakness,
-  WeaknessKind,
-} from '../api/diagnosis-api.ts';
+import type { GameSummary, Report, Stream, Weakness, WeaknessKind } from '../api/diagnosis-api.ts';
 import { StreamToggle } from '../components/stream-toggle.tsx';
 import { ParticleReveal } from '../components/canvas-ui/ParticleReveal.tsx';
-import {
-  gamesQueryOptions,
-  motifsQueryOptions,
-  phasesQueryOptions,
-  reportQueryOptions,
-  tournamentsQueryOptions,
-} from '../query-client.ts';
+import { gamesQueryOptions, reportQueryOptions, tournamentsQueryOptions } from '../query-client.ts';
 import { TournamentCard } from './tournaments-route.tsx';
 import { track } from '../analytics.ts';
 
@@ -39,42 +25,19 @@ const STREAM_HEADING: Record<Stream, string> = {
 const KIND_LABEL: Record<WeaknessKind, string> = {
   opening: 'Opening',
   motif: 'Tactical motif',
-  phase: 'Phase',
+  phase: 'Game phase',
   time_trouble: 'Time trouble',
 };
 
-const MOTIF_LABEL: Record<MotifReport['motifs'][number]['motif'], string> = {
-  hanging_piece: 'Hanging pieces',
-  missed_check: 'Missed checks',
-  missed_capture: 'Missed captures',
-  missed_threat: 'Missed threats',
-};
-
-const PHASE_LABEL: Record<NonNullable<PhaseReport['phases'][number]['phase']>, string> = {
-  opening: 'Opening',
-  middlegame: 'Middlegame',
-  endgame: 'Endgame',
-};
-
-const TIME_TROUBLE_UNAVAILABLE: Record<
-  Extract<PhaseReport['timeTrouble'], { status: 'unavailable' }>['reason'],
-  string
-> = {
-  no_clock_data: 'These games do not carry clock data.',
-  not_enough_evidence: 'Not enough clocked games to measure time trouble yet.',
+const TIME_TROUBLE_UNAVAILABLE: Record<'no_clock_data' | 'not_enough_evidence', string> = {
+  no_clock_data: 'No clock data on these games, so time usage is not measured.',
+  not_enough_evidence: 'Too few games with clock data to measure time usage.',
 };
 
 const generatedAtFormatter = new Intl.DateTimeFormat('en-US', {
-  year: 'numeric',
   month: 'short',
   day: 'numeric',
-  hour: 'numeric',
-  minute: '2-digit',
-});
-
-const rateFormatter = new Intl.NumberFormat('en-US', {
-  style: 'percent',
-  maximumFractionDigits: 0,
+  year: 'numeric',
 });
 
 export interface ReportScreenProps {
@@ -82,22 +45,24 @@ export interface ReportScreenProps {
   report: Report;
   onStreamChange: (stream: Stream) => void;
   analyzingGames?: GameSummary[];
-  /** ST-097. The tournament-stream report page shows one card per tournament between the header and the report body. */
-  tournamentCards?: ReactNode;
+  /** ST-098. A scoped report headings itself with the tournament's name. */
+  title?: string;
 }
 
 function ReportHeader({
   stream,
   onStreamChange,
   meta,
+  title,
 }: {
   stream: Stream;
   onStreamChange: (stream: Stream) => void;
   meta?: string;
+  title?: string;
 }) {
   return (
     <header className="space-y-4">
-      <Heading level={1}>{STREAM_HEADING[stream]}</Heading>
+      <Heading level={1}>{title ?? STREAM_HEADING[stream]}</Heading>
       <StreamToggle stream={stream} onChange={onStreamChange} ariaLabel="Report stream" />
       {meta !== undefined ? (
         <Text as="p" display="block" type="supporting" className="text-sm">
@@ -107,19 +72,19 @@ function ReportHeader({
     </header>
   );
 }
+
 export function ReportScreen({
   stream,
   report,
   onStreamChange,
   analyzingGames = [],
-  tournamentCards = undefined,
+  title,
 }: ReportScreenProps) {
   const isEmpty = report.weaknesses.length === 0;
   const meta = `Reported ${generatedAtFormatter.format(new Date(report.generatedAt))} covering ${report.gamesCovered} games.`;
   return (
     <div className="space-y-6">
-      <ReportHeader stream={stream} onStreamChange={onStreamChange} meta={meta} />
-      {tournamentCards}
+      <ReportHeader stream={stream} onStreamChange={onStreamChange} meta={meta} title={title} />
       {analyzingGames.length > 0 ? <AnalyzingBanner games={analyzingGames} /> : null}
       {report.timeTroubleFromMove !== null ? (
         <Text as="p" display="block" className="text-sm">
@@ -131,21 +96,16 @@ export function ReportScreen({
           {TIME_TROUBLE_UNAVAILABLE[report.timeTroubleReason ?? 'no_clock_data']}
         </Text>
       )}
-      {isEmpty ? (
-        <EmptyReport report={report} />
-      ) : (
-        <WeaknessList weaknesses={report.weaknesses} stream={stream} />
-      )}
+      {isEmpty ? <EmptyReport report={report} /> : <WeaknessList weaknesses={report.weaknesses} />}
     </div>
   );
 }
 
 interface WeaknessListProps {
   weaknesses: Weakness[];
-  stream: Stream;
 }
 
-function WeaknessList({ weaknesses, stream }: WeaknessListProps) {
+function WeaknessList({ weaknesses }: WeaknessListProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const onToggle = (id: string) => setExpandedId((current) => (current === id ? null : id));
 
@@ -207,7 +167,7 @@ function WeaknessList({ weaknesses, stream }: WeaknessListProps) {
                 ) : null}
               </div>
               {expanded && weakness.kind !== 'opening' ? (
-                <AggregateDetail kind={weakness.kind} stream={stream} />
+                <EvidenceDetail weakness={weakness} />
               ) : null}
             </Card>
           </li>
@@ -217,126 +177,37 @@ function WeaknessList({ weaknesses, stream }: WeaknessListProps) {
   );
 }
 
-function AggregateDetail({
-  kind,
-  stream,
-}: {
-  kind: Exclude<WeaknessKind, 'opening'>;
-  stream: Stream;
-}) {
-  return kind === 'motif' ? (
-    <MotifAggregate stream={stream} />
-  ) : (
-    <PhaseAggregate kind={kind} stream={stream} />
-  );
-}
-
-function AggregateSkeleton() {
+/**
+ * ST-098. The places behind the figure: the advice for this kind of weakness,
+ * then the worst positions, each naming the move played, the move the engine
+ * wanted, and a link into the game itself.
+ */
+function EvidenceDetail({ weakness }: { weakness: Weakness }) {
   return (
-    <div role="status" aria-busy="true" className="mt-3 space-y-2">
-      <div className="h-4 w-48 rounded-control bg-sunken" />
-      <div className="h-4 w-64 rounded-control bg-sunken" />
-    </div>
-  );
-}
-
-function AggregateError() {
-  return (
-    <Text as="p" display="block" type="supporting" className="mt-3 text-sm">
-      This breakdown could not be loaded right now.
-    </Text>
-  );
-}
-
-function MotifAggregate({ stream }: { stream: Stream }) {
-  const { data, isPending, isError } = useQuery(motifsQueryOptions(stream));
-  if (isPending) return <AggregateSkeleton />;
-  if (isError || data === undefined) return <AggregateError />;
-  return <MotifBreakdown report={data} />;
-}
-
-function PhaseAggregate({ kind, stream }: { kind: 'phase' | 'time_trouble'; stream: Stream }) {
-  const { data, isPending, isError } = useQuery(phasesQueryOptions(stream));
-  if (isPending) return <AggregateSkeleton />;
-  if (isError || data === undefined) return <AggregateError />;
-  return <PhaseBreakdown report={data} timeTroubleOnly={kind === 'time_trouble'} />;
-}
-
-function MotifBreakdown({ report }: { report: MotifReport }) {
-  return (
-    <div className="mt-3 space-y-2 text-sm">
-      {report.motifs.map((point) => (
-        <div key={point.motif} className="flex items-baseline justify-between gap-3">
-          <span>{MOTIF_LABEL[point.motif]}</span>
-          <Text type="supporting" className="font-mono">
-            {point.positions} positions, {point.totalCpLoss} cp lost
-          </Text>
-        </div>
-      ))}
-      <Text as="p" display="block" type="supporting">
-        {report.mistakeCount} mistakes counted.
-        {report.withheld > 0
-          ? ` ${report.withheld} positions held below the reporting threshold.`
-          : ''}
-        {report.unattributed > 0
-          ? ` ${report.unattributed} positions not tied to a known motif.`
-          : ''}
-      </Text>
-    </div>
-  );
-}
-
-function PhaseBreakdown({
-  report,
-  timeTroubleOnly,
-}: {
-  report: PhaseReport;
-  timeTroubleOnly: boolean;
-}) {
-  if (timeTroubleOnly) {
-    const trouble = report.timeTrouble;
-    if (trouble.status === 'unavailable') {
-      return (
-        <Text as="p" display="block" type="supporting" className="mt-3 text-sm">
-          {TIME_TROUBLE_UNAVAILABLE[trouble.reason]}
-        </Text>
-      );
-    }
-    return (
-      <div className="mt-3 space-y-1 text-sm">
-        <Text as="p" display="block">
-          Time trouble starts around move {trouble.fromMove}.
-        </Text>
-        <Text as="p" display="block">
-          <span className="font-mono">{rateFormatter.format(trouble.troubleMistakeRate)}</span> of
-          time-trouble moves were mistakes, versus{' '}
-          <span className="font-mono">{rateFormatter.format(trouble.calmMistakeRate)}</span> when
-          calm.
-        </Text>
-        <Text as="p" display="block" type="supporting">
-          Measured across {trouble.clockedGames} games with clock data.
-        </Text>
-      </div>
-    );
-  }
-  return (
-    <div className="mt-3 space-y-2 text-sm">
-      {report.phases.map((point) => (
-        <div key={point.phase ?? 'unknown'} className="flex items-baseline justify-between gap-3">
-          <span>{point.phase === null ? 'Unknown phase' : PHASE_LABEL[point.phase]}</span>
-          <Text type="supporting" className="font-mono">
-            {point.totalCpLoss} cp lost over {point.games} games
-          </Text>
-        </div>
-      ))}
-      <Text as="p" display="block" type="supporting">
-        {report.mistakeCount} mistakes counted.
-      </Text>
-      {report.timeTrouble.status === 'unavailable' ? (
-        <Text as="p" display="block" type="supporting">
-          {TIME_TROUBLE_UNAVAILABLE[report.timeTrouble.reason]}
+    <div className="mt-3 space-y-3 text-sm">
+      {weakness.advice !== null ? (
+        <Text as="p" display="block" className="text-primary">
+          {weakness.advice}
         </Text>
       ) : null}
+      {weakness.evidence.length > 0 ? (
+        <ol className="list-decimal space-y-2 pl-5">
+          {weakness.evidence.map((instance) => (
+            <li key={`${instance.gameId}-${instance.moveNumber}`}>
+              <Text as="span">
+                Move <span className="font-mono">{instance.moveNumber}</span> - {instance.moveSan};{' '}
+                {instance.bestMoveSan} was better ({instance.judgement},{' '}
+                <span className="font-mono">{instance.cpLoss}</span> cp lost)
+              </Text>{' '}
+              <Link href={`/games/${instance.gameId}`}>Review game</Link>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <Text as="p" display="block" type="supporting">
+          No individual positions to show yet.
+        </Text>
+      )}
     </div>
   );
 }
@@ -356,16 +227,33 @@ function AnalyzingBanner({ games }: { games: GameSummary[] }) {
     <div
       role="status"
       aria-label="Analyzing games"
-      className="flex items-center gap-3 rounded-surface border border-border-strong bg-raised px-4 py-3"
+      className="flex items-start gap-3 rounded-surface border border-border-strong bg-raised px-4 py-3"
     >
       <Spinner size="sm" />
-      <Text as="p" display="block" className="text-sm text-primary">
-        Analyzing:{' '}
-        {games
-          .map((game) => `${game.whiteName ?? 'White'} vs ${game.blackName ?? 'Black'}`)
-          .join(', ')}
-      </Text>
+      <div className="space-y-1">
+        <Text as="p" display="block" className="text-sm text-primary">
+          Analyzing {games.length} {games.length === 1 ? 'game' : 'games'}:
+        </Text>
+        <AnalyzingList games={games} />
+      </div>
     </div>
+  );
+}
+
+/**
+ * ST-098. The running games as a numbered list. ST-093 capped the inline name
+ * run at three because every re-wrap read as a flicker; a list grows downward
+ * without reflowing the block around it.
+ */
+function AnalyzingList({ games }: { games: GameSummary[] }) {
+  return (
+    <ol className="list-decimal space-y-0.5 pl-5">
+      {games.map((game) => (
+        <li key={game.id} className="text-sm text-primary">
+          {game.whiteName ?? 'White'} vs {game.blackName ?? 'Black'}
+        </li>
+      ))}
+    </ol>
   );
 }
 
@@ -392,18 +280,7 @@ function Analysing({
       <Text as="p" display="block" className="text-primary">
         {analysed} of {total} {total === 1 ? 'game' : 'games'} analysed
       </Text>
-      {active.length > 0 ? (
-        // ST-093: at most three names, so the block stops re-wrapping on every
-        // poll tick as games finish. That churn read as a screen flicker.
-        <Text as="p" display="block" className="text-primary">
-          Analyzing:{' '}
-          {active
-            .slice(0, 3)
-            .map((game) => `${game.whiteName ?? 'White'} vs ${game.blackName ?? 'Black'}`)
-            .join(', ')}
-          {active.length > 3 ? ` +${active.length - 3} more` : ''}
-        </Text>
-      ) : null}
+      {active.length > 0 ? <AnalyzingList games={active} /> : null}
       {needsSideCount > 0 ? (
         // ST-095: these games are not analysing and never will on their own;
         // naming a side on the game review page is what starts them.
@@ -474,51 +351,90 @@ function ReportSkeleton() {
     </div>
   );
 }
-export function ReportRoute() {
-  const navigate = useNavigate();
+
+/**
+ * ST-098. The tournament stream without a tournament picked: a directory. One
+ * card per tournament, each gated on its own count (ST-096), each opening that
+ * tournament's own report. The blended weakness list is gone from this page -
+ * a tournament's diagnosis belongs to the tournament, and online games, which
+ * have no tournaments, keep their stream report.
+ */
+function TournamentDirectory({ onStreamChange }: { onStreamChange: (stream: Stream) => void }) {
   const queryClient = useQueryClient();
-  const { stream, gameIds, tournamentId } = useSearch({ from: '/account/report' });
-  // ST-097. Every tournament gets a card, gated on its own game count, with
-  // the upload's tournament leading when the import handed us its id. The
-  // stream check gates the card list itself, not just the query: an
-  // `enabled: false` query keeps its cached data, which is how the cards
-  // leaked onto the online stream until a refresh.
+  const tournamentsQuery = useQuery(tournamentsQueryOptions());
+  const gamesQuery = useQuery({
+    ...gamesQueryOptions('tournament'),
+    refetchInterval: (query) =>
+      query.state.data !== undefined && query.state.data.games.some(isActiveGame) ? 5000 : false,
+  });
+  // The other stream warms while this one shows, so the toggle lands on data.
+  useEffect(() => {
+    void queryClient.prefetchQuery(gamesQueryOptions('online'));
+    void queryClient.prefetchQuery(reportQueryOptions('online'));
+  }, [queryClient]);
+
+  const games = gamesQuery.data?.games ?? [];
+  const analyzingGames = games.filter(isActiveGame);
+  const needsSideCount = games.filter(
+    (game) => game.analysisStatus === 'pending' && game.playerColor === null,
+  ).length;
+  const tournaments = tournamentsQuery.data?.tournaments ?? [];
+
+  return (
+    <div className="space-y-6">
+      <ReportHeader stream="tournament" onStreamChange={onStreamChange} />
+      {tournamentsQuery.isPending ? (
+        <ReportSkeleton />
+      ) : tournaments.length > 0 ? (
+        <ul className="space-y-3">
+          {tournaments.map((summary) => (
+            <li key={summary.id}>
+              <TournamentCard
+                summary={summary}
+                disabledReason={
+                  summary.gameCount < MIN_REPORT_GAMES
+                    ? `A report needs ${MIN_REPORT_GAMES} games; this tournament has ${summary.gameCount}.`
+                    : undefined
+                }
+                actionHref={`/report?stream=tournament&tournamentId=${summary.id}`}
+                actionLabel="Open report"
+              />
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <NotReady />
+      )}
+      {analyzingGames.length > 0 ? <AnalyzingBanner games={analyzingGames} /> : null}
+      {needsSideCount > 0 ? <NeedsSide count={needsSideCount} /> : null}
+    </div>
+  );
+}
+
+/** One stream's or one tournament's report. */
+function ScopedReportRoute({
+  stream,
+  tournamentId,
+  gameIds,
+  onStreamChange,
+}: {
+  stream: Stream;
+  tournamentId: string | undefined;
+  gameIds: string[] | undefined;
+  onStreamChange: (stream: Stream) => void;
+}) {
+  const queryClient = useQueryClient();
   const tournamentsQuery = useQuery({
     ...tournamentsQueryOptions(),
-    enabled: stream === 'tournament',
+    enabled: stream === 'tournament' && tournamentId !== undefined,
   });
-  const tournaments = stream === 'tournament' ? (tournamentsQuery.data?.tournaments ?? []) : [];
-  const orderedTournaments =
-    tournamentId === undefined
-      ? tournaments
-      : [
-          ...tournaments.filter((tournament) => tournament.id === tournamentId),
-          ...tournaments.filter((tournament) => tournament.id !== tournamentId),
-        ];
-  const tournamentCards =
-    orderedTournaments.length > 0 ? (
-      <ul className="space-y-3">
-        {orderedTournaments.map((summary) => (
-          <li key={summary.id}>
-            <TournamentCard
-              summary={summary}
-              disabledReason={
-                summary.gameCount < MIN_REPORT_GAMES
-                  ? `A report needs ${MIN_REPORT_GAMES} games; this tournament has ${summary.gameCount}.`
-                  : undefined
-              }
-            />
-          </li>
-        ))}
-      </ul>
-    ) : undefined;
   const gamesQuery = useQuery({
-    ...gamesQueryOptions(stream),
+    ...gamesQueryOptions(stream, tournamentId),
     refetchInterval: (query) =>
       query.state.data !== undefined && query.state.data.games.some(isActiveGame) ? 5000 : false,
   });
   // ST-093: when the import handed us its own game ids, the analysing counter
-  // counts only that batch; every other use of the games list stays stream-wide.
+  // counts only that batch; every other use of the games list stays in scope.
   const batchIdSet = new Set(gameIds ?? []);
   const batchGames =
     gameIds !== undefined && gameIds.length > 0
@@ -533,7 +449,7 @@ export function ReportRoute() {
   ).length;
 
   const reportQuery = useQuery({
-    ...reportQueryOptions(stream),
+    ...reportQueryOptions(stream, tournamentId),
     refetchInterval: analyzingGames.length > 0 ? 5000 : false,
   });
   // ST-097. The other stream's queries warm while this one shows, so the
@@ -549,12 +465,11 @@ export function ReportRoute() {
     if (reportQuery.data !== undefined) track('report_viewed', { stream });
   }, [reportQuery.data, stream]);
 
-  const onStreamChange = (next: Stream) => {
-    void navigate({
-      to: '/report',
-      search: { stream: next },
-    });
-  };
+  const title =
+    stream === 'tournament' && tournamentId !== undefined
+      ? (tournamentsQuery.data?.tournaments.find((t) => t.id === tournamentId)?.name ??
+        STREAM_HEADING.tournament)
+      : STREAM_HEADING[stream];
 
   // A report exists: show it, plus a compact banner for any game still
   // analysing. Never swap the whole page to an "analysing" screen, which hid
@@ -563,15 +478,15 @@ export function ReportRoute() {
     return (
       <ReportScreen
         stream={stream}
+        title={title}
         report={reportQuery.data}
         onStreamChange={onStreamChange}
         analyzingGames={analyzingGames}
-        tournamentCards={tournamentCards}
       />
     );
   }
 
-  // No report yet. The endpoint answers 404 when the stream has no analysed
+  // No report yet. The endpoint answers 404 when the scope has no analysed
   // games and 422 (ST-095) when it has analysed games but too few rated ones
   // for a report; each gets its own honest empty state.
   const notReadyError =
@@ -583,8 +498,7 @@ export function ReportRoute() {
 
   return (
     <div className="space-y-6">
-      <ReportHeader stream={stream} onStreamChange={onStreamChange} />
-      {tournamentCards}
+      <ReportHeader stream={stream} onStreamChange={onStreamChange} title={title} />
       {reportQuery.isPending ? (
         <ReportSkeleton />
       ) : notReadyError !== null ? (
@@ -592,7 +506,7 @@ export function ReportRoute() {
           <ReportSkeleton />
         ) : // ST-096. A running batch renders the analysing screen whatever the
         // report endpoint refused with: the moment one game completes, a
-        // thin stream answers 422, and the refusal must not preempt games
+        // thin scope answers 422, and the refusal must not preempt games
         // that are still queued or running. The refusal states arrive only
         // once nothing is active.
         analyzingGames.length > 0 ? (
@@ -608,5 +522,28 @@ export function ReportRoute() {
         <ReportError />
       )}
     </div>
+  );
+}
+
+export function ReportRoute() {
+  const navigate = useNavigate();
+  const { stream, gameIds, tournamentId } = useSearch({ from: '/account/report' });
+
+  const onStreamChange = (next: Stream) => {
+    // A stream switch leaves the upload's scope behind: the ids and the
+    // tournament belong to the surface that surfaced them.
+    void navigate({ to: '/report', search: { stream: next } });
+  };
+
+  if (stream === 'tournament' && tournamentId === undefined) {
+    return <TournamentDirectory onStreamChange={onStreamChange} />;
+  }
+  return (
+    <ScopedReportRoute
+      stream={stream}
+      tournamentId={tournamentId}
+      gameIds={gameIds}
+      onStreamChange={onStreamChange}
+    />
   );
 }

@@ -436,17 +436,21 @@ export const getReport = createRoute({
   tags: ['Report'],
   summary: 'The weakness report for one stream, ranked by rating leak',
   description:
-    'F7, F9, S2. Tournament and online games are aggregated separately, so `stream` is required rather than defaulted. A blended report would describe a player who does not exist.',
+    "F7, F9, S2. Tournament and online games are aggregated separately, so `stream` is required rather than defaulted. A blended report would describe a player who does not exist. ST-098: a `tournamentId` query scopes the report to one tournament's games, with the same floor and refusals.",
   request: {
     query: z.object({
       stream: Stream.openapi({ param: { name: 'stream', in: 'query' } }),
+      // ST-098. The report is always the session player's, so a tournament id
+      // outside their own rows resolves to an empty scope and the standard
+      // 404 rather than a claim-check error.
+      tournamentId: Uuid.optional().openapi({ param: { name: 'tournamentId', in: 'query' } }),
     }),
   },
   responses: {
     200: json(Report, 'The report.'),
     ...authErrors,
-    404: error('No such player, or no analyzed games in that stream yet.'),
-    422: error('Analysed games in the stream are too few for a report.'),
+    404: error('No such player, or no analyzed games in that scope yet.'),
+    422: error('Analysed games in the scope are too few for a report.'),
   },
 });
 

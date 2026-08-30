@@ -31,10 +31,18 @@ function dateRange(summary: TournamentSummary): string | null {
 export function TournamentCard({
   summary,
   disabledReason,
+  actionHref,
+  actionLabel = 'Open tournament',
 }: {
   summary: TournamentSummary;
   /** ST-096. Set on the report page while the tournament is under the report floor: the card greys out, the button stops, and the reason is stated in text. */
   disabledReason?: string;
+  /**
+   * ST-098. The report page's cards open the tournament's own report; the
+   * tournaments page keeps its detail link.
+   */
+  actionHref?: string;
+  actionLabel?: string;
 }) {
   const range = dateRange(summary);
   const allAnalysed = summary.gameCount > 0 && summary.analysedCount === summary.gameCount;
@@ -73,9 +81,9 @@ export function TournamentCard({
           {summary.gameCount} {gamesLabel(summary.gameCount)}
         </Text>
         {disabledReason === undefined ? (
-          <Button label="Open tournament" href={`/tournaments/${summary.id}`} />
+          <Button label={actionLabel} href={actionHref ?? `/tournaments/${summary.id}`} />
         ) : (
-          <Button label="Open tournament" isDisabled />
+          <Button label={actionLabel} isDisabled />
         )}
       </div>
       {disabledReason !== undefined ? (
