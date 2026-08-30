@@ -102,11 +102,33 @@ REPO=$(aws ecr describe-repositories --query \
   "repositories[?contains(repositoryName, 'analysisrepository')].repositoryUri" --output text)
 
 aws ecr get-login-password | docker login --username AWS --password-stdin "${REPO%%/*}"
-docker buildx build --platform linux/arm64 \
-  -f apps/api/Dockerfile.analysis -t "$REPO:$TAG" --push .
+docker buildx build --platform linux/arm64 --provenance=false --sbom=false \
+  --output "type=image,name=$REPO:$TAG,push=true,oci-mediatypes=false" \
+  -f apps/api/Dockerfile.analysis .
 
 export ANALYSIS_IMAGE_TAG=$TAG
 ```
+
+The flags are not decoration. With Docker 29's containerd image store, a plain
+`docker buildx build --push` writes an OCI image index
+(`application/vnd.oci.image.index.v1+json`) whose build-attestation entries
+Lambda refuses: `UpdateFunctionCode` fails with "The image manifest, config or
+layer media type for the source image ... is not supported", after the rest of
+the deploy has already run. The output form above pins a single
+`application/vnd.docker.distribution.manifest.v2+json` manifest, which is what
+the 30 August 2026 production re-deploy needed. If a deploy fails with that
+error, check what ECR actually holds:
+
+```sh
+aws ecr describe-images --repository-name analysisrepository \
+  --image-ids imageTag=$TAG \
+  --query 'imageDetails[0].imageManifestMediaType' --output text
+```
+
+`oci.image.index` is the failure; `docker.distribution.manifest.v2` is what
+Lambda accepts. Re-push the same tag with the flags and re-run `sst deploy`:
+the failed deploy leaves the stack half-converged and the second run finishes
+it.
 
 The build compiles Stockfish from source, so it takes minutes rather than
 seconds. Use the commit as the tag rather than `latest`: two deploys of `latest`
@@ -202,10 +224,13 @@ curl -s -o /dev/null -w '%{http_code}\n' \
   "https://$API_ID.execute-api.ap-south-2.amazonaws.com/health"
 ```
 
-Expected is `403`. The HTTP API has `disableExecuteApiEndpoint` set, so a
-request straight to the API Gateway's own `execute-api` URL is refused outright
-rather than routed. If it answers `200`, the endpoint was not disabled and every
-control Cloudflare applies can be skipped by anyone who learns the API id.
+Expected is a refusal, not the API. The guide first recorded `403`; the 30
+August 2026 re-deploy observed `{"message":"Not Found"}`, HTTP 404, from the
+same disabled endpoint. Whichever refusal AWS serves, the property the check
+proves is the same: nothing is routed on the `execute-api` name, so the custom
+domain behind Cloudflare is the only public entry. If it answers `200`, the
+endpoint was not disabled and every control Cloudflare applies can be skipped
+by anyone who learns the API id.
 
 ## HTTPS and DNS
 
