@@ -29,6 +29,8 @@ import { MIN_RATED_GAMES, SEASON_WINDOW_MS } from '../analysis/performance-ratin
 import { scoreTimeTrouble, timeTroubleCounts } from '../phases/phases.ts';
 import { adviceFor, groupKeyOf, weaknessEvidence, type EvidenceInstance } from './evidence.ts';
 import { composeReport, type ComposedWeakness } from './compose.ts';
+import { adviceForReport } from './advice.ts';
+import type { AiClient } from '../coaching/gemini.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
 type Stream = (typeof schema.streamEnum.enumValues)[number];
@@ -115,7 +117,9 @@ function toResponse(r: ReportRow, ws: WeaknessRow[]): ReportResponse {
       rank: w.rank,
       // Filled in by `withEvidence` before the response leaves the handler.
       evidence: [] as EvidenceInstance[],
-      advice: null as string | null,
+      // ST-099. The model line stored with the report; `withEvidence` falls
+      // back to the template copy when it is null.
+      advice: w.advice,
     })),
     narrative: r.narrative,
   };
@@ -140,7 +144,9 @@ async function withEvidence(
   const evidence = await weaknessEvidence(db, playerId, stream, tournamentId, windowStart, groups);
   for (const w of response.weaknesses) {
     w.evidence = evidence.get(`${w.kind}:${groupKeyOf(w.kind, w.label, w.eco)}`) ?? [];
-    w.advice = adviceFor(w.kind, groupKeyOf(w.kind, w.label, w.eco) ?? '', w.evidence);
+    // ST-099. The stored model line wins; the template remains the fallback
+    // for reports generated without a key and for pre-ST-099 rows.
+    w.advice = w.advice ?? adviceFor(w.kind, groupKeyOf(w.kind, w.label, w.eco) ?? '', w.evidence);
   }
   return response;
 }
@@ -159,6 +165,8 @@ async function storeReport(
     timeTroubleFromMove: number | null;
     timeTroubleReason: 'no_clock_data' | 'not_enough_evidence' | null;
     weaknesses: ComposedWeakness[];
+    /** ST-099. Model lines keyed by aggregate key; empty when no key is set. */
+    advice: ReadonlyMap<string, string>;
   },
 ): Promise<ReportResponse> {
   return db.transaction(async (tx) => {
@@ -195,6 +203,7 @@ async function storeReport(
               gamesAffected: w.gamesAffected,
               occurrences: w.occurrences,
               rank: w.rank,
+              advice: input.advice.get(`${w.kind}:${groupKeyOf(w.kind, w.label, w.eco)}`) ?? null,
             })),
           )
           .returning()
@@ -206,7 +215,7 @@ async function storeReport(
 
 export function mountReport(
   app: OpenAPIHono,
-  deps: { db: Db; getSession: (c: Context) => unknown },
+  deps: { db: Db; getSession: (c: Context) => unknown; aiClient: AiClient | null },
 ): void {
   app.openapi(getReport, async (c) => {
     const { stream, tournamentId } = c.req.valid('query');
@@ -340,6 +349,19 @@ export function mountReport(
       await timeTroubleCounts(deps.db, playerId, stream, { tournamentId: inTournament }),
     );
     const composed = composeReport(leaks, timeTrouble);
+    // ST-099. The model writes each card's advice once, at generation, from
+    // the same instances the card will show. A failed or invalid call simply
+    // leaves the template copy in place.
+    const advice = deps.aiClient
+      ? await adviceForReport(deps.db, deps.aiClient, {
+          playerId,
+          stream,
+          tournamentId: inTournament,
+          windowStart: baseline.windowStart,
+          gamesCovered: baseline.baseline.games,
+          weaknesses: composed.weaknesses,
+        })
+      : new Map<string, string>();
 
     const response = await storeReport(deps.db, {
       playerId,
@@ -353,6 +375,7 @@ export function mountReport(
       timeTroubleFromMove: composed.timeTroubleFromMove,
       timeTroubleReason: composed.timeTroubleReason,
       weaknesses: composed.weaknesses,
+      advice,
     });
 
     return c.json(
