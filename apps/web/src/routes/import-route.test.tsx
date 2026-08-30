@@ -124,7 +124,11 @@ describe('ImportScreen', () => {
     ).not.toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText('Method'), 'uscf');
-    expect(screen.getByText('Imports tournament results, not moves.')).toBeVisible();
+    expect(
+      screen.getByText(
+        "USCF tournaments only for now. Imports the crosstable's results, not the moves.",
+      ),
+    ).toBeVisible();
   });
 
   test('rejects an implausible Chess.com username before any request', async () => {
