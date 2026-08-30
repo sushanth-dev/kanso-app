@@ -325,8 +325,34 @@ describe('GET /report', () => {
     expect(res.status).toBe(422);
     const body = (await res.json()) as { code: string; message: string };
     expect(body).toMatchObject({ code: 'not_enough_evidence' });
-    expect(body.message).toContain('5 analyzed games');
-    expect(body.message).toContain('6 rated games');
+    expect(body.message).toContain('All 5 analyzed games in this stream count');
+    expect(body.message).toContain('needs 6 rated games in the last year');
+  });
+
+  test('a mixed history answers 422 with the qualifying subset', async () => {
+    // ST-097: the two sixes are different sets. Five rated games plus one
+    // whose opponent has no Elo must say five of six, not one bare count.
+    const playerId = await makePlayer(OWNER);
+    for (let g = 0; g < 5; g++) await seedRatedGame(playerId);
+    await seedRatedGame(playerId, { blackElo: null });
+
+    const res = await get(OWNER, 'online');
+    expect(res.status).toBe(422);
+    const body = (await res.json()) as { code: string; message: string };
+    expect(body.message).toContain('Only 5 of the 6 analyzed games in this stream count');
+    expect(body.message).toContain('a decided result, a date, and both players');
+  });
+
+  test('analysed games that all fail the rated bar say so', async () => {
+    const playerId = await makePlayer(OWNER);
+    for (let g = 0; g < 2; g++) {
+      await seedRatedGame(playerId, { result: '*', blackElo: null });
+    }
+
+    const res = await get(OWNER, 'online');
+    expect(res.status).toBe(422);
+    const body = (await res.json()) as { code: string; message: string };
+    expect(body.message).toContain('None of the 2 analyzed games in this stream count');
   });
 
   test('a player with no analysed games keeps the 404', async () => {

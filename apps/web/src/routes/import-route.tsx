@@ -460,7 +460,7 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
                 />
               </Field>
               <Text as="p" display="block" type="supporting">
-                Imports tournament results, not moves.
+                USCF tournaments only for now. Imports the crosstable's results, not the moves.
               </Text>
             </>
           )}

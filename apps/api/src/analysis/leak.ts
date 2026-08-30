@@ -48,7 +48,7 @@ export interface WeaknessLeak {
 
 export type LeakResult =
   | { kind: 'ok'; baseline: SeasonBaseline; weaknesses: WeaknessLeak[] }
-  | { kind: 'not_enough_evidence' };
+  | { kind: 'not_enough_evidence'; ratedGames: number };
 
 /** The opponent's Elo, read from the player's colour. */
 const opponentElo = sql`case when ${game.playerColor} = 'white' then ${game.blackElo} else ${game.whiteElo} end`;
@@ -94,7 +94,8 @@ export async function leakBaseline(
   playerId: string,
   stream: Stream,
 ): Promise<
-  { kind: 'ok'; baseline: SeasonBaseline; windowStart: Date } | { kind: 'not_enough_evidence' }
+  | { kind: 'ok'; baseline: SeasonBaseline; windowStart: Date }
+  | { kind: 'not_enough_evidence'; ratedGames: number }
 > {
   const [latest] = await db
     .select({ playedAt: game.playedAt })
@@ -110,7 +111,7 @@ export async function leakBaseline(
     .orderBy(desc(game.playedAt))
     .limit(1);
 
-  if (latest?.playedAt == null) return { kind: 'not_enough_evidence' };
+  if (latest?.playedAt == null) return { kind: 'not_enough_evidence', ratedGames: 0 };
   const windowStart = new Date(latest.playedAt.getTime() - SEASON_WINDOW_MS);
 
   const [row] = await db
@@ -135,7 +136,8 @@ export async function leakBaseline(
     score: row?.score ?? 0,
     avgOpponentElo: row?.avgOpponentElo ?? 0,
   };
-  if (baseline.games < MIN_RATED_GAMES) return { kind: 'not_enough_evidence' };
+  if (baseline.games < MIN_RATED_GAMES)
+    return { kind: 'not_enough_evidence', ratedGames: baseline.games };
 
   return { kind: 'ok', baseline, windowStart };
 }
