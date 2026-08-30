@@ -160,9 +160,14 @@ const reportRoute = createRoute({
         : Array.isArray(search.gameIds)
           ? search.gameIds.filter((v): v is string => typeof v === 'string')
           : undefined;
+    // ST-096: the tournament the current upload attached to, so the report
+    // page's tournament card shows it rather than the most recent one. It only
+    // ever selects a card from the caller's own tournaments list.
+    const tournamentId = typeof search.tournamentId === 'string' ? search.tournamentId : undefined;
     return {
       stream: search.stream === 'online' ? ('online' as const) : ('tournament' as const),
       ...(gameIds !== undefined ? { gameIds } : {}),
+      ...(tournamentId !== undefined ? { tournamentId } : {}),
     };
   },
   component: ReportRoute,

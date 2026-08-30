@@ -183,9 +183,10 @@ describe('computeLeaks', () => {
     expect(keys(tournament)).toEqual(['motif:missed_capture', 'opening:B20']);
   });
 
-  test('refuses below ten rated games', async () => {
+  test('refuses below six rated games', async () => {
     const playerId = await makePlayer();
-    for (let i = 0; i < 9; i++) await seedRatedGame(playerId);
+    // ST-096: the floor is six, so the fixture sits at five, one under it.
+    for (let i = 0; i < 5; i++) await seedRatedGame(playerId);
 
     const result = await computeLeaks(harness.db, playerId, 'online');
     expect(result.kind).toBe('not_enough_evidence');

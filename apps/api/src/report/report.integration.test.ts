@@ -317,15 +317,16 @@ describe('GET /report', () => {
   test('a player with analysed but too few rated games answers 422 with the count', async () => {
     // ST-095: this state used to share the zero-games 404, and the web told a
     // player with analysed games to go import games they already had.
+    // ST-096: the floor is six, so the fixture sits at five, one under it.
     const playerId = await makePlayer(OWNER);
-    for (let i = 0; i < 9; i++) await seedRatedGame(playerId);
+    for (let i = 0; i < 5; i++) await seedRatedGame(playerId);
 
     const res = await get(OWNER, 'online');
     expect(res.status).toBe(422);
     const body = (await res.json()) as { code: string; message: string };
     expect(body).toMatchObject({ code: 'not_enough_evidence' });
-    expect(body.message).toContain('9 analyzed games');
-    expect(body.message).toContain('10 rated games');
+    expect(body.message).toContain('5 analyzed games');
+    expect(body.message).toContain('6 rated games');
   });
 
   test('a player with no analysed games keeps the 404', async () => {

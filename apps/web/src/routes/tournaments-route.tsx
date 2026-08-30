@@ -28,11 +28,21 @@ function dateRange(summary: TournamentSummary): string | null {
   return start ?? end;
 }
 
-function TournamentCard({ summary }: { summary: TournamentSummary }) {
+export function TournamentCard({
+  summary,
+  disabledReason,
+}: {
+  summary: TournamentSummary;
+  /** ST-096. Set on the report page while the tournament is under the report floor: the card greys out, the button stops, and the reason is stated in text. */
+  disabledReason?: string;
+}) {
   const range = dateRange(summary);
   const allAnalysed = summary.gameCount > 0 && summary.analysedCount === summary.gameCount;
   return (
-    <Card>
+    <Card
+      className={disabledReason !== undefined ? 'opacity-75' : undefined}
+      aria-disabled={disabledReason !== undefined ? true : undefined}
+    >
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <Text as="p" display="block" className="text-base">
@@ -62,8 +72,17 @@ function TournamentCard({ summary }: { summary: TournamentSummary }) {
         <Text type="supporting" className="font-mono text-sm">
           {summary.gameCount} {gamesLabel(summary.gameCount)}
         </Text>
-        <Button label="Open tournament" href={`/tournaments/${summary.id}`} />
+        {disabledReason === undefined ? (
+          <Button label="Open tournament" href={`/tournaments/${summary.id}`} />
+        ) : (
+          <Button label="Open tournament" isDisabled />
+        )}
       </div>
+      {disabledReason !== undefined ? (
+        <Text as="p" display="block" className="mt-2 text-sm text-primary">
+          {disabledReason}
+        </Text>
+      ) : null}
     </Card>
   );
 }
