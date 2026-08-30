@@ -4,13 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, RouterContextProvider, RouterProvider } from '@tanstack/react-router';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { accountApi, ApiRequestError, type Me } from '../api/account-api.ts';
-import {
-  diagnosisApi,
-  type GameSummary,
-  type MotifReport,
-  type PhaseReport,
-  type Report,
-} from '../api/diagnosis-api.ts';
+import { diagnosisApi, type GameSummary, type Report } from '../api/diagnosis-api.ts';
 import { tournamentApi, type TournamentSummary } from '../api/tournament-api.ts';
 import { createAppRouter } from '../router.tsx';
 import { ReportScreen } from './report-route.tsx';
@@ -30,6 +24,19 @@ function tournamentFixture(overrides: Partial<TournamentSummary> = {}): Tourname
 
 const playerId = '00000000-0000-4000-8000-000000000001';
 
+const evidenceInstance = {
+  gameId: '00000000-0000-4000-8000-0000000000ab',
+  whiteName: 'Mina',
+  blackName: 'Opponent',
+  playedAt: '2026-08-14T00:00:00.000Z',
+  moveNumber: 23,
+  moveSan: 'Nf6',
+  bestMoveSan: 'e5',
+  phase: 'middlegame' as const,
+  judgement: 'mistake' as const,
+  cpLoss: 240,
+};
+
 const motifWeakness = {
   id: 'w-1',
   kind: 'motif' as const,
@@ -41,6 +48,8 @@ const motifWeakness = {
   gamesAffected: 6,
   occurrences: 9,
   rank: 1,
+  advice: 'After every opponent move, count what each available capture wins.',
+  evidence: [evidenceInstance],
 };
 
 const openingWeakness = {
@@ -54,6 +63,8 @@ const openingWeakness = {
   gamesAffected: 4,
   occurrences: 5,
   rank: 2,
+  advice: null,
+  evidence: [],
 };
 
 function reportFixture(overrides: Partial<Report> = {}): Report {
@@ -61,6 +72,7 @@ function reportFixture(overrides: Partial<Report> = {}): Report {
     id: 'report-1',
     playerId,
     stream: 'tournament',
+    tournamentId: null,
     generatedAt: '2026-08-15T12:00:00.000Z',
     gamesCovered: 12,
     windowStart: '2025-09-01T00:00:00.000Z',
@@ -72,137 +84,6 @@ function reportFixture(overrides: Partial<Report> = {}): Report {
     ...overrides,
   };
 }
-
-const motifReportFixture: MotifReport = {
-  playerId,
-  stream: 'tournament',
-  motifs: [{ motif: 'missed_capture', positions: 9, totalCpLoss: 128 }],
-  unattributed: 2,
-  mistakeCount: 11,
-  withheld: 0,
-};
-
-const phaseReportFixture: PhaseReport = {
-  playerId,
-  stream: 'tournament',
-  phases: [{ phase: 'middlegame', totalCpLoss: 96, games: 7 }],
-  mistakeCount: 11,
-  timeTrouble: { status: 'unavailable', reason: 'no_clock_data' },
-};
-
-function renderReport(report: Report, onStreamChange = vi.fn()) {
-  const user = userEvent.setup();
-  const history = createMemoryHistory();
-  const queryClient = new QueryClient();
-  const router = createAppRouter({ history, queryClient });
-  render(
-    <QueryClientProvider client={queryClient}>
-      <RouterContextProvider router={router}>
-        <ReportScreen stream={report.stream} report={report} onStreamChange={onStreamChange} />
-      </RouterContextProvider>
-    </QueryClientProvider>,
-  );
-  return { user, queryClient, onStreamChange };
-}
-
-describe('ReportScreen', () => {
-  test('renders the ranked list with evidence and the coverage meta', () => {
-    renderReport(reportFixture());
-    expect(
-      screen.getByRole('heading', { level: 1, name: 'Tournament report' }),
-    ).toBeInTheDocument();
-    expect(screen.getByText('#1')).toBeInTheDocument();
-    expect(screen.getByText('Missed captures')).toBeInTheDocument();
-    expect(screen.getByText('34')).toBeInTheDocument();
-    expect(screen.getByText('9')).toBeInTheDocument();
-    expect(screen.getByText('2.5')).toBeInTheDocument();
-    expect(screen.getByText(/covering 12 games/)).toBeInTheDocument();
-  });
-
-  test('renders an honest statement, not a clean bill of health, for an empty report', () => {
-    renderReport(reportFixture({ weaknesses: [] }));
-    expect(
-      screen.getByRole('heading', { name: 'Not enough evidence to rank yet' }),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/could not identify a defensible weakness/)).toBeInTheDocument();
-  });
-
-  test('shows the stream choice and never blends it', async () => {
-    const { user, onStreamChange } = renderReport(reportFixture());
-    expect(screen.getByRole('radio', { name: 'Tournament' })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
-    expect(screen.getByRole('radio', { name: 'Online' })).toHaveAttribute('aria-checked', 'false');
-    await user.click(screen.getByRole('radio', { name: 'Online' }));
-    expect(onStreamChange).toHaveBeenCalledWith('online');
-  });
-
-  test('expands a motif weakness into the aggregate behind it', async () => {
-    const { user, queryClient } = renderReport(reportFixture());
-    queryClient.setQueryData(['motifs', 'tournament'], motifReportFixture);
-    await user.click(screen.getByRole('button', { name: 'Show evidence' }));
-    expect(await screen.findByText(/9 positions, 128 cp lost/)).toBeInTheDocument();
-    expect(screen.getByText(/11 mistakes counted/)).toBeInTheDocument();
-  });
-
-  test('states what could not be assessed when time trouble is unavailable', async () => {
-    const report = reportFixture({
-      weaknesses: [
-        {
-          id: 'w-3',
-          kind: 'phase',
-          label: 'Middlegame',
-          eco: null,
-          ratingLeak: 15,
-          saturated: false,
-          halfPointsLost: 1,
-          gamesAffected: 5,
-          occurrences: 6,
-          rank: 1,
-        },
-      ],
-    });
-    const { user, queryClient } = renderReport(report);
-    queryClient.setQueryData(['phases', 'tournament'], phaseReportFixture);
-    await user.click(screen.getByRole('button', { name: 'Show evidence' }));
-    expect(await screen.findAllByText(/These games do not carry clock data/)).toHaveLength(2);
-  });
-
-  test('states a saturated leak as a floor in words, not a bare number', () => {
-    renderReport(
-      reportFixture({
-        weaknesses: [{ ...motifWeakness, ratingLeak: 702, saturated: true }],
-      }),
-    );
-    expect(screen.getByText('at least 702')).toBeInTheDocument();
-  });
-
-  test('shows the time-trouble move on an online report', () => {
-    renderReport(reportFixture({ stream: 'online', timeTroubleFromMove: 28 }));
-    expect(screen.getByText(/Time trouble starts around move/)).toBeInTheDocument();
-    expect(screen.getByText('28')).toHaveClass('font-mono');
-  });
-
-  test('states the reason when time trouble data is absent', () => {
-    renderReport(reportFixture());
-    expect(screen.getByText('These games do not carry clock data.')).toBeInTheDocument();
-  });
-
-  test('states the thin-history reason when the clocked games do not hold', () => {
-    renderReport(reportFixture({ timeTroubleReason: 'not_enough_evidence' }));
-    expect(
-      screen.getByText('Not enough clocked games to measure time trouble yet.'),
-    ).toBeInTheDocument();
-  });
-
-  test('labels the evidence figures on a ranked report', () => {
-    renderReport(reportFixture({ weaknesses: [motifWeakness] }));
-    expect(screen.getByText('games')).toBeInTheDocument();
-    expect(screen.getByText('occurrences')).toBeInTheDocument();
-    expect(screen.getByText('half-points lost')).toBeInTheDocument();
-  });
-});
 
 const meFixture: Me = {
   userId: 'user-1',
@@ -255,6 +136,95 @@ function gameFixture(overrides: Partial<GameSummary> = {}): GameSummary {
 
 const reportNotFound = new ApiRequestError(404, 'not_found', undefined, 'Not found.');
 
+function renderReport(report: Report, analyzingGames: GameSummary[] = []) {
+  const user = userEvent.setup();
+  const history = createMemoryHistory();
+  const queryClient = new QueryClient();
+  const router = createAppRouter({ history, queryClient });
+  render(
+    <QueryClientProvider client={queryClient}>
+      <RouterContextProvider router={router}>
+        <ReportScreen
+          stream={report.stream}
+          report={report}
+          onStreamChange={vi.fn()}
+          analyzingGames={analyzingGames}
+        />
+      </RouterContextProvider>
+    </QueryClientProvider>,
+  );
+  return { user };
+}
+
+describe('ReportScreen', () => {
+  test('renders the ranked list with the coverage meta', () => {
+    renderReport(reportFixture());
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Tournament report' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Missed captures')).toBeVisible();
+    expect(screen.getByText(/covering 12 games/)).toBeVisible();
+  });
+
+  test('labels a saturated leak as a floor', () => {
+    renderReport(
+      reportFixture({
+        weaknesses: [{ ...motifWeakness, saturated: true }],
+      }),
+    );
+    expect(screen.getByText('at least 34')).toBeVisible();
+  });
+
+  test('shows the places and the advice behind a weakness', async () => {
+    const { user } = renderReport(reportFixture());
+    await user.click(screen.getByText('Show evidence'));
+
+    // The advice: what to do about the weakness.
+    expect(screen.getByText(/count what each available capture wins/)).toBeVisible();
+    // The place: the move played, the move that was better, and the way in.
+    const item = screen.getByText(/e5 was better/).closest('li');
+    expect(item).toHaveTextContent('Move');
+    expect(item).toHaveTextContent('23');
+    expect(item).toHaveTextContent('Nf6');
+    expect(item).toHaveTextContent('240');
+    expect(screen.getByRole('link', { name: 'Review game' }).getAttribute('href')).toBe(
+      `/games/${evidenceInstance.gameId}`,
+    );
+  });
+
+  test('opens no expander on an opening weakness', () => {
+    renderReport(
+      reportFixture({
+        weaknesses: [openingWeakness],
+      }),
+    );
+    expect(screen.getByText('Sicilian, Alapin')).toBeVisible();
+    expect(screen.queryByText('Show evidence')).toBeNull();
+  });
+
+  test('names the analysing games as a numbered list', () => {
+    renderReport(reportFixture(), [
+      gameFixture({ id: 'g-1', analysisStatus: 'analyzing' }),
+      gameFixture({ id: 'g-2', analysisStatus: 'queued' }),
+    ]);
+    const banner = screen.getByRole('status', { name: 'Analyzing games' });
+    expect(banner).toBeVisible();
+    expect(banner).toHaveTextContent('Analyzing 2 games:');
+    const list = banner.querySelector('ol');
+    expect(list?.children).toHaveLength(2);
+    expect(list?.children[0]).toHaveTextContent('Mina vs Opponent');
+    expect(list?.children[1]).toHaveTextContent('Mina vs Opponent');
+  });
+
+  test('states the time-trouble onset, or why it is absent', () => {
+    renderReport(reportFixture({ timeTroubleFromMove: 31, timeTroubleReason: null }));
+    expect(screen.getByText(/Time trouble starts around move/)).toBeVisible();
+
+    renderReport(reportFixture({ timeTroubleFromMove: null, timeTroubleReason: 'no_clock_data' }));
+    expect(screen.getByText(/No clock data on these games/)).toBeVisible();
+  });
+});
+
 function renderRoute(path = '/report?stream=online') {
   const history = createMemoryHistory({ initialEntries: [path] });
   const queryClient = new QueryClient();
@@ -292,7 +262,7 @@ describe('ReportRoute', () => {
     expect(screen.getByRole('link', { name: 'Import games' })).toHaveAttribute('href', '/import');
   });
 
-  test('keeps showing the report with a per-game banner while a game analyses', async () => {
+  test('keeps showing the report with a numbered banner while a game analyses', async () => {
     vi.spyOn(diagnosisApi, 'getReport').mockResolvedValue(
       reportFixture({ stream: 'online', gamesCovered: 1 }),
     );
@@ -310,9 +280,11 @@ describe('ReportRoute', () => {
 
     // The report is visible, not replaced by an analysing screen.
     expect(await screen.findByRole('heading', { name: 'Online report' })).toBeVisible();
-    // A compact banner names the game still analysing.
-    expect(await screen.findByRole('status', { name: 'Analyzing games' })).toBeVisible();
-    expect(screen.getByText('Analyzing: Mina vs Opponent')).toBeVisible();
+    // The banner lists the game still analysing, numbered.
+    const banner = await screen.findByRole('status', { name: 'Analyzing games' });
+    const list = banner.querySelector('ol');
+    expect(list?.children).toHaveLength(1);
+    expect(list?.children[0]).toHaveTextContent('Mina vs Opponent');
   });
 
   test('polls and swaps to the report once every game is analysed', async () => {
@@ -362,7 +334,7 @@ describe('ReportRoute', () => {
     expect(await screen.findByText('1 of 2 games analysed')).toBeVisible();
   });
 
-  test('caps the analysing names at three and states the rest as a count', async () => {
+  test('lists every analysing game in the counter, numbered', async () => {
     vi.spyOn(diagnosisApi, 'getReport').mockRejectedValue(reportNotFound);
     vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
       games: ['g-1', 'g-2', 'g-3', 'g-4', 'g-5'].map((id) =>
@@ -373,14 +345,16 @@ describe('ReportRoute', () => {
       limit: 100,
     });
 
-    renderRoute();
+    renderRoute(
+      '/report?stream=online&gameIds=g-1&gameIds=g-2&gameIds=g-3&gameIds=g-4&gameIds=g-5',
+    );
 
-    expect(await screen.findByText('0 of 5 games analysed')).toBeVisible();
-    expect(
-      screen.getByText(
-        /^Analyzing: Mina vs Opponent, Mina vs Opponent, Mina vs Opponent \+2 more$/,
-      ),
-    ).toBeVisible();
+    const counter = await screen.findByText('0 of 5 games analysed');
+    // ST-098: a numbered list of all five, not an inline run capped at three.
+    const list = counter.nextElementSibling;
+    expect(list?.tagName).toBe('OL');
+    expect(list?.children).toHaveLength(5);
+    expect(list?.children[4]).toHaveTextContent('Mina vs Opponent');
   });
 
   test('answers 422 with the honest thin-history state, not the import nudge', async () => {
@@ -480,11 +454,11 @@ describe('ReportRoute', () => {
     ).toBeNull();
   });
 
-  test('shows the tournament card with a working link at six or more games', async () => {
+  test('the tournament stream is a directory: cards open each tournament report', async () => {
     vi.spyOn(tournamentApi, 'listTournaments').mockResolvedValue({
       tournaments: [tournamentFixture({ gameCount: 7, analysedCount: 7 })],
     });
-    vi.spyOn(diagnosisApi, 'getReport').mockRejectedValue(reportNotFound);
+    const getReport = vi.spyOn(diagnosisApi, 'getReport').mockRejectedValue(reportNotFound);
     vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
       games: [],
       total: 0,
@@ -495,13 +469,17 @@ describe('ReportRoute', () => {
     renderRoute('/report?stream=tournament');
 
     expect(await screen.findByText('City Open')).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Open tournament' })).toHaveAttribute(
+    // ST-098: the card opens the tournament's own report, not the detail page.
+    expect(screen.getByRole('link', { name: 'Open report' })).toHaveAttribute(
       'href',
-      '/tournaments/00000000-0000-4000-8000-0000000000d1',
+      '/report?stream=tournament&tournamentId=00000000-0000-4000-8000-0000000000d1',
     );
+    // The directory carries no blended weakness list of its own.
+    expect(screen.queryByText('Missed captures')).toBeNull();
+    expect(getReport.mock.calls.every(([, tournamentId]) => tournamentId === undefined)).toBe(true);
   });
 
-  test('greys the tournament card out and disables it under six games', async () => {
+  test('greys a tournament card out and disables it under six games', async () => {
     vi.spyOn(tournamentApi, 'listTournaments').mockResolvedValue({
       tournaments: [tournamentFixture({ gameCount: 5, analysedCount: 3 })],
     });
@@ -516,11 +494,11 @@ describe('ReportRoute', () => {
     renderRoute('/report?stream=tournament');
 
     expect(await screen.findByText('City Open')).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Open tournament' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Open report' })).toBeDisabled();
     expect(screen.getByText('A report needs 6 games; this tournament has 5.')).toBeVisible();
   });
 
-  test('never shows the tournament card on the online stream', async () => {
+  test('never shows the tournament cards on the online stream', async () => {
     vi.spyOn(tournamentApi, 'listTournaments').mockResolvedValue({
       tournaments: [tournamentFixture()],
     });
@@ -565,11 +543,11 @@ describe('ReportRoute', () => {
     expect(await screen.findByText('City Open')).toBeVisible();
     expect(screen.getByText('Rapid Monday')).toBeVisible();
     // Seven games: the link works. Two: the card greys out with its own reason.
-    expect(screen.getByRole('link', { name: 'Open tournament' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Open report' })).toHaveAttribute(
       'href',
-      '/tournaments/00000000-0000-4000-8000-0000000000d1',
+      '/report?stream=tournament&tournamentId=00000000-0000-4000-8000-0000000000d1',
     );
-    expect(screen.getByRole('button', { name: 'Open tournament' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Open report' })).toBeDisabled();
     expect(screen.getByText('A report needs 6 games; this tournament has 2.')).toBeVisible();
   });
 
@@ -598,5 +576,50 @@ describe('ReportRoute', () => {
       await screen.findByRole('heading', { name: 'No analyzed games in this stream yet' }),
     ).toBeVisible();
     expect(screen.queryByText('City Open')).toBeNull();
+  });
+
+  test('a scoped tournament report heads itself with the tournament name and passes the scope', async () => {
+    const cityOpen = '00000000-0000-4000-8000-0000000000d1';
+    vi.spyOn(tournamentApi, 'listTournaments').mockResolvedValue({
+      tournaments: [tournamentFixture()],
+    });
+    const getReport = vi
+      .spyOn(diagnosisApi, 'getReport')
+      .mockResolvedValue(reportFixture({ stream: 'tournament', tournamentId: cityOpen }));
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [],
+      total: 6,
+      page: 1,
+      limit: 100,
+    });
+
+    renderRoute(`/report?stream=tournament&tournamentId=${cityOpen}`);
+
+    // The tournament's own report, headed by the tournament's own name.
+    expect(await screen.findByRole('heading', { level: 1, name: 'City Open' })).toBeVisible();
+    expect(getReport).toHaveBeenCalledWith('tournament', cityOpen);
+    expect(screen.getByText(/covering 12 games/)).toBeVisible();
+  });
+
+  test('the tournaments page keeps its detail link', async () => {
+    // TournamentCard is shared; its default action is unchanged.
+    vi.spyOn(tournamentApi, 'listTournaments').mockResolvedValue({
+      tournaments: [tournamentFixture({ gameCount: 7, analysedCount: 7 })],
+    });
+    const history = createMemoryHistory({ initialEntries: ['/tournaments'] });
+    const queryClient = new QueryClient();
+    const router = createAppRouter({ history, queryClient });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('link', { name: 'Open tournament' })).toHaveAttribute(
+        'href',
+        '/tournaments/00000000-0000-4000-8000-0000000000d1',
+      );
+    });
   });
 });

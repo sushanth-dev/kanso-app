@@ -1159,6 +1159,13 @@
           "stream": {
             "$ref": "#/components/schemas/Stream"
           },
+          "tournamentId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
           "generatedAt": {
             "type": "string",
             "format": "date-time"
@@ -1214,6 +1221,7 @@
           "id",
           "playerId",
           "stream",
+          "tournamentId",
           "generatedAt",
           "gamesCovered",
           "windowStart",
@@ -1265,6 +1273,18 @@
           },
           "rank": {
             "type": "integer"
+          },
+          "advice": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WeaknessEvidence"
+            }
           }
         },
         "required": [
@@ -1277,7 +1297,9 @@
           "halfPointsLost",
           "gamesAffected",
           "occurrences",
-          "rank"
+          "rank",
+          "advice",
+          "evidence"
         ]
       },
       "WeaknessKind": {
@@ -1287,6 +1309,66 @@
           "motif",
           "phase",
           "time_trouble"
+        ]
+      },
+      "WeaknessEvidence": {
+        "type": "object",
+        "properties": {
+          "gameId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "whiteName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "blackName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "playedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "moveNumber": {
+            "type": "integer"
+          },
+          "moveSan": {
+            "type": "string",
+            "example": "Nf6"
+          },
+          "bestMoveSan": {
+            "type": "string",
+            "example": "e5"
+          },
+          "phase": {
+            "$ref": "#/components/schemas/Phase"
+          },
+          "judgement": {
+            "$ref": "#/components/schemas/Judgement"
+          },
+          "cpLoss": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "gameId",
+          "whiteName",
+          "blackName",
+          "playedAt",
+          "moveNumber",
+          "moveSan",
+          "bestMoveSan",
+          "phase",
+          "judgement",
+          "cpLoss"
         ]
       },
       "TransferGap": {
@@ -2952,7 +3034,7 @@
           "Report"
         ],
         "summary": "The weakness report for one stream, ranked by rating leak",
-        "description": "F7, F9, S2. Tournament and online games are aggregated separately, so `stream` is required rather than defaulted. A blended report would describe a player who does not exist.",
+        "description": "F7, F9, S2. Tournament and online games are aggregated separately, so `stream` is required rather than defaulted. A blended report would describe a player who does not exist. ST-098: a `tournamentId` query scopes the report to one tournament's games, with the same floor and refusals.",
         "parameters": [
           {
             "schema": {
@@ -2961,6 +3043,15 @@
             "required": true,
             "description": "Tournament games and online games describe different players and are never aggregated together.",
             "name": "stream",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "tournamentId",
             "in": "query"
           }
         ],
@@ -3006,7 +3097,7 @@
             }
           },
           "404": {
-            "description": "No such player, or no analyzed games in that stream yet.",
+            "description": "No such player, or no analyzed games in that scope yet.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3016,7 +3107,7 @@
             }
           },
           "422": {
-            "description": "Analysed games in the stream are too few for a report.",
+            "description": "Analysed games in the scope are too few for a report.",
             "content": {
               "application/json": {
                 "schema": {
