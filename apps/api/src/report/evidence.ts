@@ -201,18 +201,39 @@ export async function weaknessEvidence(
   return result;
 }
 
-/** One line of advice per weakness group; null where no honest line exists. */
-export function adviceFor(kind: WeaknessKind, key: string): string | null {
+/**
+ * One line of advice per weakness group; null where no honest line exists.
+ * Phase advice names the move stretch the evidence actually clusters in, so
+ * the copy can never contradict the instances shown beneath it.
+ */
+export function adviceFor(
+  kind: WeaknessKind,
+  key: string,
+  evidence: EvidenceInstance[] = [],
+): string | null {
   switch (kind) {
     case 'opening':
       return null;
     case 'motif':
       return MOTIF_ADVICE[key] ?? GENERIC_ADVICE;
     case 'phase':
-      return PHASE_ADVICE[key] ?? GENERIC_ADVICE;
+      return phaseAdvice(key, evidence);
     case 'time_trouble':
       return TIME_TROUBLE_ADVICE;
   }
+}
+
+function phaseAdvice(key: string, evidence: EvidenceInstance[]): string {
+  const body = PHASE_ADVICE[key];
+  if (!body) return GENERIC_ADVICE;
+  const moves = evidence.map((e) => e.moveNumber).filter((n) => Number.isFinite(n));
+  if (key !== 'middlegame' || moves.length === 0) {
+    return key === 'middlegame' ? `Slow down before committing to a move: ${body}` : body;
+  }
+  const from = Math.min(...moves);
+  const to = Math.max(...moves);
+  const stretch = from === to ? `around move ${from}` : `in the move ${from}-${to} stretch`;
+  return `Slow down ${stretch}: ${body}`;
 }
 
 const GENERIC_ADVICE =
@@ -230,18 +251,17 @@ const MOTIF_ADVICE: Record<string, string> = {
   missed_capture:
     'After every opponent move, count what each available capture wins or ' +
     'recovers; the capture hidden behind a defender is the one that gets missed.',
-  missed_threat:
-    'Ask what your opponent threatens after each of their moves, and what your ' +
-    'candidate move threatens in return - checks, captures, threats, in that order.',
 };
 
 const PHASE_ADVICE: Record<string, string> = {
   opening:
     'In the opening, prioritise development and king safety over material; a ' +
     'lead in development is what converts the middlegame.',
+  // The middlegame head ("Slow down …") is derived from the evidence in
+  // phaseAdvice; the copy here carries only the routine.
   middlegame:
-    'Slow down around moves 10-25: pick a candidate move, test it against ' +
-    'checks, captures and threats, and only then play it.',
+    'pick a candidate move, test it against checks, captures and threats, ' +
+    'and only then play it.',
   endgame:
     'Convert with a plan: activate the king, push passed pawns, and calculate ' +
     'concretely before each move - endgame mistakes are the least recoverable.',
