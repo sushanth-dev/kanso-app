@@ -73,7 +73,8 @@ describe('leakForWeakness', () => {
   });
 
   test('the constants are the numbers the story decided', () => {
-    expect(MIN_RATED_GAMES).toBe(10);
+    // ST-096: the report floor moved from 10 to 6, a typical tournament's size.
+    expect(MIN_RATED_GAMES).toBe(6);
     expect(SEASON_WINDOW_MS).toBe(365 * 24 * 60 * 60 * 1000);
   });
 });

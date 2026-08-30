@@ -352,6 +352,25 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          "tournament": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "gameCount": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "gameCount"
+            ]
           }
         },
         "required": [
@@ -368,7 +387,8 @@
           "error",
           "createdAt",
           "finishedAt",
-          "gameIds"
+          "gameIds",
+          "tournament"
         ]
       },
       "GameSource": {

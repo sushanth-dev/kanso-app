@@ -22,8 +22,8 @@
 /** A season is one rolling year, matching ST-023's import default. */
 export const SEASON_WINDOW_MS = 365 * 24 * 60 * 60 * 1000;
 
-/** Fewer rated games than this in a stream refuses rather than estimates. */
-export const MIN_RATED_GAMES = 10;
+/** Fewer rated games than this in a stream refuses rather than estimates. ST-096 moved this from 10. */
+export const MIN_RATED_GAMES = 6;
 
 /** The zero/perfect score edge cap, in rating points. Standard for the formula. */
 const PERFECT_SCORE_CAP = 800;

@@ -11,8 +11,22 @@ import {
   type PhaseReport,
   type Report,
 } from '../api/diagnosis-api.ts';
+import { tournamentApi, type TournamentSummary } from '../api/tournament-api.ts';
 import { createAppRouter } from '../router.tsx';
 import { ReportScreen } from './report-route.tsx';
+
+function tournamentFixture(overrides: Partial<TournamentSummary> = {}): TournamentSummary {
+  return {
+    id: '00000000-0000-4000-8000-0000000000d1',
+    name: 'City Open',
+    site: 'Columbus',
+    startedAt: '2026-08-01T00:00:00.000Z',
+    endedAt: '2026-08-02T00:00:00.000Z',
+    gameCount: 6,
+    analysedCount: 6,
+    ...overrides,
+  };
+}
 
 const playerId = '00000000-0000-4000-8000-000000000001';
 
@@ -377,7 +391,7 @@ describe('ReportRoute', () => {
         422,
         'not_enough_evidence',
         undefined,
-        '3 analyzed games in this stream, but a report needs 10 rated games in the last year.',
+        '3 analyzed games in this stream, but a report needs 6 rated games in the last year.',
       ),
     );
     vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
@@ -435,5 +449,94 @@ describe('ReportRoute', () => {
 
     expect(await screen.findByText('0 of 2 games analysed')).toBeVisible();
     expect(screen.getByText(/1 game needs your side before analysis can start/)).toBeVisible();
+  });
+
+  test('shows the analysing screen over the thin-history refusal while a game runs', async () => {
+    // ST-096: the report endpoint flips from 404 to 422 the moment one game
+    // completes, and the refusal must not preempt the batch still analysing.
+    vi.spyOn(diagnosisApi, 'getReport').mockRejectedValue(
+      new ApiRequestError(
+        422,
+        'not_enough_evidence',
+        undefined,
+        '1 analyzed game in this stream, but a report needs 6 rated games in the last year.',
+      ),
+    );
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [
+        gameFixture({ id: 'g-1', analysisStatus: 'complete' }),
+        gameFixture({ id: 'g-2', analysisStatus: 'analyzing' }),
+      ],
+      total: 2,
+      page: 1,
+      limit: 100,
+    });
+
+    renderRoute();
+
+    expect(await screen.findByText('1 of 2 games analysed')).toBeVisible();
+    expect(
+      screen.queryByRole('heading', { name: 'Not enough rated games for a report yet' }),
+    ).toBeNull();
+  });
+
+  test('shows the tournament card with a working link at six or more games', async () => {
+    vi.spyOn(tournamentApi, 'listTournaments').mockResolvedValue({
+      tournaments: [tournamentFixture({ gameCount: 7, analysedCount: 7 })],
+    });
+    vi.spyOn(diagnosisApi, 'getReport').mockRejectedValue(reportNotFound);
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [],
+      total: 0,
+      page: 1,
+      limit: 100,
+    });
+
+    renderRoute('/report?stream=tournament');
+
+    expect(await screen.findByText('City Open')).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Open tournament' })).toHaveAttribute(
+      'href',
+      '/tournaments/00000000-0000-4000-8000-0000000000d1',
+    );
+  });
+
+  test('greys the tournament card out and disables it under six games', async () => {
+    vi.spyOn(tournamentApi, 'listTournaments').mockResolvedValue({
+      tournaments: [tournamentFixture({ gameCount: 5, analysedCount: 3 })],
+    });
+    vi.spyOn(diagnosisApi, 'getReport').mockRejectedValue(reportNotFound);
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [],
+      total: 0,
+      page: 1,
+      limit: 100,
+    });
+
+    renderRoute('/report?stream=tournament');
+
+    expect(await screen.findByText('City Open')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Open tournament' })).toBeDisabled();
+    expect(screen.getByText('A report needs 6 games; this tournament has played 5.')).toBeVisible();
+  });
+
+  test('never shows the tournament card on the online stream', async () => {
+    vi.spyOn(tournamentApi, 'listTournaments').mockResolvedValue({
+      tournaments: [tournamentFixture()],
+    });
+    vi.spyOn(diagnosisApi, 'getReport').mockRejectedValue(reportNotFound);
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [],
+      total: 0,
+      page: 1,
+      limit: 100,
+    });
+
+    renderRoute('/report?stream=online');
+
+    expect(
+      await screen.findByRole('heading', { name: 'No analyzed games in this stream yet' }),
+    ).toBeVisible();
+    expect(screen.queryByText('City Open')).toBeNull();
   });
 });

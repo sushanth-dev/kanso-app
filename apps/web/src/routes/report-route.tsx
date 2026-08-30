@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Card } from '@astryxdesign/core/Card';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
@@ -8,6 +8,7 @@ import { Spinner } from '@astryxdesign/core/Spinner';
 import { Text } from '@astryxdesign/core/Text';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
+import { MIN_REPORT_GAMES, isActiveGame } from '../analysis-status.ts';
 import { ApiRequestError } from '../api/account-api.ts';
 import type {
   GameSummary,
@@ -25,7 +26,9 @@ import {
   motifsQueryOptions,
   phasesQueryOptions,
   reportQueryOptions,
+  tournamentsQueryOptions,
 } from '../query-client.ts';
+import { TournamentCard } from './tournaments-route.tsx';
 import { track } from '../analytics.ts';
 
 const STREAM_HEADING: Record<Stream, string> = {
@@ -78,8 +81,9 @@ export interface ReportScreenProps {
   stream: Stream;
   report: Report;
   onStreamChange: (stream: Stream) => void;
-  /** Games still being analysed; shown as a compact banner, never hiding the report. */
   analyzingGames?: GameSummary[];
+  /** ST-096. The tournament-stream report page shows the tournament card between the header and the report body. */
+  tournamentCard?: ReactNode;
 }
 
 function ReportHeader({
@@ -108,12 +112,14 @@ export function ReportScreen({
   report,
   onStreamChange,
   analyzingGames = [],
+  tournamentCard = undefined,
 }: ReportScreenProps) {
   const isEmpty = report.weaknesses.length === 0;
   const meta = `Reported ${generatedAtFormatter.format(new Date(report.generatedAt))} covering ${report.gamesCovered} games.`;
   return (
     <div className="space-y-6">
       <ReportHeader stream={stream} onStreamChange={onStreamChange} meta={meta} />
+      {tournamentCard}
       {analyzingGames.length > 0 ? <AnalyzingBanner games={analyzingGames} /> : null}
       {report.timeTroubleFromMove !== null ? (
         <Text as="p" display="block" className="text-sm">
@@ -345,26 +351,6 @@ function EmptyReport({ report }: { report: Report }) {
   );
 }
 
-function hasActiveGame(games: GameSummary[]): boolean {
-  return games.some(
-    (game) =>
-      game.analysisStatus === 'pending' ||
-      game.analysisStatus === 'queued' ||
-      game.analysisStatus === 'analyzing',
-  );
-}
-
-// ST-095. A pending game whose side is unknown is not going anywhere: the
-// import refuses to queue a game it cannot attribute, and analysis needs a
-// player to diagnose. Only a set colour (on the game review page) moves it.
-function isActiveGame(game: GameSummary): boolean {
-  return (
-    game.analysisStatus === 'queued' ||
-    game.analysisStatus === 'analyzing' ||
-    (game.analysisStatus === 'pending' && game.playerColor !== null)
-  );
-}
-
 function AnalyzingBanner({ games }: { games: GameSummary[] }) {
   return (
     <div
@@ -490,11 +476,32 @@ function ReportSkeleton() {
 }
 export function ReportRoute() {
   const navigate = useNavigate();
-  const { stream, gameIds } = useSearch({ from: '/account/report' });
+  const { stream, gameIds, tournamentId } = useSearch({ from: '/account/report' });
+  // ST-096. The card shows the tournament the current upload attached to when
+  // the import handed us its id, else the most recent one. The import route
+  // already invalidates this query after an upload, so the card reflects it.
+  const tournamentsQuery = useQuery({
+    ...tournamentsQueryOptions(),
+    enabled: stream === 'tournament',
+  });
+  const tournaments = tournamentsQuery.data?.tournaments ?? [];
+  const cardTournament =
+    tournamentId !== undefined
+      ? tournaments.find((tournament) => tournament.id === tournamentId)
+      : undefined;
+  const cardSummary = cardTournament ?? tournaments[0];
+  const cardDisabledReason =
+    cardSummary !== undefined && cardSummary.gameCount < MIN_REPORT_GAMES
+      ? `A report needs ${MIN_REPORT_GAMES} games; this tournament has played ${cardSummary.gameCount}.`
+      : undefined;
+  const tournamentCard =
+    cardSummary !== undefined ? (
+      <TournamentCard summary={cardSummary} disabledReason={cardDisabledReason} />
+    ) : undefined;
   const gamesQuery = useQuery({
     ...gamesQueryOptions(stream),
     refetchInterval: (query) =>
-      query.state.data !== undefined && hasActiveGame(query.state.data.games) ? 5000 : false,
+      query.state.data !== undefined && query.state.data.games.some(isActiveGame) ? 5000 : false,
   });
   // ST-093: when the import handed us its own game ids, the analysing counter
   // counts only that batch; every other use of the games list stays stream-wide.
@@ -536,6 +543,7 @@ export function ReportRoute() {
         report={reportQuery.data}
         onStreamChange={onStreamChange}
         analyzingGames={analyzingGames}
+        tournamentCard={tournamentCard}
       />
     );
   }
@@ -553,15 +561,21 @@ export function ReportRoute() {
   return (
     <div className="space-y-6">
       <ReportHeader stream={stream} onStreamChange={onStreamChange} />
+      {tournamentCard}
       {reportQuery.isPending ? (
         <ReportSkeleton />
       ) : notReadyError !== null ? (
         gamesQuery.isPending ? (
           <ReportSkeleton />
+        ) : // ST-096. A running batch renders the analysing screen whatever the
+        // report endpoint refused with: the moment one game completes, a
+        // thin stream answers 422, and the refusal must not preempt games
+        // that are still queued or running. The refusal states arrive only
+        // once nothing is active.
+        analyzingGames.length > 0 ? (
+          <Analysing games={batchGames} needsSideCount={needsSideCount} />
         ) : notReadyError.status === 422 ? (
           <NotEnoughRatedGames message={notReadyError.message} />
-        ) : analyzingGames.length > 0 ? (
-          <Analysing games={batchGames} needsSideCount={needsSideCount} />
         ) : needsSideCount > 0 ? (
           <NeedsSide count={needsSideCount} />
         ) : (

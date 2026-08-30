@@ -5,9 +5,11 @@ import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Heading } from '@astryxdesign/core/Heading';
+import { Spinner } from '@astryxdesign/core/Spinner';
 import { Text } from '@astryxdesign/core/Text';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from '@tanstack/react-router';
+import { isActiveGame } from '../analysis-status.ts';
 import type { CctMove, GameDetail, Mistake, MovePly } from '../api/diagnosis-api.ts';
 import { diagnosisApi } from '../api/diagnosis-api.ts';
 import { ParticleReveal } from '../components/canvas-ui/ParticleReveal.tsx';
@@ -425,6 +427,7 @@ export function GameReviewScreen({ game }: { game: GameDetail }) {
         ) : null}
       </header>
 
+      {isActiveGame(game) ? <GameAnalysing /> : null}
       {currentPly === undefined ? (
         <Card className="p-6">
           <Text as="p" display="block" type="supporting">
@@ -561,9 +564,32 @@ export function GameReviewScreen({ game }: { game: GameDetail }) {
   );
 }
 
+/** ST-096. The engine is still working on this game; the review fills in when it lands. */
+function GameAnalysing() {
+  return (
+    <div
+      role="status"
+      aria-label="Analysing game"
+      className="flex items-center gap-3 rounded-surface border border-border-strong bg-raised px-4 py-3"
+    >
+      <Spinner size="sm" />
+      <Text as="p" display="block" className="text-sm text-primary">
+        Analysing this game. The mistakes and evaluations appear here as soon as it finishes.
+      </Text>
+    </div>
+  );
+}
+
 export function GameReviewRoute() {
   const { gameId } = useParams({ from: '/account/games/$gameId' });
-  const gameQuery = useQuery(gameQueryOptions(gameId));
+  // ST-096. While the game is on the queue or on the engine, poll every five
+  // seconds so the review appears without a manual reload. A colourless game
+  // is waiting for the player, not the engine, so it does not poll.
+  const gameQuery = useQuery({
+    ...gameQueryOptions(gameId),
+    refetchInterval: (query) =>
+      query.state.data !== undefined && isActiveGame(query.state.data) ? 5000 : false,
+  });
 
   if (gameQuery.isPending) return <GameSkeleton />;
 

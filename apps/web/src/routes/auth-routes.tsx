@@ -19,6 +19,7 @@ export type AuthMode = 'sign-in' | 'sign-up';
 export type NavigateTo = (options: {
   to: string;
   search?: Record<string, unknown>;
+  params?: Record<string, string>;
 }) => void | Promise<void>;
 
 export interface AuthScreenProps {
