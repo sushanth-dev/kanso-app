@@ -85,18 +85,22 @@ export interface LeakRow {
 }
 
 /**
- * The season baseline for one stream: the number of rated games, the player's
+ * The season baseline for one scope: the number of rated games, the player's
  * score, and the average opponent rating, over the season window. Refuses
- * below {@link MIN_RATED_GAMES}, in the ST-019 and ST-024 shape.
+ * below {@link MIN_RATED_GAMES}, in the ST-019 and ST-024 shape. ST-098: a
+ * `tournamentId` scopes every query to one tournament's games; absent, the
+ * whole stream.
  */
 export async function leakBaseline(
   db: Db,
   playerId: string,
   stream: Stream,
+  tournamentId?: string,
 ): Promise<
   | { kind: 'ok'; baseline: SeasonBaseline; windowStart: Date }
   | { kind: 'not_enough_evidence'; ratedGames: number }
 > {
+  const inTournament = tournamentId === undefined ? undefined : eq(game.tournamentId, tournamentId);
   const [latest] = await db
     .select({ playedAt: game.playedAt })
     .from(game)
@@ -106,6 +110,7 @@ export async function leakBaseline(
         eq(game.stream, stream),
         eq(game.analysisStatus, 'complete'),
         ratedGame,
+        inTournament,
       ),
     )
     .orderBy(desc(game.playedAt))
@@ -127,6 +132,7 @@ export async function leakBaseline(
         eq(game.stream, stream),
         eq(game.analysisStatus, 'complete'),
         ratedGame,
+        inTournament,
         gte(game.playedAt, windowStart),
       ),
     );
@@ -143,6 +149,28 @@ export async function leakBaseline(
 }
 
 /**
+ * The rated, analysed, in-window game set every leak figure and every evidence
+ * instance is drawn from, so the places and the number can never disagree.
+ * ST-098: `tournamentId` scopes to one tournament's games; absent, the whole
+ * stream.
+ */
+export function leakScope(
+  playerId: string,
+  stream: Stream,
+  windowStart: Date,
+  tournamentId?: string,
+) {
+  return and(
+    eq(game.playerId, playerId),
+    eq(game.stream, stream),
+    eq(game.analysisStatus, 'complete'),
+    ratedGame,
+    gte(game.playedAt, windowStart),
+    tournamentId === undefined ? undefined : eq(game.tournamentId, tournamentId),
+  );
+}
+
+/**
  * Per-kind weakness rows over the season's rated games, grouped by kind and
  * key, summing half-points lost. Three kinds group by a stored column; time
  * trouble groups the mistakes made inside the trouble window, joined to
@@ -153,14 +181,9 @@ export async function weaknessLeakRows(
   playerId: string,
   stream: Stream,
   windowStart: Date,
+  tournamentId?: string,
 ): Promise<LeakRow[]> {
-  const scope = and(
-    eq(game.playerId, playerId),
-    eq(game.stream, stream),
-    eq(game.analysisStatus, 'complete'),
-    ratedGame,
-    gte(game.playedAt, windowStart),
-  );
+  const scope = leakScope(playerId, stream, windowStart, tournamentId);
 
   const openings = await db
     .select({
@@ -276,10 +299,15 @@ export function scoreLeaks(baseline: SeasonBaseline, rows: LeakRow[]): WeaknessL
 }
 
 /** The whole computation: baseline, per-kind aggregation, conversion, refusal. */
-export async function computeLeaks(db: Db, playerId: string, stream: Stream): Promise<LeakResult> {
-  const baseline = await leakBaseline(db, playerId, stream);
+export async function computeLeaks(
+  db: Db,
+  playerId: string,
+  stream: Stream,
+  tournamentId?: string,
+): Promise<LeakResult> {
+  const baseline = await leakBaseline(db, playerId, stream, tournamentId);
   if (baseline.kind === 'not_enough_evidence') return baseline;
-  const rows = await weaknessLeakRows(db, playerId, stream, baseline.windowStart);
+  const rows = await weaknessLeakRows(db, playerId, stream, baseline.windowStart, tournamentId);
   return {
     kind: 'ok',
     baseline: baseline.baseline,

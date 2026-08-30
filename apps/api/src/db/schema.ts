@@ -543,6 +543,14 @@ export const report = pgTable(
       .notNull()
       .references(() => player.id, { onDelete: 'cascade' }),
     stream: streamEnum('stream').notNull(),
+    /**
+     * ST-098. Set on a tournament-scoped report; null on a stream report. A
+     * tournament's report dies with the tournament rather than turning into a
+     * stream report by accident.
+     */
+    tournamentId: uuid('tournament_id').references(() => tournament.id, {
+      onDelete: 'cascade',
+    }),
     generatedAt: timestamp('generated_at', { withTimezone: true }).notNull().defaultNow(),
     gamesCovered: integer('games_covered').notNull(),
     windowStart: timestamp('window_start', { withTimezone: true }),

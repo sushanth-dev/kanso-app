@@ -396,20 +396,38 @@ component. Each weakness is a `Card` in an ordered list; the rank, the label,
 and the headline `ratingLeak` number lead in IBM Plex Mono, with the evidence
 (games affected, occurrences, half-points lost) beside it in mono. The stream
 is a typed search parameter with a visible segmented toggle, never a silent
-default and never blended. A weakness expands into its aggregate (motifs, or
-phase and time trouble) through the existing endpoints; an opening weakness
-carries its evidence on the row and does not expand, because no opening
-endpoint exists.
-ST-096 added the tournaments page's card between the header and the report body
-on the tournament stream only; ST-097 renders one card per tournament, the
-current upload's first, each linking to its tournament detail. Under six games
-a card greys out (`opacity-75`, `aria-disabled`), its button disables, and a
-full-contrast line states the shortfall ("A report needs 6 games; this
-tournament has 3."), so the state never travels by opacity alone. The online
-stream renders no card, because online play has no tournaments, and the card
-list is gated on the stream itself, not just the query, so a cached tournament
-list cannot leak across a stream switch. The
-report has three states: the ranked list, an honest empty
+default and never blended.
+
+ST-098 split the surface in two. The tournament stream without a tournament
+picked is a directory: the header, one card per tournament, and nothing else.
+Each card opens that tournament's own report (`/report?stream=tournament&tournamentId=…`,
+button "Open report"); under six games a card greys out (`opacity-75`,
+`aria-disabled`), its button disables, and a full-contrast line states the
+shortfall ("A report needs 6 games; this tournament has 3."), so the state
+never travels by opacity alone. The directory carries no blended weakness
+list: a tournament's diagnosis belongs to the tournament. A scoped report
+heads itself with the tournament's name; the online stream keeps the
+stream-level report and renders no card, because online play has no
+tournaments. The card list is gated on the stream itself, not just the query,
+so a cached tournament list cannot leak across a stream switch.
+
+A weakness expands ("Show evidence") into the places behind its own figure:
+one line of advice for that kind of weakness, then up to three instances as a
+list - the move number, the move played, the engine's better move, the
+judgement and centipawn loss - each with a "Review game" link into the game.
+The instances come from the same rows and window the leak was summed over, so
+the places and the number cannot disagree. An opening weakness carries its
+evidence on the row and does not expand, because the games page already lists
+the games of an ECO.
+
+Games still analysing render as a numbered list ("Analyzing 3 games:"),
+on the report banner and in the full analysing state alike; a list grows
+downward without the reflow that made inline name runs read as flicker. The
+server serves the stored report unchanged while games in scope are still
+analysing and regenerates once the stream is quiet, so polling never churns
+weakness identities mid-batch.
+
+The report has three states: the ranked list, an honest empty
 statement ("could not identify a defensible weakness"), and a not-ready state
 that separates "still being analyzed" from "no analyzed games."
 The rank-one weakness's `ratingLeak` number, the one thing to

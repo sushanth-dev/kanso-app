@@ -14,7 +14,7 @@
  * already writes, so no new column and no cache.
  */
 import type { Context } from 'hono';
-import { and, asc, desc, eq, max, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNotNull, isNull, max, or, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { z } from 'zod';
@@ -27,6 +27,7 @@ import { getOwnPlayerId } from '../players/claim.ts';
 import { leakBaseline, scoreLeaks, weaknessLeakRows } from '../analysis/leak.ts';
 import { MIN_RATED_GAMES, SEASON_WINDOW_MS } from '../analysis/performance-rating.ts';
 import { scoreTimeTrouble, timeTroubleCounts } from '../phases/phases.ts';
+import { adviceFor, groupKeyOf, weaknessEvidence, type EvidenceInstance } from './evidence.ts';
 import { composeReport, type ComposedWeakness } from './compose.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
@@ -35,8 +36,13 @@ type ReportRow = typeof report.$inferSelect;
 type WeaknessRow = typeof weakness.$inferSelect;
 type ReportResponse = z.infer<typeof Report>;
 
-/** The latest `analyzed_at` over one stream's complete games, or null when none. */
-async function maxAnalyzedAt(db: Db, playerId: string, stream: Stream): Promise<Date | null> {
+/** The latest `analyzed_at` over one scope's complete games, or null when none. */
+async function maxAnalyzedAt(
+  db: Db,
+  playerId: string,
+  stream: Stream,
+  tournamentId?: string,
+): Promise<Date | null> {
   const [row] = await db
     .select({ at: max(game.analyzedAt) })
     .from(game)
@@ -45,21 +51,31 @@ async function maxAnalyzedAt(db: Db, playerId: string, stream: Stream): Promise<
         eq(game.playerId, playerId),
         eq(game.stream, stream),
         eq(game.analysisStatus, 'complete'),
+        tournamentId === undefined ? undefined : eq(game.tournamentId, tournamentId),
       ),
     );
   return row?.at ?? null;
 }
 
-/** The newest stored report for a stream, with its ranked weaknesses. */
+/** The newest stored report for a scope, with its ranked weaknesses. */
 async function latestReport(
   db: Db,
   playerId: string,
   stream: Stream,
+  tournamentId?: string,
 ): Promise<(ReportRow & { weaknesses: WeaknessRow[] }) | null> {
   const [row] = await db
     .select()
     .from(report)
-    .where(and(eq(report.playerId, playerId), eq(report.stream, stream)))
+    .where(
+      and(
+        eq(report.playerId, playerId),
+        eq(report.stream, stream),
+        tournamentId === undefined
+          ? isNull(report.tournamentId)
+          : eq(report.tournamentId, tournamentId),
+      ),
+    )
     .orderBy(desc(report.generatedAt))
     .limit(1);
   if (!row) return null;
@@ -78,6 +94,8 @@ function toResponse(r: ReportRow, ws: WeaknessRow[]): ReportResponse {
     id: r.id,
     playerId: r.playerId,
     stream: r.stream,
+    // ST-098. Set on a tournament-scoped report; null on a stream report.
+    tournamentId: r.tournamentId,
     generatedAt: r.generatedAt.toISOString(),
     gamesCovered: r.gamesCovered,
     windowStart: r.windowStart ? r.windowStart.toISOString() : null,
@@ -95,9 +113,36 @@ function toResponse(r: ReportRow, ws: WeaknessRow[]): ReportResponse {
       gamesAffected: w.gamesAffected,
       occurrences: w.occurrences,
       rank: w.rank,
+      // Filled in by `withEvidence` before the response leaves the handler.
+      evidence: [] as EvidenceInstance[],
+      advice: null as string | null,
     })),
     narrative: r.narrative,
   };
+}
+
+/**
+ * ST-098. Attach the places and the advice to each weakness. The instances
+ * come from the same window the report was computed over, so a stored report
+ * and its evidence stay consistent after both leave the database.
+ */
+async function withEvidence(
+  db: Db,
+  playerId: string,
+  stream: Stream,
+  tournamentId: string | undefined,
+  windowStart: Date | null,
+  response: ReportResponse,
+): Promise<ReportResponse> {
+  const groups = response.weaknesses
+    .map((w) => ({ kind: w.kind, key: groupKeyOf(w.kind, w.label, w.eco) }))
+    .filter((g): g is { kind: typeof g.kind; key: string } => g.key !== null);
+  const evidence = await weaknessEvidence(db, playerId, stream, tournamentId, windowStart, groups);
+  for (const w of response.weaknesses) {
+    w.evidence = evidence.get(`${w.kind}:${groupKeyOf(w.kind, w.label, w.eco)}`) ?? [];
+    w.advice = adviceFor(w.kind, groupKeyOf(w.kind, w.label, w.eco) ?? '');
+  }
+  return response;
 }
 
 /** Write the report and its weaknesses in one transaction, and return the response. */
@@ -106,6 +151,8 @@ async function storeReport(
   input: {
     playerId: string;
     stream: Stream;
+    /** ST-098. Null for a stream report; the tournament's id for a scoped one. */
+    tournamentId: string | null;
     gamesCovered: number;
     windowStart: Date;
     windowEnd: Date;
@@ -120,6 +167,7 @@ async function storeReport(
       .values({
         playerId: input.playerId,
         stream: input.stream,
+        tournamentId: input.tournamentId,
         gamesCovered: input.gamesCovered,
         windowStart: input.windowStart,
         windowEnd: input.windowEnd,
@@ -161,7 +209,10 @@ export function mountReport(
   deps: { db: Db; getSession: (c: Context) => unknown },
 ): void {
   app.openapi(getReport, async (c) => {
-    const { stream } = c.req.valid('query');
+    const { stream, tournamentId } = c.req.valid('query');
+    // `undefined` means the whole stream; a uuid means one tournament's games.
+    const inTournament = tournamentId;
+    const place = inTournament === undefined ? 'stream' : 'tournament';
 
     const session = await readSession(deps.getSession, c);
     if (session === null) {
@@ -172,17 +223,63 @@ export function mountReport(
       return c.json({ code: 'not_found', message: 'No such player.' }, 404);
     }
 
-    const stored = await latestReport(deps.db, playerId, stream);
-    const latestAnalyzedAt = await maxAnalyzedAt(deps.db, playerId, stream);
-    if (
+    const stored = await latestReport(deps.db, playerId, stream, inTournament);
+    const latestAnalyzedAt = await maxAnalyzedAt(deps.db, playerId, stream, inTournament);
+    const fresh =
       stored !== null &&
       latestAnalyzedAt !== null &&
-      stored.generatedAt.getTime() >= latestAnalyzedAt.getTime()
-    ) {
-      return c.json(toResponse(stored, stored.weaknesses), 200);
+      stored.generatedAt.getTime() >= latestAnalyzedAt.getTime();
+
+    if (!fresh && stored !== null) {
+      // ST-098. While games in this scope are still analysing, the stored
+      // report is served as-is. Regenerating on every poll tick wrote new
+      // weakness ids each time, the client remounted its list around new keys,
+      // and the animations replayed - the flicker Sushanth kept seeing. The
+      // banner carries the progress; the quiet stream regenerates once.
+      const [row] = await deps.db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(game)
+        .where(
+          and(
+            eq(game.playerId, playerId),
+            eq(game.stream, stream),
+            inTournament === undefined ? undefined : eq(game.tournamentId, inTournament),
+            or(
+              inArray(game.analysisStatus, ['queued', 'analyzing']),
+              and(eq(game.analysisStatus, 'pending'), isNotNull(game.playerColor)),
+            ),
+          ),
+        );
+      if ((row?.n ?? 0) > 0) {
+        return c.json(
+          await withEvidence(
+            deps.db,
+            playerId,
+            stream,
+            inTournament,
+            stored.windowStart,
+            toResponse(stored, stored.weaknesses),
+          ),
+          200,
+        );
+      }
     }
 
-    const baseline = await leakBaseline(deps.db, playerId, stream);
+    if (fresh) {
+      return c.json(
+        await withEvidence(
+          deps.db,
+          playerId,
+          stream,
+          inTournament,
+          stored.windowStart,
+          toResponse(stored, stored.weaknesses),
+        ),
+        200,
+      );
+    }
+
+    const baseline = await leakBaseline(deps.db, playerId, stream, inTournament);
     if (baseline.kind === 'not_enough_evidence') {
       // ST-095. Two different refusals shared one 404, and the web read both
       // as "import your games" - a lie for a player whose games are analysed
@@ -197,11 +294,15 @@ export function mountReport(
             eq(game.playerId, playerId),
             eq(game.stream, stream),
             eq(game.analysisStatus, 'complete'),
+            inTournament === undefined ? undefined : eq(game.tournamentId, inTournament),
           ),
         );
       const analysed = row?.n ?? 0;
       if (analysed === 0) {
-        return c.json({ code: 'not_found', message: 'No analyzed games in this stream yet.' }, 404);
+        return c.json(
+          { code: 'not_found', message: `No analyzed games in this ${place} yet.` },
+          404,
+        );
       }
       // ST-097. The refusal names both sets, because "6 analyzed games but
       // needs 6 rated games" reads as a contradiction until the qualifying
@@ -212,10 +313,10 @@ export function mountReport(
       const verb = analysed === 1 ? 'counts' : 'count';
       const lead =
         rated === 0
-          ? `None of the ${analysed} analyzed ${games} in this stream ${verb} toward a report yet.`
+          ? `None of the ${analysed} analyzed ${games} in this ${place} ${verb} toward a report yet.`
           : rated === analysed
-            ? `All ${analysed} analyzed ${games} in this stream ${verb} toward a report.`
-            : `Only ${rated} of the ${analysed} analyzed ${games} in this stream ${verb} toward a report.`;
+            ? `All ${analysed} analyzed ${games} in this ${place} ${verb} toward a report.`
+            : `Only ${rated} of the ${analysed} analyzed ${games} in this ${place} ${verb} toward a report.`;
       return c.json(
         {
           code: 'not_enough_evidence',
@@ -227,14 +328,23 @@ export function mountReport(
       );
     }
 
-    const rows = await weaknessLeakRows(deps.db, playerId, stream, baseline.windowStart);
+    const rows = await weaknessLeakRows(
+      deps.db,
+      playerId,
+      stream,
+      baseline.windowStart,
+      inTournament,
+    );
     const leaks = scoreLeaks(baseline.baseline, rows);
-    const timeTrouble = scoreTimeTrouble(await timeTroubleCounts(deps.db, playerId, stream));
+    const timeTrouble = scoreTimeTrouble(
+      await timeTroubleCounts(deps.db, playerId, stream, { tournamentId: inTournament }),
+    );
     const composed = composeReport(leaks, timeTrouble);
 
     const response = await storeReport(deps.db, {
       playerId,
       stream,
+      tournamentId: inTournament ?? null,
       gamesCovered: baseline.baseline.games,
       windowStart: baseline.windowStart,
       // `windowStart` is the latest rated game minus the season, so adding the
@@ -245,6 +355,9 @@ export function mountReport(
       weaknesses: composed.weaknesses,
     });
 
-    return c.json(response, 200);
+    return c.json(
+      await withEvidence(deps.db, playerId, stream, inTournament, baseline.windowStart, response),
+      200,
+    );
   });
 }

@@ -77,6 +77,7 @@ const emptyReport: Report = {
   id: 'report-1',
   playerId,
   stream: 'tournament',
+  tournamentId: null,
   generatedAt: '2026-08-15T12:00:00.000Z',
   gamesCovered: 0,
   windowStart: '2025-09-01T00:00:00.000Z',

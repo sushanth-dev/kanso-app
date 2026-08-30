@@ -13,34 +13,18 @@ export const meQueryOptions = () =>
     staleTime: 30_000,
   });
 
-export const reportQueryOptions = (stream: Stream) =>
+export const reportQueryOptions = (stream: Stream, tournamentId?: string) =>
   queryOptions({
-    queryKey: ['report', stream] as const,
-    queryFn: () => diagnosisApi.getReport(stream),
+    queryKey: ['report', stream, tournamentId ?? null] as const,
+    queryFn: () => diagnosisApi.getReport(stream, tournamentId),
     retry: false,
     staleTime: 30_000,
   });
 
-export const motifsQueryOptions = (stream: Stream) =>
+export const gamesQueryOptions = (stream: Stream, tournamentId?: string) =>
   queryOptions({
-    queryKey: ['motifs', stream] as const,
-    queryFn: () => diagnosisApi.getMotifs(stream),
-    retry: false,
-    staleTime: 30_000,
-  });
-
-export const phasesQueryOptions = (stream: Stream) =>
-  queryOptions({
-    queryKey: ['phases', stream] as const,
-    queryFn: () => diagnosisApi.getPhases(stream),
-    retry: false,
-    staleTime: 30_000,
-  });
-
-export const gamesQueryOptions = (stream: Stream) =>
-  queryOptions({
-    queryKey: ['games', stream] as const,
-    queryFn: () => diagnosisApi.listGames(stream),
+    queryKey: ['games', stream, tournamentId ?? null] as const,
+    queryFn: () => diagnosisApi.listGames(stream, tournamentId),
     retry: false,
     staleTime: 30_000,
   });

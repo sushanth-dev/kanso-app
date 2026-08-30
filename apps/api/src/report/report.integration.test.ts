@@ -11,7 +11,7 @@ import type { Context } from 'hono';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { createApp } from '../app.ts';
-import { game, mistake, movePly, player, report, weakness } from '../db/schema.ts';
+import { game, mistake, movePly, player, report, tournament, weakness } from '../db/schema.ts';
 import { user } from '../db/auth-schema.ts';
 import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-harness.ts';
 
@@ -42,8 +42,18 @@ function app(userId: string | null) {
   });
 }
 
-async function get(userId: string | null, stream: string) {
-  return app(userId).request(`/report?stream=${stream}`);
+async function get(userId: string | null, stream: string, tournamentId?: string) {
+  const query = tournamentId === undefined ? '' : `&tournamentId=${tournamentId}`;
+  return app(userId).request(`/report?stream=${stream}${query}`);
+}
+
+/** ST-098. One tournament row for scoped-report tests. */
+async function seedTournament(playerId: string, name: string): Promise<string> {
+  const [row] = await harness.db
+    .insert(tournament)
+    .values({ playerId, name, key: name.toLowerCase() })
+    .returning({ id: tournament.id });
+  return row!.id;
 }
 
 async function makePlayer(ownerId: string): Promise<string> {
@@ -125,12 +135,28 @@ interface WeaknessBody {
   gamesAffected: number;
   occurrences: number;
   rank: number;
+  /** ST-098. The advice line and the places behind the figure. */
+  advice: string | null;
+  evidence: {
+    gameId: string;
+    whiteName: string | null;
+    blackName: string | null;
+    playedAt: string | null;
+    moveNumber: number;
+    moveSan: string;
+    bestMoveSan: string;
+    phase: string | null;
+    judgement: string;
+    cpLoss: number;
+  }[];
 }
 
 interface ReportBody {
   id: string;
   playerId: string;
   stream: string;
+  /** ST-098. Set on a tournament-scoped report; null on a stream report. */
+  tournamentId: string | null;
   generatedAt: string;
   gamesCovered: number;
   windowStart: string | null;
@@ -362,5 +388,114 @@ describe('GET /report', () => {
     const res = await get(OWNER, 'online');
     expect(res.status).toBe(404);
     expect((await res.json()) as { code: string }).toMatchObject({ code: 'not_found' });
+  });
+});
+
+describe('GET /report?tournamentId (ST-098)', () => {
+  test('stores and serves a report scoped to one tournament, with evidence and advice', async () => {
+    const playerId = await makePlayer(OWNER);
+    const big = await seedTournament(playerId, 'City Open');
+    const small = await seedTournament(playerId, 'Winter Rapid');
+
+    const cityGames: string[] = [];
+    for (let i = 0; i < 6; i++) {
+      const id = await seedRatedGame(playerId, { stream: 'tournament', tournamentId: big });
+      cityGames.push(id);
+    }
+    for (let i = 0; i < 2; i++) {
+      await seedRatedGame(playerId, { stream: 'tournament', tournamentId: small });
+    }
+    for (const id of cityGames) {
+      await addMistake(id, {
+        halfPointsLost: 1,
+        motif: 'hanging_piece',
+        phase: 'middlegame',
+        moveNumber: 23,
+        moveSan: 'Nf6',
+        bestMoveSan: 'e5',
+        cpLoss: 240,
+      });
+    }
+
+    const res = await get(OWNER, 'tournament', big);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as ReportBody;
+    expect(body.tournamentId).toBe(big);
+    expect(body.gamesCovered).toBe(6);
+    expect(body.weaknesses.map((w) => w.kind)).toContain('motif');
+
+    const motif = body.weaknesses.find((w) => w.kind === 'motif')!;
+    expect(motif.advice).toContain('undefended');
+    expect(motif.evidence).toHaveLength(3);
+    expect(motif.evidence[0]).toMatchObject({
+      moveNumber: 23,
+      moveSan: 'Nf6',
+      bestMoveSan: 'e5',
+      cpLoss: 240,
+      judgement: 'mistake',
+      phase: 'middlegame',
+    });
+    expect(motif.evidence.every((e) => cityGames.includes(e.gameId))).toBe(true);
+
+    // The stream-wide report is a different scope, and stays null-scoped.
+    const stream = await get(OWNER, 'tournament');
+    const streamBody = (await stream.json()) as ReportBody;
+    expect(streamBody.tournamentId).toBeNull();
+    expect(streamBody.gamesCovered).toBe(8);
+  });
+
+  test('a tournament under the floor answers 422 naming the tournament', async () => {
+    const playerId = await makePlayer(OWNER);
+    const small = await seedTournament(playerId, 'Winter Rapid');
+    for (let i = 0; i < 5; i++) {
+      await seedRatedGame(playerId, { stream: 'tournament', tournamentId: small });
+    }
+
+    const res = await get(OWNER, 'tournament', small);
+    expect(res.status).toBe(422);
+    const body = (await res.json()) as { code: string; message: string };
+    expect(body.code).toBe('not_enough_evidence');
+    expect(body.message).toContain('All 5 analyzed games in this tournament count');
+  });
+
+  test('an unknown tournament id answers 404, not a leak', async () => {
+    const playerId = await makePlayer(OWNER);
+    for (let i = 0; i < 6; i++) await seedRatedGame(playerId, { stream: 'tournament' });
+
+    const res = await get(OWNER, 'tournament', '00000000-0000-4000-8000-0000000000f0');
+    expect(res.status).toBe(404);
+    const body = (await res.json()) as { code: string; message: string };
+    expect(body.message).toBe('No analyzed games in this tournament yet.');
+  });
+
+  test('serves the stored report while games in scope are analysing, regenerates once quiet', async () => {
+    const playerId = await makePlayer(OWNER);
+    for (let i = 0; i < 6; i++) await seedRatedGame(playerId);
+
+    const first = await get(OWNER, 'online');
+    const firstBody = (await first.json()) as ReportBody;
+
+    // A game lands in the queue. The report must not regenerate per poll:
+    // new weakness ids remount the client's list and replay its animations.
+    await seedRatedGame(playerId, {
+      analysisStatus: 'queued',
+      analyzedAt: null,
+      playedAt: new Date('2026-08-29T12:00:00Z'),
+    });
+    const during = await get(OWNER, 'online');
+    expect(during.status).toBe(200);
+    const duringBody = (await during.json()) as ReportBody;
+    expect(duringBody.id).toBe(firstBody.id);
+    expect(duringBody.gamesCovered).toBe(6);
+
+    // The queue drains: the next read regenerates exactly once.
+    await harness.db
+      .update(game)
+      .set({ analysisStatus: 'complete', analyzedAt: new Date(Date.now() + 3_600_000) })
+      .where(eq(game.playerId, playerId));
+    const after = await get(OWNER, 'online');
+    const afterBody = (await after.json()) as ReportBody;
+    expect(afterBody.id).not.toBe(firstBody.id);
+    expect(afterBody.gamesCovered).toBe(7);
   });
 });
