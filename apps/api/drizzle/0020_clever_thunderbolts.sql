@@ -1,0 +1,1 @@
+ALTER TABLE "weakness" ADD COLUMN "advice" text;

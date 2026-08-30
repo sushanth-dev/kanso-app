@@ -141,6 +141,13 @@
       "when": 1788071071514,
       "tag": "0019_sloppy_meltdown",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1788079254323,
+      "tag": "0020_clever_thunderbolts",
+      "breakpoints": true
     }
   ]
 }
