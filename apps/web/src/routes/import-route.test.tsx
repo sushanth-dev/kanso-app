@@ -61,6 +61,7 @@ function makeJob(overrides: Partial<ImportJob> = {}): ImportJob {
     createdAt: '2026-08-14T00:00:00.000Z',
     finishedAt: '2026-08-14T00:00:00.000Z',
     gameIds: ['00000000-0000-4000-8000-0000000000b1'],
+    tournament: null,
     ...overrides,
   };
 }
@@ -266,7 +267,14 @@ describe('ImportScreen', () => {
     const navigate = vi.fn();
     const pgn = '[Event "Test"]\n1. e4 e5 1-0';
     startImport.mockResolvedValue(
-      makeJob({ source: 'pgn_upload', stream: 'tournament', gamesFound: 2, gamesImported: 2 }),
+      makeJob({
+        source: 'pgn_upload',
+        stream: 'tournament',
+        gamesFound: 2,
+        gamesImported: 2,
+        // ST-096: six or more games in the tournament means the report.
+        tournament: { id: '00000000-0000-4000-8000-0000000000c1', gameCount: 7 },
+      }),
     );
     renderScreen({ navigate });
     await user.selectOptions(screen.getByLabelText('Method'), 'pgn_upload');
@@ -283,7 +291,38 @@ describe('ImportScreen', () => {
     });
     expect(navigate).toHaveBeenCalledWith({
       to: '/report',
-      search: { stream: 'tournament', gameIds: ['00000000-0000-4000-8000-0000000000b1'] },
+      search: {
+        stream: 'tournament',
+        gameIds: ['00000000-0000-4000-8000-0000000000b1'],
+        tournamentId: '00000000-0000-4000-8000-0000000000c1',
+      },
+    });
+  });
+
+  test('routes a tournament upload under six games to the first game review', async () => {
+    const user = userEvent.setup();
+    const navigate = vi.fn();
+    const pgn = '[Event "Test"]\n1. e4 e5 1-0';
+    startImport.mockResolvedValue(
+      makeJob({
+        source: 'pgn_upload',
+        stream: 'tournament',
+        gamesFound: 2,
+        gamesImported: 2,
+        tournament: { id: '00000000-0000-4000-8000-0000000000c1', gameCount: 5 },
+      }),
+    );
+    renderScreen({ navigate });
+    await user.selectOptions(screen.getByLabelText('Method'), 'pgn_upload');
+    await user.upload(
+      screen.getByLabelText('PGN file', { selector: 'input' }),
+      new File([pgn], 'games.pgn', { type: 'application/x-chess-pgn' }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Import games' }));
+    expect(await screen.findByText('Imported 2 games.')).toBeVisible();
+    expect(navigate).toHaveBeenCalledWith({
+      to: '/games/$gameId',
+      params: { gameId: '00000000-0000-4000-8000-0000000000b1' },
     });
   });
 

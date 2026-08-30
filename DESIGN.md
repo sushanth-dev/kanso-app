@@ -399,7 +399,15 @@ is a typed search parameter with a visible segmented toggle, never a silent
 default and never blended. A weakness expands into its aggregate (motifs, or
 phase and time trouble) through the existing endpoints; an opening weakness
 carries its evidence on the row and does not expand, because no opening
-endpoint exists. The report has three states: the ranked list, an honest empty
+endpoint exists. ST-096 adds the tournament card (the tournaments
+page's card, reused) between the header and the report body on the tournament
+stream only: it names the tournament the current upload attached to, else the
+most recent, and links to the tournament detail. Under six games the card
+greys out (`opacity-75`, `aria-disabled`), its button disables, and a
+full-contrast line states the shortfall ("A report needs 6 games; this
+tournament has played 3."), so the state never travels by opacity alone. The
+online stream renders no card, because online play has no tournaments. The
+report has three states: the ranked list, an honest empty
 statement ("could not identify a defensible weakness"), and a not-ready state
 that separates "still being analyzed" from "no analyzed games."
 blank or a zero. The rank-one weakness's `ratingLeak` number, the one thing to
@@ -436,6 +444,17 @@ position, the move played versus the engine's best, the judgement and
 centipawn loss, and the motif where one applies. The game result reveals
 through Canvas UI's Particle Reveal, a decorative effect that renders a still
 frame under `prefers-reduced-motion` and is `aria-hidden`, per ADR-0017.
+
+ST-096 adds an analysing state to the review page for games that are queued,
+analysing, or pending with a known colour: a `role="status"` banner with the
+Spinner ("Analysing this game. The mistakes and evaluations appear here as
+soon as it finishes.") renders between the header and the board, while the
+board and notation stay readable underneath, because the importer writes the
+un-evaluated plies at import time. The page polls every five seconds and the
+banner disappears when the analysis lands; a colourless game shows the
+name-your-side prompt instead, because it is waiting for the player, not the
+engine. This is also where an upload under six games lands (see Import), so
+the loader carries the analysing flow the report would otherwise show.
 
 Every game card and the review page carry a destructive **Delete** action
 (ST-089). The games list shows a `Delete` button on each card and the review
@@ -475,7 +494,13 @@ rejected; a PGN success names the count; a tournament success names the count
 and states these games carry results, not moves, so no analysis follows. A
 successful username or PGN import adds the note that analysis runs next and
 arrives asynchronously, pointing to the report rather than promising instant
-results. A valid username with no games in the period, and a re-import that
+results. ST-096 splits that destination by tournament size: a tournament
+upload whose tournament holds six or more games lands on the report, which
+shows the batch-scoped analysing screen while the games run; a tournament
+still under six games cannot produce a report, so it lands on the first
+game's review page with the same loader; an online import has no tournament
+to count and always lands on the report.
+A valid username with no games in the period, and a re-import that
 found only duplicates, are both `info` messages: neutral facts, not errors. An
 unresolved username (422), an unreachable provider (502), an unmatched
 tournament (422), a name mismatch (422, naming the closest surname), a

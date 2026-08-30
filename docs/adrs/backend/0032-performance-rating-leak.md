@@ -41,8 +41,10 @@ against the season's rated opponents:
 The leak is computed over rated games only: a game whose opponent Elo is
 missing, whose result is undecided, or whose colour is unknown is not part of
 the season, because a performance rating against unknown opposition is a number
-from nothing. A season with fewer than ten rated games refuses rather than
-estimates.
+from nothing. A season with fewer than six rated games refuses rather than
+estimates. ST-096 moved the floor from ten to six, the size of a typical
+junior tournament (five to nine classical games), so one tournament can
+produce a report on its own.
 
 ## Alternatives considered
 
