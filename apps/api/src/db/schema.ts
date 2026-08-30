@@ -600,6 +600,8 @@ export const weakness = pgTable(
     occurrences: integer('occurrences').notNull(),
     /** S2. A ranked diagnosis, not a list of games to read through. */
     rank: smallint('rank').notNull(),
+    /** ST-099. The model-written advice stored with the report; null keeps the template copy. */
+    advice: text('advice'),
   },
   (t) => [uniqueIndex('weakness_rank_unique').on(t.reportId, t.rank)],
 );
