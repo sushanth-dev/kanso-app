@@ -231,4 +231,23 @@ describe('GamesRoute', () => {
 
     expect(deleteGame).not.toHaveBeenCalled();
   });
+  test('links to the import page and to the report for the current stream', async () => {
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [],
+      total: 0,
+      page: 1,
+      limit: 100,
+    });
+
+    renderRoute();
+
+    expect(await screen.findByRole('link', { name: 'Import games' })).toHaveAttribute(
+      'href',
+      '/import',
+    );
+    expect(screen.getByRole('link', { name: 'View report' })).toHaveAttribute(
+      'href',
+      '/report?stream=tournament',
+    );
+  });
 });

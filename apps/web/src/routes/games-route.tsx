@@ -145,6 +145,13 @@ export function GamesRoute() {
           <Heading level={1}>Your games</Heading>
           <StreamToggle stream={stream} onChange={onStreamChange} ariaLabel="Games stream" />
         </div>
+        {/* ST-096. The games list is where waiting-for-side and in-progress
+            situations land, so it carries the paths out of itself: import more
+            games, or read the report for this stream. */}
+        <div className="flex flex-wrap gap-3">
+          <Button label="Import games" href="/import" variant="secondary" />
+          <Button label="View report" href={`/report?stream=${stream}`} variant="secondary" />
+        </div>
       </header>
 
       {gamesQuery.isPending ? (

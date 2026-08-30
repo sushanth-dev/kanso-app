@@ -193,6 +193,12 @@ export const ImportJob = z
     finishedAt: z.iso.datetime().nullable(),
     /** The games this import created; the analysing screen counts only these (ST-093). */
     gameIds: z.array(Uuid),
+    /**
+     * ST-096. The tournament the batch mostly attached to and its total game
+     * count after the upload, so the web can route by tournament size. Null
+     * when nothing attached, which every online import is.
+     */
+    tournament: z.object({ id: Uuid, gameCount: z.number().int() }).nullable(),
   })
   .openapi('ImportJob');
 

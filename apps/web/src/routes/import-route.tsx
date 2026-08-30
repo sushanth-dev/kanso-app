@@ -8,6 +8,7 @@ import { Heading } from '@astryxdesign/core/Heading';
 import { Text } from '@astryxdesign/core/Text';
 import { useQueryClient, useSuspenseQuery, type QueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
+import { MIN_REPORT_GAMES } from '../analysis-status.ts';
 import { ApiRequestError, type Me } from '../api/account-api.ts';
 import type { ImportApi, ImportJob, ImportSource, StartImportBody } from '../api/import-api.ts';
 import {
@@ -251,10 +252,26 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
           void queryClient.invalidateQueries({ queryKey: ['round-decay'] });
           // ST-093: carry the batch's game ids so the analysing counter counts
           // this upload only, not every game already in the stream.
-          await navigate({
-            to: '/report',
-            search: { stream: job.stream, gameIds: job.gameIds },
-          });
+          // ST-096: a tournament upload still under six games cannot generate
+          // a report, so it lands on the batch's first review page instead,
+          // where the analysing loader runs. Online imports have no tournament
+          // to count and always go to the report.
+          const firstGameId = job.gameIds[0];
+          const underThreshold =
+            job.stream === 'tournament' &&
+            (job.tournament === null || job.tournament.gameCount < MIN_REPORT_GAMES);
+          if (underThreshold && firstGameId !== undefined) {
+            await navigate({ to: '/games/$gameId', params: { gameId: firstGameId } });
+          } else {
+            await navigate({
+              to: '/report',
+              search: {
+                stream: job.stream,
+                gameIds: job.gameIds,
+                ...(job.tournament !== null ? { tournamentId: job.tournament.id } : {}),
+              },
+            });
+          }
         }
       }
     } catch (error) {

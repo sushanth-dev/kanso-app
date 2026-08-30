@@ -1,8 +1,9 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { createMemoryHistory, RouterContextProvider } from '@tanstack/react-router';
+import { createMemoryHistory, RouterContextProvider, RouterProvider } from '@tanstack/react-router';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { accountApi, type Me } from '../api/account-api.ts';
 import { diagnosisApi, type CctScan, type GameDetail, type Mistake } from '../api/diagnosis-api.ts';
 import { createAppRouter } from '../router.tsx';
 import { GameReviewScreen } from './game-review-route.tsx';
@@ -130,6 +131,30 @@ function gameFixture(overrides: Partial<GameDetail> = {}): GameDetail {
     ...overrides,
   };
 }
+
+const meFixture: Me = {
+  userId: 'user-1',
+  email: 'player@example.com',
+  name: 'Player',
+  tier: 'beginner',
+  player: {
+    id: '00000000-0000-4000-8000-000000000001',
+    displayName: 'Mina',
+    birthYear: 2013,
+    fideId: null,
+    fideRating: null,
+    uscfId: null,
+    uscfRating: null,
+    chesscomUsername: null,
+    lichessUsername: null,
+    chesscomRating: null,
+    lichessRating: null,
+    currentStreak: 0,
+    xp: 0,
+    level: 1,
+    createdAt: '2026-08-14T00:00:00.000Z',
+  },
+};
 
 const emptyScan: CctScan = { mistakeId: 'm-1', checks: [], captures: [], threats: [] };
 
@@ -337,5 +362,68 @@ describe('GameReviewScreen', () => {
     expect(
       screen.queryByText('Your side was not recorded for this game. Which colour were you?'),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe('GameReviewRoute', () => {
+  // The account layout's beforeLoad resolves the signed-in user first.
+  beforeEach(() => {
+    vi.spyOn(accountApi, 'getMe').mockResolvedValue(meFixture);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function renderRoute(path = `/games/${gameId}`) {
+    const history = createMemoryHistory({ initialEntries: [path] });
+    const queryClient = new QueryClient();
+    const router = createAppRouter({ history, queryClient });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>,
+    );
+  }
+
+  test('shows the analysing loader while the game is on the engine, then the review', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const getGame = vi
+      .spyOn(diagnosisApi, 'getGame')
+      .mockResolvedValueOnce(gameFixture({ analysisStatus: 'analyzing' }))
+      .mockResolvedValue(gameFixture({ analysisStatus: 'complete' }));
+
+    renderRoute();
+
+    expect(await screen.findByRole('status', { name: 'Analysing game' })).toBeVisible();
+
+    await vi.advanceTimersByTimeAsync(5000);
+
+    await waitFor(() => {
+      expect(screen.queryByRole('status', { name: 'Analysing game' })).toBeNull();
+    });
+    expect(getGame.mock.calls.length).toBeGreaterThanOrEqual(2);
+  });
+
+  test('shows no analysing loader for a completed game', async () => {
+    vi.spyOn(diagnosisApi, 'getGame').mockResolvedValue(gameFixture());
+
+    renderRoute();
+
+    expect(await screen.findByText('Alice vs Mina')).toBeVisible();
+    expect(screen.queryByRole('status', { name: 'Analysing game' })).toBeNull();
+  });
+
+  test('waits for the player on a colourless game instead of the loader', async () => {
+    vi.spyOn(diagnosisApi, 'getGame').mockResolvedValue(
+      gameFixture({ playerColor: null, analysisStatus: 'pending' }),
+    );
+
+    renderRoute();
+
+    expect(
+      await screen.findByText('Your side was not recorded for this game. Which colour were you?'),
+    ).toBeVisible();
+    expect(screen.queryByRole('status', { name: 'Analysing game' })).toBeNull();
   });
 });

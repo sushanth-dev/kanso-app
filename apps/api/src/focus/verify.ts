@@ -20,7 +20,7 @@ type Stream = (typeof schema.streamEnum.enumValues)[number];
 
 export type FocusTrend = 'improving' | 'flat' | 'declining' | 'insufficient_evidence';
 
-/** F12. The rolling window, in analysed games per half. Matches ST-026's `MIN_RATED_GAMES`. */
+/** F12. The rolling window, in analysed games per half. ST-096 diverged it from the report's `MIN_RATED_GAMES` (6): the focus keeps the stronger ten-game bar. */
 export const FOCUS_WINDOW_GAMES = 10;
 
 export interface FocusSpec {

@@ -18,8 +18,10 @@ which the honest answer is a refusal, and what separates a trend from noise.
 ## Decision
 
 * The window is a count of analysed games, not calendar time:
-  `FOCUS_WINDOW_GAMES = 10`, matching ST-026's `MIN_RATED_GAMES` so the report
-  and the focus hold the same bar.
+  `FOCUS_WINDOW_GAMES = 10`. It originally matched ST-026's `MIN_RATED_GAMES`
+  so the report and the focus held the same bar; ST-096 moved the report's
+  floor to six while the focus deliberately keeps the stronger ten-game bar,
+  because a per-half trend needs the larger sample even when a report does not.
 * The baseline is two equal windows split at `focus.startedAt`: the 10 most
   recent analysed games in the stream since the commitment against the 10 most
   recent before it.

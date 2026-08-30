@@ -59,6 +59,12 @@ export interface ImportGamesResult {
   queued: string[];
   /** Every game the import stored; the response's batch for the analysing counter. */
   gameIds: string[];
+  /**
+   * ST-096. The tournament the batch mostly attached to, with its total game
+   * count after the upload, so the web can route by tournament size. Null
+   * when nothing attached, which every online import is.
+   */
+  tournament: { id: string; gameCount: number } | null;
 }
 
 /**
@@ -72,7 +78,7 @@ export async function importGames(db: Db, input: ImportGamesInput): Promise<Impo
   const { playerId, source, username, stream, matchName, games, gamesRejected } = input;
   const queued: string[] = [];
   const gameIds: string[] = [];
-  const { job } = await db.transaction(async (tx) => {
+  const { job, tournament } = await db.transaction(async (tx) => {
     const [created] = await tx
       .insert(importJob)
       .values({
@@ -169,7 +175,7 @@ export async function importGames(db: Db, input: ImportGamesInput): Promise<Impo
     });
     if (plyRows.length > 0) await tx.insert(movePly).values(plyRows);
 
-    await attachGames(
+    const attach = await attachGames(
       tx,
       playerId,
       inserted.map((row) => ({
@@ -181,16 +187,43 @@ export async function importGames(db: Db, input: ImportGamesInput): Promise<Impo
       })),
     );
 
+    // ST-096. The batch can span tournaments when the clustering splits it, so
+    // the routing signal is the tournament holding the most batch games, and
+    // its count covers every game it holds, not just this upload's.
+    const perTournament = new Map<string, number>();
+    for (const row of inserted) {
+      const outcome = attach.outcomes.get(row.id);
+      if (outcome?.status === 'attached') {
+        perTournament.set(outcome.tournamentId, (perTournament.get(outcome.tournamentId) ?? 0) + 1);
+      }
+    }
+    let dominantId: string | undefined;
+    let dominantCount = 0;
+    for (const [id, count] of perTournament) {
+      if (count > dominantCount) {
+        dominantId = id;
+        dominantCount = count;
+      }
+    }
+    let tournament: { id: string; gameCount: number } | null = null;
+    if (dominantId !== undefined) {
+      const [countRow] = await tx
+        .select({ n: sql<number>`count(*)::int` })
+        .from(game)
+        .where(eq(game.tournamentId, dominantId));
+      tournament = { id: dominantId, gameCount: countRow?.n ?? 0 };
+    }
+
     const [updated] = await tx
       .update(importJob)
       .set({ gamesImported: inserted.length, gamesUndetermined: undetermined })
       .where(eq(importJob.id, created!.id))
       .returning();
 
-    return { job: updated! };
+    return { job: updated!, tournament };
   });
 
-  return { job, queued, gameIds };
+  return { job, queued, gameIds, tournament };
 }
 
 /**
@@ -254,6 +287,7 @@ export function mountImport(
     let job: typeof importJob.$inferSelect;
     let queued: string[];
     let gameIds: string[];
+    let tournament: ImportGamesResult['tournament'];
 
     if (body.source === 'pgn_upload') {
       const parsed = parsePgn(body.pgn);
@@ -272,7 +306,7 @@ export function mountImport(
         );
       }
 
-      ({ job, queued, gameIds } = await importGames(deps.db, {
+      ({ job, queued, gameIds, tournament } = await importGames(deps.db, {
         playerId,
         source: 'pgn_upload',
         username: null,
@@ -340,7 +374,7 @@ export function mountImport(
         games.push({ ...parsed, externalId: providerGame.externalId });
       });
 
-      ({ job, queued, gameIds } = await importGames(deps.db, {
+      ({ job, queued, gameIds, tournament } = await importGames(deps.db, {
         playerId,
         source: 'uscf',
         username: null,
@@ -407,7 +441,7 @@ export function mountImport(
         games.push({ ...parsed, externalId: providerGame.externalId });
       });
 
-      ({ job, queued, gameIds } = await importGames(deps.db, {
+      ({ job, queued, gameIds, tournament } = await importGames(deps.db, {
         playerId,
         source: body.source,
         username,
@@ -455,6 +489,7 @@ export function mountImport(
         createdAt: job.createdAt.toISOString(),
         finishedAt: job.finishedAt?.toISOString() ?? null,
         gameIds,
+        tournament,
       },
       202,
     );
