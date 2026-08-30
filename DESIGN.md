@@ -399,22 +399,23 @@ is a typed search parameter with a visible segmented toggle, never a silent
 default and never blended. A weakness expands into its aggregate (motifs, or
 phase and time trouble) through the existing endpoints; an opening weakness
 carries its evidence on the row and does not expand, because no opening
-endpoint exists. ST-096 adds the tournament card (the tournaments
-page's card, reused) between the header and the report body on the tournament
-stream only: it names the tournament the current upload attached to, else the
-most recent, and links to the tournament detail. Under six games the card
-greys out (`opacity-75`, `aria-disabled`), its button disables, and a
+endpoint exists.
+ST-096 added the tournaments page's card between the header and the report body
+on the tournament stream only; ST-097 renders one card per tournament, the
+current upload's first, each linking to its tournament detail. Under six games
+a card greys out (`opacity-75`, `aria-disabled`), its button disables, and a
 full-contrast line states the shortfall ("A report needs 6 games; this
-tournament has played 3."), so the state never travels by opacity alone. The
-online stream renders no card, because online play has no tournaments. The
+tournament has 3."), so the state never travels by opacity alone. The online
+stream renders no card, because online play has no tournaments, and the card
+list is gated on the stream itself, not just the query, so a cached tournament
+list cannot leak across a stream switch. The
 report has three states: the ranked list, an honest empty
 statement ("could not identify a defensible weakness"), and a not-ready state
 that separates "still being analyzed" from "no analyzed games."
-blank or a zero. The rank-one weakness's `ratingLeak` number, the one thing to
+The rank-one weakness's `ratingLeak` number, the one thing to
 fix, reveals through Canvas UI's Particle Reveal (a still frame under reduced
 motion, `aria-hidden`) so the headline lands as a moment; the remaining
 weaknesses render as plain mono text.
-blank or a zero.
 
 ### Game review
 
@@ -482,8 +483,9 @@ method `select` of four explicit options: Chess.com username, Lichess
 username, PGN upload, and tournament by name. The fields below switch with the
 method, and the stream is stated per method before any request, never a hidden
 default. A username import states the 12-month online period; a PGN upload
-asks for the stream explicitly through the `StreamToggle`; tournament by name
-states "Imports tournament results, not moves." The username is validated
+asks for the file and states the tournament stream; tournament by name states
+"USCF tournaments only for now. Imports the crosstable's results, not the
+moves." The username is validated
 client-side against the provider's charset before any request; a PGN file is
 read as text, never rendered; the tournament player name is prefilled from the
 real name (`me.name`), which is what matches a crosstable (ST-084).

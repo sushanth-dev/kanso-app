@@ -203,13 +203,25 @@ export function mountReport(
       if (analysed === 0) {
         return c.json({ code: 'not_found', message: 'No analyzed games in this stream yet.' }, 404);
       }
+      // ST-097. The refusal names both sets, because "6 analyzed games but
+      // needs 6 rated games" reads as a contradiction until the qualifying
+      // subset is stated. The rated count is the same in-window figure the
+      // baseline just computed and discarded.
+      const rated = baseline.ratedGames;
+      const games = analysed === 1 ? 'game' : 'games';
+      const verb = analysed === 1 ? 'counts' : 'count';
+      const lead =
+        rated === 0
+          ? `None of the ${analysed} analyzed ${games} in this stream ${verb} toward a report yet.`
+          : rated === analysed
+            ? `All ${analysed} analyzed ${games} in this stream ${verb} toward a report.`
+            : `Only ${rated} of the ${analysed} analyzed ${games} in this stream ${verb} toward a report.`;
       return c.json(
         {
           code: 'not_enough_evidence',
           message:
-            `${analysed} analyzed ${analysed === 1 ? 'game' : 'games'} in this stream, but a report needs ` +
-            `${MIN_RATED_GAMES} rated games in the last year: a decided result, a date, ` +
-            `and both players' ratings.`,
+            `${lead} A report needs ${MIN_RATED_GAMES} rated games in the last year, ` +
+            `and a game counts when it has a decided result, a date, and both players' ratings.`,
         },
         422,
       );

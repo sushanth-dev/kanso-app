@@ -6,7 +6,7 @@ import { Heading } from '@astryxdesign/core/Heading';
 import { Link } from '@astryxdesign/core/Link';
 import { Spinner } from '@astryxdesign/core/Spinner';
 import { Text } from '@astryxdesign/core/Text';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { MIN_REPORT_GAMES, isActiveGame } from '../analysis-status.ts';
 import { ApiRequestError } from '../api/account-api.ts';
@@ -82,8 +82,8 @@ export interface ReportScreenProps {
   report: Report;
   onStreamChange: (stream: Stream) => void;
   analyzingGames?: GameSummary[];
-  /** ST-096. The tournament-stream report page shows the tournament card between the header and the report body. */
-  tournamentCard?: ReactNode;
+  /** ST-097. The tournament-stream report page shows one card per tournament between the header and the report body. */
+  tournamentCards?: ReactNode;
 }
 
 function ReportHeader({
@@ -112,14 +112,14 @@ export function ReportScreen({
   report,
   onStreamChange,
   analyzingGames = [],
-  tournamentCard = undefined,
+  tournamentCards = undefined,
 }: ReportScreenProps) {
   const isEmpty = report.weaknesses.length === 0;
   const meta = `Reported ${generatedAtFormatter.format(new Date(report.generatedAt))} covering ${report.gamesCovered} games.`;
   return (
     <div className="space-y-6">
       <ReportHeader stream={stream} onStreamChange={onStreamChange} meta={meta} />
-      {tournamentCard}
+      {tournamentCards}
       {analyzingGames.length > 0 ? <AnalyzingBanner games={analyzingGames} /> : null}
       {report.timeTroubleFromMove !== null ? (
         <Text as="p" display="block" className="text-sm">
@@ -390,7 +390,7 @@ function Analysing({
     <div className="flex flex-col items-center gap-3 py-8 text-center">
       <Spinner size="md" />
       <Text as="p" display="block" className="text-primary">
-        {analysed} of {total} games analysed
+        {analysed} of {total} {total === 1 ? 'game' : 'games'} analysed
       </Text>
       {active.length > 0 ? (
         // ST-093: at most three names, so the block stops re-wrapping on every
@@ -476,27 +476,41 @@ function ReportSkeleton() {
 }
 export function ReportRoute() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { stream, gameIds, tournamentId } = useSearch({ from: '/account/report' });
-  // ST-096. The card shows the tournament the current upload attached to when
-  // the import handed us its id, else the most recent one. The import route
-  // already invalidates this query after an upload, so the card reflects it.
+  // ST-097. Every tournament gets a card, gated on its own game count, with
+  // the upload's tournament leading when the import handed us its id. The
+  // stream check gates the card list itself, not just the query: an
+  // `enabled: false` query keeps its cached data, which is how the cards
+  // leaked onto the online stream until a refresh.
   const tournamentsQuery = useQuery({
     ...tournamentsQueryOptions(),
     enabled: stream === 'tournament',
   });
-  const tournaments = tournamentsQuery.data?.tournaments ?? [];
-  const cardTournament =
-    tournamentId !== undefined
-      ? tournaments.find((tournament) => tournament.id === tournamentId)
-      : undefined;
-  const cardSummary = cardTournament ?? tournaments[0];
-  const cardDisabledReason =
-    cardSummary !== undefined && cardSummary.gameCount < MIN_REPORT_GAMES
-      ? `A report needs ${MIN_REPORT_GAMES} games; this tournament has played ${cardSummary.gameCount}.`
-      : undefined;
-  const tournamentCard =
-    cardSummary !== undefined ? (
-      <TournamentCard summary={cardSummary} disabledReason={cardDisabledReason} />
+  const tournaments = stream === 'tournament' ? (tournamentsQuery.data?.tournaments ?? []) : [];
+  const orderedTournaments =
+    tournamentId === undefined
+      ? tournaments
+      : [
+          ...tournaments.filter((tournament) => tournament.id === tournamentId),
+          ...tournaments.filter((tournament) => tournament.id !== tournamentId),
+        ];
+  const tournamentCards =
+    orderedTournaments.length > 0 ? (
+      <ul className="space-y-3">
+        {orderedTournaments.map((summary) => (
+          <li key={summary.id}>
+            <TournamentCard
+              summary={summary}
+              disabledReason={
+                summary.gameCount < MIN_REPORT_GAMES
+                  ? `A report needs ${MIN_REPORT_GAMES} games; this tournament has ${summary.gameCount}.`
+                  : undefined
+              }
+            />
+          </li>
+        ))}
+      </ul>
     ) : undefined;
   const gamesQuery = useQuery({
     ...gamesQueryOptions(stream),
@@ -522,6 +536,15 @@ export function ReportRoute() {
     ...reportQueryOptions(stream),
     refetchInterval: analyzingGames.length > 0 ? 5000 : false,
   });
+  // ST-097. The other stream's queries warm while this one shows, so the
+  // toggle lands on data instead of a skeleton. With `retry: false` the
+  // prefetch of a not-ready stream caches its honest refusal, not a retry
+  // loop.
+  useEffect(() => {
+    const other: Stream = stream === 'tournament' ? 'online' : 'tournament';
+    void queryClient.prefetchQuery(gamesQueryOptions(other));
+    void queryClient.prefetchQuery(reportQueryOptions(other));
+  }, [stream, queryClient]);
   useEffect(() => {
     if (reportQuery.data !== undefined) track('report_viewed', { stream });
   }, [reportQuery.data, stream]);
@@ -543,7 +566,7 @@ export function ReportRoute() {
         report={reportQuery.data}
         onStreamChange={onStreamChange}
         analyzingGames={analyzingGames}
-        tournamentCard={tournamentCard}
+        tournamentCards={tournamentCards}
       />
     );
   }
@@ -561,7 +584,7 @@ export function ReportRoute() {
   return (
     <div className="space-y-6">
       <ReportHeader stream={stream} onStreamChange={onStreamChange} />
-      {tournamentCard}
+      {tournamentCards}
       {reportQuery.isPending ? (
         <ReportSkeleton />
       ) : notReadyError !== null ? (

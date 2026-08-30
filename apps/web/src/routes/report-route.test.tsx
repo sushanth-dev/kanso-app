@@ -326,7 +326,7 @@ describe('ReportRoute', () => {
     });
 
     renderRoute();
-    expect(await screen.findByText('0 of 1 games analysed')).toBeVisible();
+    expect(await screen.findByText('0 of 1 game analysed')).toBeVisible();
 
     getReport.mockResolvedValue(reportFixture({ stream: 'online', gamesCovered: 1 }));
     vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
@@ -391,7 +391,7 @@ describe('ReportRoute', () => {
         422,
         'not_enough_evidence',
         undefined,
-        '3 analyzed games in this stream, but a report needs 6 rated games in the last year.',
+        'Only 3 of the 3 analyzed games in this stream count toward a report. A report needs 6 rated games in the last year.',
       ),
     );
     vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
@@ -517,7 +517,7 @@ describe('ReportRoute', () => {
 
     expect(await screen.findByText('City Open')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Open tournament' })).toBeDisabled();
-    expect(screen.getByText('A report needs 6 games; this tournament has played 5.')).toBeVisible();
+    expect(screen.getByText('A report needs 6 games; this tournament has 5.')).toBeVisible();
   });
 
   test('never shows the tournament card on the online stream', async () => {
@@ -533,6 +533,66 @@ describe('ReportRoute', () => {
     });
 
     renderRoute('/report?stream=online');
+
+    expect(
+      await screen.findByRole('heading', { name: 'No analyzed games in this stream yet' }),
+    ).toBeVisible();
+    expect(screen.queryByText('City Open')).toBeNull();
+  });
+
+  test('renders one card per tournament, each gated on its own count', async () => {
+    vi.spyOn(tournamentApi, 'listTournaments').mockResolvedValue({
+      tournaments: [
+        tournamentFixture({ gameCount: 7, analysedCount: 7 }),
+        tournamentFixture({
+          id: '00000000-0000-4000-8000-0000000000d2',
+          name: 'Rapid Monday',
+          gameCount: 2,
+          analysedCount: 2,
+        }),
+      ],
+    });
+    vi.spyOn(diagnosisApi, 'getReport').mockRejectedValue(reportNotFound);
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [],
+      total: 0,
+      page: 1,
+      limit: 100,
+    });
+
+    renderRoute('/report?stream=tournament');
+
+    expect(await screen.findByText('City Open')).toBeVisible();
+    expect(screen.getByText('Rapid Monday')).toBeVisible();
+    // Seven games: the link works. Two: the card greys out with its own reason.
+    expect(screen.getByRole('link', { name: 'Open tournament' })).toHaveAttribute(
+      'href',
+      '/tournaments/00000000-0000-4000-8000-0000000000d1',
+    );
+    expect(screen.getByRole('button', { name: 'Open tournament' })).toBeDisabled();
+    expect(screen.getByText('A report needs 6 games; this tournament has 2.')).toBeVisible();
+  });
+
+  test('drops the tournament cards when the stream switches to online from a warm cache', async () => {
+    // ST-097 regression: `enabled: false` keeps the tournaments cache alive,
+    // and the ungated card list carried it onto the online stream until a
+    // refresh. The stream gate, not the query, must decide.
+    const user = userEvent.setup();
+    vi.spyOn(tournamentApi, 'listTournaments').mockResolvedValue({
+      tournaments: [tournamentFixture({ gameCount: 2, analysedCount: 2 })],
+    });
+    vi.spyOn(diagnosisApi, 'getReport').mockRejectedValue(reportNotFound);
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [],
+      total: 0,
+      page: 1,
+      limit: 100,
+    });
+
+    renderRoute('/report?stream=tournament');
+    expect(await screen.findByText('City Open')).toBeVisible();
+
+    await user.click(screen.getByRole('radio', { name: 'Online' }));
 
     expect(
       await screen.findByRole('heading', { name: 'No analyzed games in this stream yet' }),

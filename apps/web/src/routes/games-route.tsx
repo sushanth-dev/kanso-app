@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AlertDialog } from '@astryxdesign/core/AlertDialog';
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
@@ -130,6 +130,13 @@ export function GamesRoute() {
   const navigate = useNavigate();
   const { stream } = useSearch({ from: '/account/games' });
   const gamesQuery = useQuery(gamesQueryOptions(stream));
+  // ST-097. The other stream's list warms while this one shows, so the
+  // toggle lands on data instead of a skeleton.
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    const other: Stream = stream === 'tournament' ? 'online' : 'tournament';
+    void queryClient.prefetchQuery(gamesQueryOptions(other));
+  }, [stream, queryClient]);
 
   const onStreamChange = (next: Stream) => {
     void navigate({
