@@ -140,7 +140,7 @@ async function withEvidence(
   const evidence = await weaknessEvidence(db, playerId, stream, tournamentId, windowStart, groups);
   for (const w of response.weaknesses) {
     w.evidence = evidence.get(`${w.kind}:${groupKeyOf(w.kind, w.label, w.eco)}`) ?? [];
-    w.advice = adviceFor(w.kind, groupKeyOf(w.kind, w.label, w.eco) ?? '');
+    w.advice = adviceFor(w.kind, groupKeyOf(w.kind, w.label, w.eco) ?? '', w.evidence);
   }
   return response;
 }
