@@ -317,7 +317,7 @@ export function createApp({
     mountTransferGap(app, { db, getSession: effectiveGetSession, ratingFetcher });
     mountMotifs(app, { db, getSession: effectiveGetSession });
     mountPhases(app, { db, getSession: effectiveGetSession });
-    mountReport(app, { db, getSession: effectiveGetSession });
+    mountReport(app, { db, getSession: effectiveGetSession, aiClient });
     mountListFocuses(app, { db });
     mountGetFocus(app, { db, getSession: effectiveGetSession });
     mountSetFocus(app, { db, getSession: effectiveGetSession });

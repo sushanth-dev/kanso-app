@@ -14,6 +14,7 @@ import { createApp } from '../app.ts';
 import { game, mistake, movePly, player, report, tournament, weakness } from '../db/schema.ts';
 import { user } from '../db/auth-schema.ts';
 import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-harness.ts';
+import type { AiClient } from '../coaching/gemini.ts';
 
 let harness: IntegrationDatabase;
 const OWNER = 'user_owner';
@@ -35,10 +36,11 @@ beforeEach(async () => {
     .values([{ id: OWNER, name: 'Owner', email: 'owner@example.com', emailVerified: true }]);
 });
 
-function app(userId: string | null) {
+function app(userId: string | null, aiClient?: AiClient) {
   return createApp({
     db: harness.db,
     getSession: (userId == null ? () => null : sessionFor(userId)) as (c: Context) => unknown,
+    ...(aiClient ? { aiClient } : {}),
   });
 }
 
@@ -497,5 +499,85 @@ describe('GET /report?tournamentId (ST-098)', () => {
     const afterBody = (await after.json()) as ReportBody;
     expect(afterBody.id).not.toBe(firstBody.id);
     expect(afterBody.gamesCovered).toBe(7);
+  });
+});
+
+describe('GET /report model advice (ST-099)', () => {
+  const MOTIF_LINE =
+    'Look at every undefended piece before you move; 3 of your losses were pieces left hanging.';
+  const PHASE_LINE =
+    'Around move 1 you already lose material; test every capture against a defender first.';
+  const HANGING_PIECE_TEMPLATE =
+    'Before each move, ask what your opponent\u2019s last move attacks - and after choosing ' +
+    'one, check it does not leave the moved piece, or anything it was guarding, undefended.';
+
+  function fakeAi(lines: string[] | Error, calls = { n: 0 }): AiClient {
+    return {
+      explainMistake: () => Promise.reject(new Error('not used here')),
+      askSocraticQuestion: () => Promise.reject(new Error('not used here')),
+      adviseWeaknesses: (facts) => {
+        calls.n += 1;
+        if (lines instanceof Error) return Promise.reject(lines);
+        return Promise.resolve(lines.slice(0, facts.length));
+      },
+    };
+  }
+
+  /** Nine rated games; three hanging-piece middlegame mistakes make the motif group. */
+  async function seedAdviceGames(): Promise<string> {
+    const playerId = await makePlayer(OWNER);
+    const g1 = await seedRatedGame(playerId);
+    const g2 = await seedRatedGame(playerId);
+    const g3 = await seedRatedGame(playerId);
+    for (let i = 0; i < 6; i++) await seedRatedGame(playerId);
+    await addMistake(g1, { halfPointsLost: 1, motif: 'hanging_piece', phase: 'middlegame' });
+    await addMistake(g2, { halfPointsLost: 1, motif: 'hanging_piece', phase: 'middlegame' });
+    await addMistake(g3, { halfPointsLost: 1, motif: 'hanging_piece', phase: 'middlegame' });
+    return playerId;
+  }
+
+  test('stores the model line per weakness and never calls the model when serving', async () => {
+    const playerId = await seedAdviceGames();
+    const calls = { n: 0 };
+    const first = await app(OWNER, fakeAi([MOTIF_LINE, PHASE_LINE], calls)).request(
+      '/report?stream=online',
+    );
+    expect(first.status).toBe(200);
+    const body = (await first.json()) as ReportBody;
+    expect(body.weaknesses.find((w) => w.kind === 'motif')!.advice).toBe(MOTIF_LINE);
+    expect(body.weaknesses.find((w) => w.kind === 'phase')!.advice).toBe(PHASE_LINE);
+    expect(calls.n).toBe(1);
+
+    const [stored] = await harness.db.select().from(report).where(eq(report.playerId, playerId));
+    const ws = await harness.db.select().from(weakness).where(eq(weakness.reportId, stored!.id));
+    expect(ws.map((w) => w.advice).sort()).toEqual([MOTIF_LINE, PHASE_LINE].sort());
+
+    // A fresh serve reads the stored lines; zero model calls.
+    const again = await app(OWNER, fakeAi([], calls)).request('/report?stream=online');
+    expect(again.status).toBe(200);
+    const againBody = (await again.json()) as ReportBody;
+    expect(againBody.id).toBe(body.id);
+    expect(againBody.weaknesses.find((w) => w.kind === 'motif')!.advice).toBe(MOTIF_LINE);
+    expect(calls.n).toBe(1);
+  });
+
+  test('keeps the template copy when the model call fails', async () => {
+    await seedAdviceGames();
+    const res = await app(OWNER, fakeAi(new Error('Gemini down'))).request('/report?stream=online');
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as ReportBody;
+    expect(body.weaknesses.find((w) => w.kind === 'motif')!.advice).toBe(HANGING_PIECE_TEMPLATE);
+    // The phase line keeps the template's derived head and routine body.
+    expect(body.weaknesses.find((w) => w.kind === 'phase')!.advice).toContain(
+      'pick a candidate move',
+    );
+  });
+
+  test('no key configured keeps the template behaviour', async () => {
+    await seedAdviceGames();
+    const res = await app(OWNER).request('/report?stream=online');
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as ReportBody;
+    expect(body.weaknesses.find((w) => w.kind === 'motif')!.advice).toBe(HANGING_PIECE_TEMPLATE);
   });
 });

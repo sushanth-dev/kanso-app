@@ -27,6 +27,9 @@ const aiClient: AiClient = {
     if (fail) return Promise.reject(new Error('model down'));
     return Promise.resolve('What was defending d5 before your move?');
   },
+  adviseWeaknesses() {
+    return Promise.reject(new Error('not used here'));
+  },
 };
 
 beforeAll(async () => {
