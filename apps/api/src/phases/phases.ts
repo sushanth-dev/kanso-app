@@ -196,7 +196,7 @@ export async function timeTroubleCounts(
   db: Db,
   playerId: string,
   stream: Stream,
-  gameIds?: string[],
+  opts: { gameIds?: string[]; tournamentId?: string } = {},
 ): Promise<TimeTroubleCounts> {
   const [gameRow] = await db
     .select({ n: sql<number>`count(*)::int` })
@@ -207,7 +207,8 @@ export async function timeTroubleCounts(
         eq(game.stream, stream),
         eq(game.analysisStatus, 'complete'),
         eq(game.hasClockData, true),
-        gameIds === undefined ? undefined : inArray(game.id, gameIds),
+        opts.gameIds === undefined ? undefined : inArray(game.id, opts.gameIds),
+        opts.tournamentId === undefined ? undefined : eq(game.tournamentId, opts.tournamentId),
       ),
     );
   const clockedGames = gameRow?.n ?? 0;
@@ -237,7 +238,8 @@ export async function timeTroubleCounts(
         eq(game.stream, stream),
         eq(game.analysisStatus, 'complete'),
         eq(game.hasClockData, true),
-        gameIds === undefined ? undefined : inArray(game.id, gameIds),
+        opts.gameIds === undefined ? undefined : inArray(game.id, opts.gameIds),
+        opts.tournamentId === undefined ? undefined : eq(game.tournamentId, opts.tournamentId),
         isNotNull(movePly.clockMs),
         playerPlies,
       ),

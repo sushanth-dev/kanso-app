@@ -500,6 +500,22 @@ export const PhaseReport = z
  * argue with, so the report carries the evidence beside it rather than the
  * figure alone.
  */
+/** ST-098. One place a weakness was found: the mistake row and its game. */
+export const WeaknessEvidence = z
+  .object({
+    gameId: Uuid,
+    whiteName: z.string().nullable(),
+    blackName: z.string().nullable(),
+    playedAt: z.iso.datetime().nullable(),
+    moveNumber: z.number().int(),
+    moveSan: z.string().openapi({ example: 'Nf6' }),
+    bestMoveSan: z.string().openapi({ example: 'e5' }),
+    phase: Phase.nullable(),
+    judgement: Judgement,
+    cpLoss: z.number().int(),
+  })
+  .openapi('WeaknessEvidence');
+
 export const Weakness = z
   .object({
     id: Uuid,
@@ -517,6 +533,13 @@ export const Weakness = z
     gamesAffected: z.number().int(),
     occurrences: z.number().int(),
     rank: z.number().int(),
+    /** ST-098. What to do about the weakness; null when no honest line exists. */
+    advice: z.string().nullable(),
+    /**
+     * ST-098. The places the weakness was found: at most three, worst first,
+     * from the same rows and window the leak was summed over.
+     */
+    evidence: z.array(WeaknessEvidence),
   })
   .openapi('Weakness');
 
@@ -525,6 +548,11 @@ export const Report = z
     id: Uuid,
     playerId: Uuid,
     stream: Stream,
+    /**
+     * ST-098. Set when this report is scoped to one tournament's games; null
+     * for the stream-wide report.
+     */
+    tournamentId: Uuid.nullable(),
     generatedAt: z.iso.datetime(),
     gamesCovered: z.number().int(),
     windowStart: z.iso.datetime().nullable(),

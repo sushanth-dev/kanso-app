@@ -1,0 +1,2 @@
+ALTER TABLE "report" ADD COLUMN "tournament_id" uuid;--> statement-breakpoint
+ALTER TABLE "report" ADD CONSTRAINT "report_tournament_id_tournament_id_fk" FOREIGN KEY ("tournament_id") REFERENCES "public"."tournament"("id") ON DELETE cascade ON UPDATE no action;

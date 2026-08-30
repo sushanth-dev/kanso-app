@@ -193,7 +193,7 @@ export async function timeManagementValue(
   playerId: string,
   gameIds: string[],
 ): Promise<number | null> {
-  const result = scoreTimeTrouble(await timeTroubleCounts(db, playerId, 'online', gameIds));
+  const result = scoreTimeTrouble(await timeTroubleCounts(db, playerId, 'online', { gameIds }));
   return result.status === 'reported' ? result.fromMove : null;
 }
 

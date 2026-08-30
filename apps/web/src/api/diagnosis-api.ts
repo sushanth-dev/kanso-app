@@ -25,10 +25,8 @@ export type TransferGap = components['schemas']['TransferGap'];
 export type Color = components['schemas']['Color'];
 
 export interface DiagnosisApi {
-  getReport(stream: Stream): Promise<Report>;
-  getMotifs(stream: Stream): Promise<MotifReport>;
-  getPhases(stream: Stream): Promise<PhaseReport>;
-  listGames(stream: Stream): Promise<GameList>;
+  getReport(stream: Stream, tournamentId?: string): Promise<Report>;
+  listGames(stream: Stream, tournamentId?: string): Promise<GameList>;
   getGame(gameId: string): Promise<GameDetail>;
   queueAnalysis(gameId: string): Promise<void>;
   deleteGame(gameId: string): Promise<void>;
@@ -48,32 +46,24 @@ export function createDiagnosisApi(
     credentials: 'include',
   });
   return {
-    async getReport(stream) {
+    async getReport(stream, tournamentId) {
       const result = await client.GET('/report', {
-        params: { query: { stream } },
+        params: { query: { stream, ...(tournamentId !== undefined ? { tournamentId } : {}) } },
       });
       if (result.data !== undefined) return result.data;
       throw failure(result.response.status, result.error);
     },
-    async getMotifs(stream) {
-      const result = await client.GET('/motifs', {
-        params: { query: { stream } },
-      });
-      if (result.data !== undefined) return result.data;
-      throw failure(result.response.status, result.error);
-    },
-    async getPhases(stream) {
-      const result = await client.GET('/phase', {
-        params: { query: { stream } },
-      });
-      if (result.data !== undefined) return result.data;
-      throw failure(result.response.status, result.error);
-    },
-    async listGames(stream) {
+    async listGames(stream, tournamentId) {
       // ponytail: one page (limit 100) is enough to answer "is anything still
       // analyzing"; the report is the source of truth for coverage.
       const result = await client.GET('/games', {
-        params: { query: { stream, limit: 100 } },
+        params: {
+          query: {
+            stream,
+            limit: 100,
+            ...(tournamentId !== undefined ? { tournament: tournamentId } : {}),
+          },
+        },
       });
       if (result.data !== undefined) return result.data;
       throw failure(result.response.status, result.error);
