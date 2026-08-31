@@ -148,6 +148,13 @@
       "when": 1788079254323,
       "tag": "0020_clever_thunderbolts",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1788154914599,
+      "tag": "0021_magical_beast",
+      "breakpoints": true
     }
   ]
 }

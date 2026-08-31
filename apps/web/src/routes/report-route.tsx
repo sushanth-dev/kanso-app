@@ -123,6 +123,11 @@ function WeaknessList({ weaknesses }: WeaknessListProps) {
     <ol className="stagger-in space-y-4">
       {weaknesses.map((weakness) => {
         const expanded = expandedId === weakness.id;
+        // ST-102. The flagged instance a "Practice this" link enters at, and
+        // whether every instance has been drilled already.
+        const flagged = weakness.evidence[0];
+        const allPracticed =
+          weakness.evidence.length > 0 && weakness.evidence.every((i) => i.practiced);
         return (
           <li key={weakness.id}>
             <Card>
@@ -150,6 +155,7 @@ function WeaknessList({ weaknesses }: WeaknessListProps) {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge label={KIND_LABEL[weakness.kind]} variant="neutral" />
+                  {allPracticed ? <Badge label="Practiced" variant="neutral" /> : null}
                   {weakness.eco !== null ? (
                     <Text type="supporting" className="font-mono text-sm">
                       {weakness.eco}
@@ -170,10 +176,20 @@ function WeaknessList({ weaknesses }: WeaknessListProps) {
                     <dd className="font-mono">{weakness.halfPointsLost}</dd>
                   </div>
                 </dl>
-                {weakness.kind !== 'opening' ? (
-                  <Link onClick={() => onToggle(weakness.id)} aria-expanded={expanded}>
-                    {expanded ? 'Hide evidence' : 'Show evidence'}
-                  </Link>
+                {weakness.kind !== 'opening' || flagged !== undefined ? (
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                    {weakness.kind !== 'opening' ? (
+                      <Link onClick={() => onToggle(weakness.id)} aria-expanded={expanded}>
+                        {expanded ? 'Hide evidence' : 'Show evidence'}
+                      </Link>
+                    ) : null}
+                    {/* ST-102. One entry per card: the worst instance, straight into the drill. */}
+                    {flagged !== undefined ? (
+                      <Link href={`/games/${flagged.gameId}?ply=${flagged.ply}&practice=1`}>
+                        Practice this
+                      </Link>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
               {expanded && weakness.kind !== 'opening' ? (

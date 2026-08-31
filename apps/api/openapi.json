@@ -959,6 +959,45 @@
           "playerColor"
         ]
       },
+      "PracticeAttempt": {
+        "type": "object",
+        "properties": {
+          "gameId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ply": {
+            "type": "integer"
+          },
+          "attempts": {
+            "type": "integer"
+          },
+          "solved": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "gameId",
+          "ply",
+          "attempts",
+          "solved"
+        ]
+      },
+      "RecordPractice": {
+        "type": "object",
+        "properties": {
+          "ply": {
+            "type": "integer"
+          },
+          "solved": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ply",
+          "solved"
+        ]
+      },
       "TournamentList": {
         "type": "object",
         "properties": {
@@ -1359,6 +1398,10 @@
           },
           "cpLoss": {
             "type": "integer"
+          },
+          "practiced": {
+            "type": "boolean",
+            "description": "ST-102. True when a solved practice attempt exists for this instance’s (gameId, ply)."
           }
         },
         "required": [
@@ -1372,7 +1415,8 @@
           "bestMoveSan",
           "phase",
           "judgement",
-          "cpLoss"
+          "cpLoss",
+          "practiced"
         ]
       },
       "TransferGap": {
@@ -2772,6 +2816,98 @@
           },
           "404": {
             "description": "No such game.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/games/{gameId}/practice": {
+      "post": {
+        "tags": [
+          "Games"
+        ],
+        "summary": "Record one completed practice drill on a mistake",
+        "description": "ST-102. The report names the places behind a weakness; this is the record a player worked on one of them. The body is one completed drill - solved, or the solution was revealed - and the reply is the running tally for the position. Refuses with 422 when the ply is not one of the game’s mistakes, so practice cannot invent a history the analysis never stored.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "gameId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "description": "The outcome of the completed drill.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordPractice"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The running tally for the position.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PracticeAttempt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not your game.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such game.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The ply is not one of the game’s mistakes.",
             "content": {
               "application/json": {
                 "schema": {

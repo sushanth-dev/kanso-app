@@ -21,6 +21,7 @@ function instance(moveNumber: number): EvidenceInstance {
     phase: 'middlegame',
     judgement: 'blunder',
     cpLoss: 300,
+    practiced: false,
   };
 }
 

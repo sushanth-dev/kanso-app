@@ -11,7 +11,7 @@
 import { and, desc, eq, inArray, lte } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import * as schema from '../db/schema.ts';
-import { game, mistake, movePly } from '../db/schema.ts';
+import { game, mistake, movePly, practiceAttempt } from '../db/schema.ts';
 import { leakScope, type WeaknessKind } from '../analysis/leak.ts';
 import { TROUBLE_CLOCK_MS } from '../phases/phases.ts';
 
@@ -39,6 +39,8 @@ export interface EvidenceInstance {
   phase: Phase | null;
   judgement: Judgement;
   cpLoss: number;
+  /** ST-102. True when a solved practice attempt exists for this (gameId, ply). */
+  practiced: boolean;
 }
 
 /** The rows the queries return: an instance's fields, before serialisation. */
@@ -95,7 +97,7 @@ export function groupKeyOf(kind: WeaknessKind, label: string, eco: string | null
 /** Worst first: the half-points the leak counted, then the raw centipawn drop. */
 const worstFirst = [desc(mistake.halfPointsLost), desc(mistake.cpLoss)];
 
-function toInstance(r: EvidenceRow): EvidenceInstance {
+function toInstance(r: EvidenceRow, practiced: Set<string>): EvidenceInstance {
   return {
     gameId: r.gameId,
     whiteName: r.whiteName,
@@ -108,6 +110,7 @@ function toInstance(r: EvidenceRow): EvidenceInstance {
     phase: r.phase,
     judgement: r.judgement,
     cpLoss: r.cpLoss,
+    practiced: practiced.has(`${r.gameId}:${r.ply}`),
   };
 }
 
@@ -193,6 +196,16 @@ export async function weaknessEvidence(
     for (const r of troubleRows) rows.push({ ...r, groupKey: 'time_trouble' });
   }
 
+  // ST-102. Which places the player has already solved. Solved attempts per
+  // player are few — one row per practised position, not per move — so the
+  // whole set is read and the join happens in JS; no limit is a correct
+  // answer here, not a lazy one.
+  const solved = await db
+    .select({ gameId: practiceAttempt.gameId, ply: practiceAttempt.ply })
+    .from(practiceAttempt)
+    .where(and(eq(practiceAttempt.playerId, playerId), eq(practiceAttempt.solved, true)));
+  const practiced = new Set(solved.map((r) => `${r.gameId}:${r.ply}`));
+
   for (const g of groups) {
     if (g.kind === 'opening') continue;
     result.set(
@@ -200,7 +213,7 @@ export async function weaknessEvidence(
       rows
         .filter((r) => r.groupKey === g.key)
         .slice(0, EVIDENCE_PER_GROUP)
-        .map(toInstance),
+        .map((r) => toInstance(r, practiced)),
     );
   }
   return result;

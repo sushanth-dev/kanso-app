@@ -36,6 +36,7 @@ const evidenceInstance = {
   phase: 'middlegame' as const,
   judgement: 'mistake' as const,
   cpLoss: 240,
+  practiced: false,
 };
 
 const motifWeakness = {
@@ -237,6 +238,39 @@ describe('ReportScreen', () => {
 
     renderReport(reportFixture({ timeTroubleFromMove: null, timeTroubleReason: 'no_clock_data' }));
     expect(screen.getByText(/No clock data on these games/)).toBeVisible();
+  });
+
+  test('ST-102: offers practice on the worst instance of a weakness', () => {
+    renderReport(reportFixture());
+    // One entry per card, beside the evidence toggle, without expanding it.
+    const link = screen.getByRole('link', { name: 'Practice this' });
+    expect(link.getAttribute('href')).toBe(
+      `/games/${evidenceInstance.gameId}?ply=${evidenceInstance.ply}&practice=1`,
+    );
+  });
+
+  test('ST-102: marks a weakness whose instances are all practised', () => {
+    renderReport(
+      reportFixture({
+        weaknesses: [{ ...motifWeakness, evidence: [{ ...evidenceInstance, practiced: true }] }],
+      }),
+    );
+    expect(screen.getByText('Practiced')).toBeVisible();
+  });
+
+  test('ST-102: a partly practised weakness carries no practised mark yet', () => {
+    renderReport(
+      reportFixture({
+        weaknesses: [
+          {
+            ...motifWeakness,
+            evidence: [evidenceInstance, { ...evidenceInstance, ply: 47, practiced: true }],
+          },
+        ],
+      }),
+    );
+    expect(screen.queryByText('Practiced')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Practice this' })).toBeInTheDocument();
   });
 });
 

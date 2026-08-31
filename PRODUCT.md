@@ -93,8 +93,10 @@ Version one in scope (`project/main/docs/business-analysis.md`):
 
 Deliberately out of scope: playing opponents, our own engine, native mobile
 apps (the web app must work on a phone), coach and parent accounts, video
-lessons, a coach marketplace, live annotation, scoresheet capture, puzzle
-training.
+lessons, a coach marketplace, live annotation, scoresheet capture. Practice
+on the report's own mistakes ships (ST-101 through ST-103); what stays out is
+any generic puzzle source - puzzles not drawn from the player's analysed
+games, spaced-repetition scheduling, and separate puzzle sets.
 
 Constraints:
 

@@ -176,7 +176,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function renderScreen(game: GameDetail, targetPly?: number) {
+function renderScreen(game: GameDetail, targetPly?: number, autoPractice?: boolean) {
   const user = userEvent.setup();
   const history = createMemoryHistory();
   const queryClient = new QueryClient();
@@ -184,7 +184,7 @@ function renderScreen(game: GameDetail, targetPly?: number) {
   const view = render(
     <QueryClientProvider client={queryClient}>
       <RouterContextProvider router={router}>
-        <GameReviewScreen game={game} targetPly={targetPly} />
+        <GameReviewScreen game={game} targetPly={targetPly} autoPractice={autoPractice} />
       </RouterContextProvider>
     </QueryClientProvider>,
   );
@@ -532,5 +532,86 @@ describe('GameReviewRoute', () => {
       await screen.findByText('Your side was not recorded for this game. Which colour were you?'),
     ).toBeVisible();
     expect(screen.queryByRole('status', { name: 'Analysing game' })).toBeNull();
+  });
+});
+
+describe('ST-102 recorded practice', () => {
+  beforeEach(() => {
+    // The account layout's beforeLoad resolves the signed-in user first.
+    vi.spyOn(accountApi, 'getMe').mockResolvedValue(meFixture);
+  });
+
+  function renderPath(path: string) {
+    const user = userEvent.setup();
+    const history = createMemoryHistory({ initialEntries: [path] });
+    const queryClient = new QueryClient();
+    const router = createAppRouter({ history, queryClient });
+    const view = render(
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>,
+    );
+    return { user, container: view.container };
+  }
+
+  test('a practice deep-link opens the flagged drill and records a solve', async () => {
+    vi.spyOn(diagnosisApi, 'getGame').mockResolvedValue(practiceGame());
+    const recordPractice = vi.spyOn(diagnosisApi, 'recordPractice').mockResolvedValue(undefined);
+    const { user, container } = renderPath(`/games/${gameId}?ply=6&practice=1`);
+
+    // The drill opens without the player pressing "Try it yourself".
+    expect(await screen.findByRole('img', { name: /Practice\./ })).toBeInTheDocument();
+
+    await user.click(squareElement(container, 'b8'));
+    await user.click(squareElement(container, 'c6'));
+    expect(screen.getByText('Solved.')).toBeInTheDocument();
+
+    await waitFor(() => expect(recordPractice).toHaveBeenCalledWith(gameId, 6, true));
+  });
+
+  test('a review visit without the practice flag starts no drill', async () => {
+    vi.spyOn(diagnosisApi, 'getGame').mockResolvedValue(practiceGame());
+    const recordPractice = vi.spyOn(diagnosisApi, 'recordPractice').mockResolvedValue(undefined);
+
+    renderPath(`/games/${gameId}?ply=6`);
+
+    expect(await screen.findByText('Alice vs Mina')).toBeVisible();
+    expect(screen.queryByRole('img', { name: /Practice\./ })).toBeNull();
+    expect(recordPractice).not.toHaveBeenCalled();
+  });
+
+  test('a practice flag on a ply without a mistake shows the review instead', async () => {
+    vi.spyOn(diagnosisApi, 'getGame').mockResolvedValue(practiceGame());
+
+    renderPath(`/games/${gameId}?ply=7&practice=1`);
+
+    expect(await screen.findByText(/played/)).toHaveTextContent('Nc3');
+    expect(screen.queryByRole('img', { name: /Practice\./ })).toBeNull();
+  });
+
+  test('the reveal records the attempt as unsolved', async () => {
+    vi.spyOn(diagnosisApi, 'getGame').mockResolvedValue(practiceGame());
+    const recordPractice = vi.spyOn(diagnosisApi, 'recordPractice').mockResolvedValue(undefined);
+    const { user } = renderPath(`/games/${gameId}?ply=6&practice=1`);
+
+    await user.click(await screen.findByRole('button', { name: 'Show me' }));
+    expect(screen.getByText(/best move was/)).toBeInTheDocument();
+
+    await waitFor(() => expect(recordPractice).toHaveBeenCalledWith(gameId, 6, false));
+  });
+
+  test('an attempt left unanswered records nothing', async () => {
+    const recordPractice = vi.spyOn(diagnosisApi, 'recordPractice').mockResolvedValue(undefined);
+    const { user, container } = renderScreen(practiceGame(), 6, true);
+
+    // The deep-link prop opens the drill on the first mistake straight away.
+    expect(screen.getByRole('img', { name: /Practice\./ })).toBeInTheDocument();
+    await user.click(squareElement(container, 'a7'));
+    await user.click(squareElement(container, 'a6'));
+    expect(screen.getByText('Not the best move.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Back to review' }));
+    expect(screen.queryByRole('img', { name: /Practice\./ })).toBeNull();
+    expect(recordPractice).not.toHaveBeenCalled();
   });
 });
