@@ -161,7 +161,7 @@ describe('GET /games/{gameId}', () => {
     expect(res.status).toBe(404);
   });
 
-  test('ST-080: opening a completed game records a day of streak activity', async () => {
+  test('ST-105: opening a completed game records no streak activity', async () => {
     const gameId = await seedReviewedGame(OWNER);
     const [row0] = await harness.db
       .select({ playerId: game.playerId })
@@ -172,7 +172,8 @@ describe('GET /games/{gameId}', () => {
     await app(OWNER).request(`/games/${gameId}`);
 
     const [row] = await harness.db.select().from(player).where(eq(player.id, playerId));
-    expect(row!.currentStreak).toBe(1);
-    expect(row!.xp).toBe(10);
+    expect(row!.currentStreak).toBe(0);
+    expect(row!.xp).toBe(0);
+    expect(row!.lastActivityDate).toBeNull();
   });
 });

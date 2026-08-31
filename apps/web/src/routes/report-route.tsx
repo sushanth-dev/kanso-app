@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
+import { Field } from '@astryxdesign/core/Field';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Heading } from '@astryxdesign/core/Heading';
 import { Link } from '@astryxdesign/core/Link';
@@ -10,10 +12,22 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { MIN_REPORT_GAMES, isActiveGame } from '../analysis-status.ts';
 import { ApiRequestError } from '../api/account-api.ts';
-import type { GameSummary, Report, Stream, Weakness, WeaknessKind } from '../api/diagnosis-api.ts';
+import {
+  diagnosisApi,
+  type GameSummary,
+  type Report,
+  type Stream,
+  type Weakness,
+  type WeaknessKind,
+} from '../api/diagnosis-api.ts';
 import { StreamToggle } from '../components/stream-toggle.tsx';
 import { ParticleReveal } from '../components/canvas-ui/ParticleReveal.tsx';
-import { gamesQueryOptions, reportQueryOptions, tournamentsQueryOptions } from '../query-client.ts';
+import {
+  ME_QUERY_KEY,
+  gamesQueryOptions,
+  reportQueryOptions,
+  tournamentsQueryOptions,
+} from '../query-client.ts';
 import { TournamentCard } from './tournaments-route.tsx';
 import { track } from '../analytics.ts';
 
@@ -106,19 +120,31 @@ export function ReportScreen({
           </Text>
         </Card>
       ) : null}
-      {isEmpty ? <EmptyReport report={report} /> : <WeaknessList weaknesses={report.weaknesses} />}
+      {isEmpty ? (
+        <EmptyReport report={report} />
+      ) : (
+        <WeaknessList
+          weaknesses={report.weaknesses}
+          stream={report.stream}
+          tournamentId={report.tournamentId}
+        />
+      )}
     </div>
   );
 }
 
 interface WeaknessListProps {
   weaknesses: Weakness[];
+  stream: Stream;
+  tournamentId: string | null;
 }
 
-function WeaknessList({ weaknesses }: WeaknessListProps) {
+function WeaknessList({ weaknesses, stream, tournamentId }: WeaknessListProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  // ST-105. One close-out form open at a time, keyed by weakness id.
+  const [closeOutId, setCloseOutId] = useState<string | null>(null);
   const onToggle = (id: string) => setExpandedId((current) => (current === id ? null : id));
-
+  const onCloseToggle = (id: string) => setCloseOutId((current) => (current === id ? null : id));
   return (
     <ol className="stagger-in space-y-4">
       {weaknesses.map((weakness) => {
@@ -155,6 +181,7 @@ function WeaknessList({ weaknesses }: WeaknessListProps) {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge label={KIND_LABEL[weakness.kind]} variant="neutral" />
+                  {weakness.done ? <Badge label="Done (+100 XP)" variant="success" /> : null}
                   {allPracticed ? <Badge label="Practiced" variant="neutral" /> : null}
                   {weakness.eco !== null ? (
                     <Text type="supporting" className="font-mono text-sm">
@@ -189,11 +216,22 @@ function WeaknessList({ weaknesses }: WeaknessListProps) {
                         Practice this
                       </Link>
                     ) : null}
+                    {weakness.advice !== null && !weakness.done ? (
+                      <Link
+                        onClick={() => onCloseToggle(weakness.id)}
+                        aria-expanded={closeOutId === weakness.id}
+                      >
+                        {closeOutId === weakness.id ? 'Cancel' : 'Mark as done'}
+                      </Link>
+                    ) : null}
                   </div>
                 ) : null}
               </div>
               {expanded && weakness.kind !== 'opening' ? (
                 <EvidenceDetail weakness={weakness} />
+              ) : null}
+              {closeOutId === weakness.id && weakness.advice !== null ? (
+                <AdviceCloseOut weakness={weakness} stream={stream} tournamentId={tournamentId} />
               ) : null}
             </Card>
           </li>
@@ -236,6 +274,123 @@ function EvidenceDetail({ weakness }: { weakness: Weakness }) {
         </Text>
       )}
     </div>
+  );
+}
+
+const adviceSummaryClassName =
+  'min-h-28 w-full resize-y rounded-control border border-border-strong bg-raised px-3 py-2 text-primary transition-control focus:border-focus focus:outline-none focus-visible:ring-2 focus-visible:ring-focus';
+
+/**
+ * ST-105. The prototype's Proof of Work, ported: the player writes what they
+ * did about the advice, the coach judges the summary, and a pass refetches
+ * the report so the card flips to its done state. A fail keeps the form open
+ * with the coach's feedback; a refused or failed call stores nothing.
+ */
+function AdviceCloseOut({
+  weakness,
+  stream,
+  tournamentId,
+}: {
+  weakness: Weakness;
+  stream: Stream;
+  tournamentId: string | null;
+}) {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const [summary, setSummary] = useState('');
+  const [error, setError] = useState<string | undefined>(undefined);
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (summary.trim() === '') {
+      setError('Write a short summary of what you did first.');
+      return;
+    }
+    setError(undefined);
+    setFeedback(null);
+    setSubmitting(true);
+    void diagnosisApi
+      .markAdviceDone({
+        stream,
+        tournamentId,
+        kind: weakness.kind,
+        label: weakness.label,
+        eco: weakness.eco,
+        summary: summary.trim(),
+      })
+      .then(async (result) => {
+        if (result.pass) {
+          // The refetched report carries the done state; the account page
+          // carries the award.
+          await queryClient.invalidateQueries({ queryKey: ['report'] });
+          void queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY });
+        } else {
+          setFeedback(result.feedback);
+        }
+      })
+      .catch((submitError: unknown) => {
+        if (submitError instanceof ApiRequestError && submitError.status === 401) {
+          queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
+          void navigate({ to: '/sign-in' });
+          return;
+        }
+        setError('The coach could not be reached. Nothing was saved. Please try again.');
+      })
+      .finally(() => {
+        setSubmitting(false);
+      });
+  };
+
+  return (
+    <form
+      className="mt-3 space-y-3 border-t border-border pt-3"
+      onSubmit={handleSubmit}
+      aria-label="Mark this advice as done"
+    >
+      {weakness.advice !== null ? (
+        <Text as="p" display="block" type="supporting" className="text-sm">
+          The advice: {weakness.advice}
+        </Text>
+      ) : null}
+      <Field
+        label="In your own words, what did you do about this?"
+        inputID={`advice-summary-${weakness.id}`}
+        status={error === undefined ? undefined : { type: 'error', message: error }}
+      >
+        <textarea
+          id={`advice-summary-${weakness.id}`}
+          name={`advice-summary-${weakness.id}`}
+          rows={4}
+          maxLength={2000}
+          value={summary}
+          onChange={(event) => {
+            setSummary(event.target.value);
+            setError(undefined);
+          }}
+          placeholder="Briefly summarize what you worked on and what it changed."
+          aria-invalid={error === undefined ? undefined : true}
+          aria-describedby={
+            error === undefined ? undefined : `advice-summary-${weakness.id}-status`
+          }
+          className={adviceSummaryClassName}
+        />
+      </Field>
+      {feedback !== null ? (
+        <Text as="p" display="block" className="text-sm text-primary" role="status">
+          {feedback}
+        </Text>
+      ) : null}
+      <Button
+        type="submit"
+        label={submitting ? 'The coach is thinking...' : 'Submit to the coach'}
+        variant="primary"
+        isDisabled={submitting}
+        isLoading={submitting}
+        className="min-h-11 press"
+      />
+    </form>
   );
 }
 

@@ -21,6 +21,7 @@ export type CctScan = components['schemas']['CctScan'];
 export type CctMove = components['schemas']['CctMove'];
 export type Explanation = components['schemas']['Explanation'];
 export type SocraticQuestion = components['schemas']['SocraticQuestion'];
+export type AdviceDone = components['schemas']['AdviceDone'];
 export type TransferGap = components['schemas']['TransferGap'];
 export type Color = components['schemas']['Color'];
 
@@ -30,6 +31,15 @@ export interface DiagnosisApi {
   getGame(gameId: string): Promise<GameDetail>;
   queueAnalysis(gameId: string): Promise<void>;
   recordPractice(gameId: string, ply: number, solved: boolean): Promise<void>;
+  /** ST-105. Ask the coach to judge a close-out summary for one weakness's advice. */
+  markAdviceDone(input: {
+    stream: Stream;
+    tournamentId: string | null;
+    kind: WeaknessKind;
+    label: string;
+    eco: string | null;
+    summary: string;
+  }): Promise<AdviceDone>;
   deleteGame(gameId: string): Promise<void>;
   setGameColor(gameId: string, playerColor: Color): Promise<GameSummary>;
   getCctScan(mistakeId: string): Promise<CctScan>;
@@ -89,6 +99,11 @@ export function createDiagnosisApi(
         body: { ply, solved },
       });
       if (result.data !== undefined) return;
+      throw failure(result.response.status, result.error);
+    },
+    async markAdviceDone(input) {
+      const result = await client.POST('/report/advice/done', { body: input });
+      if (result.data !== undefined) return result.data;
       throw failure(result.response.status, result.error);
     },
     async deleteGame(gameId) {

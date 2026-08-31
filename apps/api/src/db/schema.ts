@@ -145,14 +145,15 @@ export const player = pgTable(
     ratingFetchedAt: timestamp('rating_fetched_at', { withTimezone: true }),
 
     /**
-     * ST-080. The activity is reviewing at least one analysed game
-     * (`GET /games/{gameId}` on a completed game, ST-079's play-through
-     * surface). `lastActivityDate` is a calendar date, not a timestamp, so
-     * "today" and "yesterday" compare without a timezone-aware walk of a full
-     * log; a fuller activity history is deferred until something reads it.
-     * `xp` accrues 10 per day counted, matching the streak trigger; a
-     * leveling formula (level = xp / 100, rounded down, plus one) reads off
-     * it rather than being stored.
+     * ST-080, amended by ST-105. The activity is a solved practice drill
+     * (`POST /games/{gameId}/practice` with `solved: true`) and nothing else:
+     * opening a game, or uploading one, never counts. `lastActivityDate` is a
+     * calendar date, not a timestamp, so "today" and "yesterday" compare
+     * without a timezone-aware walk of a full log; a fuller activity history
+     * is deferred until something reads it. `xp` accrues 10 per day counted
+     * from the streak trigger, plus the one-off award a verified advice
+     * summary pays (ST-105); a leveling formula (level = xp / 100, rounded
+     * down, plus one) reads off it rather than being stored.
      */
     currentStreak: integer('current_streak').notNull().default(0),
     xp: integer('xp').notNull().default(0),
@@ -604,6 +605,34 @@ export const weakness = pgTable(
     advice: text('advice'),
   },
   (t) => [uniqueIndex('weakness_rank_unique').on(t.reportId, t.rank)],
+);
+
+/**
+ * ST-105. One closed action item per weakness group: the record that a player
+ * marked a report weakness's advice done, with the summary the model accepted.
+ *
+ * Keyed by (player, kind, group key) rather than by the weakness row's id,
+ * because a report regenerates whenever its scope's games change and writes
+ * fresh weakness rows each time; the group key from `groupKeyOf` is the only
+ * identity that survives a regeneration. Rows are written on a pass only, so
+ * a row's existence is the completed state and the unique index is what keeps
+ * a re-verification from paying the XP twice.
+ */
+export const adviceProgress = pgTable(
+  'advice_progress',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    playerId: uuid('player_id')
+      .notNull()
+      .references(() => player.id, { onDelete: 'cascade' }),
+    kind: weaknessKindEnum('kind').notNull(),
+    /** The stable identity of the weakness group, from `groupKeyOf`. */
+    groupKey: text('group_key').notNull(),
+    /** The summary the model accepted, verbatim. */
+    summary: text('summary').notNull(),
+    completedAt: timestamp('completed_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('advice_progress_player_unique').on(t.playerId, t.kind, t.groupKey)],
 );
 
 // ─── Prescription ────────────────────────────────────────────────────────────

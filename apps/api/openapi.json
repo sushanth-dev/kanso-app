@@ -1319,6 +1319,16 @@
               "null"
             ]
           },
+          "done": {
+            "type": "boolean"
+          },
+          "completedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
           "evidence": {
             "type": "array",
             "items": {
@@ -1338,6 +1348,8 @@
           "occurrences",
           "rank",
           "advice",
+          "done",
+          "completedAt",
           "evidence"
         ]
       },
@@ -1417,6 +1429,73 @@
           "judgement",
           "cpLoss",
           "practiced"
+        ]
+      },
+      "AdviceDone": {
+        "type": "object",
+        "properties": {
+          "pass": {
+            "type": "boolean"
+          },
+          "feedback": {
+            "type": "string"
+          },
+          "completedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "pass",
+          "feedback",
+          "completedAt"
+        ]
+      },
+      "MarkAdviceDone": {
+        "type": "object",
+        "properties": {
+          "stream": {
+            "$ref": "#/components/schemas/Stream"
+          },
+          "tournamentId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Set when the report is scoped to one tournament; null for the stream report."
+          },
+          "kind": {
+            "$ref": "#/components/schemas/WeaknessKind"
+          },
+          "label": {
+            "type": "string",
+            "example": "Hanging piece"
+          },
+          "eco": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "B22"
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "The player’s own summary of what they did about the advice."
+          }
+        },
+        "required": [
+          "stream",
+          "tournamentId",
+          "kind",
+          "label",
+          "eco",
+          "summary"
         ]
       },
       "TransferGap": {
@@ -2833,7 +2912,7 @@
           "Games"
         ],
         "summary": "Record one completed practice drill on a mistake",
-        "description": "ST-102. The report names the places behind a weakness; this is the record a player worked on one of them. The body is one completed drill - solved, or the solution was revealed - and the reply is the running tally for the position. Refuses with 422 when the ply is not one of the game’s mistakes, so practice cannot invent a history the analysis never stored. A solved drill also records the day’s activity (ST-103): the streak and XP follow the same once-per-UTC-day rules as reviewing a game, and a revealed or failed drill records none.",
+        "description": "ST-102. The report names the places behind a weakness; this is the record a player worked on one of them. The body is one completed drill - solved, or the solution was revealed - and the reply is the running tally for the position. Refuses with 422 when the ply is not one of the game’s mistakes, so practice cannot invent a history the analysis never stored. A solved drill also records the day’s activity (ST-103, ST-105): a solved drill is the only trigger the streak and XP loop has, on once-per-UTC-day rules, and a revealed or failed drill records none.",
         "parameters": [
           {
             "schema": {
@@ -3248,6 +3327,97 @@
           },
           "422": {
             "description": "Analysed games in the scope are too few for a report.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/report/advice/done": {
+      "post": {
+        "tags": [
+          "Report"
+        ],
+        "summary": "Mark one weakness’s advice done with a summary the model judges",
+        "description": "ST-105. The prototype’s close-out flow: the player writes what they did about an advice line, the model judges the summary, and a pass marks the weakness group done and pays the one-off XP. The weakness is resolved against the stored latest report for the scope, so only a weakness the report actually shows can be marked. A fail stores nothing; re-submitting an already-done item returns it without another model call.",
+        "requestBody": {
+          "description": "The report scope, the weakness, and the summary of the work done.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkAdviceDone"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The verdict, with the done state after it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdviceDone"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The session has no claim on this player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No stored report for this scope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "That weakness is not on the stored report, or its advice has no line to verify.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The model call failed. Nothing was stored.",
             "content": {
               "application/json": {
                 "schema": {

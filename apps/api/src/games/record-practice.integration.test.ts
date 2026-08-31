@@ -309,12 +309,12 @@ describe('practice feeds the streak (ST-103)', () => {
     });
   });
 
-  test('reviewing a game and solving a puzzle on the same day awards XP once', async () => {
+  test('opening the game and solving a puzzle on the same day awards XP once', async () => {
     const gameId = await seedOwnedGame(OWNER);
     await addMistake(gameId, { ply: 10, moveNumber: 5 });
 
-    // GET /games is the endpoint the review surface opens; on a complete
-    // analysis it is the ST-080 activity trigger.
+    // GET /games was the ST-080 activity trigger until ST-105 removed it:
+    // opening the review pays nothing now, and the solve alone is the day.
     const review = await app(OWNER).request(`/games/${gameId}`);
     expect(review.status).toBe(200);
 

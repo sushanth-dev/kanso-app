@@ -20,7 +20,6 @@ import * as schema from '../db/schema.ts';
 import { game, mistake, movePly } from '../db/schema.ts';
 import { readSession } from '../session.ts';
 import { hasPlayerClaim } from '../players/claim.ts';
-import { recordActivity } from '../players/activity.ts';
 import { toGameSummary } from './game-summary.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
@@ -86,11 +85,6 @@ export function mountGetGame(
     }
     if (!(await hasPlayerClaim(deps.db, session.userId, row.playerId))) {
       return c.json({ code: 'forbidden', message: 'Not your game.' }, 403);
-    }
-
-    // ST-080, R8. Opening a completed game's review is the streak's activity.
-    if (row.analysisStatus === 'complete') {
-      await recordActivity(deps.db, row.playerId);
     }
 
     const [plies, mistakes] = await Promise.all([
