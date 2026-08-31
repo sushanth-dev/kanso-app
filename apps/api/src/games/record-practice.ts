@@ -16,9 +16,11 @@
  * one: the shape of the body is a contract question (400), whether the ply is
  * one of this game's mistakes is a question about stored state (422, the code
  * every other semantic refusal here uses). No row is written for a ply the
- * ST-103: a solved drill is also the day's activity — `recordActivity` runs in
- * the same transaction, so practice joins the streak and XP loop on the same
- * terms as reviewing a game, and a reveal never pays.
+ * analysis never stored.
+ *
+ * ST-103, reworded by ST-105: a solved drill IS the day's activity, and it is
+ * the only trigger the streak has left. `recordActivity` runs in the same
+ * transaction, and a reveal never pays.
  */
 import type { Context } from 'hono';
 import { and, eq, sql } from 'drizzle-orm';

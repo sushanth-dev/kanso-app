@@ -535,6 +535,9 @@ describe('GET /report model advice (ST-099)', () => {
           ? Promise.reject(new Error('not used here'))
           : Promise.resolve(summary);
       },
+      // ST-105. The advice close-out has its own suite; fakeAi stays a
+      // report-generation double.
+      verifyAdviceSummary: () => Promise.reject(new Error('not used here')),
     };
   }
 

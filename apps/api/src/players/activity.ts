@@ -1,11 +1,11 @@
 /**
- * ST-080. The daily streak and XP the reader asked for (R8).
+ * ST-080, amended by ST-105. The daily streak and XP the reader asked for (R8).
  *
- * The activity is reviewing at least one analysed game — `GET /games/{gameId}`
- * on a completed game, the endpoint ST-079's play-through surface already
- * calls. One calendar day, UTC, counts once no matter how many games are
- * opened that day. A gap of exactly one day since the last counted day
- * extends the streak; any larger gap, or no prior activity, resets it to one.
+ * The activity is a solved practice drill: `record-practice` is the only
+ * caller, and a drill answered by "show me" is not a solve. One calendar day,
+ * UTC, counts once no matter how many drills are solved that day. A gap of
+ * exactly one day since the last counted day extends the streak; any larger
+ * gap, or no prior activity, resets it to one.
  *
  * `lastActivityDate <> today` in the `WHERE` clause is the compare-and-swap:
  * two concurrent requests racing to record the same day can both read the

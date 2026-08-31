@@ -13,6 +13,7 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import {
   ActiveFocus,
+  AdviceDone,
   ApiError,
   CctScan,
   CheckoutRequest,
@@ -24,6 +25,7 @@ import {
   GameSummary,
   Health,
   ImportJob,
+  MarkAdviceDone,
   Me,
   MotifReport,
   PhaseReport,
@@ -342,7 +344,7 @@ export const recordPractice = createRoute({
   tags: ['Games'],
   summary: 'Record one completed practice drill on a mistake',
   description:
-    'ST-102. The report names the places behind a weakness; this is the record a player worked on one of them. The body is one completed drill - solved, or the solution was revealed - and the reply is the running tally for the position. Refuses with 422 when the ply is not one of the game’s mistakes, so practice cannot invent a history the analysis never stored. A solved drill also records the day’s activity (ST-103): the streak and XP follow the same once-per-UTC-day rules as reviewing a game, and a revealed or failed drill records none.',
+    'ST-102. The report names the places behind a weakness; this is the record a player worked on one of them. The body is one completed drill - solved, or the solution was revealed - and the reply is the running tally for the position. Refuses with 422 when the ply is not one of the game’s mistakes, so practice cannot invent a history the analysis never stored. A solved drill also records the day’s activity (ST-103, ST-105): a solved drill is the only trigger the streak and XP loop has, on once-per-UTC-day rules, and a revealed or failed drill records none.',
   request: {
     params: z.object({
       gameId: Uuid.openapi({ param: { name: 'gameId', in: 'path' } }),
@@ -476,6 +478,25 @@ export const getReport = createRoute({
     ...authErrors,
     404: error('No such player, or no analyzed games in that scope yet.'),
     422: error('Analysed games in the scope are too few for a report.'),
+  },
+});
+
+export const markAdviceDone = createRoute({
+  method: 'post',
+  path: '/report/advice/done',
+  tags: ['Report'],
+  summary: 'Mark one weakness\u2019s advice done with a summary the model judges',
+  description:
+    'ST-105. The prototype\u2019s close-out flow: the player writes what they did about an advice line, the model judges the summary, and a pass marks the weakness group done and pays the one-off XP. The weakness is resolved against the stored latest report for the scope, so only a weakness the report actually shows can be marked. A fail stores nothing; re-submitting an already-done item returns it without another model call.',
+  request: {
+    body: json(MarkAdviceDone, 'The report scope, the weakness, and the summary of the work done.'),
+  },
+  responses: {
+    200: json(AdviceDone, 'The verdict, with the done state after it.'),
+    ...authErrors,
+    404: error('No stored report for this scope.'),
+    422: error('That weakness is not on the stored report, or its advice has no line to verify.'),
+    502: error('The model call failed. Nothing was stored.'),
   },
 });
 
@@ -714,6 +735,7 @@ export const routes = [
   listTournaments,
   getTournament,
   getReport,
+  markAdviceDone,
   getTransferGap,
   getRoundDecay,
   getMotifs,

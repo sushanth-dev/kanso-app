@@ -51,6 +51,8 @@ const motifWeakness = {
   occurrences: 9,
   rank: 1,
   advice: 'After every opponent move, count what each available capture wins.',
+  done: false,
+  completedAt: null,
   evidence: [evidenceInstance],
 };
 
@@ -66,6 +68,8 @@ const openingWeakness = {
   occurrences: 5,
   rank: 2,
   advice: null,
+  done: false,
+  completedAt: null,
   evidence: [],
 };
 
@@ -271,6 +275,79 @@ describe('ReportScreen', () => {
     );
     expect(screen.queryByText('Practiced')).toBeNull();
     expect(screen.getByRole('link', { name: 'Practice this' })).toBeInTheDocument();
+  });
+  test('ST-105: offers mark as done on a card with advice', () => {
+    renderReport(reportFixture());
+    expect(screen.getByRole('button', { name: 'Mark as done' })).toBeInTheDocument();
+  });
+
+  test('ST-105: shows the done badge on a completed weakness', () => {
+    renderReport(
+      reportFixture({
+        weaknesses: [{ ...motifWeakness, done: true, completedAt: '2026-08-31T10:00:00.000Z' }],
+      }),
+    );
+    expect(screen.getByText('Done (+100 XP)')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Mark as done' })).toBeNull();
+  });
+
+  test('ST-105: submitting a summary asks the coach to judge it', async () => {
+    const user = userEvent.setup();
+    const markAdviceDone = vi.spyOn(diagnosisApi, 'markAdviceDone').mockResolvedValue({
+      pass: true,
+      feedback: 'Good, keep that habit.',
+      completedAt: new Date().toISOString(),
+    });
+    renderReport(reportFixture());
+
+    await user.click(screen.getByRole('button', { name: 'Mark as done' }));
+    await user.type(
+      screen.getByLabelText('In your own words, what did you do about this?'),
+      'I counted defenders before every capture for a week.',
+    );
+    await user.click(screen.getByRole('button', { name: 'Submit to the coach' }));
+
+    expect(markAdviceDone).toHaveBeenCalledWith({
+      stream: 'tournament',
+      tournamentId: null,
+      kind: 'motif',
+      label: 'Missed captures',
+      eco: null,
+      summary: 'I counted defenders before every capture for a week.',
+    });
+  });
+
+  test('ST-105: a rejected summary keeps the form open with the feedback', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(diagnosisApi, 'markAdviceDone').mockResolvedValue({
+      pass: false,
+      feedback: 'Name one concrete detail you actually did.',
+      completedAt: null,
+    });
+    renderReport(reportFixture());
+
+    await user.click(screen.getByRole('button', { name: 'Mark as done' }));
+    await user.type(
+      screen.getByLabelText('In your own words, what did you do about this?'),
+      'Details here.',
+    );
+    await user.click(screen.getByRole('button', { name: 'Submit to the coach' }));
+
+    expect(await screen.findByText('Name one concrete detail you actually did.')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Submit to the coach' })).toBeVisible();
+  });
+
+  test('ST-105: refuses an empty summary before calling the coach', async () => {
+    const user = userEvent.setup();
+    const markAdviceDone = vi.spyOn(diagnosisApi, 'markAdviceDone');
+    markAdviceDone.mockClear();
+    renderReport(reportFixture());
+
+    await user.click(screen.getByRole('button', { name: 'Mark as done' }));
+    await user.click(screen.getByRole('button', { name: 'Submit to the coach' }));
+
+    expect(await screen.findByText('Write a short summary of what you did first.')).toBeVisible();
+    expect(markAdviceDone).not.toHaveBeenCalled();
   });
 });
 
