@@ -29,6 +29,7 @@ export interface DiagnosisApi {
   listGames(stream: Stream, tournamentId?: string): Promise<GameList>;
   getGame(gameId: string): Promise<GameDetail>;
   queueAnalysis(gameId: string): Promise<void>;
+  recordPractice(gameId: string, ply: number, solved: boolean): Promise<void>;
   deleteGame(gameId: string): Promise<void>;
   setGameColor(gameId: string, playerColor: Color): Promise<GameSummary>;
   getCctScan(mistakeId: string): Promise<CctScan>;
@@ -80,6 +81,14 @@ export function createDiagnosisApi(
         params: { path: { gameId } },
       });
       if (result.response.status === 202) return;
+      throw failure(result.response.status, result.error);
+    },
+    async recordPractice(gameId, ply, solved) {
+      const result = await client.POST('/games/{gameId}/practice', {
+        params: { path: { gameId } },
+        body: { ply, solved },
+      });
+      if (result.data !== undefined) return;
       throw failure(result.response.status, result.error);
     },
     async deleteGame(gameId) {

@@ -239,6 +239,30 @@ export const SetGameColor = z
   })
   .openapi('SetGameColor');
 
+/**
+ * ST-102. The running tally for one practised position: the completed drill
+ * count and whether the position was ever solved.
+ */
+export const PracticeAttempt = z
+  .object({
+    gameId: Uuid,
+    ply: z.number().int(),
+    attempts: z.number().int(),
+    solved: z.boolean(),
+  })
+  .openapi('PracticeAttempt');
+
+/**
+ * ST-102. One completed drill on a mistake: the client records the outcome
+ * once per drill, whether the player solved it or the solution was revealed.
+ */
+export const RecordPractice = z
+  .object({
+    ply: z.number().int(),
+    solved: z.boolean(),
+  })
+  .openapi('RecordPractice');
+
 export const MovePly = z
   .object({
     ply: z.number().int(),
@@ -515,6 +539,10 @@ export const WeaknessEvidence = z
     phase: Phase.nullable(),
     judgement: Judgement,
     cpLoss: z.number().int(),
+    practiced: z.boolean().openapi({
+      description:
+        'ST-102. True when a solved practice attempt exists for this instance’s (gameId, ply).',
+    }),
   })
   .openapi('WeaknessEvidence');
 

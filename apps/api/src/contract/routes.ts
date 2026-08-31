@@ -28,7 +28,9 @@ import {
   MotifReport,
   PhaseReport,
   Player,
+  PracticeAttempt,
   ProofSheet,
+  RecordPractice,
   Report,
   SetFocus,
   SetGameColor,
@@ -331,6 +333,29 @@ export const setGameColor = createRoute({
     401: error('No session.'),
     403: error('Not your game.'),
     404: error('No such game.'),
+  },
+});
+
+export const recordPractice = createRoute({
+  method: 'post',
+  path: '/games/{gameId}/practice',
+  tags: ['Games'],
+  summary: 'Record one completed practice drill on a mistake',
+  description:
+    'ST-102. The report names the places behind a weakness; this is the record a player worked on one of them. The body is one completed drill - solved, or the solution was revealed - and the reply is the running tally for the position. Refuses with 422 when the ply is not one of the game’s mistakes, so practice cannot invent a history the analysis never stored.',
+  request: {
+    params: z.object({
+      gameId: Uuid.openapi({ param: { name: 'gameId', in: 'path' } }),
+    }),
+    body: json(RecordPractice, 'The outcome of the completed drill.'),
+  },
+  responses: {
+    200: json(PracticeAttempt, 'The running tally for the position.'),
+    400: error('The request body failed validation.'),
+    401: error('No session.'),
+    403: error('Not your game.'),
+    404: error('No such game.'),
+    422: error('The ply is not one of the game’s mistakes.'),
   },
 });
 
@@ -682,6 +707,7 @@ export const routes = [
   listGames,
   getGame,
   setGameColor,
+  recordPractice,
   deleteGame,
   queueAnalysis,
   analysisEvents,
