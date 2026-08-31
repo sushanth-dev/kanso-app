@@ -80,7 +80,11 @@ export function PageFrame({ children }: PageFrameProps) {
 
   return (
     <div className="flex min-h-screen flex-col font-ui">
-      <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10">
+      <div
+        aria-hidden="true"
+        data-decor-backdrop
+        className="pointer-events-none fixed inset-0 -z-10"
+      >
         <RibbonFieldBackground className="h-full w-full" />
       </div>
       <a

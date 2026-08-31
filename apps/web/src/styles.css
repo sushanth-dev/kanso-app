@@ -7,6 +7,7 @@
 @import '@astryxdesign/core/reset.css';
 @import '@astryxdesign/core/astryx.css';
 @import './generated/tokens.css';
+@import './generated/tokens.high-contrast.css';
 @import 'tailwindcss/utilities.css' layer(utilities);
 
 @theme inline {
@@ -185,19 +186,89 @@ a {
     0 16px 40px -24px rgba(61, 40, 20, 0.42);
 }
 
+/* ST-104: the report's analysing list sits on top of a Card, so its ground
+   mixes white at 55% rather than the page token; over the card's own frosted
+   surface that reads as a separate panel. The card already blurs what is
+   behind it, so this layer adds no blur of its own - only the inset highlight
+   and one soft ambient shadow, the same treatment the other glass surfaces
+   carry. */
+.glass-raised {
+  background-color: color-mix(in srgb, var(--kanso-color-white) 55%, transparent);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 250, 240, 0.45),
+    0 12px 32px -20px rgba(61, 40, 20, 0.35);
+}
+
 /* Users who opt out of transparency get the opaque token surfaces, blur
    dropped, across every glass surface the app ships. */
 @media (prefers-reduced-transparency: reduce) {
   .glass,
   .glass-top,
-  .astryx-card {
+  .astryx-card,
+  .glass-raised {
     background-color: var(--kanso-color-surface-page);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
-  .astryx-card {
+  .astryx-card,
+  .glass-raised {
     background-color: var(--kanso-color-surface-raised);
   }
+}
+
+/* ST-104: under the authored high-contrast theme the glass family renders
+   from its opaque tokens - translucency is exactly what AAA contrast cannot
+   afford, and blur has nothing left to add on a white page. The glass shadows
+   go with the blur. A white card on the white page still needs an edge, so
+   the raised surfaces take a hairline boundary from border-strong instead.
+   The decorative canvas fields behind content are hidden outright, and the
+   focus ring doubles up: the token-black outline over a white offset ring,
+   so focus survives on any ground (WCAG 2.4.13). */
+html[data-contrast='high'] .glass,
+html[data-contrast='high'] .glass-top,
+html[data-contrast='high'] .astryx-card,
+html[data-contrast='high'] .glass-raised {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}
+html[data-contrast='high'] .glass,
+html[data-contrast='high'] .glass-top {
+  background-color: var(--kanso-color-surface-page);
+}
+html[data-contrast='high'] .astryx-card,
+html[data-contrast='high'] .glass-raised {
+  background-color: var(--kanso-color-surface-raised);
+  box-shadow: inset 0 0 0 1px var(--kanso-color-border-strong);
+}
+html[data-contrast='high'] [data-decor-backdrop] {
+  display: none;
+}
+/* The elevated specificity (html attribute plus universal focus pseudo) is
+   the point: some surfaces - the nav links among them - disable the global
+   outline and draw focus as a Tailwind ring instead, and a lower-specificity
+   override would leave them with a white halo and no visible indicator. Forcing
+   the outline back and adding the white offset beneath it gives every focusable
+   element the authored double ring on any ground (WCAG 2.4.13). (ST-104) */
+html[data-contrast='high'] *:focus-visible {
+  --_focus-outline: 2px solid var(--kanso-color-focus-ring);
+  --_focus-outline-offset: 2px;
+  outline: 2px solid var(--kanso-color-focus-ring);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--kanso-color-surface-page);
+}
+/* Astra's Badge hardcodes its variant palette, which does not read the theme
+   tokens, so its success green ships white text at 4.6:1 - past AA, short of
+   the AAA floor this theme targets. Under the scope the two semantic variants
+   the app uses render from the kanso tokens instead; neutral and the streak's
+   orange already hold 7:1 as shipped. (ST-104) */
+html[data-contrast='high'] .astryx-badge.success {
+  background-color: var(--kanso-color-success);
+  color: var(--kanso-color-text-on-accent);
+}
+html[data-contrast='high'] .astryx-badge.info {
+  background-color: var(--kanso-color-info);
+  color: var(--kanso-color-text-on-accent);
 }
 
 @media (prefers-reduced-motion: reduce) {
