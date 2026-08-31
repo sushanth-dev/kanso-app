@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AlertDialog } from '@astryxdesign/core/AlertDialog';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
@@ -9,6 +9,7 @@ import { Spinner } from '@astryxdesign/core/Spinner';
 import { Text } from '@astryxdesign/core/Text';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams, useSearch } from '@tanstack/react-router';
+import { Chess, type Square } from 'chess.js';
 import { isActiveGame } from '../analysis-status.ts';
 import type { CctMove, GameDetail, Mistake, MovePly } from '../api/diagnosis-api.ts';
 import { diagnosisApi } from '../api/diagnosis-api.ts';
@@ -276,6 +277,221 @@ function ExplanationCard({ mistakeId }: { mistakeId: string }) {
   );
 }
 
+/** The colour dot beside the board: the player's side, or neutral when unset. */
+function PlayerColorDot({ playerColor }: { playerColor: GameDetail['playerColor'] }) {
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <span
+        aria-label={
+          playerColor === null ? 'Your colour is not set for this game' : `You play ${playerColor}`
+        }
+        role="img"
+        className={`block size-5 rounded-full border border-border-strong ${
+          playerColor === 'white' ? 'bg-white' : playerColor === 'black' ? 'bg-ink' : 'bg-sunken'
+        }`}
+      />
+    </div>
+  );
+}
+
+/** ST-101. The attempts a practice attempt allows before the reveal steps in. */
+const PRACTICE_ATTEMPTS = 3;
+
+/** ST-101. SAN comparison ignores case, whitespace, and check or mate annotation. */
+function normalizedSan(san: string): string {
+  return san
+    .replace(/[+#?!]/g, '')
+    .trim()
+    .toLowerCase();
+}
+
+/**
+ * ST-101. Practice the move you missed. The board sits at the mistake's stored
+ * position, oriented from the player's colour, with the played move not made.
+ * The player finds the better move on the board — the played move refusing as
+ * "not the best move" without ever naming the solution — and the reveal, asked
+ * for or earned by three wrong tries, plays the best move and shows what the
+ * position was actually worth. No clock, no streak, no motion (ADR-0017).
+ */
+function PracticeSession({
+  mistake,
+  flipped,
+  playerColor,
+  notation,
+  stepControls,
+  onExit,
+}: {
+  mistake: Mistake;
+  flipped: boolean;
+  playerColor: GameDetail['playerColor'];
+  /** The notation panel keeps its place beside the board during practice. */
+  notation: ReactNode;
+  onExit: () => void;
+  /** The play-through controls, disabled while the practice is live. */
+  stepControls: ReactNode;
+}) {
+  const [chess] = useState(() => new Chess(mistake.fen));
+  const [fen, setFen] = useState(mistake.fen);
+  const [status, setStatus] = useState<'playing' | 'solved' | 'revealed'>('playing');
+  const [attemptsLeft, setAttemptsLeft] = useState(PRACTICE_ATTEMPTS);
+  const [selected, setSelected] = useState<string | null>(null);
+  const playing = status === 'playing';
+
+  // The side-to-move pieces that can move: the drag handles.
+  const movableSquares = useMemo(
+    () => [...new Set(chess.moves({ verbose: true }).map((move) => move.from))],
+    [chess, fen],
+  );
+  const targets = useMemo<string[]>(
+    () =>
+      selected === null
+        ? []
+        : chess.moves({ square: selected as Square, verbose: true }).map((move) => move.to),
+    [chess, selected],
+  );
+
+  const playBestMove = () => {
+    try {
+      chess.move(mistake.bestMoveSan);
+    } catch {
+      // The stored analysis is inconsistent; the written reveal still stands.
+      return;
+    }
+    setFen(chess.fen());
+  };
+
+  const onSquareClick = (square: string) => {
+    if (!playing) return;
+    if (square === selected) {
+      setSelected(null);
+      return;
+    }
+    if (selected !== null && targets.includes(square)) {
+      const candidate = chess
+        .moves({ square: selected as Square, verbose: true })
+        .find(
+          (move) => move.to === square && (move.promotion === undefined || move.promotion === 'q'),
+        );
+      if (candidate !== undefined) {
+        if (normalizedSan(candidate.san) === normalizedSan(mistake.bestMoveSan)) {
+          chess.move(candidate.san);
+          setFen(chess.fen());
+          setStatus('solved');
+        } else {
+          const left = attemptsLeft - 1;
+          setAttemptsLeft(left);
+          if (left === 0) {
+            playBestMove();
+            setStatus('revealed');
+          }
+        }
+      }
+      setSelected(null);
+      return;
+    }
+    const piece = chess.get(square as Square);
+    setSelected(piece !== undefined && piece.color === chess.turn() ? square : null);
+  };
+
+  const phase =
+    mistake.phase === null ? null : mistake.phase.charAt(0).toUpperCase() + mistake.phase.slice(1);
+  const prompt = `${JUDGEMENT_LABEL[mistake.judgement]}${
+    phase === null ? '' : `, ${phase}`
+  }: find the better move`;
+
+  return (
+    <section aria-label="Position" className="space-y-4">
+      <div className="flex flex-wrap items-start gap-6">
+        <div className="flex w-[480px] max-w-full items-stretch gap-4">
+          <Board
+            fen={fen}
+            flipped={flipped}
+            selectedSquare={playing ? (selected ?? undefined) : undefined}
+            targetSquares={playing ? targets : undefined}
+            draggableSquares={playing ? movableSquares : undefined}
+            onSquareClick={playing ? onSquareClick : undefined}
+            label={`Practice. ${prompt}. ${chess.turn() === 'w' ? 'White' : 'Black'} to move. ${describePosition(fen)}`}
+          />
+          <PlayerColorDot playerColor={playerColor} />
+        </div>
+        {notation}
+      </div>
+      {stepControls}
+
+      <Card className="space-y-3 p-4">
+        {status === 'playing' ? (
+          <>
+            <Heading level={3}>{prompt}</Heading>
+            <div className="flex items-center gap-2">
+              <span aria-hidden="true" className="flex gap-1">
+                {Array.from({ length: PRACTICE_ATTEMPTS }, (_, pip) => (
+                  <span
+                    key={pip}
+                    className={`block size-3 rounded-full border border-border-strong ${
+                      pip < attemptsLeft ? 'bg-ink' : ''
+                    }`}
+                  />
+                ))}
+              </span>
+              <Text type="supporting" className="text-sm">
+                {attemptsLeft} {attemptsLeft === 1 ? 'attempt' : 'attempts'} left.
+              </Text>
+            </div>
+            {attemptsLeft < PRACTICE_ATTEMPTS ? (
+              <Text as="p" display="block">
+                Not the best move.
+              </Text>
+            ) : null}
+            <div className="flex flex-wrap gap-2">
+              <Button
+                label="Show me"
+                variant="secondary"
+                onClick={() => {
+                  playBestMove();
+                  setStatus('revealed');
+                }}
+              />
+              <Button label="Back to review" variant="secondary" onClick={onExit} />
+            </div>
+          </>
+        ) : status === 'solved' ? (
+          <>
+            <Heading level={3}>Solved.</Heading>
+            <Text as="p" display="block">
+              You found it: <span className="font-mono">{mistake.bestMoveSan}</span> was the better
+              move.
+            </Text>
+            <Text as="p" display="block" type="supporting">
+              You had played <span className="font-mono">{mistake.moveSan}</span>.
+            </Text>
+            <Text as="p" display="block" type="supporting" className="font-mono text-sm">
+              Advantage: {evalLabel(mistake.evalBefore)} → {evalLabel(mistake.evalAfter)}
+            </Text>
+            <div>
+              <Button label="Back to review" variant="secondary" onClick={onExit} />
+            </div>
+          </>
+        ) : (
+          <>
+            <Heading level={3}>
+              The best move was <span className="font-mono">{mistake.bestMoveSan}</span>.
+            </Heading>
+            <Text as="p" display="block">
+              You played <span className="font-mono">{mistake.moveSan}</span>.
+            </Text>
+            <Text as="p" display="block" type="supporting" className="font-mono text-sm">
+              Advantage: {evalLabel(mistake.evalBefore)} → {evalLabel(mistake.evalAfter)}
+            </Text>
+            <div>
+              <Button label="Back to review" variant="secondary" onClick={onExit} />
+            </div>
+          </>
+        )}
+      </Card>
+    </section>
+  );
+}
+
 function GameSkeleton() {
   return (
     <div role="status" aria-label="Loading game review" aria-busy="true" className="space-y-4">
@@ -303,6 +519,10 @@ export function GameReviewScreen({
   // Default the board to the player's own colour at the bottom; the player can
   // flip it manually rather than the board auto-flipping to the side to move.
   const [flipped, setFlipped] = useState(() => game.playerColor === 'black');
+
+  // ST-101. The mistake being practised, or null while the review plays through.
+  const [practiceMistake, setPracticeMistake] = useState<Mistake | null>(null);
+  const practising = practiceMistake !== null;
 
   // When the player sets their colour (the game starts undecided), orient the
   // board to their side. A manual flip is left alone while the colour is still
@@ -354,7 +574,7 @@ export function GameReviewScreen({
   };
 
   useEffect(() => {
-    if (game.plies.length === 0) return;
+    if (game.plies.length === 0 || practiceMistake !== null) return;
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'ArrowLeft') {
         event.preventDefault();
@@ -372,8 +592,34 @@ export function GameReviewScreen({
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [game.plies.length]);
+  }, [game.plies.length, practiceMistake]);
 
+  // The play-through controls persist into practice mode, disabled, so the
+  // review is visibly paused rather than gone.
+  const stepControls = (
+    <div className="flex items-center gap-2">
+      <Button
+        label="Previous move"
+        variant="secondary"
+        isDisabled={plyIndex === 0 || practising}
+        onClick={() => stepBy(-1)}
+      />
+      <Button
+        label="Next move"
+        variant="secondary"
+        isDisabled={plyIndex === game.plies.length - 1 || practising}
+        onClick={() => stepBy(1)}
+      />
+      <Button
+        label="Flip board"
+        variant="secondary"
+        onClick={() => setFlipped((value) => !value)}
+      />
+      <Text type="supporting" className="font-mono text-sm">
+        Move {Math.ceil((plyIndex + 1) / 2)} of {Math.ceil(game.plies.length / 2)}
+      </Text>
+    </div>
+  );
   return (
     <div className="space-y-6">
       <header className="space-y-4">
@@ -450,6 +696,26 @@ export function GameReviewScreen({
             No recorded moves in this game.
           </Text>
         </Card>
+      ) : practising ? (
+        <PracticeSession
+          key={practiceMistake.id}
+          mistake={practiceMistake}
+          flipped={flipped}
+          playerColor={game.playerColor}
+          notation={
+            <Notation
+              plies={game.plies}
+              mistakes={game.mistakes}
+              currentPly={currentPly}
+              onSelect={selectPly}
+            />
+          }
+          stepControls={stepControls}
+          onExit={() => {
+            selectPly(practiceMistake.ply);
+            setPracticeMistake(null);
+          }}
+        />
       ) : (
         <>
           <section aria-label="Position" className="space-y-4">
@@ -464,23 +730,7 @@ export function GameReviewScreen({
                   flipped={flipped}
                   label={`Position before move ${Math.ceil(currentPly.ply / 2)}, ${movingColorOf(currentPly)} to move. ${describePosition(currentPly.fenBefore)}`}
                 />
-                <div className="flex flex-col items-center gap-2">
-                  <span
-                    aria-label={
-                      game.playerColor === null
-                        ? 'Your colour is not set for this game'
-                        : `You play ${game.playerColor}`
-                    }
-                    role="img"
-                    className={`block size-5 rounded-full border border-border-strong ${
-                      game.playerColor === 'white'
-                        ? 'bg-white'
-                        : game.playerColor === 'black'
-                          ? 'bg-ink'
-                          : 'bg-sunken'
-                    }`}
-                  />
-                </div>
+                <PlayerColorDot playerColor={game.playerColor} />
               </div>
 
               <Notation
@@ -491,28 +741,7 @@ export function GameReviewScreen({
               />
             </div>
 
-            <div className="flex items-center gap-2">
-              <Button
-                label="Previous move"
-                variant="secondary"
-                isDisabled={plyIndex === 0}
-                onClick={() => stepBy(-1)}
-              />
-              <Button
-                label="Next move"
-                variant="secondary"
-                isDisabled={plyIndex === game.plies.length - 1}
-                onClick={() => stepBy(1)}
-              />
-              <Button
-                label="Flip board"
-                variant="secondary"
-                onClick={() => setFlipped((value) => !value)}
-              />
-              <Text type="supporting" className="font-mono text-sm">
-                Move {Math.ceil((plyIndex + 1) / 2)} of {Math.ceil(game.plies.length / 2)}
-              </Text>
-            </div>
+            {stepControls}
 
             {currentMistake === undefined ? (
               <Card className="space-y-2">
@@ -565,6 +794,11 @@ export function GameReviewScreen({
                     {MOTIF_LABEL[currentMistake.motif] ?? currentMistake.motif}
                   </Text>
                 ) : null}
+                <Button
+                  label="Try it yourself"
+                  variant="primary"
+                  onClick={() => setPracticeMistake(currentMistake)}
+                />
               </Card>
             )}
             {currentMistake !== undefined ? (

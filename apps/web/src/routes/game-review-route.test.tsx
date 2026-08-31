@@ -181,14 +181,33 @@ function renderScreen(game: GameDetail, targetPly?: number) {
   const history = createMemoryHistory();
   const queryClient = new QueryClient();
   const router = createAppRouter({ history, queryClient });
-  render(
+  const view = render(
     <QueryClientProvider client={queryClient}>
       <RouterContextProvider router={router}>
         <GameReviewScreen game={game} targetPly={targetPly} />
       </RouterContextProvider>
     </QueryClientProvider>,
   );
-  return { user };
+  return { user, container: view.container };
+}
+
+// Practice validates moves with chess.js, so the stored position must be
+// coherent with its SANs: black to move, with Nc6 legal and Qf6 the played move.
+const PRACTICE_FEN = 'rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2';
+
+const practiceMistakes: Mistake[] = mistakes.map((mistake, index) =>
+  index === 0 ? { ...mistake, fen: PRACTICE_FEN } : mistake,
+);
+
+function practiceGame(overrides: Partial<GameDetail> = {}): GameDetail {
+  return gameFixture({ mistakes: practiceMistakes, ...overrides });
+}
+
+/** The board square's clickable rect; the practice tests play moves through it. */
+function squareElement(container: HTMLElement, name: string): HTMLElement {
+  const element = container.querySelector<HTMLElement>(`rect[data-square="${name}"]`);
+  if (element === null) throw new Error(`Square ${name} is not rendered.`);
+  return element;
 }
 
 describe('GameReviewScreen', () => {
@@ -373,6 +392,83 @@ describe('GameReviewScreen', () => {
     expect(
       screen.queryByText('Your side was not recorded for this game. Which colour were you?'),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe('ST-101 practice mode', () => {
+  test('playing the best move solves the attempt and plays it on the board', async () => {
+    const { user, container } = renderScreen(practiceGame());
+    await user.click(screen.getByRole('button', { name: 'Try it yourself' }));
+
+    // The prompt names the judgement and phase, never the solution.
+    expect(screen.getByText(/find the better move/)).toHaveTextContent('Blunder, Opening:');
+    // The play-through steps stand down while practising.
+    expect(screen.getByRole('button', { name: 'Previous move' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Next move' })).toBeDisabled();
+
+    await user.click(squareElement(container, 'b8'));
+    await user.click(squareElement(container, 'c6'));
+
+    expect(screen.getByText('Solved.')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /knights g8 c6/ })).toBeInTheDocument();
+    expect(screen.getByText(/You found it/)).toHaveTextContent('Nc6');
+    expect(screen.getByText(/You had played/)).toHaveTextContent('Qf6');
+    expect(screen.getByText(/Advantage:/)).toHaveTextContent('+0.3');
+    expect(screen.getByText(/Advantage:/)).toHaveTextContent('-2.0');
+  });
+
+  test('a wrong legal move is refused without naming the solution', async () => {
+    const { user, container } = renderScreen(practiceGame());
+    await user.click(screen.getByRole('button', { name: 'Try it yourself' }));
+
+    await user.click(squareElement(container, 'a7'));
+    await user.click(squareElement(container, 'a6'));
+
+    expect(screen.getByText('Not the best move.')).toBeInTheDocument();
+    expect(screen.getByText('2 attempts left.')).toBeInTheDocument();
+    expect(screen.queryByText(/Nc6/)).not.toBeInTheDocument();
+    // The position never changed, so the knight still stands on b8.
+    expect(screen.getByRole('img', { name: /knights b8 g8/ })).toBeInTheDocument();
+
+    // The third wrong attempt reveals the answer without solving.
+    await user.click(squareElement(container, 'h7'));
+    await user.click(squareElement(container, 'h6'));
+    await user.click(squareElement(container, 'b7'));
+    await user.click(squareElement(container, 'b6'));
+
+    expect(screen.getByText(/best move was/)).toHaveTextContent('Nc6');
+    expect(screen.getByText(/You played/)).toHaveTextContent('Qf6');
+    expect(screen.queryByText('Solved.')).not.toBeInTheDocument();
+  });
+
+  test('Show me reveals the best move on the board and ends the attempt unsolved', async () => {
+    const { user } = renderScreen(practiceGame());
+    await user.click(screen.getByRole('button', { name: 'Try it yourself' }));
+    await user.click(screen.getByRole('button', { name: 'Show me' }));
+
+    expect(screen.getByRole('img', { name: /knights g8 c6/ })).toBeInTheDocument();
+    expect(screen.getByText(/best move was/)).toHaveTextContent('Nc6');
+    expect(screen.getByText(/You played/)).toHaveTextContent('Qf6');
+    expect(screen.getByText(/Advantage:/)).toHaveTextContent('+0.3');
+    expect(screen.queryByText('Solved.')).not.toBeInTheDocument();
+
+    // The way back restores the play-through at the mistake's ply.
+    await user.click(screen.getByRole('button', { name: 'Back to review' }));
+    expect(screen.getByText(/you played/)).toHaveTextContent('Qf6');
+  });
+
+  test('orients the practice board from the player colour, not the mover', async () => {
+    // The player is Black: the practice board flips (Black is also the mover here).
+    const { user, container } = renderScreen(practiceGame());
+    await user.click(screen.getByRole('button', { name: 'Try it yourself' }));
+    expect(container.querySelector('rect[data-square="b8"]')).toHaveAttribute('x', '7');
+
+    // A White player's board keeps White at the bottom while Black moves.
+    const white = renderScreen(practiceGame({ playerColor: 'white' }));
+    await white.user.click(
+      within(white.container).getByRole('button', { name: 'Try it yourself' }),
+    );
+    expect(white.container.querySelector('rect[data-square="b8"]')).toHaveAttribute('x', '2');
   });
 });
 

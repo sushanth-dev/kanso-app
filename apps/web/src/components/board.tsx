@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 
 // The cburnett piece set (the standard used by lichess/chess.com). Each piece
 // is one path; white and black differ only in fill/stroke, so the shape is
@@ -42,6 +42,14 @@ export interface BoardProps {
   bestFrom?: string;
   /** The square the engine's best move went to; the arrowhead lands here. */
   bestTo?: string;
+  /** ST-101. The square the practice player picked; drawn as an ink line over a paper ring. */
+  selectedSquare?: string;
+  /** ST-101. The picked piece's legal destinations; drawn as hint dots (ink with a paper ring). */
+  targetSquares?: string[];
+  /** ST-101. The squares whose pieces may be picked up and dragged; absent, pieces stay put. */
+  draggableSquares?: string[];
+  /** ST-101. Click or drop on a square; absent, the board stays display-only. */
+  onSquareClick?: (square: string) => void;
   /** Orient the board from Black's perspective. */
   flipped?: boolean;
   theme?: BoardTheme;
@@ -77,6 +85,50 @@ function placedPieces(fen: string): PlacedPiece[] {
     }
   }
   return pieces;
+}
+
+/** The viewBox top-left corner of a square, respecting the flip. */
+function squareOrigin(square: string, flipped: boolean): { x: number; y: number } {
+  const centre = squareCenter(square, flipped);
+  return { x: centre.x - 0.5, y: centre.y - 0.5 };
+}
+
+/** The name of the square a piece sits on. */
+function squareOf(file: number, rank: number): string {
+  return `${FILES[file] ?? ''}${rank + 1}`;
+}
+
+/** The viewBox point a pointer event lands on. */
+function viewBoxPoint(
+  event: ReactPointerEvent,
+  svg: SVGSVGElement | null,
+): { x: number; y: number } {
+  if (svg === null) return { x: 0, y: 0 };
+  const rect = svg.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) return { x: 0, y: 0 };
+  return {
+    x: ((event.clientX - rect.left) / rect.width) * 10,
+    y: ((event.clientY - rect.top) / rect.height) * 10,
+  };
+}
+
+/** The square under a viewBox point, or null when the point is off the 8x8 grid. */
+function squareFromPoint(x: number, y: number, flipped: boolean): string | null {
+  const column = Math.floor(x - 1);
+  const row = Math.floor(y - 1);
+  if (column < 0 || column > 7 || row < 0 || row > 7) return null;
+  const file = flipped ? 7 - column : column;
+  const rank = flipped ? row : 7 - row;
+  return `${FILES[file] ?? ''}${rank + 1}`;
+}
+
+/** ST-101. A piece picked up by a pointer: it follows the pointer until dropped. */
+interface DragState {
+  square: string;
+  /** Pointer position in viewBox units. */
+  x: number;
+  y: number;
+  pointerId: number;
 }
 
 /** The viewBox centre of a square name like "e2", respecting the flip. */
@@ -136,6 +188,10 @@ export function Board({
   to,
   bestFrom,
   bestTo,
+  selectedSquare,
+  targetSquares,
+  draggableSquares,
+  onSquareClick,
   flipped = false,
   theme = 'wood',
   label,
@@ -143,6 +199,39 @@ export function Board({
   const pieces = placedPieces(fen);
   const colors = BOARD_COLORS[theme];
   const cells: ReactNode[] = [];
+  const interactive = onSquareClick !== undefined;
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [drag, setDrag] = useState<DragState | null>(null);
+  const mayDrag = (square: string): boolean =>
+    draggableSquares !== undefined && draggableSquares.includes(square);
+
+  const beginDrag = (event: ReactPointerEvent<SVGGElement>, square: string): void => {
+    if (!interactive || !mayDrag(square)) return;
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // jsdom has no pointer capture; the click path never drags.
+    }
+    const point = viewBoxPoint(event, svgRef.current);
+    setDrag({ square, x: point.x, y: point.y, pointerId: event.pointerId });
+    // Picking up the already-selected piece keeps its selection; picking up
+    // any other piece selects it, exactly as clicking it would.
+    if (selectedSquare !== square) onSquareClick(square);
+  };
+
+  const moveDrag = (event: ReactPointerEvent<SVGSVGElement>): void => {
+    if (drag === null || event.pointerId !== drag.pointerId) return;
+    const point = viewBoxPoint(event, svgRef.current);
+    setDrag({ ...drag, x: point.x, y: point.y });
+  };
+
+  const endDrag = (event: ReactPointerEvent<SVGSVGElement>): void => {
+    if (!interactive || drag === null) return;
+    const point = viewBoxPoint(event, svgRef.current);
+    const drop = squareFromPoint(point.x, point.y, flipped);
+    setDrag(null);
+    if (drop !== null && drop !== drag.square) onSquareClick(drop);
+  };
 
   for (let column = 0; column < 8; column++) {
     for (let row = 0; row < 8; row++) {
@@ -154,6 +243,7 @@ export function Board({
       cells.push(
         <rect
           key={squareName}
+          data-square={squareName}
           x={1 + column}
           y={1 + row}
           width={1}
@@ -161,14 +251,43 @@ export function Board({
           fill={highlighted ? '#e9b44c' : dark ? colors.dark : colors.light}
           stroke={highlighted ? '#241d16' : 'none'}
           strokeWidth={highlighted ? 0.06 : 0}
+          onClick={interactive ? () => onSquareClick(squareName) : undefined}
         />,
       );
     }
   }
 
+  if (selectedSquare !== undefined) {
+    const origin = squareOrigin(selectedSquare, flipped);
+    cells.push(
+      <g key="selected-square">
+        <rect
+          x={origin.x}
+          y={origin.y}
+          width={1}
+          height={1}
+          fill="none"
+          stroke="#fffdf8"
+          strokeWidth={0.12}
+        />
+        <rect
+          x={origin.x}
+          y={origin.y}
+          width={1}
+          height={1}
+          fill="none"
+          stroke="#241d16"
+          strokeWidth={0.05}
+        />
+      </g>,
+    );
+  }
+
   for (const piece of pieces) {
     const path = PIECE_PATHS[piece.type];
     if (path === undefined) continue;
+    const squareName = squareOf(piece.file, piece.rank);
+    if (drag !== null && drag.square === squareName) continue; // drawn last, above the dots
     const column = flipped ? 7 - piece.file : piece.file;
     const row = flipped ? piece.rank : 7 - piece.rank;
     // The cburnett paths are drawn on a 45x45 grid; scale to the square and
@@ -181,10 +300,52 @@ export function Board({
         transform={`translate(${1 + column}, ${1 + row}) scale(0.0222)`}
         role="img"
         aria-label={`${piece.white ? 'white' : 'black'} ${PIECE_NAMES[piece.type]}`}
+        style={interactive && !mayDrag(squareName) ? { pointerEvents: 'none' } : undefined}
+        onPointerDown={interactive ? (event) => beginDrag(event, squareName) : undefined}
       >
         <path d={path} fill={fill} stroke={stroke} strokeWidth={1.5} strokeLinejoin="round" />
       </g>,
     );
+  }
+
+  if (targetSquares !== undefined && targetSquares.length > 0) {
+    cells.push(
+      <g key="target-dots">
+        {[...new Set(targetSquares)].map((square) => {
+          const centre = squareCenter(square, flipped);
+          return (
+            <circle
+              key={square}
+              cx={centre.x}
+              cy={centre.y}
+              r={0.15}
+              fill="#241d16"
+              stroke="#fffdf8"
+              strokeWidth={0.06}
+            />
+          );
+        })}
+      </g>,
+    );
+  }
+  if (drag !== null) {
+    const dragged = pieces.find((piece) => squareOf(piece.file, piece.rank) === drag.square);
+    const path = dragged === undefined ? undefined : PIECE_PATHS[dragged.type];
+    if (dragged !== undefined && path !== undefined) {
+      const fill = dragged.white ? '#fffdf8' : '#241d16';
+      const stroke = dragged.white ? '#241d16' : '#fffdf8';
+      cells.push(
+        <g
+          key={`piece-${dragged.file}-${dragged.rank}`}
+          transform={`translate(${drag.x - 0.5}, ${drag.y - 0.5}) scale(0.0222)`}
+          role="img"
+          aria-label={`${dragged.white ? 'white' : 'black'} ${PIECE_NAMES[dragged.type]}`}
+          style={{ pointerEvents: 'none' }}
+        >
+          <path d={path} fill={fill} stroke={stroke} strokeWidth={1.5} strokeLinejoin="round" />
+        </g>,
+      );
+    }
   }
   if (bestFrom !== undefined && bestTo !== undefined) {
     const start = squareCenter(bestFrom, flipped);
@@ -254,9 +415,18 @@ export function Board({
       </text>,
     );
   }
-
   return (
-    <svg viewBox="0 0 10 10" role="img" aria-label={label} className="block w-full">
+    <svg
+      ref={svgRef}
+      viewBox="0 0 10 10"
+      role="img"
+      aria-label={label}
+      className="block w-full"
+      style={interactive ? { touchAction: 'none' } : undefined}
+      onPointerMove={drag !== null ? moveDrag : undefined}
+      onPointerUp={drag !== null ? endDrag : undefined}
+      onPointerCancel={drag !== null ? () => setDrag(null) : undefined}
+    >
       {cells}
     </svg>
   );
