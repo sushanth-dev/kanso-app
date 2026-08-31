@@ -42,6 +42,12 @@ export interface ParseFault {
   /** 0-based position of the failing game in the uploaded file. */
   index: number;
   reason: string;
+  /**
+   * Set when the fault is the upload's game count rather than one game's
+   * moves, so the route can answer with a cap message instead of a parse
+   * error for a file whose every game is individually fine.
+   */
+  code?: 'too_many_games';
 }
 
 export type ParseResult = { ok: true; games: ParsedGame[] } | { ok: false; faults: ParseFault[] };
@@ -189,6 +195,7 @@ export function parsePgn(pgn: string, opts: { maxGames?: number } = {}): ParseRe
         {
           index: 0,
           reason: `too many games in one upload: ${chunks.length} > ${max}`,
+          code: 'too_many_games',
         },
       ],
     };
