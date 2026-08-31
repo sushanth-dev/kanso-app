@@ -508,6 +508,8 @@ export const WeaknessEvidence = z
     blackName: z.string().nullable(),
     playedAt: z.iso.datetime().nullable(),
     moveNumber: z.number().int(),
+    /** ST-100. The ply of the played move, so a deep link lands on the position. */
+    ply: z.number().int(),
     moveSan: z.string().openapi({ example: 'Nf6' }),
     bestMoveSan: z.string().openapi({ example: 'e5' }),
     phase: Phase.nullable(),

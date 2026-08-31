@@ -33,6 +33,7 @@ export interface EvidenceInstance {
   blackName: string | null;
   playedAt: string | null;
   moveNumber: number;
+  ply: number;
   moveSan: string;
   bestMoveSan: string;
   phase: Phase | null;
@@ -47,6 +48,7 @@ interface EvidenceRow {
   blackName: string | null;
   playedAt: Date | null;
   moveNumber: number;
+  ply: number;
   moveSan: string;
   bestMoveSan: string;
   phase: Phase | null;
@@ -100,6 +102,7 @@ function toInstance(r: EvidenceRow): EvidenceInstance {
     blackName: r.blackName,
     playedAt: r.playedAt?.toISOString() ?? null,
     moveNumber: r.moveNumber,
+    ply: r.ply,
     moveSan: r.moveSan,
     bestMoveSan: r.bestMoveSan,
     phase: r.phase,
@@ -138,6 +141,7 @@ export async function weaknessEvidence(
         blackName: game.blackName,
         playedAt: game.playedAt,
         moveNumber: mistake.moveNumber,
+        ply: mistake.ply,
         moveSan: mistake.moveSan,
         bestMoveSan: mistake.bestMoveSan,
         phase: mistake.phase,
@@ -173,6 +177,7 @@ export async function weaknessEvidence(
         blackName: game.blackName,
         playedAt: game.playedAt,
         moveNumber: mistake.moveNumber,
+        ply: mistake.ply,
         moveSan: mistake.moveSan,
         bestMoveSan: mistake.bestMoveSan,
         phase: mistake.phase,

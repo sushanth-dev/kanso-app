@@ -30,7 +30,8 @@ import { scoreTimeTrouble, timeTroubleCounts } from '../phases/phases.ts';
 import { adviceFor, groupKeyOf, weaknessEvidence, type EvidenceInstance } from './evidence.ts';
 import { composeReport, type ComposedWeakness } from './compose.ts';
 import { adviceForReport } from './advice.ts';
-import type { AiClient } from '../coaching/gemini.ts';
+import { summaryForReport } from './summary.ts';
+import type { AiClient } from '../coaching/zai.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
 type Stream = (typeof schema.streamEnum.enumValues)[number];
@@ -167,6 +168,8 @@ async function storeReport(
     weaknesses: ComposedWeakness[];
     /** ST-099. Model lines keyed by aggregate key; empty when no key is set. */
     advice: ReadonlyMap<string, string>;
+    /** ST-100. The model-written plan, null when the model failed or no key is set. */
+    narrative: string | null;
   },
 ): Promise<ReportResponse> {
   return db.transaction(async (tx) => {
@@ -181,6 +184,8 @@ async function storeReport(
         windowEnd: input.windowEnd,
         timeTroubleFromMove: input.timeTroubleFromMove,
         timeTroubleReason: input.timeTroubleReason,
+        narrative: input.narrative,
+        narrativeGeneratedAt: input.narrative === null ? null : new Date(),
       })
       .returning();
 
@@ -363,6 +368,22 @@ export function mountReport(
         })
       : new Map<string, string>();
 
+    // ST-100. The opening plan is written from the same facts plus the advice
+    // lines just accepted, so it cannot contradict the cards. Null on model
+    // failure: the narrative column stays empty and the block is not rendered.
+    const narrative = deps.aiClient
+      ? await summaryForReport(deps.db, deps.aiClient, {
+          playerId,
+          stream,
+          tournamentId: inTournament,
+          windowStart: baseline.windowStart,
+          gamesCovered: baseline.baseline.games,
+          timeTroubleFromMove: composed.timeTroubleFromMove,
+          weaknesses: composed.weaknesses,
+          advice,
+        })
+      : null;
+
     const response = await storeReport(deps.db, {
       playerId,
       stream,
@@ -376,6 +397,7 @@ export function mountReport(
       timeTroubleReason: composed.timeTroubleReason,
       weaknesses: composed.weaknesses,
       advice,
+      narrative,
     });
 
     return c.json(
