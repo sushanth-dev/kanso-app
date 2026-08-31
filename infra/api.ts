@@ -58,6 +58,12 @@ const handler = new sst.aws.Function('ApiHandler', {
     // routes are not mounted. ZAI_MODEL defaults to glm-5.3-flash in code.
     ZAI_API_KEY: process.env.ZAI_API_KEY ?? '',
     ZAI_MODEL: process.env.ZAI_MODEL ?? '',
+    // The Razorpay credentials the billing routes read (ADR-0039, ST-044).
+    // Read from .env at deploy time like the session secret; unset, the
+    // billing routes are not mounted and checkout answers 404.
+    RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID ?? '',
+    RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET ?? '',
+    RAZORPAY_WEBHOOK_SECRET: process.env.RAZORPAY_WEBHOOK_SECRET ?? '',
   },
   // API Gateway caps a request at 30 seconds, so a longer function timeout is a
   // setting that never gets used.
