@@ -5,7 +5,7 @@ import { createApp } from '../app.ts';
 import { game, mistake, player } from '../db/schema.ts';
 import { user } from '../db/auth-schema.ts';
 import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-harness.ts';
-import type { AiClient } from './gemini.ts';
+import type { AiClient } from './zai.ts';
 
 let harness: IntegrationDatabase;
 const OWNER = 'user_owner';
@@ -28,6 +28,9 @@ const aiClient: AiClient = {
     return Promise.resolve('What was defending d5 before your move?');
   },
   adviseWeaknesses() {
+    return Promise.reject(new Error('not used here'));
+  },
+  summarizeReport() {
     return Promise.reject(new Error('not used here'));
   },
 };

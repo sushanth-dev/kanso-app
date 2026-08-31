@@ -18,7 +18,7 @@ number sequence is shared with the frontend records.
 * [0014. Host on AWS: API on a small always-on service, analysis on SQS and Lambda](0014-aws-hosting-layout.md) (API half superseded by 0033)
 * [0015. Define AWS infrastructure with SST](0015-sst-infrastructure-as-code.md)
 * [0016. Deliver analysis results over server-sent events](0016-sse-analysis-result-delivery.md)
-* [0018. Use Gemini Flash for coaching prose, over engine-verified facts only](0018-ai-explanation-layer.md)
+* [0018. Use Gemini Flash for coaching prose, over engine-verified facts only](0018-ai-explanation-layer.md) (provider superseded by 0041)
 * [0019. Test with Vitest, one runner for the whole workspace](0019-vitest-testing-setup.md)
 * [0020. Run on Node.js 24 LTS](0020-node-24-lts-runtime.md)
 * [0021. Connect to PostgreSQL with postgres.js](0021-postgres-js-driver.md)
@@ -31,3 +31,4 @@ number sequence is shared with the frontend records.
 * [0035. Minor self-sign-up with guardian consent by email](0035-minor-self-signup-consent.md)
 * [0036. Verify a focus over a rolling window of games](0036-verify-focus-rolling-window.md)
 * [0039. Process payments with Razorpay](0039-process-payments-razorpay.md)
+* [0041. Write the coaching prose with GLM-5.3-Flash from Z.AI](0041-glm-flash-coaching-prose.md)

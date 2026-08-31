@@ -20,7 +20,7 @@ import * as schema from '../db/schema.ts';
 import { game, mistake } from '../db/schema.ts';
 import { readSession } from '../session.ts';
 import { hasPlayerClaim } from '../players/claim.ts';
-import type { AiClient, MistakeFacts } from './gemini.ts';
+import type { AiClient, MistakeFacts } from './zai.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
 type MistakeRow = typeof mistake.$inferSelect;

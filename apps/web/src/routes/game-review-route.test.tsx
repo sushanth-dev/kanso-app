@@ -176,7 +176,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function renderScreen(game: GameDetail) {
+function renderScreen(game: GameDetail, targetPly?: number) {
   const user = userEvent.setup();
   const history = createMemoryHistory();
   const queryClient = new QueryClient();
@@ -184,7 +184,7 @@ function renderScreen(game: GameDetail) {
   render(
     <QueryClientProvider client={queryClient}>
       <RouterContextProvider router={router}>
-        <GameReviewScreen game={game} />
+        <GameReviewScreen game={game} targetPly={targetPly} />
       </RouterContextProvider>
     </QueryClientProvider>,
   );
@@ -197,6 +197,17 @@ describe('GameReviewScreen', () => {
     expect(screen.getByText(/you played/)).toHaveTextContent('Qf6');
     expect(screen.getByText(/best was/)).toHaveTextContent('Nc6');
     expect(screen.getByText('Alice vs Mina')).toBeInTheDocument();
+  });
+
+  test('ST-100: opens the deep-linked ply when the report evidence sent one', () => {
+    renderScreen(gameFixture(), 8);
+    expect(screen.getByText(/you played/)).toHaveTextContent('Qxf3');
+    expect(screen.getByText(/best was/)).toHaveTextContent('d6');
+  });
+
+  test('ST-100: an unknown deep-linked ply falls back to the first mistake', () => {
+    renderScreen(gameFixture(), 999);
+    expect(screen.getByText(/you played/)).toHaveTextContent('Qf6');
   });
 
   test('lists every move in the notation panel and switches position on selection', async () => {

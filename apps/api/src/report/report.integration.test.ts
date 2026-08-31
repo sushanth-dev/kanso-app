@@ -14,7 +14,7 @@ import { createApp } from '../app.ts';
 import { game, mistake, movePly, player, report, tournament, weakness } from '../db/schema.ts';
 import { user } from '../db/auth-schema.ts';
 import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-harness.ts';
-import type { AiClient } from '../coaching/gemini.ts';
+import type { AiClient } from '../coaching/zai.ts';
 
 let harness: IntegrationDatabase;
 const OWNER = 'user_owner';
@@ -36,11 +36,13 @@ beforeEach(async () => {
     .values([{ id: OWNER, name: 'Owner', email: 'owner@example.com', emailVerified: true }]);
 });
 
-function app(userId: string | null, aiClient?: AiClient) {
+function app(userId: string | null, aiClient?: AiClient | null) {
+  // The client is always explicit: an ambient ZAI_API_KEY in the developer's
+  // shell must never turn a "no key" test into a live model call.
   return createApp({
     db: harness.db,
     getSession: (userId == null ? () => null : sessionFor(userId)) as (c: Context) => unknown,
-    ...(aiClient ? { aiClient } : {}),
+    aiClient: aiClient ?? null,
   });
 }
 
@@ -145,6 +147,7 @@ interface WeaknessBody {
     blackName: string | null;
     playedAt: string | null;
     moveNumber: number;
+    ply: number;
     moveSan: string;
     bestMoveSan: string;
     phase: string | null;
@@ -511,7 +514,11 @@ describe('GET /report model advice (ST-099)', () => {
     'Before each move, ask what your opponent\u2019s last move attacks - and after choosing ' +
     'one, check it does not leave the moved piece, or anything it was guarding, undefended.';
 
-  function fakeAi(lines: string[] | Error, calls = { n: 0 }): AiClient {
+  function fakeAi(
+    lines: string[] | Error,
+    calls: { n: number; summarize?: number } = { n: 0 },
+    summary: string | Error | null = null,
+  ): AiClient {
     return {
       explainMistake: () => Promise.reject(new Error('not used here')),
       askSocraticQuestion: () => Promise.reject(new Error('not used here')),
@@ -519,6 +526,14 @@ describe('GET /report model advice (ST-099)', () => {
         calls.n += 1;
         if (lines instanceof Error) return Promise.reject(lines);
         return Promise.resolve(lines.slice(0, facts.length));
+      },
+      // Default null rejects: the regeneration path catches and stores no plan.
+      summarizeReport: () => {
+        calls.summarize = (calls.summarize ?? 0) + 1;
+        if (summary instanceof Error) return Promise.reject(summary);
+        return summary === null
+          ? Promise.reject(new Error('not used here'))
+          : Promise.resolve(summary);
       },
     };
   }
@@ -563,10 +578,12 @@ describe('GET /report model advice (ST-099)', () => {
 
   test('keeps the template copy when the model call fails', async () => {
     await seedAdviceGames();
-    const res = await app(OWNER, fakeAi(new Error('Gemini down'))).request('/report?stream=online');
+    const res = await app(OWNER, fakeAi(new Error('Z.AI down'))).request('/report?stream=online');
     expect(res.status).toBe(200);
     const body = (await res.json()) as ReportBody;
     expect(body.weaknesses.find((w) => w.kind === 'motif')!.advice).toBe(HANGING_PIECE_TEMPLATE);
+    // ST-100. The plan is a garnish like the advice: a failed model leaves it null.
+    expect(body.narrative).toBeNull();
     // The phase line keeps the template's derived head and routine body.
     expect(body.weaknesses.find((w) => w.kind === 'phase')!.advice).toContain(
       'pick a candidate move',
@@ -579,5 +596,68 @@ describe('GET /report model advice (ST-099)', () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as ReportBody;
     expect(body.weaknesses.find((w) => w.kind === 'motif')!.advice).toBe(HANGING_PIECE_TEMPLATE);
+    // ST-100. No key, no model path: the plan is null with everything else intact.
+    expect(body.narrative).toBeNull();
+  });
+
+  describe('GET /report model summary (ST-100)', () => {
+    const PLAN =
+      'Start with the 3 hanging pieces at move 1, each costing 100 centipawns; rehearse the pattern before the next event.';
+    test('stores the model plan and never calls the model when serving', async () => {
+      const playerId = await seedAdviceGames();
+      const calls = { n: 0, summarize: 0 };
+      const first = await app(OWNER, fakeAi([MOTIF_LINE, PHASE_LINE], calls, PLAN)).request(
+        '/report?stream=online',
+      );
+      expect(first.status).toBe(200);
+      const body = (await first.json()) as ReportBody;
+      expect(body.narrative).toBe(PLAN);
+      expect(calls.summarize).toBe(1);
+
+      const [stored] = await harness.db.select().from(report).where(eq(report.playerId, playerId));
+      expect(stored!.narrative).toBe(PLAN);
+      expect(stored!.narrativeGeneratedAt).not.toBeNull();
+
+      // A fresh serve reads the stored plan; zero model calls of either kind.
+      const again = await app(
+        OWNER,
+        fakeAi(
+          new Error('serve must not call advise'),
+          calls,
+          new Error('serve must not summarize'),
+        ),
+      ).request('/report?stream=online');
+      expect(again.status).toBe(200);
+      const againBody = (await again.json()) as ReportBody;
+      expect(againBody.id).toBe(body.id);
+      expect(againBody.narrative).toBe(PLAN);
+      expect(calls.n).toBe(1);
+      expect(calls.summarize).toBe(1);
+    });
+
+    test('a plan citing a number outside the fact set is rejected after one retry', async () => {
+      await seedAdviceGames();
+      const calls = { n: 0, summarize: 0 };
+      const res = await app(
+        OWNER,
+        fakeAi([MOTIF_LINE, PHASE_LINE], calls, 'Fix the 99 blunders at move 77.'),
+      ).request('/report?stream=online');
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as ReportBody;
+      expect(body.narrative).toBeNull();
+      expect(calls.summarize).toBe(2);
+    });
+
+    test('evidence instances carry the ply the deep link needs', async () => {
+      await seedAdviceGames();
+      const res = await app(OWNER).request('/report?stream=online');
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as ReportBody;
+      const motif = body.weaknesses.find((w) => w.kind === 'motif')!;
+      expect(motif.evidence.length).toBeGreaterThan(0);
+      for (const instance of motif.evidence) {
+        expect(instance.ply).toBe((instance.moveNumber - 1) * 2 + 1);
+      }
+    });
   });
 });

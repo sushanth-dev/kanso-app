@@ -53,11 +53,11 @@ const handler = new sst.aws.Function('ApiHandler', {
     // The session signing secret (better-auth). Read from .env at deploy time,
     // so it lands in the function configuration rather than the repository.
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET!,
-    // The Gemini key the coach routes read (ADR-0018, ST-080). Read from .env
-    // at deploy time like the session secret; unset, the coach routes are not
-    // mounted.
-    GEMINI_API_KEY: process.env.GEMINI_API_KEY ?? '',
-    GEMINI_MODEL: process.env.GEMINI_MODEL ?? '',
+    // The Z.AI key the coach routes and report prose read (ADR-0018, ADR-0041).
+    // Read from .env at deploy time like the session secret; unset, the coach
+    // routes are not mounted. ZAI_MODEL defaults to glm-5.3-flash in code.
+    ZAI_API_KEY: process.env.ZAI_API_KEY ?? '',
+    ZAI_MODEL: process.env.ZAI_MODEL ?? '',
   },
   // API Gateway caps a request at 30 seconds, so a longer function timeout is a
   // setting that never gets used.

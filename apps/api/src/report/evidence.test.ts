@@ -15,6 +15,7 @@ function instance(moveNumber: number): EvidenceInstance {
     blackName: null,
     playedAt: null,
     moveNumber,
+    ply: (moveNumber - 1) * 2 + 2,
     moveSan: 'Qxc4',
     bestMoveSan: 'Qe3',
     phase: 'middlegame',

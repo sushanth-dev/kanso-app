@@ -210,6 +210,12 @@ const gamesRoute = createRoute({
 const gameReviewRoute = createRoute({
   getParentRoute: () => accountRoute,
   path: '/games/$gameId',
+  // ST-100. The ply a report evidence link deep-links to. Absent or invalid,
+  // the review opens at the first recorded mistake as before.
+  validateSearch: (search: Record<string, unknown>): { ply?: number } =>
+    typeof search.ply === 'number' && Number.isInteger(search.ply) && search.ply >= 1
+      ? { ply: search.ply }
+      : {},
   component: GameReviewRoute,
 });
 

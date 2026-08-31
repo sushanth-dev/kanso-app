@@ -2,7 +2,7 @@
  * ST-099, ADR-0018's third call site: one model-written advice line per
  * report weakness, grounded in the same instances the card shows beneath it.
  *
- * The guardrails mirror the seam's contract in `coaching/gemini.ts`: the
+ * The guardrails mirror the seam's contract in `coaching/zai.ts`: the
  * prompt carries facts only (no FEN, no names, no ids - opening weaknesses
  * are excluded outright, so no PGN-derived string ever reaches the model),
  * and the output is validated mechanically. Every number and every SAN token
@@ -16,7 +16,7 @@
  */
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 
-import type { AiClient, ReportAdviceFacts } from '../coaching/gemini.ts';
+import type { AiClient, ReportAdviceFacts } from '../coaching/zai.ts';
 import type * as schema from '../db/schema.ts';
 import type { ComposedWeakness } from './compose.ts';
 import { groupKeyOf, weaknessEvidence } from './evidence.ts';
@@ -32,11 +32,26 @@ const SAN_PATTERN =
 // class that bit us. Semantic nonsense ("your queen is trapped" with no
 // queen) still passes; upgrade to an engine cross-check if that ever shows
 // up in practice.
-export function adviceIsValid(text: string, facts: ReportAdviceFacts): boolean {
+export function textWithinFacts(
+  text: string,
+  allowedNumbers: ReadonlySet<string>,
+  allowedSans: ReadonlySet<string>,
+  maxSentences: number,
+): boolean {
   const trimmed = text.trim();
   if (trimmed === '') return false;
-  if ((trimmed.match(/[.!?]/g) ?? []).length > 2) return false;
+  if ((trimmed.match(/[.!?]/g) ?? []).length > maxSentences) return false;
 
+  const numbers = trimmed.match(/\d+(?:\.\d+)?/g) ?? [];
+  if (numbers.some((n) => !allowedNumbers.has(n))) return false;
+
+  const sans = trimmed.match(SAN_PATTERN) ?? [];
+  if (sans.some((san) => !allowedSans.has(san))) return false;
+
+  return true;
+}
+
+export function adviceIsValid(text: string, facts: ReportAdviceFacts): boolean {
   const allowedNumbers = new Set<string>();
   for (const instance of facts.instances) {
     allowedNumbers.add(String(instance.moveNumber));
@@ -48,14 +63,8 @@ export function adviceIsValid(text: string, facts: ReportAdviceFacts): boolean {
   allowedNumbers.add(String(facts.gamesCovered));
   allowedNumbers.add(String(facts.ratingLeak));
 
-  const numbers = trimmed.match(/\d+(?:\.\d+)?/g) ?? [];
-  if (numbers.some((n) => !allowedNumbers.has(n))) return false;
-
   const allowedSans = new Set(facts.instances.flatMap((i) => [i.moveSan, i.bestMoveSan]));
-  const sans = trimmed.match(SAN_PATTERN) ?? [];
-  if (sans.some((san) => !allowedSans.has(san))) return false;
-
-  return true;
+  return textWithinFacts(text, allowedNumbers, allowedSans, 2);
 }
 
 /**
