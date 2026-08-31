@@ -494,6 +494,25 @@ show "Analysis in progress."; a `failed` game shows "Analysis failed." with a
 the list. The status text and the Delete button are separate channels, so the
 state never travels by hue alone.
 
+ST-101 adds practice mode to the review page. The flagged mistake card carries
+a **Try it yourself** action — the surface's one accent — that lifts the board
+back to the mistake's stored position, oriented from the player's own colour,
+with the played move not made. The squares become interactive: picking a piece
+of the side to move outlines its square (an ink line over a paper ring) and
+marks its legal destinations with the hint dots the board section specifies,
+and pieces move by click or by drag. The prompt names the judgement and phase
+("Blunder, Opening: find the better move") and never the solution. Three
+attempts render as ink pips beside a text count, so meaning never travels by
+hue alone; a wrong legal move refuses as "Not the best move." and the piece
+returns, because the position never changed. **Show me**, or a third wrong
+attempt, ends the attempt unsolved: the best move plays on the board and a
+static Card states the move actually played, the best move, and the
+evaluation swing in IBM Plex Mono. No animation joins the board or the reveal
+(ADR-0017); the controls are Astryx Buttons whose labels name the action, and
+the board's aria-label keeps describing the live position through
+`describePosition`. **Back to review** returns to the play-through at the
+mistake's ply.
+
 ### Import
 
 The import form is one `Card` at `/account/players/$playerId/import` with a
