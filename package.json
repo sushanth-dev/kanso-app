@@ -36,5 +36,8 @@
     "sst": "^4.17.1",
     "typescript-eslint": "^8.66.0",
     "vitest": "^4.1.10"
+  },
+  "allowScripts": {
+    "stockfish@18.0.8": true
   }
 }
