@@ -366,6 +366,12 @@ the same `PATCH /me` the player form uses. Sign-in and sign-up land on the
 report, not settings, and the report's empty state links to import, so a player
 with no games is never stranded.
 
+Each settings section sits on the shared glass Card (Sushanth's ask, 31 August
+2026): Account details, Appearance, Default usernames and Security render as
+Cards from `@astryxdesign/core`, so the page carries the same bordered,
+ground-tinted surfaces every other page uses. The identity block stays bare
+under the H1.
+
 The username is the player's public handle: what a kid shows to other players
 instead of their real name. It is set in the player form and must be unique
 across accounts (ST-084). The real name (`me.name`) is kept for guardian-facing
