@@ -164,6 +164,27 @@ describe('POST /imports (pgn_upload)', () => {
     expect(jobs).toHaveLength(0);
   });
 
+  test('refuses an upload over the 30-game cap, storing nothing', async () => {
+    const playerId = await seedPlayer('Cap Tester');
+    const over = Array.from(
+      { length: 31 },
+      (_, i) => `[Event "Cap ${i}"]\n[Result "1-0"]\n\n1. e4 e5 1-0`,
+    ).join('\n\n');
+    const res = await upload(OWNER, {
+      source: 'pgn_upload',
+      stream: 'tournament',
+      pgn: over,
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { code?: string; message?: string };
+    expect(body.code).toBe('too_many_games');
+    expect(body.message).toContain('30');
+    const rows = await harness.sql`SELECT id FROM game WHERE player_id = ${playerId}`;
+    expect(rows).toHaveLength(0);
+    const jobs = await harness.sql`SELECT id FROM import_job WHERE player_id = ${playerId}`;
+    expect(jobs).toHaveLength(0);
+  });
+
   test('re-uploading the same PGN does not duplicate games', async () => {
     const playerId = await seedPlayer('Test Player');
     const body = {
