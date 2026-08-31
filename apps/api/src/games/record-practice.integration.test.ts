@@ -13,6 +13,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest'
 import { createApp } from '../app.ts';
 import { game, mistake, player, practiceAttempt } from '../db/schema.ts';
 import { user } from '../db/auth-schema.ts';
+import { XP_PER_ACTIVITY_DAY } from '../players/activity.ts';
 import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-harness.ts';
 
 let harness: IntegrationDatabase;
@@ -238,5 +239,90 @@ describe('GET /report practice flag', () => {
     expect(flagged.find((e) => e.gameId === a && e.ply === 20)!.practiced).toBe(true);
     expect(flagged.find((e) => e.gameId === a && e.ply === 10)!.practiced).toBe(false);
     expect(flagged.find((e) => e.gameId === b && e.ply === 10)!.practiced).toBe(false);
+  });
+});
+
+describe('practice feeds the streak (ST-103)', () => {
+  async function playerState(ownerId: string) {
+    const [row] = await harness.db
+      .select({
+        currentStreak: player.currentStreak,
+        xp: player.xp,
+        lastActivityDate: player.lastActivityDate,
+      })
+      .from(player)
+      .where(eq(player.ownerUserId, ownerId));
+    return row!;
+  }
+
+  test('the first solve of a day records the streak and XP, visible on /me', async () => {
+    const gameId = await seedOwnedGame(OWNER);
+    await addMistake(gameId, { ply: 10, moveNumber: 5 });
+
+    const res = await post(OWNER, gameId, { ply: 10, solved: true });
+    expect(res.status).toBe(200);
+
+    const state = await playerState(OWNER);
+    expect(state.currentStreak).toBe(1);
+    expect(state.xp).toBe(XP_PER_ACTIVITY_DAY);
+
+    const me = await app(OWNER).request('/me');
+    expect(me.status).toBe(200);
+    expect(await me.json()).toMatchObject({
+      player: { currentStreak: 1, xp: XP_PER_ACTIVITY_DAY },
+    });
+  });
+
+  test('a second solve on the same day awards XP once', async () => {
+    const playerId = await seedPlayer(OWNER);
+    const a = await seedGame(playerId);
+    const b = await seedGame(playerId);
+    await addMistake(a, { ply: 10, moveNumber: 5 });
+    await addMistake(b, { ply: 10, moveNumber: 5 });
+
+    await post(OWNER, a, { ply: 10, solved: true });
+    await post(OWNER, b, { ply: 20, solved: true });
+
+    expect(await playerState(OWNER)).toMatchObject({
+      currentStreak: 1,
+      xp: XP_PER_ACTIVITY_DAY,
+    });
+  });
+
+  test('a reveal or a failed attempt records nothing', async () => {
+    const gameId = await seedOwnedGame(OWNER);
+    await addMistake(gameId, { ply: 10, moveNumber: 5 });
+
+    const revealed = await post(OWNER, gameId, { ply: 10, solved: false });
+    expect(revealed.status).toBe(200);
+    expect(await playerState(OWNER)).toMatchObject({
+      currentStreak: 0,
+      xp: 0,
+      lastActivityDate: null,
+    });
+
+    // The solve after it still pays, once.
+    await post(OWNER, gameId, { ply: 10, solved: true });
+    expect(await playerState(OWNER)).toMatchObject({
+      currentStreak: 1,
+      xp: XP_PER_ACTIVITY_DAY,
+    });
+  });
+
+  test('reviewing a game and solving a puzzle on the same day awards XP once', async () => {
+    const gameId = await seedOwnedGame(OWNER);
+    await addMistake(gameId, { ply: 10, moveNumber: 5 });
+
+    // GET /games is the endpoint the review surface opens; on a complete
+    // analysis it is the ST-080 activity trigger.
+    const review = await app(OWNER).request(`/games/${gameId}`);
+    expect(review.status).toBe(200);
+
+    await post(OWNER, gameId, { ply: 10, solved: true });
+
+    expect(await playerState(OWNER)).toMatchObject({
+      currentStreak: 1,
+      xp: XP_PER_ACTIVITY_DAY,
+    });
   });
 });
