@@ -48,7 +48,7 @@ function isMinorDob(dateOfBirth: string): boolean {
 
 export function AuthAmbient() {
   return (
-    <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10">
+    <div aria-hidden="true" data-decor-backdrop className="pointer-events-none fixed inset-0 -z-10">
       <RibbonFieldBackground className="h-full w-full" />
     </div>
   );

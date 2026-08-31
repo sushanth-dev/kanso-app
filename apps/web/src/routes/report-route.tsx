@@ -274,7 +274,7 @@ function AnalyzingBanner({ games }: { games: GameSummary[] }) {
  */
 function AnalyzingList({ games }: { games: GameSummary[] }) {
   return (
-    <ol className="list-decimal space-y-0.5 pl-5">
+    <ol className="glass-raised inline-block rounded-surface px-4 py-3 text-left list-decimal space-y-0.5 pl-5">
       {games.map((game) => (
         <li key={game.id} className="text-sm text-primary">
           {game.whiteName ?? 'White'} vs {game.blackName ?? 'Black'}

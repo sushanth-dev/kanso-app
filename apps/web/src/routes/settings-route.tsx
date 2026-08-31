@@ -6,6 +6,7 @@ import { FormLayout } from '@astryxdesign/core/FormLayout';
 import { Heading } from '@astryxdesign/core/Heading';
 import { Link } from '@astryxdesign/core/Link';
 import { Text } from '@astryxdesign/core/Text';
+import { RadioList, RadioListItem } from '@astryxdesign/core/RadioList';
 import { useQueryClient, useSuspenseQuery, type QueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import type { AccountApi, Me } from '../api/account-api.ts';
@@ -15,6 +16,11 @@ import { ChangePasswordForm } from '../components/change-password-form.tsx';
 import { StatusMessage } from '../components/status-message.tsx';
 import { TextInput } from '../components/text-input.tsx';
 import { ME_QUERY_KEY, meQueryOptions } from '../query-client.ts';
+import {
+  resolveInitialContrast,
+  setContrast as persistContrast,
+  type ContrastPreference,
+} from '../contrast.ts';
 
 function readText(data: FormData, key: string): string {
   const value = data.get(key);
@@ -33,6 +39,8 @@ export function SettingsScreen({ me, signOut, accountApi, queryClient }: Setting
   const [savingUsernames, setSavingUsernames] = useState(false);
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [usernameSaved, setUsernameSaved] = useState(false);
+  // Seeded lazily so the stored choice or the OS hint decides the first paint.
+  const [contrast, setContrast] = useState<ContrastPreference>(resolveInitialContrast);
 
   async function handleSignOut() {
     setSignOutError(null);
@@ -99,6 +107,32 @@ export function SettingsScreen({ me, signOut, accountApi, queryClient }: Setting
         </Text>
         <div>
           <Button label="See plans" href="/upgrade" variant="primary" className="mt-3" />
+        </div>
+      </section>
+
+      <section aria-labelledby="appearance-heading" className="mt-8">
+        <Heading level={2} id="appearance-heading">
+          Appearance
+        </Heading>
+        <Text as="p" display="block" type="supporting" className="mt-1">
+          High contrast swaps the glass surfaces for solid white with black text, easier to read in
+          bright light or with low vision.
+        </Text>
+        <div className="mt-3 max-w-sm">
+          <RadioList
+            label="Contrast"
+            value={contrast}
+            onChange={(value) => {
+              // The radio group reports strings; only the two theme values
+              // are meaningful, so everything else is ignored.
+              if (value !== 'standard' && value !== 'high') return;
+              persistContrast(value);
+              setContrast(value);
+            }}
+          >
+            <RadioListItem label="Standard" value="standard" />
+            <RadioListItem label="High contrast" value="high" />
+          </RadioList>
         </div>
       </section>
 

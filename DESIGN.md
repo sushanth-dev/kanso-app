@@ -143,7 +143,10 @@ enough to pass 4.5:1 as text. Info becomes **Cyan** (#3ecbd3), success
 
 Pure white surfaces and black text, muted #333333, accent #7c2d12, and a
 double-ring focus (black over a white offset) to satisfy WCAG 2.4.13 on any
-ground. Authored to reach WCAG AAA for all text.
+ground. Authored to reach WCAG AAA for all text. The theme ships behind
+`data-contrast='high'` on the html element (ST-104): Settings offers a
+Contrast choice under Appearance, the system's `prefers-contrast: more` hint
+sets the initial theme, and a stored choice always wins over the hint.
 
 ### The board
 
@@ -216,9 +219,16 @@ backdrop blur, so the ThreeUI particle field and the auth clouds read through
 the card, blurred. The recipe keeps one inset top highlight and one soft
 ambient shadow as part of the glass treatment; the shadow belongs to the
 glass, not to a shadow vocabulary. Muted ink holds 7.7:1 over the mix, so the
-contrast floors survive the transparency. Under
+contrast floors survive the transparency. The report's analysing list adds
+`.glass-raised` (ST-104), the same recipe mixed from white at 55% because the
+list sits on a card rather than on the page. Under
 `prefers-reduced-transparency: reduce`, the glass surfaces (cards, `.glass`,
-`.glass-top`) fall back to their opaque token surfaces with no blur.
+`.glass-top`, `.glass-raised`) fall back to their opaque token surfaces with
+no blur. Under the high-contrast theme the whole family flattens further
+(ST-104): opaque token surfaces, no blur, no glass shadows, and a hairline
+`border-strong` boundary on the raised surfaces so a white card keeps an edge
+on the white page, while the decorative canvas fields behind content are
+hidden entirely.
 
 ## Shapes
 
@@ -285,7 +295,8 @@ where nothing scrolls beneath.
   and pressed step to the darker terracotta. Astryx `Button` with
   `variant="primary"`.
 - **Focus:** teal ring; the global `::focus-visible` fallback uses a 0.25rem
-  outline.
+  outline. Under the high-contrast theme the ring doubles (ST-104): the black
+  token outline over a white offset ring, so focus reads on any ground.
 
 ### Links
 
