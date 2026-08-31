@@ -16,7 +16,9 @@
  * one: the shape of the body is a contract question (400), whether the ply is
  * one of this game's mistakes is a question about stored state (422, the code
  * every other semantic refusal here uses). No row is written for a ply the
- * analysis never classified.
+ * ST-103: a solved drill is also the day's activity — `recordActivity` runs in
+ * the same transaction, so practice joins the streak and XP loop on the same
+ * terms as reviewing a game, and a reveal never pays.
  */
 import type { Context } from 'hono';
 import { and, eq, sql } from 'drizzle-orm';
@@ -25,6 +27,7 @@ import type { OpenAPIHono } from '@hono/zod-openapi';
 import { recordPractice } from '../contract/routes.ts';
 import * as schema from '../db/schema.ts';
 import { game, mistake, player, practiceAttempt } from '../db/schema.ts';
+import { recordActivity } from '../players/activity.ts';
 import { readSession } from '../session.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
@@ -70,6 +73,11 @@ export function mountRecordPractice(
           },
         })
         .returning();
+      // ST-103: a solved drill is the day's activity. Gated on this request
+      // being a solve, so a reveal never pays, and inside the transaction so
+      // an attempt that fails to record cannot either; the day-granular
+      // compare-and-swap makes every repeat a no-op.
+      if (solved) await recordActivity(tx, owner.playerId);
       return { kind: 'recorded' as const, row: row! };
     });
 
