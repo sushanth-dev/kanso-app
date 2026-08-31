@@ -724,6 +724,36 @@ export const proofSheet = pgTable(
   (t) => [index('proof_sheet_focus_idx').on(t.playerFocusId)],
 );
 
+// ─── Practice ────────────────────────────────────────────────────────────────
+
+/**
+ * ST-102. The record that a player worked on a weakness the report named: one
+ * row per (player, game, ply) they practised, keyed the way a mistake is. The
+ * report already shows where a weakness lives; this is what lets it show what
+ * the player has done about those places. `attempts` counts completed drills -
+ * solved or revealed - rather than raw wrong moves, because one drill is the
+ * event the player experiences; `solved` is sticky, so a position solved once
+ * stays solved even if a later attempt was revealed.
+ */
+export const practiceAttempt = pgTable(
+  'practice_attempt',
+  {
+    playerId: uuid('player_id')
+      .notNull()
+      .references(() => player.id, { onDelete: 'cascade' }),
+    gameId: uuid('game_id')
+      .notNull()
+      .references(() => game.id, { onDelete: 'cascade' }),
+    ply: smallint('ply').notNull(),
+    /** Completed drills recorded against this position. */
+    attempts: integer('attempts').notNull().default(0),
+    /** True when any attempt on this position was solved. */
+    solved: boolean('solved').notNull().default(false),
+    lastAttemptAt: timestamp('last_attempt_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.playerId, t.gameId, t.ply] })],
+);
+
 // ─── Relations ───────────────────────────────────────────────────────────────
 
 export const playerRelations = relations(player, ({ many }) => ({
@@ -732,6 +762,10 @@ export const playerRelations = relations(player, ({ many }) => ({
   reports: many(report),
   focuses: many(playerFocus),
   imports: many(importJob),
+}));
+
+export const practiceAttemptRelations = relations(practiceAttempt, ({ one }) => ({
+  game: one(game, { fields: [practiceAttempt.gameId], references: [game.id] }),
 }));
 
 export const gameRelations = relations(game, ({ one, many }) => ({

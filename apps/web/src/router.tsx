@@ -212,10 +212,20 @@ const gameReviewRoute = createRoute({
   path: '/games/$gameId',
   // ST-100. The ply a report evidence link deep-links to. Absent or invalid,
   // the review opens at the first recorded mistake as before.
-  validateSearch: (search: Record<string, unknown>): { ply?: number } =>
-    typeof search.ply === 'number' && Number.isInteger(search.ply) && search.ply >= 1
-      ? { ply: search.ply }
-      : {},
+  // ST-102. `practice=1` marks an arrival from the report's "Practice this"
+  // link: the review opens that drill once, then the flag is stripped again.
+  validateSearch: (search: Record<string, unknown>): { ply?: number; practice?: boolean } => {
+    const ply =
+      typeof search.ply === 'number' && Number.isInteger(search.ply) && search.ply >= 1
+        ? search.ply
+        : undefined;
+    // The router parses bare query values as JSON, so the link's `1` arrives
+    // as a number; accept the spelled-out boolean too.
+    return {
+      ...(ply !== undefined ? { ply } : {}),
+      ...(search.practice === true || search.practice === 1 ? { practice: true } : {}),
+    };
+  },
   component: GameReviewRoute,
 });
 
