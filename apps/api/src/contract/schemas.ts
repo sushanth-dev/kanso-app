@@ -565,6 +565,10 @@ export const Weakness = z
     rank: z.number().int(),
     /** ST-098. What to do about the weakness; null when no honest line exists. */
     advice: z.string().nullable(),
+    /** ST-105. True when a verified summary closed this weakness group's advice. */
+    done: z.boolean(),
+    /** ST-105. When the advice was marked done; null while it stays open. */
+    completedAt: z.iso.datetime().nullable(),
     /**
      * ST-098. The places the weakness was found: at most three, worst first,
      * from the same rows and window the leak was summed over.
@@ -597,6 +601,38 @@ export const Report = z
     narrative: z.string().nullable(),
   })
   .openapi('Report');
+
+/**
+ * ST-105. The body of marking one weakness's advice done: which report scope,
+ * which weakness (kind, label, and the ECO that disambiguates openings), and
+ * the summary the model will judge. The server resolves the weakness against
+ * the player's stored latest report, so only a weakness the player can see can
+ * be marked.
+ */
+export const MarkAdviceDone = z
+  .object({
+    stream: Stream,
+    tournamentId: Uuid.nullable().openapi({
+      description: 'Set when the report is scoped to one tournament; null for the stream report.',
+    }),
+    kind: WeaknessKind,
+    label: z.string().openapi({ example: 'Hanging piece' }),
+    eco: z.string().nullable().openapi({ example: 'B22' }),
+    summary: z.string().min(1).max(2000).openapi({
+      description: 'The player\u2019s own summary of what they did about the advice.',
+    }),
+  })
+  .openapi('MarkAdviceDone');
+
+/** ST-105. The verdict on one close-out summary, plus the resulting done state. */
+export const AdviceDone = z
+  .object({
+    pass: z.boolean(),
+    feedback: z.string(),
+    /** Set when the advice is now done: on this pass, or on an earlier one. */
+    completedAt: z.iso.datetime().nullable(),
+  })
+  .openapi('AdviceDone');
 
 // ─── Focus ───────────────────────────────────────────────────────────────────
 

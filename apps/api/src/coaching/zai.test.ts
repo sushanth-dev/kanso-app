@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import {
+  AdviceVerifyFacts,
   httpZaiClient,
   zaiConfigFromEnv,
   type MistakeFacts,
@@ -229,5 +230,72 @@ describe('httpZaiClient.summarizeReport', () => {
   test('propagates a provider failure', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status: 500 })));
     await expect(httpZaiClient(config).summarizeReport(summaryFacts)).rejects.toThrow();
+  });
+});
+
+const verifyFacts: AdviceVerifyFacts = {
+  label: 'Hanging piece',
+  advice: 'Count defenders on every piece after each opponent move.',
+  summary: 'I counted defenders before every capture for a week.',
+};
+
+describe('httpZaiClient.verifyAdviceSummary', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  test('sends the label, the advice and the summary as data, and nothing else', async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(
+        stubResponse('{"pass": true, "feedback": "Good, that is the habit that stops the leaks."}'),
+      );
+    vi.stubGlobal('fetch', fetcher);
+
+    const verdict = await httpZaiClient(config).verifyAdviceSummary(verifyFacts);
+
+    expect(verdict).toEqual({
+      pass: true,
+      feedback: 'Good, that is the habit that stops the leaks.',
+    });
+    const [, init] = fetcher.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(init.body as string) as { messages: { content: string }[] };
+    const prompt = body.messages[0]!.content;
+    expect(prompt).toContain('"advice": "Count defenders');
+    expect(prompt).toContain('"weakness": "Hanging piece"');
+    // ADR-0018: no position, no names, no identifiers ever reach the model.
+    expect(prompt).not.toMatch(/rnbq/i);
+    expect(prompt).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}/i);
+  });
+
+  test('strips markdown fences around the verdict object', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(
+          stubResponse('```json\n{"pass": false, "feedback": "Name one concrete detail."}\n```'),
+        ),
+    );
+    await expect(httpZaiClient(config).verifyAdviceSummary(verifyFacts)).resolves.toEqual({
+      pass: false,
+      feedback: 'Name one concrete detail.',
+    });
+  });
+
+  test('rejects a verdict without a boolean pass', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(stubResponse('{"pass": "yes"}')));
+    await expect(httpZaiClient(config).verifyAdviceSummary(verifyFacts)).rejects.toThrow();
+  });
+
+  test('rejects a feedback line past the cap', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(stubResponse(`{"pass": true, "feedback": "${'x'.repeat(281)}"}`)),
+    );
+    await expect(httpZaiClient(config).verifyAdviceSummary(verifyFacts)).rejects.toThrow();
+  });
+
+  test('propagates a provider failure', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status: 500 })));
+    await expect(httpZaiClient(config).verifyAdviceSummary(verifyFacts)).rejects.toThrow();
   });
 });

@@ -85,6 +85,7 @@ describe('generateSummary', () => {
       askSocraticQuestion: () => Promise.reject(new Error('not used here')),
       adviseWeaknesses: () => Promise.reject(new Error('not used here')),
       summarizeReport,
+      verifyAdviceSummary: () => Promise.reject(new Error('not used here')),
     };
     return { client, summarizeReport };
   };

@@ -155,6 +155,13 @@
       "when": 1788154914599,
       "tag": "0021_magical_beast",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1788173786984,
+      "tag": "0022_tough_shatterstar",
+      "breakpoints": true
     }
   ]
 }

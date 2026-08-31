@@ -33,6 +33,9 @@ const aiClient: AiClient = {
   summarizeReport() {
     return Promise.reject(new Error('not used here'));
   },
+  verifyAdviceSummary() {
+    return Promise.reject(new Error('not used here'));
+  },
 };
 
 beforeAll(async () => {

@@ -18,7 +18,7 @@ import { and, asc, desc, eq, inArray, isNotNull, isNull, max, or, sql } from 'dr
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { z } from 'zod';
-import { getReport } from '../contract/routes.ts';
+import { getReport, markAdviceDone } from '../contract/routes.ts';
 import { Report } from '../contract/schemas.ts';
 import * as schema from '../db/schema.ts';
 import { game, report, weakness } from '../db/schema.ts';
@@ -32,6 +32,7 @@ import { composeReport, type ComposedWeakness } from './compose.ts';
 import { adviceForReport } from './advice.ts';
 import { summaryForReport } from './summary.ts';
 import type { AiClient } from '../coaching/zai.ts';
+import { completedAdviceAt, completeAdvice, readAdviceProgress } from './advice-progress.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
 type Stream = (typeof schema.streamEnum.enumValues)[number];
@@ -121,15 +122,20 @@ function toResponse(r: ReportRow, ws: WeaknessRow[]): ReportResponse {
       // ST-099. The model line stored with the report; `withEvidence` falls
       // back to the template copy when it is null.
       advice: w.advice,
+      // ST-105. Filled in by `withEvidence` from the progress table.
+      done: false,
+      completedAt: null,
     })),
     narrative: r.narrative,
   };
 }
 
 /**
- * ST-098. Attach the places and the advice to each weakness. The instances
- * come from the same window the report was computed over, so a stored report
- * and its evidence stay consistent after both leave the database.
+ * ST-098. Attach the places, the advice, and the done state to each weakness.
+ * The instances come from the same window the report was computed over, so a
+ * stored report and its evidence stay consistent after both leave the
+ * database. The done state is one progress read for the whole report, keyed
+ * by group, so it survives the weakness rows being rewritten on regeneration.
  */
 async function withEvidence(
   db: Db,
@@ -139,15 +145,21 @@ async function withEvidence(
   windowStart: Date | null,
   response: ReportResponse,
 ): Promise<ReportResponse> {
+  const progress = await readAdviceProgress(db, playerId);
   const groups = response.weaknesses
     .map((w) => ({ kind: w.kind, key: groupKeyOf(w.kind, w.label, w.eco) }))
     .filter((g): g is { kind: typeof g.kind; key: string } => g.key !== null);
   const evidence = await weaknessEvidence(db, playerId, stream, tournamentId, windowStart, groups);
   for (const w of response.weaknesses) {
-    w.evidence = evidence.get(`${w.kind}:${groupKeyOf(w.kind, w.label, w.eco)}`) ?? [];
+    const key = groupKeyOf(w.kind, w.label, w.eco);
+    w.evidence = evidence.get(`${w.kind}:${key}`) ?? [];
     // ST-099. The stored model line wins; the template remains the fallback
     // for reports generated without a key and for pre-ST-099 rows.
-    w.advice = w.advice ?? adviceFor(w.kind, groupKeyOf(w.kind, w.label, w.eco) ?? '', w.evidence);
+    w.advice = w.advice ?? adviceFor(w.kind, key ?? '', w.evidence);
+    // ST-105. An opening's key is its ECO, and a null key is never markable.
+    const completedAt = key === null ? undefined : progress.get(`${w.kind}:${key}`);
+    w.done = completedAt !== undefined;
+    w.completedAt = completedAt?.toISOString() ?? null;
   }
   return response;
 }
@@ -405,4 +417,98 @@ export function mountReport(
       200,
     );
   });
+  // ST-105. The close-out judges a summary, so it exists only when the model
+  // does, the same mount condition as the coaching routes.
+  const ai = deps.aiClient;
+  if (ai) {
+    app.openapi(markAdviceDone, async (c) => {
+      const body = c.req.valid('json');
+      const session = await readSession(deps.getSession, c);
+      if (session === null) {
+        return c.json({ code: 'no_session', message: 'Sign in to use this endpoint.' }, 401);
+      }
+      const playerId = await getOwnPlayerId(deps.db, session.userId);
+      if (playerId === null) {
+        return c.json({ code: 'not_found', message: 'No such player.' }, 404);
+      }
+      const inTournament = body.tournamentId ?? undefined;
+      const stored = await latestReport(deps.db, playerId, body.stream, inTournament);
+      if (stored === null) {
+        return c.json({ code: 'no_report', message: 'No stored report for this scope.' }, 404);
+      }
+      // Only a weakness the stored report actually shows can be marked; the
+      // group key, not the row id, is what the progress row is keyed by.
+      const weakness = stored.weaknesses.find(
+        (w) =>
+          w.kind === body.kind && w.label === body.label && (w.eco ?? null) === (body.eco ?? null),
+      );
+      if (weakness === undefined) {
+        return c.json(
+          { code: 'no_such_weakness', message: 'That weakness is not on the stored report.' },
+          422,
+        );
+      }
+      const key = groupKeyOf(weakness.kind, weakness.label, weakness.eco);
+      if (key === null) {
+        return c.json(
+          { code: 'no_such_weakness', message: 'That weakness has no stable group to mark.' },
+          422,
+        );
+      }
+      const doneAt = await completedAdviceAt(deps.db, playerId, weakness.kind, key);
+      if (doneAt !== null) {
+        // The prototype's guard: an already-done item never re-runs the model
+        // and never re-pays the XP.
+        return c.json(
+          { pass: true, feedback: 'This one was already done.', completedAt: doneAt.toISOString() },
+          200,
+        );
+      }
+      // The line the card serves: the stored model line, or the template copy.
+      const evidence = await weaknessEvidence(
+        deps.db,
+        playerId,
+        body.stream,
+        inTournament,
+        stored.windowStart,
+        [{ kind: weakness.kind, key }],
+      );
+      const advice =
+        weakness.advice ??
+        adviceFor(weakness.kind, key, evidence.get(`${weakness.kind}:${key}`) ?? []);
+      if (advice === null) {
+        return c.json(
+          {
+            code: 'no_advice',
+            message: 'That weakness has no advice line to verify a summary against.',
+          },
+          422,
+        );
+      }
+      let verdict;
+      try {
+        verdict = await ai.verifyAdviceSummary({
+          label: weakness.label,
+          advice,
+          summary: body.summary,
+        });
+      } catch {
+        return c.json(
+          { code: 'coach_unavailable', message: 'The model call failed. Nothing was stored.' },
+          502,
+        );
+      }
+      if (!verdict.pass) {
+        return c.json({ pass: false, feedback: verdict.feedback, completedAt: null }, 200);
+      }
+      const at = await completeAdvice(deps.db, playerId, weakness.kind, key, body.summary);
+      const completedAt = (
+        at ?? (await completedAdviceAt(deps.db, playerId, weakness.kind, key))
+      )?.toISOString();
+      return c.json(
+        { pass: true, feedback: verdict.feedback, completedAt: completedAt ?? null },
+        200,
+      );
+    });
+  }
 }
