@@ -83,6 +83,7 @@ describe('parsePgn', () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.faults[0]!.reason).toMatch(/too many games/i);
+    expect(result.faults[0]!.code).toBe('too_many_games');
   });
 
   test('splits and imports a moveless forfeit game as its own entry', () => {

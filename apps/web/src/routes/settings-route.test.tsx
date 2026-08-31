@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, RouterContextProvider } from '@tanstack/react-router';
-import { describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import { ApiRequestError, type Me, type Player } from '../api/account-api.ts';
 import { accountApi } from '../api/account-api.ts';
 import { ME_QUERY_KEY } from '../query-client.ts';
@@ -202,5 +202,42 @@ describe('SettingsScreen', () => {
     await waitFor(() => {
       expect(queryClient.getQueryData(ME_QUERY_KEY)).toBeUndefined();
     });
+  });
+
+  // ST-104. The Appearance section writes the real theme attribute and the
+  // real localStorage key, so these tests reset both after themselves.
+  afterEach(() => {
+    document.documentElement.removeAttribute('data-contrast');
+    localStorage.clear();
+  });
+
+  test('renders the Appearance section with both contrast options', () => {
+    renderSettings();
+    expect(screen.getByRole('heading', { name: 'Appearance' })).toBeVisible();
+    expect(screen.getByRole('radiogroup', { name: 'Contrast' })).toBeVisible();
+    expect(screen.getByRole('radio', { name: 'Standard' })).toBeVisible();
+    expect(screen.getByRole('radio', { name: 'High contrast' })).toBeVisible();
+  });
+
+  test('choosing High contrast sets the scope attribute and stores the choice', async () => {
+    const user = userEvent.setup();
+    renderSettings();
+
+    await user.click(screen.getByLabelText('High contrast'));
+
+    expect(document.documentElement.getAttribute('data-contrast')).toBe('high');
+    expect(localStorage.getItem('kanso-contrast')).toBe('high');
+  });
+
+  test('choosing Standard clears the scope attribute and stores the choice', async () => {
+    document.documentElement.setAttribute('data-contrast', 'high');
+    localStorage.setItem('kanso-contrast', 'high');
+    const user = userEvent.setup();
+    renderSettings();
+
+    await user.click(screen.getByLabelText('Standard'));
+
+    expect(document.documentElement.hasAttribute('data-contrast')).toBe(false);
+    expect(localStorage.getItem('kanso-contrast')).toBe('standard');
   });
 });

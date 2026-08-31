@@ -7,8 +7,13 @@ import { LinkProvider } from '@astryxdesign/core/Link';
 import { queryClient } from './query-client.ts';
 import { router } from './router.tsx';
 import { studyRoomTheme } from './theme.ts';
+import { applyContrast, resolveInitialContrast } from './contrast.ts';
 import './styles.css';
 import './study-room-theme.css';
+
+// The attribute must exist at first paint or the high-contrast theme snaps
+// in a frame late. (ST-104)
+applyContrast(resolveInitialContrast());
 
 const root = document.getElementById('root');
 if (root === null) throw new Error('Missing #root mount point.');

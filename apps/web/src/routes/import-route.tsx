@@ -49,6 +49,7 @@ type ImportOutcome =
   | { kind: 'tournament-not-found'; tournamentName: string }
   | { kind: 'name-mismatch'; detail: string }
   | { kind: 'invalid-pgn'; issues: Array<{ path: string; message: string }> }
+  | { kind: 'too-many-games'; message: string }
   | { kind: 'daily-cap'; message: string };
 
 function gamesLabel(count: number): string {
@@ -114,6 +115,8 @@ function outcomeStatus(outcome: ImportOutcome): { tone: StatusTone; message: str
       return { tone: 'error', message: outcome.detail };
     case 'invalid-pgn':
       return { tone: 'error', message: 'The upload contains a game that could not be parsed.' };
+    case 'too-many-games':
+      return { tone: 'error', message: outcome.message };
     case 'daily-cap':
       return { tone: 'error', message: outcome.message };
   }
@@ -283,6 +286,10 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
         }
         if (error.status === 403) {
           setFormError('This player cannot be imported from this account.');
+          return;
+        }
+        if (error.code === 'too_many_games') {
+          setOutcome({ kind: 'too-many-games', message: error.message });
           return;
         }
         if (error.code === 'invalid_pgn') {
