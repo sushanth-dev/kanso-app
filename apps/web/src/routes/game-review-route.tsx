@@ -337,6 +337,17 @@ function PracticeSession({
   const [selected, setSelected] = useState<string | null>(null);
   const playing = status === 'playing';
 
+  // ST-102. The drill records its outcome - solved, or the answer was shown -
+  // so the report can flag the position as practised. A lost record is
+  // logged, never surfaced: the drill has already finished on screen, and a
+  // broken-looking drill would outweigh a missing practiced tick.
+  // ponytail: log-and-continue; queue retries if silent loss ever shows up.
+  const recordOutcome = (solved: boolean) => {
+    diagnosisApi.recordPractice(mistake.gameId, mistake.ply, solved).catch((error: unknown) => {
+      console.error('Recording the practice attempt failed.', error);
+    });
+  };
+
   // The side-to-move pieces that can move: the drag handles.
   const movableSquares = useMemo(
     () => [...new Set(chess.moves({ verbose: true }).map((move) => move.from))],
@@ -377,12 +388,14 @@ function PracticeSession({
           chess.move(candidate.san);
           setFen(chess.fen());
           setStatus('solved');
+          recordOutcome(true);
         } else {
           const left = attemptsLeft - 1;
           setAttemptsLeft(left);
           if (left === 0) {
             playBestMove();
             setStatus('revealed');
+            recordOutcome(false);
           }
         }
       }
@@ -449,6 +462,7 @@ function PracticeSession({
                 onClick={() => {
                   playBestMove();
                   setStatus('revealed');
+                  recordOutcome(false);
                 }}
               />
               <Button label="Back to review" variant="secondary" onClick={onExit} />
@@ -505,10 +519,13 @@ function GameSkeleton() {
 export function GameReviewScreen({
   game,
   targetPly,
+  autoPractice = false,
 }: {
   game: GameDetail;
   /** ST-100. The ply a report evidence link deep-links to; undefined otherwise. */
   targetPly?: number;
+  /** ST-102. The report's "Practice this" link arrived: open the flagged drill. */
+  autoPractice?: boolean;
 }) {
   const [plyIndex, setPlyIndex] = useState(() => initialPlyIndex(game, targetPly));
   const queryClient = useQueryClient();
@@ -523,6 +540,15 @@ export function GameReviewScreen({
   // ST-101. The mistake being practised, or null while the review plays through.
   const [practiceMistake, setPracticeMistake] = useState<Mistake | null>(null);
   const practising = practiceMistake !== null;
+
+  // ST-102. A "Practice this" deep-link arrives with autoPractice and the
+  // flagged ply: open that drill straight away. Mount only: the link means
+  // one arrival, one drill; the route strips the flag from the URL.
+  useEffect(() => {
+    if (!autoPractice) return;
+    const flagged = game.mistakes.find((mistake) => mistake.ply === targetPly);
+    if (flagged !== undefined) setPracticeMistake(flagged);
+  }, []);
 
   // When the player sets their colour (the game starts undecided), orient the
   // board to their side. A manual flip is left alone while the colour is still
@@ -834,10 +860,28 @@ export function GameReviewRoute() {
   const { gameId } = useParams({ from: '/account/games/$gameId' });
   // ST-100. The ply a report evidence link deep-links to; absent on a plain
   // navigation, which leaves the first-mistake default in place.
-  const { ply } = useSearch({ from: '/account/games/$gameId' });
+  const { ply, practice } = useSearch({ from: '/account/games/$gameId' });
+  // ST-102. The flag describes how the player arrived. Capture it once at
+  // mount so stripping it below cannot swallow the deep-link before the
+  // review screen has mounted (the game query keeps the screen off the tree
+  // for a beat).
+  const [practiceAsked] = useState(() => practice === true);
+  // The pathless account layout means the route id is /account/games/$gameId
+  // but the navigation path is /games/$gameId.
+  const navigate = useNavigate({ from: '/games/$gameId' });
   // ST-096. While the game is on the queue or on the engine, poll every five
   // seconds so the review appears without a manual reload. A colourless game
   // is waiting for the player, not the engine, so it does not poll.
+  // ST-102. The practice deep-link opens the drill once; the flag is stripped
+  // with a replace so refresh and back do not reopen it. Mount only: the flag
+  // describes how the player arrived, not a state to keep.
+  useEffect(() => {
+    if (practice !== true) return;
+    void navigate({
+      search: (prev) => ({ ...prev, practice: undefined }),
+      replace: true,
+    });
+  }, []);
   const gameQuery = useQuery({
     ...gameQueryOptions(gameId),
     refetchInterval: (query) =>
@@ -856,5 +900,5 @@ export function GameReviewRoute() {
     );
   }
 
-  return <GameReviewScreen game={gameQuery.data} targetPly={ply} />;
+  return <GameReviewScreen game={gameQuery.data} targetPly={ply} autoPractice={practiceAsked} />;
 }
