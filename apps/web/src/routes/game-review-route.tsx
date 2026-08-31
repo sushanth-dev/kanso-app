@@ -8,7 +8,7 @@ import { Heading } from '@astryxdesign/core/Heading';
 import { Spinner } from '@astryxdesign/core/Spinner';
 import { Text } from '@astryxdesign/core/Text';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useParams } from '@tanstack/react-router';
+import { useNavigate, useParams, useSearch } from '@tanstack/react-router';
 import { isActiveGame } from '../analysis-status.ts';
 import type { CctMove, GameDetail, Mistake, MovePly } from '../api/diagnosis-api.ts';
 import { diagnosisApi } from '../api/diagnosis-api.ts';
@@ -51,8 +51,17 @@ function moverName(color: 'white' | 'black', game: GameDetail): string {
   return color === 'white' ? (game.whiteName ?? 'White') : (game.blackName ?? 'Black');
 }
 
-/** The index into `plies` for the game's first recorded mistake, else 0. */
-function initialPlyIndex(game: GameDetail): number {
+/**
+ * The index into `plies` the review opens at: the deep-linked ply when one
+ * arrives in the URL (ST-100), else the game's first recorded mistake, else
+ * the start. An out-of-range or unknown ply falls through to the same
+ * default rather than a blank board.
+ */
+function initialPlyIndex(game: GameDetail, targetPly: number | undefined): number {
+  if (targetPly !== undefined) {
+    const linked = game.plies.findIndex((ply) => ply.ply === targetPly);
+    if (linked !== -1) return linked;
+  }
   const firstMistake = game.mistakes[0];
   if (firstMistake === undefined) return 0;
   const index = game.plies.findIndex((ply) => ply.ply === firstMistake.ply);
@@ -277,8 +286,15 @@ function GameSkeleton() {
   );
 }
 
-export function GameReviewScreen({ game }: { game: GameDetail }) {
-  const [plyIndex, setPlyIndex] = useState(() => initialPlyIndex(game));
+export function GameReviewScreen({
+  game,
+  targetPly,
+}: {
+  game: GameDetail;
+  /** ST-100. The ply a report evidence link deep-links to; undefined otherwise. */
+  targetPly?: number;
+}) {
+  const [plyIndex, setPlyIndex] = useState(() => initialPlyIndex(game, targetPly));
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -582,6 +598,9 @@ function GameAnalysing() {
 
 export function GameReviewRoute() {
   const { gameId } = useParams({ from: '/account/games/$gameId' });
+  // ST-100. The ply a report evidence link deep-links to; absent on a plain
+  // navigation, which leaves the first-mistake default in place.
+  const { ply } = useSearch({ from: '/account/games/$gameId' });
   // ST-096. While the game is on the queue or on the engine, poll every five
   // seconds so the review appears without a manual reload. A colourless game
   // is waiting for the player, not the engine, so it does not poll.
@@ -603,5 +622,5 @@ export function GameReviewRoute() {
     );
   }
 
-  return <GameReviewScreen game={gameQuery.data} />;
+  return <GameReviewScreen game={gameQuery.data} targetPly={ply} />;
 }

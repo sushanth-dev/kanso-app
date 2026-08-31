@@ -5,7 +5,7 @@
  */
 import { describe, expect, test, vi } from 'vitest';
 import { adviceIsValid, generateAdvice } from './advice.ts';
-import type { ReportAdviceFacts } from '../coaching/gemini.ts';
+import type { ReportAdviceFacts } from '../coaching/zai.ts';
 
 const facts: ReportAdviceFacts = {
   kind: 'motif',
@@ -47,6 +47,7 @@ const fakeAi = (batches: (string[] | Error)[]) => {
     explainMistake: vi.fn(),
     askSocraticQuestion: vi.fn(),
     adviseWeaknesses,
+    summarizeReport: vi.fn(),
   };
   return { client, adviseWeaknesses };
 };
@@ -118,7 +119,7 @@ describe('generateAdvice', () => {
   });
 
   test('does not retry a thrown batch call', async () => {
-    const { client, adviseWeaknesses } = fakeAi([new Error('Gemini down')]);
+    const { client, adviseWeaknesses } = fakeAi([new Error('Z.AI down')]);
     const out = await generateAdvice(client, [facts]);
     expect(out).toEqual([null]);
     expect(adviseWeaknesses).toHaveBeenCalledOnce();

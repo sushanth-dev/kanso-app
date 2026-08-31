@@ -53,7 +53,7 @@ import { mountRazorpayWebhook } from './billing/webhook.ts';
 import { mountExplanation, mountSocraticQuestion } from './coaching/explanation.ts';
 import { mountCctScan } from './coaching/cct.ts';
 import { mountQueueAnalysis } from './analysis/queue-analysis.ts';
-import { httpGeminiClient, geminiConfigFromEnv, type AiClient } from './coaching/gemini.ts';
+import { httpZaiClient, zaiConfigFromEnv, type AiClient } from './coaching/zai.ts';
 import { log } from './logging.ts';
 
 /** The shape of every error the API emits, from `ApiError` in the contract. */
@@ -211,11 +211,13 @@ export interface AppOptions {
    */
   razorpay?: RazorpayClient;
   /**
-   * Generates mistake explanations and Socratic questions (ADR-0018). Defaults
-   * to the real Gemini client read from the environment; tests pass a fake so
-   * no test calls Gemini.
+   * Generates mistake explanations, Socratic questions, and report prose
+   * (ADR-0018, ADR-0041). Defaults to the real Z.AI client read from the
+   * environment; tests pass a fake so no test calls Z.AI. Pass explicit
+   * `null` to test the key-unset behaviour even when the ambient environment
+   * carries a real key.
    */
-  aiClient?: AiClient;
+  aiClient?: AiClient | null;
 }
 
 export function createApp({
@@ -299,8 +301,9 @@ export function createApp({
     const gameFetcher = gameFetcherOption ?? httpGameFetcher;
     const razorpayConfig = razorpayConfigFromEnv();
     const razorpay = razorpayOption ?? (razorpayConfig ? httpRazorpayClient(razorpayConfig) : null);
-    const geminiConfig = geminiConfigFromEnv();
-    const aiClient = aiClientOption ?? (geminiConfig ? httpGeminiClient(geminiConfig) : null);
+    const zaiConfig = zaiConfigFromEnv();
+    const aiClient =
+      aiClientOption !== undefined ? aiClientOption : zaiConfig ? httpZaiClient(zaiConfig) : null;
     mountHealth(app, { db });
     mountMe(app, { db, getSession: effectiveGetSession });
     mountUpdatePlayer(app, { db, getSession: effectiveGetSession });
