@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
+import { Card } from '@astryxdesign/core/Card';
 import { Field } from '@astryxdesign/core/Field';
 import { FormLayout } from '@astryxdesign/core/FormLayout';
 import { Heading } from '@astryxdesign/core/Heading';
@@ -98,7 +99,7 @@ export function SettingsScreen({ me, signOut, accountApi, queryClient }: Setting
         </div>
       </section>
 
-      <section aria-labelledby="account-details-heading" className="mt-8">
+      <Card aria-labelledby="account-details-heading" className="mt-8">
         <Heading level={2} id="account-details-heading">
           Account details
         </Heading>
@@ -108,9 +109,9 @@ export function SettingsScreen({ me, signOut, accountApi, queryClient }: Setting
         <div>
           <Button label="See plans" href="/upgrade" variant="primary" className="mt-3" />
         </div>
-      </section>
+      </Card>
 
-      <section aria-labelledby="appearance-heading" className="mt-8">
+      <Card aria-labelledby="appearance-heading" className="mt-8">
         <Heading level={2} id="appearance-heading">
           Appearance
         </Heading>
@@ -134,9 +135,9 @@ export function SettingsScreen({ me, signOut, accountApi, queryClient }: Setting
             <RadioListItem label="High contrast" value="high" />
           </RadioList>
         </div>
-      </section>
+      </Card>
 
-      <section aria-labelledby="default-usernames-heading" className="mt-8">
+      <Card aria-labelledby="default-usernames-heading" className="mt-8">
         <Heading level={2} id="default-usernames-heading">
           Default usernames
         </Heading>
@@ -190,9 +191,9 @@ export function SettingsScreen({ me, signOut, accountApi, queryClient }: Setting
             />
           </FormLayout>
         </form>
-      </section>
+      </Card>
 
-      <section aria-labelledby="security-heading" className="mt-8">
+      <Card aria-labelledby="security-heading" className="mt-8">
         <Heading level={2} id="security-heading">
           Security
         </Heading>
@@ -215,7 +216,7 @@ export function SettingsScreen({ me, signOut, accountApi, queryClient }: Setting
             className="mt-3 press"
           />
         </div>
-      </section>
+      </Card>
     </>
   );
 }
