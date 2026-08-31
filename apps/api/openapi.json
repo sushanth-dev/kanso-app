@@ -1340,6 +1340,9 @@
           "moveNumber": {
             "type": "integer"
           },
+          "ply": {
+            "type": "integer"
+          },
           "moveSan": {
             "type": "string",
             "example": "Nf6"
@@ -1364,6 +1367,7 @@
           "blackName",
           "playedAt",
           "moveNumber",
+          "ply",
           "moveSan",
           "bestMoveSan",
           "phase",

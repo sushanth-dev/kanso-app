@@ -2,6 +2,7 @@
 
 * Status: accepted
 * Date: 2026-08-04
+* Amended by: [ADR-0041](0041-glm-flash-coaching-prose.md) (2026-08-31; the provider is GLM-5.3-Flash, every rule below stands)
 * Builds on: [ADR-0010](0010-chess-js-pgn-game-logic.md), [ADR-0014](0014-aws-hosting-layout.md)
 
 ## Context

@@ -96,6 +96,16 @@ export function ReportScreen({
           {TIME_TROUBLE_UNAVAILABLE[report.timeTroubleReason ?? 'no_clock_data']}
         </Text>
       )}
+      {report.narrative !== null ? (
+        <Card className="space-y-1 p-4">
+          <Text type="supporting" className="font-ui text-xs">
+            what to do
+          </Text>
+          <Text as="p" display="block" className="text-primary">
+            {report.narrative}
+          </Text>
+        </Card>
+      ) : null}
       {isEmpty ? <EmptyReport report={report} /> : <WeaknessList weaknesses={report.weaknesses} />}
     </div>
   );
@@ -199,7 +209,8 @@ function EvidenceDetail({ weakness }: { weakness: Weakness }) {
                 {instance.bestMoveSan} was better ({instance.judgement},{' '}
                 <span className="font-mono">{instance.cpLoss}</span> cp lost)
               </Text>{' '}
-              <Link href={`/games/${instance.gameId}`}>Review game</Link>
+              {/* ST-100. The ply lands the board on the flagged position. */}
+              <Link href={`/games/${instance.gameId}?ply=${instance.ply}`}>Review game</Link>
             </li>
           ))}
         </ol>

@@ -30,6 +30,7 @@ const evidenceInstance = {
   blackName: 'Opponent',
   playedAt: '2026-08-14T00:00:00.000Z',
   moveNumber: 23,
+  ply: 45,
   moveSan: 'Nf6',
   bestMoveSan: 'e5',
   phase: 'middlegame' as const,
@@ -188,8 +189,22 @@ describe('ReportScreen', () => {
     expect(item).toHaveTextContent('Nf6');
     expect(item).toHaveTextContent('240');
     expect(screen.getByRole('link', { name: 'Review game' }).getAttribute('href')).toBe(
-      `/games/${evidenceInstance.gameId}`,
+      `/games/${evidenceInstance.gameId}?ply=${evidenceInstance.ply}`,
     );
+  });
+
+  test('opens no plan block while the narrative is unwritten', () => {
+    renderReport(reportFixture());
+    expect(screen.queryByText('what to do')).toBeNull();
+  });
+
+  test('renders the model-written plan above the cards', () => {
+    renderReport(
+      reportFixture({
+        narrative: 'Start with the missed captures: count defenders after every opponent move.',
+      }),
+    );
+    expect(screen.getByText(/Start with the missed captures: count defenders/)).toBeVisible();
   });
 
   test('opens no expander on an opening weakness', () => {
