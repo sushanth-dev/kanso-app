@@ -32,6 +32,16 @@ import type { GameFetcher } from './game-fetcher.ts';
 import { ONLINE_IMPORT_DAILY_CAP_GAMES } from './game-fetch-constants.ts';
 import { pliesForImport } from '../analysis/walk-pgn.ts';
 
+/**
+ * A single PGN upload carries at most 30 games. The ranked report aggregates
+ * over every analysed game of a tournament, and 48 games once stalled the
+ * endpoint for minutes, so the upload cap keeps a tournament out of that
+ * regime. The parse boundary's own 500-game shape guard stays independent:
+ * 30 is a product decision, 500 is bomb protection. Raise together with the
+ * report's ceiling, not alone.
+ */
+export const MAX_PGN_UPLOAD_GAMES = 30;
+
 type Db = PostgresJsDatabase<typeof schema>;
 
 /** A parsed game plus the provider's own id, which only a username import has. */
@@ -290,8 +300,21 @@ export function mountImport(
     let tournament: ImportGamesResult['tournament'];
 
     if (body.source === 'pgn_upload') {
-      const parsed = parsePgn(body.pgn);
+      const parsed = parsePgn(body.pgn, { maxGames: MAX_PGN_UPLOAD_GAMES });
       if (!parsed.ok) {
+        // A file over the cap is refused whole, before a single game parses:
+        // the cap is about the upload's size, and a message about a broken
+        // game would send the player hunting a typo that does not exist.
+        const capFault = parsed.faults.find((f) => f.code === 'too_many_games');
+        if (capFault !== undefined) {
+          return c.json(
+            {
+              code: 'too_many_games',
+              message: `A PGN upload carries at most ${MAX_PGN_UPLOAD_GAMES} games. Split the file and import the parts.`,
+            },
+            400,
+          );
+        }
         return c.json(
           {
             code: 'invalid_pgn',
