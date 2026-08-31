@@ -342,7 +342,7 @@ export const recordPractice = createRoute({
   tags: ['Games'],
   summary: 'Record one completed practice drill on a mistake',
   description:
-    'ST-102. The report names the places behind a weakness; this is the record a player worked on one of them. The body is one completed drill - solved, or the solution was revealed - and the reply is the running tally for the position. Refuses with 422 when the ply is not one of the game’s mistakes, so practice cannot invent a history the analysis never stored.',
+    'ST-102. The report names the places behind a weakness; this is the record a player worked on one of them. The body is one completed drill - solved, or the solution was revealed - and the reply is the running tally for the position. Refuses with 422 when the ply is not one of the game’s mistakes, so practice cannot invent a history the analysis never stored. A solved drill also records the day’s activity (ST-103): the streak and XP follow the same once-per-UTC-day rules as reviewing a game, and a revealed or failed drill records none.',
   request: {
     params: z.object({
       gameId: Uuid.openapi({ param: { name: 'gameId', in: 'path' } }),
