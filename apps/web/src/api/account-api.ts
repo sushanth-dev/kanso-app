@@ -32,6 +32,7 @@ export function failure(status: number, body: ApiError | undefined): ApiRequestE
 export interface AccountApi {
   getMe(): Promise<Me>;
   updateMe(body: UpdatePlayer): Promise<Player>;
+  deleteMe(body: { password: string }): Promise<void>;
 }
 
 export function createAccountApi(fetcher: typeof globalThis.fetch = globalThis.fetch): AccountApi {
@@ -49,6 +50,11 @@ export function createAccountApi(fetcher: typeof globalThis.fetch = globalThis.f
     async updateMe(body: UpdatePlayer): Promise<Player> {
       const result = await client.PATCH('/me', { body });
       if (result.data !== undefined) return result.data;
+      throw failure(result.response.status, result.error);
+    },
+    async deleteMe(body: { password: string }): Promise<void> {
+      const result = await client.DELETE('/account', { body });
+      if (result.response.status === 204) return;
       throw failure(result.response.status, result.error);
     },
   };

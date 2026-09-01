@@ -8,10 +8,13 @@
  * account endpoints themselves.
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
+import { eq } from 'drizzle-orm';
 import { createApp } from '../app.ts';
 import { createAuth } from '../auth.ts';
 
 import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-harness.ts';
+import { actionItem, player, puzzle, puzzleAttempt, report } from '../db/schema.ts';
+import { session, user } from '../db/auth-schema.ts';
 
 let harness: IntegrationDatabase;
 
@@ -178,5 +181,98 @@ describe('the signed-in user and their player', () => {
       body: JSON.stringify({ fideRating: 1500 }),
     });
     expect(update.status).toBe(401);
+  });
+});
+
+describe('DELETE /account', () => {
+  test('a wrong password answers 403 and deletes nothing', async () => {
+    const cookie = await signIn(EMAIL_A);
+    const a = app();
+
+    const res = await a.request('/account', {
+      method: 'DELETE',
+      headers: { 'content-type': 'application/json', cookie },
+      body: JSON.stringify({ password: 'not the password' }),
+    });
+    expect(res.status).toBe(403);
+    const body = (await res.json()) as { code: string };
+    expect(body.code).toBe('wrong_password');
+
+    const me = await a.request('/me', { headers: { cookie } });
+    expect(me.status).toBe(200);
+  });
+
+  test('the right password deletes the account and everything its player owns', async () => {
+    const cookie = await signIn(EMAIL_A);
+    const a = app();
+
+    const me = await a.request('/me', { headers: { cookie } });
+    const { userId, player: playerView } = (await me.json()) as {
+      userId: string;
+      player: { id: string };
+    };
+
+    // Chess history worth cascading: a pool puzzle, a report, an action item
+    // from it, and one drilled attempt, all under the one player.
+    await harness.db.insert(puzzle).values({
+      lichessId: 'testPuzzle',
+      fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+      moves: 'e2e4 e7e5',
+      rating: 1500,
+      themes: ['hangingPiece'],
+    });
+    const [reportRow] = await harness.db
+      .insert(report)
+      .values({ playerId: playerView.id, stream: 'tournament', gamesCovered: 6 })
+      .returning({ id: report.id });
+    await harness.db.insert(actionItem).values({
+      playerId: playerView.id,
+      kind: 'phase',
+      groupKey: 'phase:endgame',
+      resourceIndex: 0,
+      tier: 'beginner',
+      resource: "Silman's Complete Endgame Course",
+      label: 'Endgame',
+    });
+    await harness.db.insert(puzzleAttempt).values({
+      playerId: playerView.id,
+      puzzleId: 'testPuzzle',
+      kind: 'phase',
+      groupKey: 'phase:endgame',
+      attempts: 1,
+      solved: true,
+    });
+
+    // Sign-up already opens a session and sign-in adds another; what matters
+    // is that both die with the account.
+    const before = await harness.db
+      .select({ id: session.id })
+      .from(session)
+      .where(eq(session.userId, userId));
+    expect(before.length).toBeGreaterThanOrEqual(1);
+
+    const res = await a.request('/account', {
+      method: 'DELETE',
+      headers: { 'content-type': 'application/json', cookie },
+      body: JSON.stringify({ password: PASSWORD }),
+    });
+    expect(res.status).toBe(204);
+
+    // The session died with the account, so the old cookie is worthless.
+    const after = await a.request('/me', { headers: { cookie } });
+    expect(after.status).toBe(401);
+
+    const users = await harness.db.select().from(user).where(eq(user.email, EMAIL_A));
+    expect(users.length).toBe(0);
+    expect(
+      (await harness.db.select().from(player).where(eq(player.id, playerView.id))).length,
+    ).toBe(0);
+    expect(
+      (await harness.db.select().from(report).where(eq(report.id, reportRow!.id))).length,
+    ).toBe(0);
+    expect((await harness.db.select().from(actionItem)).length).toBe(0);
+    expect((await harness.db.select().from(puzzleAttempt)).length).toBe(0);
+    // The pool puzzle is shared by every player, so it survives.
+    expect((await harness.db.select().from(puzzle)).length).toBe(1);
   });
 });

@@ -290,6 +290,19 @@
           }
         }
       },
+      "DeleteAccount": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "password"
+        ]
+      },
       "ImportJob": {
         "type": "object",
         "properties": {
@@ -2620,6 +2633,60 @@
           },
           "409": {
             "description": "That username is taken.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account": {
+      "delete": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Delete the account and everything its player owns",
+        "description": "Irreversible. The password confirms the person holding the session owns the account; a pass deletes the user row and the database cascades take the player, games, reports, practice history, and every session with it.",
+        "requestBody": {
+          "description": "The account password, to confirm the deletion.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteAccount"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Account deleted. Every session is now dead."
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "That password is not right.",
             "content": {
               "application/json": {
                 "schema": {

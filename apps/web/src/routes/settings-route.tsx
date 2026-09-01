@@ -42,6 +42,10 @@ export function SettingsScreen({ me, signOut, accountApi, queryClient }: Setting
   const [usernameSaved, setUsernameSaved] = useState(false);
   // Seeded lazily so the stored choice or the OS hint decides the first paint.
   const [contrast, setContrast] = useState<ContrastPreference>(resolveInitialContrast);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   async function handleSignOut() {
     setSignOutError(null);
@@ -49,6 +53,35 @@ export function SettingsScreen({ me, signOut, accountApi, queryClient }: Setting
       await signOut();
     } catch {
       setSignOutError('Sign out failed.');
+    }
+  }
+
+  async function handleDeleteAccount() {
+    setDeleteError(null);
+    setDeleting(true);
+    try {
+      await accountApi.deleteMe({ password: deletePassword });
+      setDeleteOpen(false);
+      try {
+        await signOut();
+      } catch {
+        // The account is gone and the session cookie is dead even if the
+        // sign-out call disagrees, so the redirect cannot be skipped.
+        window.location.href = '/sign-in';
+      }
+    } catch (error) {
+      if (error instanceof ApiRequestError && error.status === 401) {
+        // The session died under us; the guard will send the player to
+        // sign-in once /me is fetched again.
+        setDeleteOpen(false);
+        queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
+      } else if (error instanceof ApiRequestError) {
+        setDeleteError(error.message);
+      } else {
+        setDeleteError('The account could not be deleted.');
+      }
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -216,6 +249,71 @@ export function SettingsScreen({ me, signOut, accountApi, queryClient }: Setting
             className="mt-3 press"
           />
         </div>
+      </Card>
+
+      <Card aria-labelledby="danger-heading" className="mt-8">
+        <Heading level={2} id="danger-heading">
+          Danger zone
+        </Heading>
+        <Text as="p" display="block" type="supporting" className="mt-1">
+          Deleting the account erases your games, reports, and practice history for good. There is
+          no way back.
+        </Text>
+        {deleteOpen ? (
+          <form
+            className="mt-3 max-w-sm"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handleDeleteAccount();
+            }}
+          >
+            {deleteError !== null ? (
+              <div className="mb-3">
+                <StatusMessage tone="error">{deleteError}</StatusMessage>
+              </div>
+            ) : null}
+            <FormLayout>
+              <Field label="Confirm with your password" inputID="deletePassword">
+                <TextInput
+                  id="deletePassword"
+                  name="deletePassword"
+                  type="password"
+                  autoComplete="current-password"
+                  value={deletePassword}
+                  onChange={(event) => setDeletePassword(event.currentTarget.value)}
+                />
+              </Field>
+              <div className="flex gap-2">
+                <Button
+                  type="submit"
+                  label="Delete forever"
+                  variant="destructive"
+                  isDisabled={deleting || deletePassword === ''}
+                  isLoading={deleting}
+                  className="min-h-11 press"
+                />
+                <Button
+                  label="Keep my account"
+                  variant="secondary"
+                  clickAction={() => {
+                    setDeleteOpen(false);
+                  }}
+                  className="min-h-11 press"
+                />
+              </div>
+            </FormLayout>
+          </form>
+        ) : (
+          <Button
+            label="Delete account"
+            variant="destructive"
+            clickAction={() => {
+              setDeleteError(null);
+              setDeleteOpen(true);
+            }}
+            className="mt-3 press"
+          />
+        )}
       </Card>
     </>
   );
