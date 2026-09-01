@@ -24,13 +24,22 @@ export type SocraticQuestion = components['schemas']['SocraticQuestion'];
 export type AdviceDone = components['schemas']['AdviceDone'];
 export type TransferGap = components['schemas']['TransferGap'];
 export type Color = components['schemas']['Color'];
+export type PracticeSet = components['schemas']['PracticeSet'];
+export type PracticePuzzle = components['schemas']['PracticePuzzle'];
+export type PracticePuzzleTally = components['schemas']['PracticePuzzleTally'];
 
 export interface DiagnosisApi {
   getReport(stream: Stream, tournamentId?: string): Promise<Report>;
   listGames(stream: Stream, tournamentId?: string): Promise<GameList>;
   getGame(gameId: string): Promise<GameDetail>;
   queueAnalysis(gameId: string): Promise<void>;
-  recordPractice(gameId: string, ply: number, solved: boolean): Promise<void>;
+  getPracticePuzzles(kind: WeaknessKind, group: string): Promise<PracticeSet>;
+  recordPracticePuzzle(input: {
+    puzzleId: string;
+    kind: WeaknessKind;
+    group: string;
+    solved: boolean;
+  }): Promise<PracticePuzzleTally>;
   /** ST-105. Ask the coach to judge a close-out summary for one weakness's advice. */
   markAdviceDone(input: {
     stream: Stream;
@@ -93,12 +102,16 @@ export function createDiagnosisApi(
       if (result.response.status === 202) return;
       throw failure(result.response.status, result.error);
     },
-    async recordPractice(gameId, ply, solved) {
-      const result = await client.POST('/games/{gameId}/practice', {
-        params: { path: { gameId } },
-        body: { ply, solved },
+    async getPracticePuzzles(kind, group) {
+      const result = await client.GET('/practice/puzzles', {
+        params: { query: { kind, group } },
       });
-      if (result.data !== undefined) return;
+      if (result.data !== undefined) return result.data;
+      throw failure(result.response.status, result.error);
+    },
+    async recordPracticePuzzle(input) {
+      const result = await client.POST('/practice/puzzles', { body: input });
+      if (result.data !== undefined) return result.data;
       throw failure(result.response.status, result.error);
     },
     async markAdviceDone(input) {

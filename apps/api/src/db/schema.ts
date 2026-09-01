@@ -756,31 +756,65 @@ export const proofSheet = pgTable(
 // ─── Practice ────────────────────────────────────────────────────────────────
 
 /**
- * ST-102. The record that a player worked on a weakness the report named: one
- * row per (player, game, ply) they practised, keyed the way a mistake is. The
- * report already shows where a weakness lives; this is what lets it show what
- * the player has done about those places. `attempts` counts completed drills -
- * solved or revealed - rather than raw wrong moves, because one drill is the
- * event the player experiences; `solved` is sticky, so a position solved once
- * stays solved even if a later attempt was revealed.
+ * ST-106. The pool of drill puzzles, imported once per environment from the
+ * Lichess puzzle database (CSV dump, CC0). Rows are shared by every player,
+ * the same shape the prototype kept in `available_puzzles`. `moves` is the
+ * dump's space-separated UCI line: the first move is the opponent's setup,
+ * the rest are the solution, the player's moves alternating with the forced
+ * replies. The import script filters by theme, rating band, deviation and
+ * popularity, validates every kept row against chess.js, and caps rows per
+ * theme; nothing in the application writes to this table.
  */
-export const practiceAttempt = pgTable(
-  'practice_attempt',
+export const puzzle = pgTable(
+  'puzzle',
+  {
+    /** The dump's puzzle id, stable across Lichess's monthly regenerations. */
+    lichessId: text('lichess_id').primaryKey(),
+    /** The position before the opponent's setup move, exactly as the dump stores it. */
+    fen: text('fen').notNull(),
+    moves: text('moves').notNull(),
+    rating: integer('rating').notNull(),
+    /** The dump's theme slugs, camelCase as Lichess writes them (`hangingPiece`). */
+    themes: text('themes').array().notNull(),
+  },
+  (t) => [
+    index('puzzle_themes_idx').using('gin', t.themes),
+    index('puzzle_rating_idx').on(t.rating),
+  ],
+);
+
+/**
+ * ST-106. The record that a player completed a drill on one pool puzzle,
+ * replacing ST-102's replay-scoped `practice_attempt`. `attempts` counts
+ * completed drills - solved or revealed - and `solved` is sticky, so a puzzle
+ * solved once stays solved even if a later attempt was revealed. The kind and
+ * the group key from `groupKeyOf` ride the row so the report can show what a
+ * weakness group has been drilled with from one indexed read, and they
+ * survive report regeneration for the same reason `advice_progress` keys on
+ * the group rather than the weakness row's id.
+ */
+export const puzzleAttempt = pgTable(
+  'puzzle_attempt',
   {
     playerId: uuid('player_id')
       .notNull()
       .references(() => player.id, { onDelete: 'cascade' }),
-    gameId: uuid('game_id')
+    puzzleId: text('puzzle_id')
       .notNull()
-      .references(() => game.id, { onDelete: 'cascade' }),
-    ply: smallint('ply').notNull(),
-    /** Completed drills recorded against this position. */
+      .references(() => puzzle.lichessId),
+    kind: weaknessKindEnum('kind').notNull(),
+    /** The stable identity of the weakness group, from `groupKeyOf`. */
+    groupKey: text('group_key').notNull(),
+    /** Completed drills recorded against this puzzle. */
     attempts: integer('attempts').notNull().default(0),
-    /** True when any attempt on this position was solved. */
+    /** True when any attempt on this puzzle was solved. */
     solved: boolean('solved').notNull().default(false),
     lastAttemptAt: timestamp('last_attempt_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [primaryKey({ columns: [t.playerId, t.gameId, t.ply] })],
+  (t) => [
+    primaryKey({ columns: [t.playerId, t.puzzleId] }),
+    index('puzzle_attempt_group_idx').on(t.playerId, t.kind, t.groupKey),
+  ],
 );
 
 // ─── Relations ───────────────────────────────────────────────────────────────
@@ -793,8 +827,8 @@ export const playerRelations = relations(player, ({ many }) => ({
   imports: many(importJob),
 }));
 
-export const practiceAttemptRelations = relations(practiceAttempt, ({ one }) => ({
-  game: one(game, { fields: [practiceAttempt.gameId], references: [game.id] }),
+export const puzzleAttemptRelations = relations(puzzleAttempt, ({ one }) => ({
+  player: one(player, { fields: [puzzleAttempt.playerId], references: [player.id] }),
 }));
 
 export const gameRelations = relations(game, ({ one, many }) => ({
