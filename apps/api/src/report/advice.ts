@@ -1,6 +1,8 @@
 /**
  * ST-099, ADR-0018's third call site: one model-written advice line per
  * report weakness, grounded in the same instances the card shows beneath it.
+ * Written once, at the click that opens the weakness, and stored on the
+ * weakness row - never in bulk across a report.
  *
  * The guardrails mirror the seam's contract in `coaching/zai.ts`: the
  * prompt carries facts only (no FEN, no names, no ids - opening weaknesses
@@ -14,15 +16,7 @@
  * rule, recorded in the story: the report must not fail because a garnish
  * failed, and the templates claim nothing about the position.
  */
-import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
-
 import type { AiClient, ReportAdviceFacts } from '../coaching/zai.ts';
-import type * as schema from '../db/schema.ts';
-import type { ComposedWeakness } from './compose.ts';
-import { groupKeyOf, weaknessEvidence } from './evidence.ts';
-
-type Db = PostgresJsDatabase<typeof schema>;
-type Stream = (typeof schema.streamEnum.enumValues)[number];
 
 /** SAN-shaped tokens; membership in the fact set is checked separately. */
 const SAN_PATTERN =
@@ -101,70 +95,6 @@ export async function generateAdvice(
   for (const [j, i] of failed.entries()) {
     const line = second[j];
     if (typeof line === 'string' && adviceIsValid(line, facts[i]!)) out[i] = line.trim();
-  }
-  return out;
-}
-
-/**
- * The model lines for one report generation, keyed by the aggregate key the
- * stored weakness rows carry (`${kind}:${key}`). Weaknesses the model cannot
- * write for - openings, which have no template advice either, or groups the
- * model failed or refused - are simply absent, and the serve path falls back
- * to the template copy.
- */
-export async function adviceForReport(
-  db: Db,
-  ai: AiClient,
-  input: {
-    playerId: string;
-    stream: Stream;
-    tournamentId: string | undefined;
-    windowStart: Date;
-    gamesCovered: number;
-    weaknesses: ComposedWeakness[];
-  },
-): Promise<Map<string, string>> {
-  const groups = input.weaknesses
-    .filter(
-      (w): w is ComposedWeakness & { kind: 'motif' | 'phase' | 'time_trouble' } =>
-        w.kind !== 'opening',
-    )
-    .map((w) => ({ w, key: groupKeyOf(w.kind, w.label, w.eco) }))
-    .filter((g): g is { w: typeof g.w; key: string } => g.key !== null);
-  if (groups.length === 0) return new Map();
-
-  const evidence = await weaknessEvidence(
-    db,
-    input.playerId,
-    input.stream,
-    input.tournamentId,
-    input.windowStart,
-    groups.map((g) => ({ kind: g.w.kind, key: g.key })),
-  );
-
-  const facts: ReportAdviceFacts[] = groups.map((g) => ({
-    kind: g.w.kind,
-    label: g.w.label,
-    occurrences: g.w.occurrences,
-    halfPointsLost: g.w.halfPointsLost,
-    gamesAffected: g.w.gamesAffected,
-    ratingLeak: g.w.ratingLeak,
-    saturated: g.w.saturated,
-    gamesCovered: input.gamesCovered,
-    instances: (evidence.get(`${g.w.kind}:${g.key}`) ?? []).map((e) => ({
-      moveNumber: e.moveNumber,
-      moveSan: e.moveSan,
-      bestMoveSan: e.bestMoveSan,
-      judgement: e.judgement,
-      cpLoss: e.cpLoss,
-    })),
-  }));
-
-  const lines = await generateAdvice(ai, facts);
-  const out = new Map<string, string>();
-  for (const [i, g] of groups.entries()) {
-    const line = lines[i];
-    if (line) out.set(`${g.w.kind}:${g.key}`, line);
   }
   return out;
 }

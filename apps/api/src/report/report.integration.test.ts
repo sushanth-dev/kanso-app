@@ -579,7 +579,7 @@ describe('GET /report model advice (ST-099)', () => {
     return playerId;
   }
 
-  test('stores the model line per weakness and never calls the model when serving', async () => {
+  test('writes the model line at the click, stores it, and never re-asks on a serve', async () => {
     const playerId = await seedAdviceGames();
     const calls = { n: 0, resources: 0 };
     const first = await app(OWNER, fakeAi([MOTIF_LINE, PHASE_LINE], calls)).request(
@@ -587,51 +587,91 @@ describe('GET /report model advice (ST-099)', () => {
     );
     expect(first.status).toBe(200);
     const body = (await first.json()) as ReportBody;
-    expect(body.weaknesses.find((w) => w.kind === 'motif')!.advice).toBe(MOTIF_LINE);
-    expect(body.weaknesses.find((w) => w.kind === 'phase')!.advice).toBe(PHASE_LINE);
-    expect(calls.n).toBe(1);
-    // ST-107. The same read fills the curriculum: the progressive set, three
-    // pending items per group, tier tags parsed from the fake resources.
-    expect(calls.resources).toBe(1);
+    // Generation stores the template copy; no model call has happened yet.
+    expect(body.weaknesses.find((w) => w.kind === 'motif')!.advice).toBe(HANGING_PIECE_TEMPLATE);
+    expect(body.weaknesses.find((w) => w.kind === 'motif')!.actionItems).toEqual([]);
+    expect(calls.n).toBe(0);
+    expect(calls.resources).toBe(0);
+
+    // The click that opens the weakness: one advise call for one group, the
+    // progressive set assigned, tiers parsed from the fake resources.
     const motif = body.weaknesses.find((w) => w.kind === 'motif')!;
-    expect(motif.actionItems.map((i) => [i.tier, i.status, i.completedAt])).toEqual([
-      ['beginner', 'pending', null],
-      ['intermediate', 'pending', null],
-      ['advanced', 'pending', null],
+    const click = await app(OWNER, fakeAi([MOTIF_LINE, PHASE_LINE], calls)).request(
+      '/report/weakness',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ weaknessId: motif.id }),
+      },
+    );
+    expect(click.status).toBe(200);
+    const coached = (await click.json()) as {
+      advice: string | null;
+      actionItems: ActionItemBody[];
+    };
+    expect(coached.advice).toBe(MOTIF_LINE);
+    expect(coached.actionItems.map((i) => [i.tier, i.status])).toEqual([
+      ['beginner', 'pending'],
+      ['intermediate', 'pending'],
+      ['advanced', 'pending'],
     ]);
-    expect(motif.actionItems.map((i) => i.resource)).toEqual(RESOURCES);
+    expect(coached.actionItems.map((i) => i.resource)).toEqual(RESOURCES);
+    expect(calls.n).toBe(1);
+    expect(calls.resources).toBe(1);
 
     const [stored] = await harness.db.select().from(report).where(eq(report.playerId, playerId));
     const ws = await harness.db.select().from(weakness).where(eq(weakness.reportId, stored!.id));
-    expect(ws.map((w) => w.advice).sort()).toEqual([MOTIF_LINE, PHASE_LINE].sort());
+    expect(ws.find((w) => w.kind === 'motif')!.advice).toBe(MOTIF_LINE);
+    expect(ws.find((w) => w.kind === 'phase')!.advice).toBeNull();
 
-    // A fresh serve reads the stored lines; zero model calls.
+    // A fresh serve reads the stored line and the assigned set; zero new calls.
     const again = await app(OWNER, fakeAi([], calls)).request('/report?stream=online');
     expect(again.status).toBe(200);
     const againBody = (await again.json()) as ReportBody;
     expect(againBody.id).toBe(body.id);
     expect(againBody.weaknesses.find((w) => w.kind === 'motif')!.advice).toBe(MOTIF_LINE);
-    expect(calls.n).toBe(1);
-    // The filled curriculum costs nothing on a serve.
-    expect(calls.resources).toBe(1);
     expect(againBody.weaknesses.find((w) => w.kind === 'motif')!.actionItems).toHaveLength(3);
+    expect(calls.n).toBe(1);
+    expect(calls.resources).toBe(1);
   });
 
-  test('keeps the template copy when the model call fails', async () => {
+  test('keeps the template copy when the model refuses the clicked weakness', async () => {
     await seedAdviceGames();
-    const res = await app(OWNER, fakeAi(new Error('Z.AI down'))).request('/report?stream=online');
-    expect(res.status).toBe(200);
+    const calls = { n: 0 };
+    const gen = await app(OWNER, fakeAi(new Error('Z.AI down'), calls)).request(
+      '/report?stream=online',
+    );
+    expect(gen.status).toBe(200);
+    const genBody = (await gen.json()) as ReportBody;
+    const motif = genBody.weaknesses.find((w) => w.kind === 'motif')!;
+
+    const click = await app(OWNER, fakeAi(new Error('Z.AI down'), calls)).request(
+      '/report/weakness',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ weaknessId: motif.id }),
+      },
+    );
+    expect(click.status).toBe(200);
+    const coached = (await click.json()) as { advice: string | null; actionItems: unknown[] };
+    // The curriculum is not a garnish: the resource assignment succeeds even
+    // when the advice line is refused, so the player keeps the work plan.
+    expect(coached.actionItems).toHaveLength(3);
+    // The report still serves the template, and the phase card keeps its own.
+    const res = await app(OWNER, fakeAi(new Error('Z.AI down'), calls)).request(
+      '/report?stream=online',
+    );
     const body = (await res.json()) as ReportBody;
     expect(body.weaknesses.find((w) => w.kind === 'motif')!.advice).toBe(HANGING_PIECE_TEMPLATE);
-    // ST-100. The plan is a garnish like the advice: a failed model leaves it null.
-    expect(body.narrative).toBeNull();
-    // The phase line keeps the template's derived head and routine body.
     expect(body.weaknesses.find((w) => w.kind === 'phase')!.advice).toContain(
       'pick a candidate move',
     );
+    // ST-100. The plan is a garnish like the advice: a failed model leaves it null.
+    expect(body.narrative).toBeNull();
   });
 
-  test('no key configured keeps the template behaviour', async () => {
+  test('no key configured keeps the template behaviour and an empty curriculum', async () => {
     await seedAdviceGames();
     const res = await app(OWNER).request('/report?stream=online');
     expect(res.status).toBe(200);
@@ -639,8 +679,17 @@ describe('GET /report model advice (ST-099)', () => {
     expect(body.weaknesses.find((w) => w.kind === 'motif')!.advice).toBe(HANGING_PIECE_TEMPLATE);
     // ST-100. No key, no model path: the plan is null with everything else intact.
     expect(body.narrative).toBeNull();
-    // ST-107. No key, no curriculum: the read serves the empty set.
-    expect(body.weaknesses.find((w) => w.kind === 'motif')!.actionItems).toEqual([]);
+    // ST-107. No key, no curriculum: the click serves the empty set too.
+    const motif = body.weaknesses.find((w) => w.kind === 'motif')!;
+    const click = await app(OWNER).request('/report/weakness', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ weaknessId: motif.id }),
+    });
+    expect(click.status).toBe(200);
+    const coached = (await click.json()) as { advice: string | null; actionItems: unknown[] };
+    expect(coached.advice).toBeNull();
+    expect(coached.actionItems).toEqual([]);
   });
 
   describe('GET /report model summary (ST-100)', () => {
@@ -655,7 +704,7 @@ describe('GET /report model advice (ST-099)', () => {
       expect(first.status).toBe(200);
       const body = (await first.json()) as ReportBody;
       expect(body.narrative).toBe(PLAN);
-      expect(calls.summarize).toBe(1);
+      expect(calls.n).toBe(0);
 
       const [stored] = await harness.db.select().from(report).where(eq(report.playerId, playerId));
       expect(stored!.narrative).toBe(PLAN);
@@ -674,7 +723,7 @@ describe('GET /report model advice (ST-099)', () => {
       const againBody = (await again.json()) as ReportBody;
       expect(againBody.id).toBe(body.id);
       expect(againBody.narrative).toBe(PLAN);
-      expect(calls.n).toBe(1);
+      expect(calls.n).toBe(0);
       expect(calls.summarize).toBe(1);
     });
 

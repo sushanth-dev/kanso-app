@@ -329,10 +329,11 @@ interface ChatCompletionResponse {
  * 1 September. The abort turns a provider blackhole into an ordinary error
  * the callers already handle with their fallbacks.
  *
- * The worst request is a first-ever report read: advice, then summary, then
- * the curriculum fill - three sequential calls. Three budgets plus the
- * database work must fit the cap, so eight seconds each, with `zai_call_failed`
- * telling us when a healthy-but-slower provider needs the number raised.
+ * The worst request is the click that opens a weakness: one advice line,
+ * then the group's resource assignment - two sequential calls. Two budgets
+ * plus the database work must fit the cap, so eight seconds each, with
+ * `zai_call_failed` telling us when a healthy-but-slower provider needs the
+ * number raised. Report generation and every read carry at most one call.
  */
 export const CALL_TIMEOUT_MS = 8_000;
 
