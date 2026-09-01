@@ -81,9 +81,13 @@ describe('httpZaiClient.explainMistake', () => {
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer test_key');
     const body = JSON.parse(init.body as string) as {
       model: string;
+      reasoning_effort: string;
       messages: { role: string; content: string }[];
     };
     expect(body.model).toBe('glm-5.3-flash');
+    // Unbounded reasoning measured 78 seconds and 503'd every report read;
+    // low effort answers in about four (1 September outage).
+    expect(body.reasoning_effort).toBe('low');
     const prompt = body.messages[0]!.content;
     expect(prompt).toContain('Nxd5');
     expect(prompt).toContain('Nf3');
