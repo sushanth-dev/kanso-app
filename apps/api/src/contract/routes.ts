@@ -30,9 +30,10 @@ import {
   MotifReport,
   PhaseReport,
   Player,
-  PracticeAttempt,
+  PracticePuzzleTally,
+  PracticeSet,
   ProofSheet,
-  RecordPractice,
+  RecordPracticePuzzle,
   Report,
   SetFocus,
   SetGameColor,
@@ -40,6 +41,7 @@ import {
   SocraticQuestion,
   StartImport,
   Stream,
+  WeaknessKind,
   TournamentDecay,
   TournamentDetail,
   TournamentList,
@@ -338,26 +340,42 @@ export const setGameColor = createRoute({
   },
 });
 
-export const recordPractice = createRoute({
-  method: 'post',
-  path: '/games/{gameId}/practice',
-  tags: ['Games'],
-  summary: 'Record one completed practice drill on a mistake',
+export const getPracticePuzzles = createRoute({
+  method: 'get',
+  path: '/practice/puzzles',
+  tags: ['Practice'],
+  summary: 'A 20-puzzle drill set for one weakness group',
   description:
-    'ST-102. The report names the places behind a weakness; this is the record a player worked on one of them. The body is one completed drill - solved, or the solution was revealed - and the reply is the running tally for the position. Refuses with 422 when the ply is not one of the game’s mistakes, so practice cannot invent a history the analysis never stored. A solved drill also records the day’s activity (ST-103, ST-105): a solved drill is the only trigger the streak and XP loop has, on once-per-UTC-day rules, and a revealed or failed drill records none.',
+    "ST-106. Puzzles come from the Lichess puzzle database the environment imports once, matched to the weakness group's theme and the player's rating by the prototype's fallback ladder: exact theme within 400, then 800, then the crushing fallback, then any theme. Puzzles the player already has an attempt row for are excluded while the pool allows it, so each open deals fresh material. Refuses with 503 while the pool cannot supply a full set, naming the missing import rather than dealing a short drill.",
   request: {
-    params: z.object({
-      gameId: Uuid.openapi({ param: { name: 'gameId', in: 'path' } }),
+    query: z.object({
+      kind: WeaknessKind,
+      group: z.string().min(1).max(64),
     }),
-    body: json(RecordPractice, 'The outcome of the completed drill.'),
   },
   responses: {
-    200: json(PracticeAttempt, 'The running tally for the position.'),
+    200: json(PracticeSet, 'The drill: at least 20 puzzles, worst-untried first.'),
+    401: error('No session.'),
+    422: error('The weakness group has no puzzle drill.'),
+    503: error('The puzzle pool is empty. Run the puzzle import.'),
+  },
+});
+
+export const recordPracticePuzzle = createRoute({
+  method: 'post',
+  path: '/practice/puzzles',
+  tags: ['Practice'],
+  summary: 'Record one completed drill on a pool puzzle',
+  description:
+    "ST-106. The body is one completed drill - solved, or the solution was revealed - and the reply is the running tally for the puzzle. A solved drill records the day's activity (ST-103, ST-105) exactly as the replay drill it replaces did; a revealed or failed drill records none. Refuses with 422 when the puzzle is not in the pool or the group has no drill, so practice cannot invent a history the pool does not hold.",
+  request: {
+    body: json(RecordPracticePuzzle, 'The outcome of the completed drill.'),
+  },
+  responses: {
+    200: json(PracticePuzzleTally, 'The running tally for the puzzle.'),
     400: error('The request body failed validation.'),
     401: error('No session.'),
-    403: error('Not your game.'),
-    404: error('No such game.'),
-    422: error('The ply is not one of the game’s mistakes.'),
+    422: error('No such puzzle in the pool, or the group has no drill.'),
   },
 });
 
@@ -728,7 +746,8 @@ export const routes = [
   listGames,
   getGame,
   setGameColor,
-  recordPractice,
+  getPracticePuzzles,
+  recordPracticePuzzle,
   deleteGame,
   queueAnalysis,
   analysisEvents,

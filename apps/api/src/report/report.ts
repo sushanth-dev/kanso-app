@@ -21,7 +21,7 @@ import { z } from 'zod';
 import { getReport, markAdviceDone } from '../contract/routes.ts';
 import { Report } from '../contract/schemas.ts';
 import * as schema from '../db/schema.ts';
-import { game, report, weakness } from '../db/schema.ts';
+import { game, puzzleAttempt, report, weakness } from '../db/schema.ts';
 import { readSession } from '../session.ts';
 import { getOwnPlayerId } from '../players/claim.ts';
 import { leakBaseline, scoreLeaks, weaknessLeakRows } from '../analysis/leak.ts';
@@ -125,17 +125,23 @@ function toResponse(r: ReportRow, ws: WeaknessRow[]): ReportResponse {
       // ST-105. Filled in by `withEvidence` from the progress table.
       done: false,
       completedAt: null,
+      // ST-106. The group identity the practice link carries; recovered from
+      // the label the row stores, so it survives regeneration.
+      groupKey: groupKeyOf(w.kind, w.label, w.eco),
+      // ST-106. Filled in by `withEvidence` from the drill attempt table.
+      drilled: 0,
     })),
     narrative: r.narrative,
   };
 }
 
 /**
- * ST-098. Attach the places, the advice, and the done state to each weakness.
- * The instances come from the same window the report was computed over, so a
- * stored report and its evidence stay consistent after both leave the
- * database. The done state is one progress read for the whole report, keyed
- * by group, so it survives the weakness rows being rewritten on regeneration.
+ * ST-098. Attach the places, the advice, the done state, and the drill count
+ * to each weakness. The instances come from the same window the report was
+ * computed over, so a stored report and its evidence stay consistent after
+ * both leave the database. The done state and the drill count are one read
+ * each for the whole report, keyed by group, so both survive the weakness
+ * rows being rewritten on regeneration.
  */
 async function withEvidence(
   db: Db,
@@ -150,6 +156,19 @@ async function withEvidence(
     .map((w) => ({ kind: w.kind, key: groupKeyOf(w.kind, w.label, w.eco) }))
     .filter((g): g is { kind: typeof g.kind; key: string } => g.key !== null);
   const evidence = await weaknessEvidence(db, playerId, stream, tournamentId, windowStart, groups);
+  // ST-106. Solved drills per group, from the attempt table the practice
+  // routes write; the read is whole-table per player, which is a drill
+  // history, not a move log.
+  const drilledRows = await db
+    .select({
+      kind: puzzleAttempt.kind,
+      groupKey: puzzleAttempt.groupKey,
+      count: sql<number>`count(*) filter (where ${puzzleAttempt.solved})`.mapWith(Number),
+    })
+    .from(puzzleAttempt)
+    .where(eq(puzzleAttempt.playerId, playerId))
+    .groupBy(puzzleAttempt.kind, puzzleAttempt.groupKey);
+  const drilled = new Map(drilledRows.map((r) => [`${r.kind}:${r.groupKey}`, r.count]));
   for (const w of response.weaknesses) {
     const key = groupKeyOf(w.kind, w.label, w.eco);
     w.evidence = evidence.get(`${w.kind}:${key}`) ?? [];
@@ -160,6 +179,7 @@ async function withEvidence(
     const completedAt = key === null ? undefined : progress.get(`${w.kind}:${key}`);
     w.done = completedAt !== undefined;
     w.completedAt = completedAt?.toISOString() ?? null;
+    w.drilled = key === null ? 0 : (drilled.get(`${w.kind}:${key}`) ?? 0);
   }
   return response;
 }

@@ -959,16 +959,74 @@
           "playerColor"
         ]
       },
-      "PracticeAttempt": {
+      "PracticeSet": {
         "type": "object",
         "properties": {
-          "gameId": {
+          "kind": {
+            "$ref": "#/components/schemas/WeaknessKind"
+          },
+          "group": {
+            "type": "string"
+          },
+          "theme": {
             "type": "string",
-            "format": "uuid"
+            "example": "hangingPiece"
           },
-          "ply": {
+          "rating": {
+            "type": "integer",
+            "example": 1500
+          },
+          "puzzles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PracticePuzzle"
+            },
+            "minItems": 20
+          }
+        },
+        "required": [
+          "kind",
+          "group",
+          "theme",
+          "rating",
+          "puzzles"
+        ]
+      },
+      "WeaknessKind": {
+        "type": "string",
+        "enum": [
+          "opening",
+          "motif",
+          "phase",
+          "time_trouble"
+        ]
+      },
+      "PracticePuzzle": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fen": {
+            "type": "string"
+          },
+          "moves": {
+            "type": "string"
+          },
+          "rating": {
             "type": "integer"
-          },
+          }
+        },
+        "required": [
+          "id",
+          "fen",
+          "moves",
+          "rating"
+        ]
+      },
+      "PracticePuzzleTally": {
+        "type": "object",
+        "properties": {
           "attempts": {
             "type": "integer"
           },
@@ -977,24 +1035,34 @@
           }
         },
         "required": [
-          "gameId",
-          "ply",
           "attempts",
           "solved"
         ]
       },
-      "RecordPractice": {
+      "RecordPracticePuzzle": {
         "type": "object",
         "properties": {
-          "ply": {
-            "type": "integer"
+          "puzzleId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 16
+          },
+          "kind": {
+            "$ref": "#/components/schemas/WeaknessKind"
+          },
+          "group": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
           },
           "solved": {
             "type": "boolean"
           }
         },
         "required": [
-          "ply",
+          "puzzleId",
+          "kind",
+          "group",
           "solved"
         ]
       },
@@ -1329,6 +1397,15 @@
             ],
             "format": "date-time"
           },
+          "groupKey": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "drilled": {
+            "type": "integer"
+          },
           "evidence": {
             "type": "array",
             "items": {
@@ -1350,16 +1427,9 @@
           "advice",
           "done",
           "completedAt",
+          "groupKey",
+          "drilled",
           "evidence"
-        ]
-      },
-      "WeaknessKind": {
-        "type": "string",
-        "enum": [
-          "opening",
-          "motif",
-          "phase",
-          "time_trouble"
         ]
       },
       "WeaknessEvidence": {
@@ -1410,10 +1480,6 @@
           },
           "cpLoss": {
             "type": "integer"
-          },
-          "practiced": {
-            "type": "boolean",
-            "description": "ST-102. True when a solved practice attempt exists for this instance’s (gameId, ply)."
           }
         },
         "required": [
@@ -1427,8 +1493,7 @@
           "bestMoveSan",
           "phase",
           "judgement",
-          "cpLoss",
-          "practiced"
+          "cpLoss"
         ]
       },
       "AdviceDone": {
@@ -2906,41 +2971,99 @@
         }
       }
     },
-    "/games/{gameId}/practice": {
-      "post": {
+    "/practice/puzzles": {
+      "get": {
         "tags": [
-          "Games"
+          "Practice"
         ],
-        "summary": "Record one completed practice drill on a mistake",
-        "description": "ST-102. The report names the places behind a weakness; this is the record a player worked on one of them. The body is one completed drill - solved, or the solution was revealed - and the reply is the running tally for the position. Refuses with 422 when the ply is not one of the game’s mistakes, so practice cannot invent a history the analysis never stored. A solved drill also records the day’s activity (ST-103, ST-105): a solved drill is the only trigger the streak and XP loop has, on once-per-UTC-day rules, and a revealed or failed drill records none.",
+        "summary": "A 20-puzzle drill set for one weakness group",
+        "description": "ST-106. Puzzles come from the Lichess puzzle database the environment imports once, matched to the weakness group's theme and the player's rating by the prototype's fallback ladder: exact theme within 400, then 800, then the crushing fallback, then any theme. Puzzles the player already has an attempt row for are excluded while the pool allows it, so each open deals fresh material. Refuses with 503 while the pool cannot supply a full set, naming the missing import rather than dealing a short drill.",
         "parameters": [
           {
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "$ref": "#/components/schemas/WeaknessKind"
             },
             "required": true,
-            "name": "gameId",
-            "in": "path"
+            "name": "kind",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "required": true,
+            "name": "group",
+            "in": "query"
           }
         ],
+        "responses": {
+          "200": {
+            "description": "The drill: at least 20 puzzles, worst-untried first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PracticeSet"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The weakness group has no puzzle drill.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The puzzle pool is empty. Run the puzzle import.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Practice"
+        ],
+        "summary": "Record one completed drill on a pool puzzle",
+        "description": "ST-106. The body is one completed drill - solved, or the solution was revealed - and the reply is the running tally for the puzzle. A solved drill records the day's activity (ST-103, ST-105) exactly as the replay drill it replaces did; a revealed or failed drill records none. Refuses with 422 when the puzzle is not in the pool or the group has no drill, so practice cannot invent a history the pool does not hold.",
         "requestBody": {
           "description": "The outcome of the completed drill.",
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RecordPractice"
+                "$ref": "#/components/schemas/RecordPracticePuzzle"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "The running tally for the position.",
+            "description": "The running tally for the puzzle.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PracticeAttempt"
+                  "$ref": "#/components/schemas/PracticePuzzleTally"
                 }
               }
             }
@@ -2965,28 +3088,8 @@
               }
             }
           },
-          "403": {
-            "description": "Not your game.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "No such game.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
           "422": {
-            "description": "The ply is not one of the game’s mistakes.",
+            "description": "No such puzzle in the pool, or the group has no drill.",
             "content": {
               "application/json": {
                 "schema": {

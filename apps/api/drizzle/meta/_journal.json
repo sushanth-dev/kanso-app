@@ -162,6 +162,13 @@
       "when": 1788173786984,
       "tag": "0022_tough_shatterstar",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1788190061044,
+      "tag": "0023_magical_terror",
+      "breakpoints": true
     }
   ]
 }

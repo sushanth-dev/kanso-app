@@ -27,7 +27,7 @@ import { httpGameFetcher, type GameFetcher } from './import/game-fetcher.ts';
 import { mountListGames } from './games/list-games.ts';
 import { mountGetGame } from './games/get-game.ts';
 import { mountSetGameColor } from './games/set-game-color.ts';
-import { mountRecordPractice } from './games/record-practice.ts';
+import { mountPractice } from './practice/practice.ts';
 import { mountDeleteGame } from './games/delete-game.ts';
 import { mountListTournaments } from './tournaments/list-tournaments.ts';
 import { mountGetTournament } from './tournaments/get-tournament.ts';
@@ -313,7 +313,7 @@ export function createApp({
     mountListGames(app, { db, getSession: effectiveGetSession });
     mountGetGame(app, { db, getSession: effectiveGetSession });
     mountSetGameColor(app, { db, getSession: effectiveGetSession });
-    mountRecordPractice(app, { db, getSession: effectiveGetSession });
+    mountPractice(app, { db, getSession: effectiveGetSession });
     mountDeleteGame(app, { db, getSession: effectiveGetSession });
     mountQueueAnalysis(app, { db, getSession: effectiveGetSession });
     mountListTournaments(app, { db, getSession: effectiveGetSession });
