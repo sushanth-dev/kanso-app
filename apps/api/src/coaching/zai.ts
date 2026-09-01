@@ -324,18 +324,19 @@ interface ChatCompletionResponse {
 
 /**
  * One wall-clock budget for every model call. The API runs behind API
- * Gateway's 30-second cap (infra/api.ts), and a hung fetch inside a report
- * read held the whole invocation until the platform killed it - the 503s of
- * 1 September. The abort turns a provider blackhole into an ordinary error
- * the callers already handle with their fallbacks.
+ * Gateway's 30-second cap (infra/api.ts), and a hung or over-long fetch
+ * inside a report read held the whole invocation until the platform killed
+ * it - the 503s of 1 September. The abort turns a provider blackhole into
+ * an ordinary error the callers already handle with their fallbacks.
  *
  * The worst request is the click that opens a weakness: one advice line,
  * then the group's resource assignment - two sequential calls. Two budgets
- * plus the database work must fit the cap, so eight seconds each, with
- * `zai_call_failed` telling us when a healthy-but-slower provider needs the
+ * plus the database work must fit the cap, so twelve seconds each. The
+ * measured call at low reasoning effort is about four seconds, and
+ * `zai_call_failed` tells us when a healthy-but-slower provider needs the
  * number raised. Report generation and every read carry at most one call.
  */
-export const CALL_TIMEOUT_MS = 8_000;
+export const CALL_TIMEOUT_MS = 12_000;
 
 async function generate(config: ZaiConfig, prompt: string): Promise<string> {
   try {
@@ -346,7 +347,14 @@ async function generate(config: ZaiConfig, prompt: string): Promise<string> {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${config.apiKey}`,
       },
-      body: JSON.stringify({ model: config.model, messages: [{ role: 'user', content: prompt }] }),
+      // glm-5.3-flash always thinks (provider error 1210: it cannot be
+      // disabled) and unbounded reasoning measured 78 seconds - the outage
+      // behind the 1 September 503s. Low effort answers in about four.
+      body: JSON.stringify({
+        model: config.model,
+        reasoning_effort: 'low',
+        messages: [{ role: 'user', content: prompt }],
+      }),
     });
     if (!res.ok) throw new Error(`Z.AI call failed: ${res.status}`);
     const body = (await res.json()) as ChatCompletionResponse;
