@@ -18,6 +18,7 @@ import {
   ApiError,
   CctScan,
   CheckoutRequest,
+  DeleteAccount,
   CheckoutResponse,
   Explanation,
   FocusCatalogueEntry,
@@ -111,6 +112,23 @@ export const updatePlayer = createRoute({
     ...authErrors,
     404: error('No such player.'),
     409: error('That username is taken.'),
+  },
+});
+
+export const deleteAccount = createRoute({
+  method: 'delete',
+  path: '/account',
+  tags: ['Account'],
+  summary: 'Delete the account and everything its player owns',
+  description:
+    'Irreversible. The password confirms the person holding the session owns the account; a pass deletes the user row and the database cascades take the player, games, reports, practice history, and every session with it.',
+  request: {
+    body: json(DeleteAccount, 'The account password, to confirm the deletion.'),
+  },
+  responses: {
+    204: { description: 'Account deleted. Every session is now dead.' },
+    ...authErrors,
+    403: error('That password is not right.'),
   },
 });
 
@@ -768,6 +786,7 @@ export const routes = [
   getHealth,
   getMe,
   updatePlayer,
+  deleteAccount,
   confirmGuardian,
   startImport,
   getImport,
