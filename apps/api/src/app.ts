@@ -18,10 +18,11 @@ import { requestId } from 'hono/request-id';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { routes } from './contract/routes.ts';
 import { mountMe } from './account/me.ts';
-import { mountUpdatePlayer } from './account/update-player.ts';
 import { mountConfirmGuardian } from './account/confirm-guardian.ts';
 import { isConsentGated } from './account/consent-request.ts';
 import { mountHealth } from './health.ts';
+import { mountUpdatePlayer } from './account/update-player.ts';
+import { mountDeleteAccount } from './account/delete-account.ts';
 import { mountImport } from './import/import-games.ts';
 import { httpGameFetcher, type GameFetcher } from './import/game-fetcher.ts';
 import { mountListGames } from './games/list-games.ts';
@@ -188,6 +189,11 @@ export interface AppOptions {
     handler: (request: Request) => Promise<Response>;
     api: {
       getSession: (args: { headers: Headers }) => Promise<{ session: { userId: string } } | null>;
+      /**
+       * better-auth's own password check, dispatched server-side. The delete
+       * route refuses to delete without it.
+       */
+      verifyPassword: (args: { body: { password: string }; headers: Headers }) => Promise<unknown>;
     };
   };
   /**
@@ -308,6 +314,13 @@ export function createApp({
     mountHealth(app, { db });
     mountMe(app, { db, getSession: effectiveGetSession });
     mountUpdatePlayer(app, { db, getSession: effectiveGetSession });
+    if (auth) {
+      mountDeleteAccount(app, {
+        db,
+        getSession: effectiveGetSession,
+        verifyPassword: auth.api.verifyPassword,
+      });
+    }
     mountConfirmGuardian(app, { db });
     mountImport(app, { db, getSession: effectiveGetSession, gameFetcher });
     mountListGames(app, { db, getSession: effectiveGetSession });

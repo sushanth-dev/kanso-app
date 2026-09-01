@@ -107,6 +107,16 @@ export const UpdatePlayer = z
   })
   .openapi('UpdatePlayer');
 
+/**
+ * The body of the account-deletion request. The password is the proof the
+ * person holding the session is the account's owner and not a borrowed tab.
+ */
+export const DeleteAccount = z
+  .object({
+    password: z.string().min(1).max(128),
+  })
+  .openapi('DeleteAccount');
+
 export const Me = z
   .object({
     userId: z.string(),

@@ -240,4 +240,47 @@ describe('SettingsScreen', () => {
     expect(document.documentElement.hasAttribute('data-contrast')).toBe(false);
     expect(localStorage.getItem('kanso-contrast')).toBe('standard');
   });
+
+  test('delete account reveals the password form only behind the danger button', async () => {
+    const user = userEvent.setup();
+    renderSettings();
+
+    expect(screen.queryByLabelText('Confirm with your password')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Delete account' }));
+    expect(screen.getByLabelText('Confirm with your password')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Delete forever' })).toBeDisabled();
+  });
+
+  test('a wrong password shows the API refusal and keeps the account', async () => {
+    const user = userEvent.setup();
+    const deleteMe = vi
+      .spyOn(accountApi, 'deleteMe')
+      .mockRejectedValue(
+        new ApiRequestError(403, 'wrong_password', undefined, 'That password is not right.'),
+      );
+    renderSettings();
+
+    await user.click(screen.getByRole('button', { name: 'Delete account' }));
+    await user.type(screen.getByLabelText('Confirm with your password'), 'wrong');
+    await user.click(screen.getByRole('button', { name: 'Delete forever' }));
+
+    expect(await screen.findByText('That password is not right.')).toBeVisible();
+    expect(deleteMe).toHaveBeenCalledWith({ password: 'wrong' });
+  });
+
+  test('a confirmed delete signs the player out', async () => {
+    const user = userEvent.setup();
+    const signOut = vi.fn().mockResolvedValue(undefined);
+    vi.spyOn(accountApi, 'deleteMe').mockResolvedValue(undefined);
+    renderSettings(meFixture(), signOut);
+
+    await user.click(screen.getByRole('button', { name: 'Delete account' }));
+    await user.type(
+      screen.getByLabelText('Confirm with your password'),
+      'correct horse battery staple',
+    );
+    await user.click(screen.getByRole('button', { name: 'Delete forever' }));
+
+    await waitFor(() => expect(signOut).toHaveBeenCalled());
+  });
 });
