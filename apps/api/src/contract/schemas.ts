@@ -729,6 +729,25 @@ export const ActionItemList = z
   })
   .openapi('ActionItemList');
 
+/**
+ * The body of asking for one weakness's coaching: which weakness row, by id.
+ * The server resolves the row against the session's player, so only a
+ * weakness on the player's own reports can be coached.
+ */
+export const GenerateWeakness = z.object({ weaknessId: Uuid }).openapi('GenerateWeakness');
+
+/**
+ * The response of the on-demand coaching: the model-written advice line for
+ * the weakness (null keeps the template copy the report already carries) and
+ * the group's three assigned resources, assigned on this call if absent.
+ */
+export const WeaknessCoaching = z
+  .object({
+    advice: z.string().nullable(),
+    actionItems: z.array(ActionItem),
+  })
+  .openapi('WeaknessCoaching');
+
 // ─── Focus ───────────────────────────────────────────────────────────────────
 
 export const FocusCatalogueEntry = z

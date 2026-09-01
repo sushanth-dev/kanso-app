@@ -27,6 +27,7 @@ import {
   GameSummary,
   Health,
   ImportJob,
+  GenerateWeakness,
   MarkActionItemDone,
   Me,
   MotifReport,
@@ -38,6 +39,7 @@ import {
   ProofSheet,
   RecordPracticePuzzle,
   Report,
+  WeaknessCoaching,
   SetFocus,
   SetGameColor,
   SharedProofSheet,
@@ -564,6 +566,24 @@ export const listActionItems = createRoute({
   },
 });
 
+export const generateWeaknessCoaching = createRoute({
+  method: 'post',
+  path: '/report/weakness',
+  tags: ['Report'],
+  summary: 'Write one weakness\u2019s coaching on demand, once',
+  description:
+    'The model work for one weakness happens here, at the click that opens it, not in bulk at report generation: the advice line is written once and stored on the weakness row, and the group\u2019s three resources are assigned when absent. Re-opening the weakness costs no model calls; a failed or refused line keeps the template copy and a later click retries.',
+  request: {
+    body: json(GenerateWeakness, 'The weakness to coach.'),
+  },
+  responses: {
+    200: json(WeaknessCoaching, 'The stored advice line and the group\u2019s action items.'),
+    ...authErrors,
+    400: error('The weakness has no stable group.'),
+    404: error('No such weakness on this player\u2019s reports.'),
+  },
+});
+
 // ─── AI ──────────────────────────────────────────────────────────────────────
 
 export const getExplanation = createRoute({
@@ -801,6 +821,7 @@ export const routes = [
   listTournaments,
   getTournament,
   getReport,
+  generateWeaknessCoaching,
   listActionItems,
   getPracticeQueue,
   markActionItemDone,
