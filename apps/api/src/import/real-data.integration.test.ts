@@ -14,6 +14,7 @@
  */
 import { readFileSync } from 'node:fs';
 import type { Context } from 'hono';
+import { MAX_PGN_UPLOAD_GAMES } from './import-games.ts';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { createApp } from '../app.ts';
 import { player } from '../db/schema.ts';
@@ -61,6 +62,19 @@ async function upload(pgn: string) {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ source: 'pgn_upload', stream: 'tournament', pgn }),
   });
+}
+/**
+ * ST-096 caps a single PGN upload at 30 games, so a real file larger than
+ * that now goes up in parts, split on game boundaries. test3.pgn predates
+ * the cap; chunking it here is what a player splitting the file must do.
+ */
+function chunkPgn(pgn: string, size: number = MAX_PGN_UPLOAD_GAMES): string[] {
+  const games = pgn.split(/\n\n(?=\[Event )/);
+  const parts: string[] = [];
+  for (let i = 0; i < games.length; i += size) {
+    parts.push(games.slice(i, i + size).join('\n\n'));
+  }
+  return parts;
 }
 
 /** The tournaments for a player, keyed by normalised event name. */
@@ -125,8 +139,14 @@ describe('real-data tournament grouping (ST-011)', () => {
 
   test('test3.pgn: many tournaments, with the two hard cases grouped correctly', async () => {
     const playerId = await seedPlayer();
-    const res = await upload(real('test3.pgn'));
-    expect(res.status).toBe(202);
+    // The file carries 60 games, over the upload cap, so it goes up in
+    // cap-sized parts the way a player must split it. attachGames
+    // reconciles each part against every tournament the player already
+    // holds, so the grouping assertions read the same as a single upload.
+    for (const part of chunkPgn(real('test3.pgn'))) {
+      const res = await upload(part);
+      expect(res.status).toBe(202);
+    }
 
     const tournaments = await tournamentsFor(playerId);
     const games = await gameTournaments(playerId);
