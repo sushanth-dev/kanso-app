@@ -68,16 +68,17 @@ test('imports a season by username against the stubbed provider', async ({ page 
   const importResponse = waitForImportResponse(page);
   await page.getByRole('button', { name: 'Import games' }).click();
   expect((await importResponse).status()).toBe(202);
-  // A successful import navigates straight to the report (ST-029), which shows
-  // the still-analysing state until the analysis worker finishes.
+  // The import navigates to the report (ST-029). The stubbed season's games
+  // carry no colour for the player, so the report asks for the side (ST-095)
+  // instead of showing the still-analysing state.
   await expect(page.getByRole('heading', { name: 'Online report' })).toBeVisible();
-  await expect(page.getByText('This report will appear as soon as it is ready.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: /need your side before analysis/ })).toBeVisible();
   await expectNoAxeViolations(page);
 
   expect(externalRequests).toEqual([]);
 });
 
-test('imports a PGN upload and reports the imported count', async ({ page }) => {
+test('imports a PGN upload and opens the imported game review', async ({ page }) => {
   const externalRequests = await blockExternalRequests(page);
   await signUp(page);
   await openImport(page);
@@ -103,10 +104,9 @@ test('imports a PGN upload and reports the imported count', async ({ page }) => 
   const importResponse = waitForImportResponse(page);
   await page.getByRole('button', { name: 'Import games' }).click();
   expect((await importResponse).status()).toBe(202);
-  // A successful import navigates straight to the report (ST-029), which shows
-  // the still-analysing state until the analysis worker finishes.
-  await expect(page.getByRole('heading', { name: 'Tournament report' })).toBeVisible();
-  await expect(page.getByText('This report will appear as soon as it is ready.')).toBeVisible();
+  // A one-game upload sits under the report threshold (ST-096): the import
+  // lands on the imported game's review rather than the report.
+  await expect(page.getByRole('heading', { name: 'Game review' })).toBeVisible();
   await expectNoAxeViolations(page);
 
   expect(externalRequests).toEqual([]);
