@@ -11,6 +11,8 @@
  * these fields is a bug in the fact set, not a prompt to tune.
  */
 
+import { log } from '../logging.ts';
+
 export interface MistakeFacts {
   moveNumber: number;
   movingColor: 'white' | 'black';
@@ -320,22 +322,44 @@ interface ChatCompletionResponse {
   choices?: { message?: { content?: string } }[];
 }
 
+/**
+ * One wall-clock budget for every model call. The API runs behind API
+ * Gateway's 30-second cap (infra/api.ts), and a hung fetch inside a report
+ * read held the whole invocation until the platform killed it - the 503s of
+ * 1 September. The abort turns a provider blackhole into an ordinary error
+ * the callers already handle with their fallbacks.
+ */
+export const CALL_TIMEOUT_MS = 20_000;
+
 async function generate(config: ZaiConfig, prompt: string): Promise<string> {
-  const res = await fetch('https://api.z.ai/api/paas/v4/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${config.apiKey}`,
-    },
-    body: JSON.stringify({ model: config.model, messages: [{ role: 'user', content: prompt }] }),
-  });
-  if (!res.ok) throw new Error(`Z.AI call failed: ${res.status}`);
-  const body = (await res.json()) as ChatCompletionResponse;
-  const text = body.choices?.[0]?.message?.content;
-  if (typeof text !== 'string' || text.trim() === '') {
-    throw new Error('Z.AI returned no text');
+  try {
+    const res = await fetch('https://api.z.ai/api/paas/v4/chat/completions', {
+      method: 'POST',
+      signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify({ model: config.model, messages: [{ role: 'user', content: prompt }] }),
+    });
+    if (!res.ok) throw new Error(`Z.AI call failed: ${res.status}`);
+    const body = (await res.json()) as ChatCompletionResponse;
+    const text = body.choices?.[0]?.message?.content;
+    if (typeof text !== 'string' || text.trim() === '') {
+      throw new Error('Z.AI returned no text');
+    }
+    return text.trim();
+  } catch (error) {
+    // One warn per failed call, here rather than at each of the seven
+    // callers: the silent fallbacks of ST-099..107 left a prod where no
+    // model call had ever visibly succeeded and nothing could say why.
+    log('warn', 'zai_call_failed', {
+      model: config.model,
+      bytes: prompt.length,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
   }
-  return text.trim();
 }
 
 /** The report call asks for a JSON array; anything else is a malformed response. */
