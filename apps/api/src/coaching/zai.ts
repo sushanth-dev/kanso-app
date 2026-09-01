@@ -328,8 +328,13 @@ interface ChatCompletionResponse {
  * read held the whole invocation until the platform killed it - the 503s of
  * 1 September. The abort turns a provider blackhole into an ordinary error
  * the callers already handle with their fallbacks.
+ *
+ * The worst request is a first-ever report read: advice, then summary, then
+ * the curriculum fill - three sequential calls. Three budgets plus the
+ * database work must fit the cap, so eight seconds each, with `zai_call_failed`
+ * telling us when a healthy-but-slower provider needs the number raised.
  */
-export const CALL_TIMEOUT_MS = 20_000;
+export const CALL_TIMEOUT_MS = 8_000;
 
 async function generate(config: ZaiConfig, prompt: string): Promise<string> {
   try {
