@@ -49,6 +49,16 @@ describe('zaiConfigFromEnv', () => {
     });
   });
 
+  test('treats an empty ZAI_MODEL as unset - the deploy wiring sends one', () => {
+    // infra/api.ts interpolates `ZAI_MODEL: process.env.ZAI_MODEL ?? ''`, and
+    // an empty model name makes every API call answer 400 modelCode, which
+    // silently dropped every report into its template fallback.
+    expect(zaiConfigFromEnv({ ZAI_API_KEY: 'k', ZAI_MODEL: '' })).toEqual({
+      apiKey: 'k',
+      model: 'glm-5.3-flash',
+    });
+  });
+
   test('is null without a key, which is what keeps the layer unmounted', () => {
     expect(zaiConfigFromEnv({})).toBeNull();
   });
@@ -297,5 +307,65 @@ describe('httpZaiClient.verifyAdviceSummary', () => {
   test('propagates a provider failure', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status: 500 })));
     await expect(httpZaiClient(config).verifyAdviceSummary(verifyFacts)).rejects.toThrow();
+  });
+});
+
+describe('httpZaiClient.recommendResources', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  const request = {
+    kind: 'motif' as const,
+    label: 'Hanging piece',
+    eco: null,
+    advice: 'Check defenders first.',
+    rating: 1500,
+  };
+  const three = [
+    '[Beginner] Laszlo Polgar - Chess: 5334 Problems, problems #1800-#1900',
+    '[Intermediate] Yuri Averbakh - Chess Tactics for Advanced Players, Chapter 4',
+    '[Advanced] Mark Dvoretsky - Dvoretsky\u2019s Endgame Manual, Chapter 2',
+  ];
+
+  test('returns one three-resource set per weakness and passes the avoid list', async () => {
+    const fetcher = vi.fn().mockResolvedValue(stubResponse(JSON.stringify([three, three])));
+    vi.stubGlobal('fetch', fetcher);
+
+    const sets = await httpZaiClient(config).recommendResources(
+      [request, request],
+      ['[beginner] old'],
+    );
+
+    expect(sets).toEqual([three, three]);
+    const body = JSON.parse(
+      (fetcher.mock.calls[0] as unknown as [string, RequestInit])[1].body as string,
+    ) as { messages: { content: string }[] };
+    expect(body.messages[0]!.content).toContain('[beginner] old');
+    expect(body.messages[0]!.content).toContain('Hanging piece');
+  });
+
+  test('rejects a set with the wrong shape instead of storing it', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(stubResponse(JSON.stringify([three.slice(0, 2)]))),
+    );
+    await expect(httpZaiClient(config).recommendResources([request], [])).rejects.toThrow();
+  });
+});
+
+describe('httpZaiClient.verifyResourceAssessment', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  test('parses the verdict object', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(stubResponse('{"pass": true, "feedback": "Solid takeaway."}')),
+    );
+    await expect(
+      httpZaiClient(config).verifyResourceAssessment({
+        label: 'Hanging piece',
+        resource: '[Beginner] Chess: 5334 Problems',
+        summary: 'I drilled pins until spotting the loose piece became automatic.',
+      }),
+    ).resolves.toEqual({ pass: true, feedback: 'Solid takeaway.' });
   });
 });

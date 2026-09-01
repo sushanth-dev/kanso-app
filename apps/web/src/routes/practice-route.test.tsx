@@ -95,9 +95,12 @@ describe('PracticeRoute', () => {
     const getPracticePuzzles = vi
       .spyOn(diagnosisApi, 'getPracticePuzzles')
       .mockResolvedValue(drillFixture([puzzle('p1', 'b8c6', 'g1f3')]));
-    const record = vi
-      .spyOn(diagnosisApi, 'recordPracticePuzzle')
-      .mockResolvedValue({ attempts: 1, solved: true });
+    const record = vi.spyOn(diagnosisApi, 'recordPracticePuzzle').mockResolvedValue({
+      attempts: 1,
+      solved: true,
+      reviewLevel: 1,
+      nextReviewAt: new Date(Date.now() + 86_400_000).toISOString(),
+    });
     const { user, container } = renderPath(
       '/practice?kind=motif&group=hanging_piece&label=Hung%20a%20piece&stream=tournament',
     );
@@ -127,9 +130,12 @@ describe('PracticeRoute', () => {
     vi.spyOn(diagnosisApi, 'getPracticePuzzles').mockResolvedValue(
       drillFixture([puzzle('p1', 'b8c6', 'g1f3')]),
     );
-    const record = vi
-      .spyOn(diagnosisApi, 'recordPracticePuzzle')
-      .mockResolvedValue({ attempts: 1, solved: false });
+    const record = vi.spyOn(diagnosisApi, 'recordPracticePuzzle').mockResolvedValue({
+      attempts: 1,
+      solved: false,
+      reviewLevel: 0,
+      nextReviewAt: new Date().toISOString(),
+    });
     const { user, container } = renderPath(
       '/practice?kind=motif&group=hanging_piece&label=Hung%20a%20piece&stream=tournament',
     );
@@ -155,9 +161,12 @@ describe('PracticeRoute', () => {
     vi.spyOn(diagnosisApi, 'getPracticePuzzles').mockResolvedValue(
       drillFixture([puzzle('p1', 'b8c6', 'g1f3'), puzzle('p2', 'b8a6', 'g1f3')]),
     );
-    const record = vi
-      .spyOn(diagnosisApi, 'recordPracticePuzzle')
-      .mockResolvedValue({ attempts: 1, solved: false });
+    const record = vi.spyOn(diagnosisApi, 'recordPracticePuzzle').mockResolvedValue({
+      attempts: 1,
+      solved: false,
+      reviewLevel: 0,
+      nextReviewAt: new Date().toISOString(),
+    });
     const { user, container } = renderPath(
       '/practice?kind=motif&group=hanging_piece&label=Hung%20a%20piece&stream=tournament',
     );

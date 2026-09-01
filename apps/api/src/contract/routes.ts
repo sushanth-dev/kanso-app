@@ -13,7 +13,8 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import {
   ActiveFocus,
-  AdviceDone,
+  ActionItemDone,
+  ActionItemList,
   ApiError,
   CctScan,
   CheckoutRequest,
@@ -25,12 +26,13 @@ import {
   GameSummary,
   Health,
   ImportJob,
-  MarkAdviceDone,
+  MarkActionItemDone,
   Me,
   MotifReport,
   PhaseReport,
   Player,
   PracticePuzzleTally,
+  PracticeQueue,
   PracticeSet,
   ProofSheet,
   RecordPracticePuzzle,
@@ -499,22 +501,48 @@ export const getReport = createRoute({
   },
 });
 
-export const markAdviceDone = createRoute({
+export const markActionItemDone = createRoute({
   method: 'post',
-  path: '/report/advice/done',
+  path: '/report/action-items/done',
   tags: ['Report'],
-  summary: 'Mark one weakness\u2019s advice done with a summary the model judges',
+  summary: 'Submit one action item\u2019s assessment for the model to judge',
   description:
-    'ST-105. The prototype\u2019s close-out flow: the player writes what they did about an advice line, the model judges the summary, and a pass marks the weakness group done and pays the one-off XP. The weakness is resolved against the stored latest report for the scope, so only a weakness the report actually shows can be marked. A fail stores nothing; re-submitting an already-done item returns it without another model call.',
+    'ST-107. The prototype\u2019s proof-of-work flow, per action item: the player writes what they took from an assigned resource, the model judges the summary, and a pass marks that item done and pays the one-off XP. A fail stores nothing; re-submitting an already-done item returns it without another model call. Done is per item - a weakness\u2019s three items close independently.',
   request: {
-    body: json(MarkAdviceDone, 'The report scope, the weakness, and the summary of the work done.'),
+    body: json(MarkActionItemDone, 'The action item and the summary of the work done.'),
   },
   responses: {
-    200: json(AdviceDone, 'The verdict, with the done state after it.'),
+    200: json(ActionItemDone, 'The verdict, with the item\u2019s state after it.'),
     ...authErrors,
-    404: error('No stored report for this scope.'),
-    422: error('That weakness is not on the stored report, or its advice has no line to verify.'),
+    404: error('No such action item for this player.'),
     502: error('The model call failed. Nothing was stored.'),
+  },
+});
+
+export const getPracticeQueue = createRoute({
+  method: 'get',
+  path: '/practice/queue',
+  tags: ['Practice'],
+  summary: 'The player\u2019s puzzle review queue',
+  description:
+    'ST-107. The puzzles page\u2019s three buckets: `due` holds assigned puzzles whose review time has passed - including a dealt-but-unstarted set - `upcoming` holds scheduled reviews, and `mastered` holds the Leitner boxes that finished the ladder. Each item carries the group that owns it, so a row links back into a drill.',
+  responses: {
+    200: json(PracticeQueue, 'The queue, pending first.'),
+    ...authErrors,
+  },
+});
+
+export const listActionItems = createRoute({
+  method: 'get',
+  path: '/report/action-items',
+  tags: ['Report'],
+  summary: 'Every action item the player has been assigned',
+  description:
+    'ST-107. The training curriculum page\u2019s list: pending and completed items across every report, newest assignment first. Each item carries the weakness label and the tier tag the model prefixed, so the page can group and badge without re-deriving anything.',
+  responses: {
+    200: json(ActionItemList, 'The curriculum, newest first.'),
+    404: error('No such player.'),
+    ...authErrors,
   },
 });
 
@@ -754,7 +782,9 @@ export const routes = [
   listTournaments,
   getTournament,
   getReport,
-  markAdviceDone,
+  listActionItems,
+  getPracticeQueue,
+  markActionItemDone,
   getTransferGap,
   getRoundDecay,
   getMotifs,

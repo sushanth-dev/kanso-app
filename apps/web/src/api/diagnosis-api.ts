@@ -20,13 +20,17 @@ export type Evaluation = components['schemas']['Evaluation'];
 export type CctScan = components['schemas']['CctScan'];
 export type CctMove = components['schemas']['CctMove'];
 export type Explanation = components['schemas']['Explanation'];
+export type ActionItemDone = components['schemas']['ActionItemDone'];
+export type ActionItem = components['schemas']['ActionItem'];
+export type PracticeQueue = components['schemas']['PracticeQueue'];
+export type PracticeQueueItem = components['schemas']['PracticeQueueItem'];
+export type ActionItemList = components['schemas']['ActionItemList'];
 export type SocraticQuestion = components['schemas']['SocraticQuestion'];
-export type AdviceDone = components['schemas']['AdviceDone'];
+export type PracticePuzzleTally = components['schemas']['PracticePuzzleTally'];
 export type TransferGap = components['schemas']['TransferGap'];
 export type Color = components['schemas']['Color'];
 export type PracticeSet = components['schemas']['PracticeSet'];
 export type PracticePuzzle = components['schemas']['PracticePuzzle'];
-export type PracticePuzzleTally = components['schemas']['PracticePuzzleTally'];
 
 export interface DiagnosisApi {
   getReport(stream: Stream, tournamentId?: string): Promise<Report>;
@@ -40,15 +44,12 @@ export interface DiagnosisApi {
     group: string;
     solved: boolean;
   }): Promise<PracticePuzzleTally>;
-  /** ST-105. Ask the coach to judge a close-out summary for one weakness's advice. */
-  markAdviceDone(input: {
-    stream: Stream;
-    tournamentId: string | null;
-    kind: WeaknessKind;
-    label: string;
-    eco: string | null;
-    summary: string;
-  }): Promise<AdviceDone>;
+  /** ST-107. Ask the coach to judge one action item's assessment. */
+  markActionItemDone(input: { actionItemId: string; summary: string }): Promise<ActionItemDone>;
+  /** ST-107. The puzzles page's pending, upcoming, and mastered buckets. */
+  getPracticeQueue(): Promise<PracticeQueue>;
+  /** ST-107. Every assigned action item, newest first. */
+  listActionItems(): Promise<ActionItemList>;
   deleteGame(gameId: string): Promise<void>;
   setGameColor(gameId: string, playerColor: Color): Promise<GameSummary>;
   getCctScan(mistakeId: string): Promise<CctScan>;
@@ -114,8 +115,18 @@ export function createDiagnosisApi(
       if (result.data !== undefined) return result.data;
       throw failure(result.response.status, result.error);
     },
-    async markAdviceDone(input) {
-      const result = await client.POST('/report/advice/done', { body: input });
+    async markActionItemDone(input) {
+      const result = await client.POST('/report/action-items/done', { body: input });
+      if (result.data !== undefined) return result.data;
+      throw failure(result.response.status, result.error);
+    },
+    async getPracticeQueue() {
+      const result = await client.GET('/practice/queue', {});
+      if (result.data !== undefined) return result.data;
+      throw failure(result.response.status, result.error);
+    },
+    async listActionItems() {
+      const result = await client.GET('/report/action-items', {});
       if (result.data !== undefined) return result.data;
       throw failure(result.response.status, result.error);
     },

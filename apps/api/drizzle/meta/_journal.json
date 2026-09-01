@@ -176,6 +176,20 @@
       "when": 1788268800000,
       "tag": "0024_seed_puzzle_pool",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1788240146718,
+      "tag": "0025_action_items_and_srs",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1788240173741,
+      "tag": "0026_drop_advice_progress",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,1 @@
+DROP TABLE "advice_progress" CASCADE;
