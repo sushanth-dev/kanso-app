@@ -1032,11 +1032,22 @@
           },
           "solved": {
             "type": "boolean"
+          },
+          "reviewLevel": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          },
+          "nextReviewAt": {
+            "type": "string",
+            "format": "date-time"
           }
         },
         "required": [
           "attempts",
-          "solved"
+          "solved",
+          "reviewLevel",
+          "nextReviewAt"
         ]
       },
       "RecordPracticePuzzle": {
@@ -1362,12 +1373,11 @@
           },
           "ratingLeak": {
             "type": "integer",
-            "example": 34,
-            "description": "Rating points this weakness costs the player over a season."
+            "example": 85,
+            "description": "Estimated rating points this weakness costs per season."
           },
           "saturated": {
-            "type": "boolean",
-            "description": "True when the weakness saturates the season, so the leak is a floor."
+            "type": "boolean"
           },
           "halfPointsLost": {
             "type": "number"
@@ -1379,7 +1389,8 @@
             "type": "integer"
           },
           "rank": {
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1
           },
           "advice": {
             "type": [
@@ -1387,15 +1398,11 @@
               "null"
             ]
           },
-          "done": {
-            "type": "boolean"
-          },
-          "completedAt": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
+          "actionItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActionItem"
+            }
           },
           "groupKey": {
             "type": [
@@ -1404,7 +1411,8 @@
             ]
           },
           "drilled": {
-            "type": "integer"
+            "type": "integer",
+            "minimum": 0
           },
           "evidence": {
             "type": "array",
@@ -1425,11 +1433,62 @@
           "occurrences",
           "rank",
           "advice",
-          "done",
-          "completedAt",
+          "actionItems",
           "groupKey",
           "drilled",
           "evidence"
+        ]
+      },
+      "ActionItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "resourceIndex": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2
+          },
+          "tier": {
+            "type": "string",
+            "enum": [
+              "beginner",
+              "intermediate",
+              "advanced"
+            ]
+          },
+          "resource": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "completed"
+            ]
+          },
+          "dueAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "resourceIndex",
+          "tier",
+          "resource",
+          "status",
+          "dueAt",
+          "completedAt"
         ]
       },
       "WeaknessEvidence": {
@@ -1496,7 +1555,126 @@
           "cpLoss"
         ]
       },
-      "AdviceDone": {
+      "ActionItemList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ActionItem"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "$ref": "#/components/schemas/WeaknessKind"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "summary": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "label",
+                    "summary"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "PracticeQueue": {
+        "type": "object",
+        "properties": {
+          "due": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PracticeQueueItem"
+            }
+          },
+          "upcoming": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PracticeQueueItem"
+            }
+          },
+          "mastered": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PracticeQueueItem"
+            }
+          }
+        },
+        "required": [
+          "due",
+          "upcoming",
+          "mastered"
+        ]
+      },
+      "PracticeQueueItem": {
+        "type": "object",
+        "properties": {
+          "puzzleId": {
+            "type": "string"
+          },
+          "fen": {
+            "type": "string"
+          },
+          "moves": {
+            "type": "string"
+          },
+          "rating": {
+            "type": "integer"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/WeaknessKind"
+          },
+          "group": {
+            "type": "string"
+          },
+          "reviewLevel": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          },
+          "nextReviewAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "solved": {
+            "type": "boolean"
+          },
+          "attempts": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "puzzleId",
+          "fen",
+          "moves",
+          "rating",
+          "kind",
+          "group",
+          "reviewLevel",
+          "nextReviewAt",
+          "solved",
+          "attempts"
+        ]
+      },
+      "ActionItemDone": {
         "type": "object",
         "properties": {
           "pass": {
@@ -1519,47 +1697,22 @@
           "completedAt"
         ]
       },
-      "MarkAdviceDone": {
+      "MarkActionItemDone": {
         "type": "object",
         "properties": {
-          "stream": {
-            "$ref": "#/components/schemas/Stream"
-          },
-          "tournamentId": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "uuid",
-            "description": "Set when the report is scoped to one tournament; null for the stream report."
-          },
-          "kind": {
-            "$ref": "#/components/schemas/WeaknessKind"
-          },
-          "label": {
+          "actionItemId": {
             "type": "string",
-            "example": "Hanging piece"
-          },
-          "eco": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "example": "B22"
+            "format": "uuid"
           },
           "summary": {
             "type": "string",
             "minLength": 1,
             "maxLength": 2000,
-            "description": "The player’s own summary of what they did about the advice."
+            "description": "The player’s own summary of what they took from the resource."
           }
         },
         "required": [
-          "stream",
-          "tournamentId",
-          "kind",
-          "label",
-          "eco",
+          "actionItemId",
           "summary"
         ]
       },
@@ -3441,30 +3594,20 @@
         }
       }
     },
-    "/report/advice/done": {
-      "post": {
+    "/report/action-items": {
+      "get": {
         "tags": [
           "Report"
         ],
-        "summary": "Mark one weakness’s advice done with a summary the model judges",
-        "description": "ST-105. The prototype’s close-out flow: the player writes what they did about an advice line, the model judges the summary, and a pass marks the weakness group done and pays the one-off XP. The weakness is resolved against the stored latest report for the scope, so only a weakness the report actually shows can be marked. A fail stores nothing; re-submitting an already-done item returns it without another model call.",
-        "requestBody": {
-          "description": "The report scope, the weakness, and the summary of the work done.",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MarkAdviceDone"
-              }
-            }
-          }
-        },
+        "summary": "Every action item the player has been assigned",
+        "description": "ST-107. The training curriculum page’s list: pending and completed items across every report, newest assignment first. Each item carries the weakness label and the tier tag the model prefixed, so the page can group and badge without re-deriving anything.",
         "responses": {
           "200": {
-            "description": "The verdict, with the done state after it.",
+            "description": "The curriculum, newest first.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AdviceDone"
+                  "$ref": "#/components/schemas/ActionItemList"
                 }
               }
             }
@@ -3500,7 +3643,38 @@
             }
           },
           "404": {
-            "description": "No stored report for this scope.",
+            "description": "No such player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/practice/queue": {
+      "get": {
+        "tags": [
+          "Practice"
+        ],
+        "summary": "The player’s puzzle review queue",
+        "description": "ST-107. The puzzles page’s three buckets: `due` holds assigned puzzles whose review time has passed - including a dealt-but-unstarted set - `upcoming` holds scheduled reviews, and `mastered` holds the Leitner boxes that finished the ladder. Each item carries the group that owns it, so a row links back into a drill.",
+        "responses": {
+          "200": {
+            "description": "The queue, pending first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PracticeQueue"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3509,8 +3683,89 @@
               }
             }
           },
-          "422": {
-            "description": "That weakness is not on the stored report, or its advice has no line to verify.",
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The session has no claim on this player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/report/action-items/done": {
+      "post": {
+        "tags": [
+          "Report"
+        ],
+        "summary": "Submit one action item’s assessment for the model to judge",
+        "description": "ST-107. The prototype’s proof-of-work flow, per action item: the player writes what they took from an assigned resource, the model judges the summary, and a pass marks that item done and pays the one-off XP. A fail stores nothing; re-submitting an already-done item returns it without another model call. Done is per item - a weakness’s three items close independently.",
+        "requestBody": {
+          "description": "The action item and the summary of the work done.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkActionItemDone"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The verdict, with the item’s state after it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionItemDone"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The session has no claim on this player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such action item for this player.",
             "content": {
               "application/json": {
                 "schema": {

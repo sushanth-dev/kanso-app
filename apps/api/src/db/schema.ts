@@ -94,6 +94,12 @@ export const timeTroubleReasonEnum = pgEnum('time_trouble_reason', [
   'not_enough_evidence',
 ]);
 
+/** ST-107. The tier tag inside a progressive resource set: one of each per weakness. */
+export const resourceTierEnum = pgEnum('resource_tier', ['beginner', 'intermediate', 'advanced']);
+
+/** ST-107. An action item is open until the model accepts the player's assessment. */
+export const actionItemStatusEnum = pgEnum('action_item_status', ['pending', 'completed']);
+
 // ─── Identity ────────────────────────────────────────────────────────────────
 
 /**
@@ -608,18 +614,20 @@ export const weakness = pgTable(
 );
 
 /**
- * ST-105. One closed action item per weakness group: the record that a player
- * marked a report weakness's advice done, with the summary the model accepted.
+ * ST-107. One action item of a weakness group's curriculum: one of the three
+ * model-assigned resources (one Beginner, one Intermediate, one Advanced)
+ * that close the gap the weakness names.
  *
- * Keyed by (player, kind, group key) rather than by the weakness row's id,
- * because a report regenerates whenever its scope's games change and writes
- * fresh weakness rows each time; the group key from `groupKeyOf` is the only
- * identity that survives a regeneration. Rows are written on a pass only, so
- * a row's existence is the completed state and the unique index is what keeps
- * a re-verification from paying the XP twice.
+ * Keyed by (player, kind, group key, resource index) rather than by the
+ * weakness row's id, because a report regenerates whenever its scope's games
+ * change and writes fresh weakness rows; the group key from `groupKeyOf` is
+ * the only identity that survives a regeneration. The status flips
+ * pending-to-completed when the model accepts the player's assessment, and
+ * the completion write only matches a pending row, so a re-submission pays
+ * the XP once - the prototype's guard, expressed as an UPDATE ... RETURNING.
  */
-export const adviceProgress = pgTable(
-  'advice_progress',
+export const actionItem = pgTable(
+  'action_item',
   {
     id: uuid('id').primaryKey().defaultRandom(),
     playerId: uuid('player_id')
@@ -628,11 +636,25 @@ export const adviceProgress = pgTable(
     kind: weaknessKindEnum('kind').notNull(),
     /** The stable identity of the weakness group, from `groupKeyOf`. */
     groupKey: text('group_key').notNull(),
-    /** The summary the model accepted, verbatim. */
-    summary: text('summary').notNull(),
-    completedAt: timestamp('completed_at', { withTimezone: true }).notNull().defaultNow(),
+    /** Position in the progressive set: 0 Beginner, 1 Intermediate, 2 Advanced. */
+    resourceIndex: smallint('resource_index').notNull(),
+    tier: resourceTierEnum('tier').notNull(),
+    /** The assigned resource, verbatim: a real book chapter or a tactical drill. */
+    resource: text('resource').notNull(),
+    status: actionItemStatusEnum('status').notNull().default('pending'),
+    /** The assessment text the model accepted; null while pending. */
+    summary: text('summary'),
+    /** The weakness's display label, carried so the assessment prompt can name it. */
+    label: text('label').notNull(),
+    /** The prototype's deadline: a week to work through the resource. */
+    dueAt: timestamp('due_at', { withTimezone: true }).notNull().defaultNow(),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [uniqueIndex('advice_progress_player_unique').on(t.playerId, t.kind, t.groupKey)],
+  (t) => [
+    uniqueIndex('action_item_player_unique').on(t.playerId, t.kind, t.groupKey, t.resourceIndex),
+    index('action_item_player_idx').on(t.playerId, t.status),
+  ],
 );
 
 // ─── Prescription ────────────────────────────────────────────────────────────
@@ -810,10 +832,25 @@ export const puzzleAttempt = pgTable(
     /** True when any attempt on this puzzle was solved. */
     solved: boolean('solved').notNull().default(false),
     lastAttemptAt: timestamp('last_attempt_at', { withTimezone: true }).notNull().defaultNow(),
+    /**
+     * ST-107. The Leitner box: 0 failed or fresh, 1-4 the mastered ladder
+     * (1/3/7/30 days). A solve promotes one box, a reveal drops back to 0.
+     */
+    reviewLevel: smallint('review_level').notNull().default(0),
+    /** When the puzzle returns for review; level 0 rows are due immediately. */
+    nextReviewAt: timestamp('next_review_at', { withTimezone: true }).notNull().defaultNow(),
+    /**
+     * ST-107. When the deal assigned this puzzle, null for a row written by
+     * an old build. Assignment is the dedupe: a row exists the moment the
+     * drill deals the puzzle, not only when a drill is recorded, so an
+     * abandoned session never deals the same puzzles again.
+     */
+    assignedAt: timestamp('assigned_at', { withTimezone: true }),
   },
   (t) => [
     primaryKey({ columns: [t.playerId, t.puzzleId] }),
     index('puzzle_attempt_group_idx').on(t.playerId, t.kind, t.groupKey),
+    index('puzzle_attempt_review_idx').on(t.playerId, t.nextReviewAt),
   ],
 );
 

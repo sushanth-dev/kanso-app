@@ -129,6 +129,17 @@ async function addClockMove(gameId: string, ply: number, clockMs: number): Promi
   });
 }
 
+/** ST-107. One assigned resource in a weakness's curriculum. */
+interface ActionItemBody {
+  id: string;
+  resourceIndex: number;
+  tier: 'beginner' | 'intermediate' | 'advanced';
+  resource: string;
+  status: 'pending' | 'completed';
+  dueAt: string;
+  completedAt: string | null;
+}
+
 interface WeaknessBody {
   id: string;
   kind: string;
@@ -154,6 +165,8 @@ interface WeaknessBody {
     judgement: string;
     cpLoss: number;
   }[];
+  /** ST-107. The curriculum the read fills; empty when no model is set. */
+  actionItems: ActionItemBody[];
 }
 
 interface ReportBody {
@@ -513,10 +526,16 @@ describe('GET /report model advice (ST-099)', () => {
   const HANGING_PIECE_TEMPLATE =
     'Before each move, ask what your opponent\u2019s last move attacks - and after choosing ' +
     'one, check it does not leave the moved piece, or anything it was guarding, undefended.';
+  /** ST-107. The fake's fixed progressive set: one Beginner, one Intermediate, one Advanced. */
+  const RESOURCES = [
+    '[Beginner] Chess Steps workbook on hanging pieces',
+    '[Intermediate] Silman, How to Reassess Your Chess',
+    '[Advanced] Dvoretsky, Endgame Manual chapters on blunder control',
+  ];
 
   function fakeAi(
     lines: string[] | Error,
-    calls: { n: number; summarize?: number } = { n: 0 },
+    calls: { n: number; summarize?: number; resources?: number } = { n: 0 },
     summary: string | Error | null = null,
   ): AiClient {
     return {
@@ -538,6 +557,12 @@ describe('GET /report model advice (ST-099)', () => {
       // ST-105. The advice close-out has its own suite; fakeAi stays a
       // report-generation double.
       verifyAdviceSummary: () => Promise.reject(new Error('not used here')),
+      // ST-107. The curriculum fill: the same progressive set for every group.
+      recommendResources: (groups) => {
+        calls.resources = (calls.resources ?? 0) + 1;
+        return Promise.resolve(groups.map(() => RESOURCES));
+      },
+      verifyResourceAssessment: () => Promise.reject(new Error('not used here')),
     };
   }
 
@@ -556,7 +581,7 @@ describe('GET /report model advice (ST-099)', () => {
 
   test('stores the model line per weakness and never calls the model when serving', async () => {
     const playerId = await seedAdviceGames();
-    const calls = { n: 0 };
+    const calls = { n: 0, resources: 0 };
     const first = await app(OWNER, fakeAi([MOTIF_LINE, PHASE_LINE], calls)).request(
       '/report?stream=online',
     );
@@ -565,6 +590,16 @@ describe('GET /report model advice (ST-099)', () => {
     expect(body.weaknesses.find((w) => w.kind === 'motif')!.advice).toBe(MOTIF_LINE);
     expect(body.weaknesses.find((w) => w.kind === 'phase')!.advice).toBe(PHASE_LINE);
     expect(calls.n).toBe(1);
+    // ST-107. The same read fills the curriculum: the progressive set, three
+    // pending items per group, tier tags parsed from the fake resources.
+    expect(calls.resources).toBe(1);
+    const motif = body.weaknesses.find((w) => w.kind === 'motif')!;
+    expect(motif.actionItems.map((i) => [i.tier, i.status, i.completedAt])).toEqual([
+      ['beginner', 'pending', null],
+      ['intermediate', 'pending', null],
+      ['advanced', 'pending', null],
+    ]);
+    expect(motif.actionItems.map((i) => i.resource)).toEqual(RESOURCES);
 
     const [stored] = await harness.db.select().from(report).where(eq(report.playerId, playerId));
     const ws = await harness.db.select().from(weakness).where(eq(weakness.reportId, stored!.id));
@@ -577,6 +612,9 @@ describe('GET /report model advice (ST-099)', () => {
     expect(againBody.id).toBe(body.id);
     expect(againBody.weaknesses.find((w) => w.kind === 'motif')!.advice).toBe(MOTIF_LINE);
     expect(calls.n).toBe(1);
+    // The filled curriculum costs nothing on a serve.
+    expect(calls.resources).toBe(1);
+    expect(againBody.weaknesses.find((w) => w.kind === 'motif')!.actionItems).toHaveLength(3);
   });
 
   test('keeps the template copy when the model call fails', async () => {
@@ -601,6 +639,8 @@ describe('GET /report model advice (ST-099)', () => {
     expect(body.weaknesses.find((w) => w.kind === 'motif')!.advice).toBe(HANGING_PIECE_TEMPLATE);
     // ST-100. No key, no model path: the plan is null with everything else intact.
     expect(body.narrative).toBeNull();
+    // ST-107. No key, no curriculum: the read serves the empty set.
+    expect(body.weaknesses.find((w) => w.kind === 'motif')!.actionItems).toEqual([]);
   });
 
   describe('GET /report model summary (ST-100)', () => {

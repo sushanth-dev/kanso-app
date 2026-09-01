@@ -284,13 +284,47 @@ export const RecordPracticePuzzle = z
   })
   .openapi('RecordPracticePuzzle');
 
-/** ST-106. The running tally for one drilled puzzle. */
+/** ST-106, ST-107. The running tally for one drilled puzzle, with its new review box. */
 export const PracticePuzzleTally = z
   .object({
     attempts: z.number().int(),
     solved: z.boolean(),
+    /** The Leitner box after this attempt: 0 failed or fresh, 4 mastered. */
+    reviewLevel: z.number().int().min(0).max(4),
+    /** When the puzzle returns for review; level 4 sits 30 days out. */
+    nextReviewAt: z.iso.datetime(),
   })
   .openapi('PracticePuzzleTally');
+
+/** ST-107. One puzzle in the player's review queue, with its schedule. */
+export const PracticeQueueItem = z
+  .object({
+    puzzleId: z.string(),
+    fen: z.string(),
+    moves: z.string(),
+    rating: z.number().int(),
+    kind: WeaknessKind,
+    group: z.string(),
+    reviewLevel: z.number().int().min(0).max(4),
+    nextReviewAt: z.iso.datetime(),
+    solved: z.boolean(),
+    /** How many drills this puzzle has recorded; 0 means dealt but unstarted. */
+    attempts: z.number().int().min(0),
+  })
+  .openapi('PracticeQueueItem');
+
+/**
+ * ST-107. The three buckets the puzzles page shows: what is pending now
+ * (due reviews plus the deal that has not been started), what is coming up
+ * for review, and what has been mastered.
+ */
+export const PracticeQueue = z
+  .object({
+    due: z.array(PracticeQueueItem),
+    upcoming: z.array(PracticeQueueItem),
+    mastered: z.array(PracticeQueueItem),
+  })
+  .openapi('PracticeQueue');
 
 export const MovePly = z
   .object({
@@ -571,6 +605,21 @@ export const WeaknessEvidence = z
   })
   .openapi('WeaknessEvidence');
 
+export const ActionItem = z
+  .object({
+    id: Uuid,
+    /** Position in the progressive set: 0 Beginner, 1 Intermediate, 2 Advanced. */
+    resourceIndex: z.number().int().min(0).max(2),
+    tier: z.enum(['beginner', 'intermediate', 'advanced']),
+    /** The assigned resource, verbatim, tier tag included. */
+    resource: z.string(),
+    status: z.enum(['pending', 'completed']),
+    /** The prototype's deadline: a week to work through the resource. */
+    dueAt: z.iso.datetime(),
+    completedAt: z.iso.datetime().nullable(),
+  })
+  .openapi('ActionItem');
+
 export const Weakness = z
   .object({
     id: Uuid,
@@ -578,22 +627,18 @@ export const Weakness = z
     label: z.string().openapi({ example: 'Sicilian, Alapin' }),
     eco: z.string().nullable().openapi({ example: 'B22' }),
     ratingLeak: z.number().int().openapi({
-      example: 34,
-      description: 'Rating points this weakness costs the player over a season.',
+      example: 85,
+      description: 'Estimated rating points this weakness costs per season.',
     }),
-    saturated: z.boolean().openapi({
-      description: 'True when the weakness saturates the season, so the leak is a floor.',
-    }),
+    saturated: z.boolean(),
     halfPointsLost: z.number(),
     gamesAffected: z.number().int(),
     occurrences: z.number().int(),
-    rank: z.number().int(),
+    rank: z.number().int().min(1),
     /** ST-098. What to do about the weakness; null when no honest line exists. */
     advice: z.string().nullable(),
-    /** ST-105. True when a verified summary closed this weakness group's advice. */
-    done: z.boolean(),
-    /** ST-105. When the advice was marked done; null while it stays open. */
-    completedAt: z.iso.datetime().nullable(),
+    /** ST-107. The weakness's curriculum: three resources, each done on its own. */
+    actionItems: z.array(ActionItem),
     /**
      * ST-106. The stable group identity `groupKeyOf` recovered from the
      * label, or null when the label predates the map. The practice link
@@ -603,13 +648,10 @@ export const Weakness = z
     /**
      * ST-106. The solved drills the player has recorded against this
      * weakness group's puzzle pool, from one grouped read. The Practiced
-     * badge means this count has reached a full drill set.
+     * badge and the practice-more CTA key on it.
      */
-    drilled: z.number().int(),
-    /**
-     * ST-098. The places the weakness was found: at most three, worst first,
-     * from the same rows and window the leak was summed over.
-     */
+    drilled: z.number().int().min(0),
+    /** ST-098. The worst instances behind the aggregate, newest first. */
     evidence: z.array(WeaknessEvidence),
   })
   .openapi('Weakness');
@@ -640,36 +682,42 @@ export const Report = z
   .openapi('Report');
 
 /**
- * ST-105. The body of marking one weakness's advice done: which report scope,
- * which weakness (kind, label, and the ECO that disambiguates openings), and
- * the summary the model will judge. The server resolves the weakness against
- * the player's stored latest report, so only a weakness the player can see can
- * be marked.
+ * ST-107. The body of submitting one action item's assessment: which item and
+ * the summary the model will judge. The server resolves the item against the
+ * session's player, so only an assigned item can be assessed.
  */
-export const MarkAdviceDone = z
+export const MarkActionItemDone = z
   .object({
-    stream: Stream,
-    tournamentId: Uuid.nullable().openapi({
-      description: 'Set when the report is scoped to one tournament; null for the stream report.',
-    }),
-    kind: WeaknessKind,
-    label: z.string().openapi({ example: 'Hanging piece' }),
-    eco: z.string().nullable().openapi({ example: 'B22' }),
+    actionItemId: Uuid,
     summary: z.string().min(1).max(2000).openapi({
-      description: 'The player\u2019s own summary of what they did about the advice.',
+      description: 'The player\u2019s own summary of what they took from the resource.',
     }),
   })
-  .openapi('MarkAdviceDone');
+  .openapi('MarkActionItemDone');
 
-/** ST-105. The verdict on one close-out summary, plus the resulting done state. */
-export const AdviceDone = z
+/** ST-107. The verdict on one assessment, plus the item's resulting state. */
+export const ActionItemDone = z
   .object({
     pass: z.boolean(),
     feedback: z.string(),
-    /** Set when the advice is now done: on this pass, or on an earlier one. */
+    /** Set when the item is now done: on this pass, or on an earlier one. */
     completedAt: z.iso.datetime().nullable(),
   })
-  .openapi('AdviceDone');
+  .openapi('ActionItemDone');
+
+/** ST-107. The curriculum page's list: every assigned item, newest first. */
+export const ActionItemList = z
+  .object({
+    items: z.array(
+      ActionItem.extend({
+        kind: WeaknessKind,
+        label: z.string(),
+        /** The assessment text the model accepted; null while pending. */
+        summary: z.string().nullable(),
+      }),
+    ),
+  })
+  .openapi('ActionItemList');
 
 // ─── Focus ───────────────────────────────────────────────────────────────────
 

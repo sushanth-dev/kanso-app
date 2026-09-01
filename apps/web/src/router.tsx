@@ -36,6 +36,8 @@ import { UpgradeRoute } from './routes/upgrade-route.tsx';
 import { TournamentsRoute } from './routes/tournaments-route.tsx';
 import { TournamentDetailRoute } from './routes/tournament-detail-route.tsx';
 import { TransferGapRoute } from './routes/transfer-gap-route.tsx';
+import { PuzzlesRoute } from './routes/puzzles-route.tsx';
+import { CurriculumRoute } from './routes/curriculum-route.tsx';
 import { ForgotPasswordRoute } from './routes/forgot-password-route.tsx';
 import { ResetPasswordRoute } from './routes/reset-password-route.tsx';
 
@@ -257,6 +259,22 @@ const practiceRoute = createRoute({
   component: PracticeRoute,
 });
 
+// ST-107. The puzzles page: what is pending, what is coming up for review,
+// what is mastered. The drill route stays the place puzzles are solved.
+const puzzlesRoute = createRoute({
+  getParentRoute: () => accountRoute,
+  path: '/puzzles',
+  component: PuzzlesRoute,
+});
+
+// ST-107. The training curriculum: every assigned action item, each closed
+// by its own assessment.
+const curriculumRoute = createRoute({
+  getParentRoute: () => accountRoute,
+  path: '/curriculum',
+  component: CurriculumRoute,
+});
+
 const tournamentsRoute = createRoute({
   getParentRoute: () => accountRoute,
   path: '/tournaments',
@@ -330,6 +348,8 @@ const routeTree = rootRoute.addChildren([
     settingsRoute,
     reportRoute,
     practiceRoute,
+    puzzlesRoute,
+    curriculumRoute,
     focusRoute,
     proofSheetRoute,
     importRoute,
