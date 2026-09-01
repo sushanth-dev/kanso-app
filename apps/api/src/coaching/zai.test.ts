@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import {
   AdviceVerifyFacts,
+  CALL_TIMEOUT_MS,
   httpZaiClient,
   zaiConfigFromEnv,
   type MistakeFacts,
@@ -367,5 +368,25 @@ describe('httpZaiClient.verifyResourceAssessment', () => {
         summary: 'I drilled pins until spotting the loose piece became automatic.',
       }),
     ).resolves.toEqual({ pass: true, feedback: 'Solid takeaway.' });
+  });
+});
+
+describe('model call budget', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  test('every call fits the platform budget with room for the database work', () => {
+    // API Gateway kills the request at 30 seconds (infra/api.ts); a model
+    // call that outlives the request is the 503 outage of 1 September.
+    expect(CALL_TIMEOUT_MS).toBeLessThanOrEqual(25_000);
+  });
+
+  test('the fetch carries an abort signal, so a hung provider cannot hang the request', async () => {
+    let seen: RequestInit | undefined;
+    vi.stubGlobal('fetch', (_url: string, init?: RequestInit) => {
+      seen = init;
+      return Promise.resolve(stubResponse('ok'));
+    });
+    await httpZaiClient(config).summarizeReport({} as ReportSummaryFacts);
+    expect(seen?.signal).toBeInstanceOf(AbortSignal);
   });
 });

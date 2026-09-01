@@ -1568,6 +1568,39 @@
           "cpLoss"
         ]
       },
+      "WeaknessCoaching": {
+        "type": "object",
+        "properties": {
+          "advice": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "actionItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActionItem"
+            }
+          }
+        },
+        "required": [
+          "advice",
+          "actionItems"
+        ]
+      },
+      "GenerateWeakness": {
+        "type": "object",
+        "properties": {
+          "weaknessId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "weaknessId"
+        ]
+      },
       "ActionItemList": {
         "type": "object",
         "properties": {
@@ -3650,6 +3683,77 @@
           },
           "422": {
             "description": "Analysed games in the scope are too few for a report.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/report/weakness": {
+      "post": {
+        "tags": [
+          "Report"
+        ],
+        "summary": "Write one weakness’s coaching on demand, once",
+        "description": "The model work for one weakness happens here, at the click that opens it, not in bulk at report generation: the advice line is written once and stored on the weakness row, and the group’s three resources are assigned when absent. Re-opening the weakness costs no model calls; a failed or refused line keeps the template copy and a later click retries.",
+        "requestBody": {
+          "description": "The weakness to coach.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateWeakness"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The stored advice line and the group’s action items.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeaknessCoaching"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The weakness has no stable group.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The session has no claim on this player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such weakness on this player’s reports.",
             "content": {
               "application/json": {
                 "schema": {

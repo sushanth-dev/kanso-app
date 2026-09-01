@@ -204,9 +204,18 @@ describe('ReportScreen', () => {
   });
 
   test('shows the places and the advice behind a weakness', async () => {
+    // Spies are not auto-restored in this file: drop the earlier tests' calls.
+    const coachWeakness = vi.spyOn(diagnosisApi, 'coachWeakness').mockClear().mockResolvedValue({
+      advice: motifWeakness.advice,
+      actionItems: motifWeakness.actionItems,
+    });
     const { user } = renderReport(reportFixture());
     await user.click(screen.getByText('Show evidence'));
 
+    // The click opened the weakness: the coaching endpoint ran once.
+    await waitFor(() => {
+      expect(coachWeakness).toHaveBeenCalledWith({ weaknessId: 'w-1' });
+    });
     // The advice: what to do about the weakness.
     expect(screen.getByText(/count what each available capture wins/)).toBeVisible();
     // The place: the move played, the move that was better, and the way in.
@@ -234,7 +243,7 @@ describe('ReportScreen', () => {
     expect(screen.getByText(/Start with the missed captures: count defenders/)).toBeVisible();
   });
 
-  test('opens no expander on an opening weakness', () => {
+  test('an opening weakness offers its resources, not the evidence expander', () => {
     renderReport(
       reportFixture({
         weaknesses: [openingWeakness],
@@ -242,6 +251,31 @@ describe('ReportScreen', () => {
     );
     expect(screen.getByText('Sicilian, Alapin')).toBeVisible();
     expect(screen.queryByText('Show evidence')).toBeNull();
+    expect(screen.getByText('Get resources')).toBeVisible();
+  });
+
+  test('a click writes the coaching once; reopening the weakness never re-asks', async () => {
+    // Spies are not auto-restored in this file: drop the earlier tests' calls.
+    const coachWeakness = vi
+      .spyOn(diagnosisApi, 'coachWeakness')
+      .mockClear()
+      .mockResolvedValue({
+        advice: 'Count defenders before every capture; nine losses were hanging pieces.',
+        actionItems: [actionItemFixture()],
+      });
+    const { user } = renderReport(reportFixture());
+    await user.click(screen.getByText('Show evidence'));
+
+    // The answer lands and the note hint goes away.
+    await waitFor(() => {
+      expect(screen.queryByText('The coach is writing your note...')).toBeNull();
+    });
+    expect(coachWeakness).toHaveBeenCalledTimes(1);
+
+    // Opening the weakness again does not re-ask.
+    await user.click(screen.getByText('Hide evidence'));
+    await user.click(screen.getByText('Show evidence'));
+    expect(coachWeakness).toHaveBeenCalledTimes(1);
   });
 
   test('names the analysing games as a numbered list', () => {
@@ -477,6 +511,42 @@ describe('ReportRoute', () => {
     const list = banner.querySelector('ol');
     expect(list?.children).toHaveLength(1);
     expect(list?.children[0]).toHaveTextContent('Mina vs Opponent');
+  });
+
+  test('a click writes the model line into the served report once', async () => {
+    vi.spyOn(diagnosisApi, 'getReport').mockResolvedValue(
+      reportFixture({
+        stream: 'online',
+        weaknesses: [{ ...motifWeakness, advice: null, actionItems: [] }],
+      }),
+    );
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [gameFixture({ id: 'g-1', analysisStatus: 'complete' })],
+      total: 1,
+      page: 1,
+      limit: 100,
+    });
+    const coachWeakness = vi
+      .spyOn(diagnosisApi, 'coachWeakness')
+      .mockClear()
+      .mockResolvedValue({
+        advice: 'Count defenders before every capture; nine losses were hanging pieces.',
+        actionItems: [actionItemFixture()],
+      });
+
+    renderRoute();
+
+    // The card carries no advice line until the click opens the weakness.
+    expect(await screen.findByText('Missed captures')).toBeVisible();
+    expect(screen.queryByText(/count what each available capture wins/)).toBeNull();
+    const user = userEvent.setup();
+    await user.click(screen.getByText('Show evidence'));
+
+    // The answer lands in the served report: the patch rewrote the cached
+    // report, advice line and curriculum together, and the model ran once.
+    expect(await screen.findByText(/Count defenders before every capture/)).toBeVisible();
+    expect(screen.getByText(/Laszlo Polgar/)).toBeVisible();
+    expect(coachWeakness).toHaveBeenCalledTimes(1);
   });
 
   test('polls and swaps to the report once every game is analysed', async () => {

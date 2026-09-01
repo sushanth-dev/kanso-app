@@ -18,7 +18,12 @@ import { and, asc, desc, eq, inArray, isNotNull, isNull, max, or, sql } from 'dr
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { z } from 'zod';
-import { getReport, listActionItems, markActionItemDone } from '../contract/routes.ts';
+import {
+  generateWeaknessCoaching,
+  getReport,
+  listActionItems,
+  markActionItemDone,
+} from '../contract/routes.ts';
 import { Report } from '../contract/schemas.ts';
 import * as schema from '../db/schema.ts';
 import { actionItem, game, puzzleAttempt, report, weakness } from '../db/schema.ts';
@@ -29,10 +34,10 @@ import { MIN_RATED_GAMES, SEASON_WINDOW_MS } from '../analysis/performance-ratin
 import { scoreTimeTrouble, timeTroubleCounts } from '../phases/phases.ts';
 import { adviceFor, groupKeyOf, weaknessEvidence, type EvidenceInstance } from './evidence.ts';
 import { composeReport, type ComposedWeakness } from './compose.ts';
-import { adviceForReport } from './advice.ts';
+import { generateAdvice } from './advice.ts';
 import { summaryForReport } from './summary.ts';
-import type { AiClient } from '../coaching/zai.ts';
-import { ensureActionItems, readItemsByGroup, completeItem } from './action-items.ts';
+import type { AiClient, ReportAdviceFacts } from '../coaching/zai.ts';
+import { ensureActionItems, readItemsByGroup, completeItem, type ItemRow } from './action-items.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
 type Stream = (typeof schema.streamEnum.enumValues)[number];
@@ -136,16 +141,32 @@ function toResponse(r: ReportRow, ws: WeaknessRow[]): ReportResponse {
 }
 
 /**
- * ST-098. Attach the places, the advice, the curriculum, and the drill count
- * to each weakness. The instances come from the same window the report was
- * computed over, so a stored report and its evidence stay consistent after
- * both leave the database. The action items and the drill count are one read
- * each for the whole report, keyed by group, so both survive the weakness
- * rows being rewritten on regeneration.
+ * ST-098. Attach the places, the advice, and the drill count to each
+ * weakness. The instances come from the same window the report was computed
+ * over, so a stored report and its evidence stay consistent after both leave
+ * the database. No model runs here: the advice line is written at the click
+ * that opens a weakness, and the drill count is one read for the whole
+ * report, keyed by group, so it survives the weakness rows being rewritten
+ * on regeneration.
  */
+/**
+ * The wire shape of one assigned resource, shared by the report read and the
+ * on-demand coaching response.
+ */
+function itemBody(item: ItemRow) {
+  return {
+    id: item.id,
+    resourceIndex: item.resourceIndex,
+    tier: item.tier,
+    resource: item.resource,
+    status: item.status,
+    dueAt: item.dueAt.toISOString(),
+    completedAt: item.completedAt?.toISOString() ?? null,
+  };
+}
+
 async function withEvidence(
   db: Db,
-  ai: AiClient | null,
   playerId: string,
   stream: Stream,
   tournamentId: string | undefined,
@@ -177,24 +198,6 @@ async function withEvidence(
     w.advice = w.advice ?? adviceFor(w.kind, key ?? '', w.evidence);
     w.drilled = key === null ? 0 : (drilled.get(`${w.kind}:${key}`) ?? 0);
   }
-  // ST-107. The curriculum fills itself here rather than only at generation,
-  // so reports stored before the model had a working model - or before this
-  // feature - gain their action items on the next read. Filled groups are
-  // idempotent: the ensure step re-reads what exists and asks for nothing.
-  await ensureActionItems(
-    db,
-    ai,
-    playerId,
-    response.weaknesses
-      .map((w) => ({
-        kind: w.kind,
-        label: w.label,
-        eco: w.eco,
-        groupKey: groupKeyOf(w.kind, w.label, w.eco),
-        advice: w.advice,
-      }))
-      .filter((r): r is typeof r & { groupKey: string } => r.groupKey !== null),
-  );
   const items = await readItemsByGroup(
     db,
     playerId,
@@ -202,18 +205,7 @@ async function withEvidence(
   );
   for (const w of response.weaknesses) {
     const key = groupKeyOf(w.kind, w.label, w.eco);
-    w.actionItems =
-      key === null
-        ? []
-        : (items.get(`${w.kind}:${key}`) ?? []).map((item) => ({
-            id: item.id,
-            resourceIndex: item.resourceIndex,
-            tier: item.tier,
-            resource: item.resource,
-            status: item.status,
-            dueAt: item.dueAt.toISOString(),
-            completedAt: item.completedAt?.toISOString() ?? null,
-          }));
+    w.actionItems = key === null ? [] : (items.get(`${w.kind}:${key}`) ?? []).map(itemBody);
   }
   return response;
 }
@@ -334,7 +326,6 @@ export function mountReport(
         return c.json(
           await withEvidence(
             deps.db,
-            deps.aiClient,
             playerId,
             stream,
             inTournament,
@@ -350,7 +341,6 @@ export function mountReport(
       return c.json(
         await withEvidence(
           deps.db,
-          deps.aiClient,
           playerId,
           stream,
           inTournament,
@@ -422,23 +412,16 @@ export function mountReport(
       await timeTroubleCounts(deps.db, playerId, stream, { tournamentId: inTournament }),
     );
     const composed = composeReport(leaks, timeTrouble);
-    // ST-099. The model writes each card's advice once, at generation, from
-    // the same instances the card will show. A failed or invalid call simply
-    // leaves the template copy in place.
-    const advice = deps.aiClient
-      ? await adviceForReport(deps.db, deps.aiClient, {
-          playerId,
-          stream,
-          tournamentId: inTournament,
-          windowStart: baseline.windowStart,
-          gamesCovered: baseline.baseline.games,
-          weaknesses: composed.weaknesses,
-        })
-      : new Map<string, string>();
+    // The model no longer writes at generation - a report read must never
+    // pay for every mistake at once. Cards store the template copy; the
+    // click that opens a weakness buys its model line once, at the coaching
+    // endpoint below. The summary is the only generation-time model call.
+    const advice = new Map<string, string>();
 
-    // ST-100. The opening plan is written from the same facts plus the advice
-    // lines just accepted, so it cannot contradict the cards. Null on model
-    // failure: the narrative column stays empty and the block is not rendered.
+    // ST-100. The opening plan is written from the facts alone - the advice
+    // lines are written per weakness on demand and this plan never sees
+    // them. Null on model failure: the narrative column stays empty and the
+    // block is not rendered.
     const narrative = deps.aiClient
       ? await summaryForReport(deps.db, deps.aiClient, {
           playerId,
@@ -469,15 +452,7 @@ export function mountReport(
     });
 
     return c.json(
-      await withEvidence(
-        deps.db,
-        deps.aiClient,
-        playerId,
-        stream,
-        inTournament,
-        baseline.windowStart,
-        response,
-      ),
+      await withEvidence(deps.db, playerId, stream, inTournament, baseline.windowStart, response),
       200,
     );
   });
@@ -511,6 +486,85 @@ export function mountReport(
           dueAt: item.dueAt.toISOString(),
           completedAt: item.completedAt?.toISOString() ?? null,
         })),
+      },
+      200,
+    );
+  });
+  // The click that opens a weakness is the one place the model works per
+  // mistake: the advice line is written once and stored on the weakness row,
+  // and the group's three resources are assigned when absent. Re-opening the
+  // weakness - or serving the report - costs no model calls, so no read can
+  // stack enough provider time to meet API Gateway's cap.
+  app.openapi(generateWeaknessCoaching, async (c) => {
+    const body = c.req.valid('json');
+    const session = await readSession(deps.getSession, c);
+    if (session === null) {
+      return c.json({ code: 'no_session', message: 'Sign in to use this endpoint.' }, 401);
+    }
+    const playerId = await getOwnPlayerId(deps.db, session.userId);
+    if (playerId === null) {
+      return c.json({ code: 'not_found', message: 'No such player.' }, 404);
+    }
+    // Ownership is the join's where clause: a weakness id from another
+    // player's report is a plain miss.
+    const [row] = await deps.db
+      .select({ w: weakness, r: report })
+      .from(weakness)
+      .innerJoin(report, eq(weakness.reportId, report.id))
+      .where(and(eq(weakness.id, body.weaknessId), eq(report.playerId, playerId)))
+      .limit(1);
+    if (row === undefined) {
+      return c.json({ code: 'no_such_weakness', message: 'No such weakness.' }, 404);
+    }
+    const groupKey = groupKeyOf(row.w.kind, row.w.label, row.w.eco);
+    if (groupKey === null) {
+      return c.json({ code: 'no_group', message: 'The weakness has no stable group.' }, 400);
+    }
+
+    let advice = row.w.advice;
+    if (advice === null && deps.aiClient !== null && row.w.kind !== 'opening') {
+      const evidence = await weaknessEvidence(
+        deps.db,
+        playerId,
+        row.r.stream,
+        row.r.tournamentId ?? undefined,
+        row.r.windowStart,
+        [{ kind: row.w.kind, key: groupKey }],
+      );
+      const facts: ReportAdviceFacts = {
+        kind: row.w.kind,
+        label: row.w.label,
+        occurrences: row.w.occurrences,
+        halfPointsLost: row.w.halfPointsLost,
+        gamesAffected: row.w.gamesAffected,
+        ratingLeak: row.w.ratingLeak,
+        saturated: row.w.saturated,
+        gamesCovered: row.r.gamesCovered,
+        instances: (evidence.get(`${row.w.kind}:${groupKey}`) ?? []).map((e) => ({
+          moveNumber: e.moveNumber,
+          moveSan: e.moveSan,
+          bestMoveSan: e.bestMoveSan,
+          judgement: e.judgement,
+          cpLoss: e.cpLoss,
+        })),
+      };
+      // One attempt, one corrective retry inside `generateAdvice`; a refused
+      // or invalid line returns null and the card keeps its template copy.
+      const [line] = await generateAdvice(deps.aiClient, [facts]);
+      if (typeof line === 'string') {
+        await deps.db.update(weakness).set({ advice: line }).where(eq(weakness.id, row.w.id));
+        advice = line;
+      }
+    }
+
+    await ensureActionItems(deps.db, deps.aiClient, playerId, [
+      { kind: row.w.kind, label: row.w.label, eco: row.w.eco, groupKey, advice },
+    ]);
+    const items = await readItemsByGroup(deps.db, playerId, [{ kind: row.w.kind, groupKey }]);
+    return c.json(
+      {
+        advice,
+        actionItems: (items.get(`${row.w.kind}:${groupKey}`) ?? []).map(itemBody),
       },
       200,
     );

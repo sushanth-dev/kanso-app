@@ -13,7 +13,7 @@ import type { Context } from 'hono';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { createApp } from '../app.ts';
-import { actionItem, game, mistake, player } from '../db/schema.ts';
+import { actionItem, game, mistake, player, report, weakness } from '../db/schema.ts';
 import { user } from '../db/auth-schema.ts';
 import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-harness.ts';
 import type { AiClient, ResourceVerifyFacts } from '../coaching/zai.ts';
@@ -54,17 +54,24 @@ function fakeAi(options: {
   adviceLines?: string[];
   verdict?: Verdict | Error;
   verifyCalls?: ResourceVerifyFacts[];
+  /** How many times each model entry point ran; the click tests pin "once". */
+  counts?: { advise: number; resources: number };
 }): AiClient {
   return {
     explainMistake: () => Promise.reject(new Error('not used here')),
     askSocraticQuestion: () => Promise.reject(new Error('not used here')),
-    adviseWeaknesses: () =>
-      options.adviceLines
-        ? Promise.resolve(options.adviceLines)
-        : Promise.reject(new Error('not used here')),
+    adviseWeaknesses: (facts) => {
+      if (options.counts) options.counts.advise += 1;
+      return options.adviceLines
+        ? Promise.resolve(options.adviceLines.slice(0, facts.length))
+        : Promise.reject(new Error('not used here'));
+    },
     summarizeReport: () => Promise.reject(new Error('not used here')),
     verifyAdviceSummary: () => Promise.reject(new Error('not used here')),
-    recommendResources: (groups) => Promise.resolve(groups.map(() => RESOURCES)),
+    recommendResources: (groups) => {
+      if (options.counts) options.counts.resources += 1;
+      return Promise.resolve(groups.map(() => RESOURCES));
+    },
     verifyResourceAssessment: (input) => {
       options.verifyCalls?.push(input);
       const verdict = options.verdict;
@@ -92,6 +99,15 @@ function post(userId: string | null, body: unknown, aiClient?: AiClient | null) 
   });
 }
 
+/** The click that opens a weakness: the on-demand coaching endpoint. */
+function coach(userId: string | null, body: unknown, aiClient?: AiClient | null) {
+  return app(userId, aiClient).request('/report/weakness', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
 async function getReport(userId: string, aiClient?: AiClient | null) {
   return app(userId, aiClient).request('/report?stream=online');
 }
@@ -107,17 +123,29 @@ interface ActionItemBody {
 }
 
 interface WeaknessBody {
+  id: string;
   kind: string;
   advice: string | null;
   actionItems: ActionItemBody[];
 }
 
-/** The motif card of a freshly read report, with its curriculum. */
+/** The motif card of a freshly read report; a read fills no curriculum. */
 async function readMotif(aiClient?: AiClient | null): Promise<WeaknessBody> {
   const res = await getReport(OWNER, aiClient);
   expect(res.status).toBe(200);
   const body = (await res.json()) as { weaknesses: WeaknessBody[] };
   return body.weaknesses.find((w) => w.kind === 'motif')!;
+}
+
+/** The motif card after its click: the model line and its three resources. */
+async function coachMotif(
+  aiClient?: AiClient | null,
+): Promise<WeaknessBody & { actionItems: ActionItemBody[] }> {
+  const motif = await readMotif(aiClient);
+  const res = await coach(OWNER, { weaknessId: motif.id }, aiClient);
+  expect(res.status).toBe(200);
+  const body = (await res.json()) as WeaknessBody;
+  return { ...motif, advice: body.advice, actionItems: body.actionItems };
 }
 
 async function makePlayer(ownerId: string): Promise<string> {
@@ -198,51 +226,141 @@ const PHASE_LINE =
 const SUMMARY = 'I counted defenders on every capture for a week and stopped leaving pieces loose.';
 const done = (actionItemId: string) => ({ actionItemId, summary: SUMMARY });
 
-describe('GET /report action items (ST-107)', () => {
-  test('a report read with the model assigns three pending resources per group', async () => {
+describe('POST /report/weakness (ST-107, on demand)', () => {
+  test('a read carries no curriculum; the click assigns the group once', async () => {
     const playerId = await makePlayer(OWNER);
     await seedAdviceGames(playerId);
-    const ai = fakeAi({ adviceLines: [MOTIF_LINE, PHASE_LINE] });
+    const counts = { advise: 0, resources: 0 };
+    const ai = fakeAi({ adviceLines: [MOTIF_LINE, PHASE_LINE], counts });
 
+    // The read: template advice on the card, no model, no curriculum.
     const motif = await readMotif(ai);
-    expect(motif.advice).toBe(MOTIF_LINE);
-    expect(motif.actionItems).toHaveLength(3);
-    expect(motif.actionItems.map((i) => i.resource)).toEqual(RESOURCES);
+    expect(motif.advice).toContain('undefended');
+    expect(motif.actionItems).toEqual([]);
+    expect(counts).toEqual({ advise: 0, resources: 0 });
+
+    // The click: the model line, the progressive set, tiers from the tags.
+    const coached = await coachMotif(ai);
+    expect(coached.advice).toBe(MOTIF_LINE);
+    expect(coached.actionItems.map((i) => i.resource)).toEqual(RESOURCES);
     expect(
-      motif.actionItems.map((i) => [i.resourceIndex, i.tier, i.status, i.completedAt]),
+      coached.actionItems.map((i) => [i.resourceIndex, i.tier, i.status, i.completedAt]),
     ).toEqual([
       [0, 'beginner', 'pending', null],
       [1, 'intermediate', 'pending', null],
       [2, 'advanced', 'pending', null],
     ]);
-    for (const item of motif.actionItems) {
+    for (const item of coached.actionItems) {
       // The prototype's deadline: a week to work through the resource.
       expect(Date.parse(item.dueAt)).toBeGreaterThan(Date.now());
     }
+    expect(counts).toEqual({ advise: 1, resources: 1 });
 
-    // Two groups composed from the seed (motif + phase), three items each;
-    // the motif group's three are the ones the assertions above pinned.
+    // Only the opened group is assigned; the phase group waits for its click.
     const rows = await harness.db
       .select()
       .from(actionItem)
       .where(eq(actionItem.playerId, playerId));
-    expect(rows).toHaveLength(6);
-    expect(rows.filter((r) => r.kind === 'motif')).toMatchObject([
+    expect(rows).toHaveLength(3);
+    expect(rows).toMatchObject([
       { kind: 'motif', groupKey: 'hanging_piece', resourceIndex: 0 },
       { kind: 'motif', groupKey: 'hanging_piece', resourceIndex: 1 },
       { kind: 'motif', groupKey: 'hanging_piece', resourceIndex: 2 },
     ]);
+
+    // Re-opening the same weakness: the stored line serves, nothing re-asks.
+    const again = await coach(OWNER, { weaknessId: motif.id }, ai);
+    expect(again.status).toBe(200);
+    const againBody = (await again.json()) as WeaknessBody;
+    expect(againBody.advice).toBe(MOTIF_LINE);
+    expect(againBody.actionItems).toHaveLength(3);
+    expect(counts).toEqual({ advise: 1, resources: 1 });
+
+    // The stored line also wins on the next plain read.
+    const served = await readMotif(ai);
+    expect(served.advice).toBe(MOTIF_LINE);
+    expect(served.actionItems).toHaveLength(3);
   });
 
-  test('a report read without the model serves an empty curriculum', async () => {
+  test('the click stores the line on the weakness row, its group alone', async () => {
+    const playerId = await makePlayer(OWNER);
+    await seedAdviceGames(playerId);
+    const ai = fakeAi({ adviceLines: [MOTIF_LINE, PHASE_LINE] });
+    await coachMotif(ai);
+
+    const [stored] = await harness.db.select().from(report).where(eq(report.playerId, playerId));
+    const ws = await harness.db.select().from(weakness).where(eq(weakness.reportId, stored!.id));
+    expect(ws.find((w) => w.kind === 'motif')!.advice).toBe(MOTIF_LINE);
+    expect(ws.find((w) => w.kind === 'phase')!.advice).toBeNull();
+  });
+
+  test('opening a weakness without the model serves null and an empty set', async () => {
     const playerId = await makePlayer(OWNER);
     await seedAdviceGames(playerId);
 
     const motif = await readMotif(null);
-    expect(motif.actionItems).toEqual([]);
+    const res = await coach(OWNER, { weaknessId: motif.id }, null);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as WeaknessBody;
+    expect(body.advice).toBeNull();
+    expect(body.actionItems).toEqual([]);
     expect(
       await harness.db.select().from(actionItem).where(eq(actionItem.playerId, playerId)),
     ).toHaveLength(0);
+  });
+
+  test('answers 404 no_such_weakness for an unknown id and for another player\u2019s', async () => {
+    await makePlayer(OWNER);
+    const foreignPlayerId = await makePlayer(OTHER);
+    const [foreignReport] = await harness.db
+      .insert(report)
+      .values({
+        playerId: foreignPlayerId,
+        stream: 'online',
+        gamesCovered: 9,
+        windowStart: new Date('2026-01-01T00:00:00Z'),
+        windowEnd: new Date('2026-08-01T00:00:00Z'),
+        narrative: null,
+        narrativeGeneratedAt: null,
+      })
+      .returning({ id: report.id });
+    const [foreignWeakness] = await harness.db
+      .insert(weakness)
+      .values({
+        reportId: foreignReport!.id,
+        kind: 'motif',
+        label: 'Hanging piece',
+        eco: null,
+        ratingLeak: 10,
+        saturated: false,
+        halfPointsLost: 3,
+        gamesAffected: 3,
+        occurrences: 3,
+        rank: 1,
+        advice: null,
+      })
+      .returning({ id: weakness.id });
+
+    const unknown = await coach(OWNER, { weaknessId: foreignWeakness!.id }, fakeAi({}));
+    expect(unknown.status).toBe(404);
+    expect(((await unknown.json()) as { code: string }).code).toBe('no_such_weakness');
+
+    const missing = await coach(
+      OWNER,
+      { weaknessId: '00000000-0000-4000-8000-0000000000f0' },
+      fakeAi({}),
+    );
+    expect(missing.status).toBe(404);
+    expect(((await missing.json()) as { code: string }).code).toBe('no_such_weakness');
+  });
+
+  test('answers 401 with no session', async () => {
+    const res = await coach(
+      null,
+      { weaknessId: '00000000-0000-4000-8000-000000000000' },
+      fakeAi({}),
+    );
+    expect(res.status).toBe(401);
   });
 });
 
@@ -251,7 +369,7 @@ describe('POST /report/action-items/done (ST-107)', () => {
     const playerId = await makePlayer(OWNER);
     await seedAdviceGames(playerId);
     const ai = fakeAi({ adviceLines: [MOTIF_LINE, PHASE_LINE] });
-    const motif = await readMotif(ai);
+    const motif = await coachMotif(ai);
     const item = motif.actionItems[0]!;
 
     const res = await post(OWNER, done(item.id), ai);
@@ -288,7 +406,7 @@ describe('POST /report/action-items/done (ST-107)', () => {
     await seedAdviceGames(playerId);
     const verifyCalls: ResourceVerifyFacts[] = [];
     const ai = fakeAi({ adviceLines: [MOTIF_LINE, PHASE_LINE], verifyCalls });
-    const motif = await readMotif(ai);
+    const motif = await coachMotif(ai);
     const item = motif.actionItems[0]!;
 
     const first = await post(OWNER, done(item.id), ai);
@@ -316,7 +434,7 @@ describe('POST /report/action-items/done (ST-107)', () => {
     await seedAdviceGames(playerId);
     const verifyCalls: ResourceVerifyFacts[] = [];
     const ai = fakeAi({ adviceLines: [MOTIF_LINE, PHASE_LINE], verifyCalls });
-    const motif = await readMotif(ai);
+    const motif = await coachMotif(ai);
 
     await post(OWNER, done(motif.actionItems[0]!.id), ai);
 
@@ -335,7 +453,7 @@ describe('POST /report/action-items/done (ST-107)', () => {
       adviceLines: [MOTIF_LINE, PHASE_LINE],
       verdict: { pass: false, feedback: 'Name one concrete detail you actually did.' },
     });
-    const motif = await readMotif(ai);
+    const motif = await coachMotif(ai);
     const item = motif.actionItems[0]!;
 
     const res = await post(OWNER, done(item.id), ai);
@@ -361,7 +479,7 @@ describe('POST /report/action-items/done (ST-107)', () => {
     const playerId = await makePlayer(OWNER);
     await seedAdviceGames(playerId);
     const ai = fakeAi({ adviceLines: [MOTIF_LINE, PHASE_LINE], verdict: new Error('model down') });
-    const motif = await readMotif(ai);
+    const motif = await coachMotif(ai);
     const item = motif.actionItems[0]!;
 
     const res = await post(OWNER, done(item.id), ai);
@@ -425,7 +543,7 @@ describe('POST /report/action-items/done (ST-107)', () => {
     const playerId = await makePlayer(OWNER);
     await seedAdviceGames(playerId);
     const ai = fakeAi({ adviceLines: [MOTIF_LINE, PHASE_LINE] });
-    const before = await readMotif(ai);
+    const before = await coachMotif(ai);
     const item = before.actionItems[0]!;
     await post(OWNER, done(item.id), ai);
 
