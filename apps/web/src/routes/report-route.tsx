@@ -126,7 +126,11 @@ export function ReportScreen({
       {isEmpty ? (
         <EmptyReport report={report} />
       ) : (
-        <WeaknessList weaknesses={report.weaknesses} stream={report.stream} />
+        <WeaknessList
+          weaknesses={report.weaknesses}
+          stream={report.stream}
+          tournamentId={report.tournamentId}
+        />
       )}
     </div>
   );
@@ -135,14 +139,53 @@ export function ReportScreen({
 interface WeaknessListProps {
   weaknesses: Weakness[];
   stream: Stream;
+  /** The report's scope: the cache patch below writes the same key the query reads. */
+  tournamentId?: string | null;
 }
 
-function WeaknessList({ weaknesses, stream }: WeaknessListProps) {
+function WeaknessList({ weaknesses, stream, tournamentId }: WeaknessListProps) {
+  const queryClient = useQueryClient();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   // ST-107. One assessment form open at a time, keyed by action item id -
   // done is per item now, not per weakness.
   const [assessmentItemId, setAssessmentItemId] = useState<string | null>(null);
-  const onToggle = (id: string) => setExpandedId((current) => (current === id ? null : id));
+  // The weaknesses whose coaching answer has landed. The endpoint is
+  // idempotent - a stored line costs no model call - so this only saves a
+  // re-open from refetching.
+  const [coached, setCoached] = useState<Set<string>>(() => new Set());
+  const [coachingId, setCoachingId] = useState<string | null>(null);
+  const onToggle = (id: string) => {
+    const next = expandedId === id ? null : id;
+    setExpandedId(next);
+    if (next === null || coached.has(id)) return;
+    setCoachingId(id);
+    diagnosisApi
+      .coachWeakness({ weaknessId: id })
+      .then((coaching) => {
+        setCoached((seen) => new Set(seen).add(id));
+        // A null line keeps the template copy the report read served.
+        queryClient.setQueryData<Report>(['report', stream, tournamentId ?? null], (old) =>
+          old === undefined
+            ? old
+            : {
+                ...old,
+                weaknesses: old.weaknesses.map((w) =>
+                  w.id === id
+                    ? {
+                        ...w,
+                        advice: coaching.advice ?? w.advice,
+                        actionItems: coaching.actionItems,
+                      }
+                    : w,
+                ),
+              },
+        );
+      })
+      .catch(() => {
+        // The template copy stands; opening the weakness again retries.
+      })
+      .finally(() => setCoachingId((current) => (current === id ? null : current)));
+  };
   const onAssessToggle = (id: string) =>
     setAssessmentItemId((current) => (current === id ? null : id));
   return (
@@ -203,11 +246,17 @@ function WeaknessList({ weaknesses, stream }: WeaknessListProps) {
                 </dl>
                 {weakness.groupKey !== null ? (
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                    {weakness.kind !== 'opening' ? (
-                      <Link onClick={() => onToggle(weakness.id)} aria-expanded={expanded}>
-                        {expanded ? 'Hide evidence' : 'Show evidence'}
-                      </Link>
-                    ) : null}
+                    {/* The click materializes the coaching: the model's line
+                        for the mistake, or just the resources for an opening. */}
+                    <Link onClick={() => onToggle(weakness.id)} aria-expanded={expanded}>
+                      {weakness.kind === 'opening'
+                        ? expanded
+                          ? 'Hide resources'
+                          : 'Get resources'
+                        : expanded
+                          ? 'Hide evidence'
+                          : 'Show evidence'}
+                    </Link>
                     {/* ST-106. The card's one entry: the group's 20-puzzle deal,
                         renamed once the first batch is done. */}
                     <Link
@@ -216,6 +265,11 @@ function WeaknessList({ weaknesses, stream }: WeaknessListProps) {
                       {practiced ? 'Practice more puzzles' : 'Practice puzzles'}
                     </Link>
                   </div>
+                ) : null}
+                {coachingId === weakness.id && weakness.kind !== 'opening' ? (
+                  <Text type="supporting" className="font-ui text-xs">
+                    The coach is writing your note...
+                  </Text>
                 ) : null}
                 {weakness.actionItems.length > 0 ? (
                   <ActionItemsList

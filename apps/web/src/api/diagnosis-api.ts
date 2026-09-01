@@ -25,6 +25,7 @@ export type ActionItem = components['schemas']['ActionItem'];
 export type PracticeQueue = components['schemas']['PracticeQueue'];
 export type PracticeQueueItem = components['schemas']['PracticeQueueItem'];
 export type ActionItemList = components['schemas']['ActionItemList'];
+export type WeaknessCoaching = components['schemas']['WeaknessCoaching'];
 export type SocraticQuestion = components['schemas']['SocraticQuestion'];
 export type PracticePuzzleTally = components['schemas']['PracticePuzzleTally'];
 export type TransferGap = components['schemas']['TransferGap'];
@@ -50,6 +51,11 @@ export interface DiagnosisApi {
   getPracticeQueue(): Promise<PracticeQueue>;
   /** ST-107. Every assigned action item, newest first. */
   listActionItems(): Promise<ActionItemList>;
+  /**
+   * The click that opens a weakness: writes the model's advice line once,
+   * stores it, and assigns the group's three resources when absent.
+   */
+  coachWeakness(input: { weaknessId: string }): Promise<WeaknessCoaching>;
   deleteGame(gameId: string): Promise<void>;
   setGameColor(gameId: string, playerColor: Color): Promise<GameSummary>;
   getCctScan(mistakeId: string): Promise<CctScan>;
@@ -127,6 +133,11 @@ export function createDiagnosisApi(
     },
     async listActionItems() {
       const result = await client.GET('/report/action-items', {});
+      if (result.data !== undefined) return result.data;
+      throw failure(result.response.status, result.error);
+    },
+    async coachWeakness(input) {
+      const result = await client.POST('/report/weakness', { body: input });
       if (result.data !== undefined) return result.data;
       throw failure(result.response.status, result.error);
     },
