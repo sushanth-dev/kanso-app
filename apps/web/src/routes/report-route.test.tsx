@@ -36,7 +36,6 @@ const evidenceInstance = {
   phase: 'middlegame' as const,
   judgement: 'mistake' as const,
   cpLoss: 240,
-  practiced: false,
 };
 
 const motifWeakness = {
@@ -53,6 +52,8 @@ const motifWeakness = {
   advice: 'After every opponent move, count what each available capture wins.',
   done: false,
   completedAt: null,
+  drilled: 0,
+  groupKey: 'missed_capture',
   evidence: [evidenceInstance],
 };
 
@@ -70,6 +71,8 @@ const openingWeakness = {
   advice: null,
   done: false,
   completedAt: null,
+  drilled: 0,
+  groupKey: 'B22',
   evidence: [],
 };
 
@@ -244,37 +247,32 @@ describe('ReportScreen', () => {
     expect(screen.getByText(/No clock data on these games/)).toBeVisible();
   });
 
-  test('ST-102: offers practice on the worst instance of a weakness', () => {
+  test('ST-106: offers the group puzzle drill on a weakness card', () => {
     renderReport(reportFixture());
-    // One entry per card, beside the evidence toggle, without expanding it.
-    const link = screen.getByRole('link', { name: 'Practice this' });
-    expect(link.getAttribute('href')).toBe(
-      `/games/${evidenceInstance.gameId}?ply=${evidenceInstance.ply}&practice=1`,
+    // One entry per card; the ranked list leads with the motif weakness.
+    const links = screen.getAllByRole('link', { name: 'Practice 20 puzzles' });
+    expect(links[0]!.getAttribute('href')).toBe(
+      `/practice?kind=motif&group=${encodeURIComponent('missed_capture')}&label=${encodeURIComponent('Missed captures')}&stream=tournament`,
     );
   });
 
-  test('ST-102: marks a weakness whose instances are all practised', () => {
+  test('ST-106: marks a weakness whose full drill set is solved', () => {
     renderReport(
       reportFixture({
-        weaknesses: [{ ...motifWeakness, evidence: [{ ...evidenceInstance, practiced: true }] }],
+        weaknesses: [{ ...motifWeakness, drilled: 20 }],
       }),
     );
     expect(screen.getByText('Practiced')).toBeVisible();
   });
 
-  test('ST-102: a partly practised weakness carries no practised mark yet', () => {
+  test('ST-106: a partly drilled weakness carries no practised mark yet', () => {
     renderReport(
       reportFixture({
-        weaknesses: [
-          {
-            ...motifWeakness,
-            evidence: [evidenceInstance, { ...evidenceInstance, ply: 47, practiced: true }],
-          },
-        ],
+        weaknesses: [{ ...motifWeakness, drilled: 7 }],
       }),
     );
     expect(screen.queryByText('Practiced')).toBeNull();
-    expect(screen.getByRole('link', { name: 'Practice this' })).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: 'Practice 20 puzzles' }).length).toBeGreaterThan(0);
   });
   test('ST-105: offers mark as done on a card with advice', () => {
     renderReport(reportFixture());

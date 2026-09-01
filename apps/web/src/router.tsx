@@ -17,6 +17,7 @@ import { PageFrame } from './components/page-frame.tsx';
 import { StatusMessageProvider } from './components/status-message.tsx';
 import { RouteError } from './components/route-error.tsx';
 import { meQueryOptions, queryClient } from './query-client.ts';
+import type { WeaknessKind } from './api/diagnosis-api.ts';
 import { SignInRoute, SignUpRoute } from './routes/auth-routes.tsx';
 import { GameReviewRoute } from './routes/game-review-route.tsx';
 import { GamesRoute } from './routes/games-route.tsx';
@@ -27,8 +28,9 @@ import { ImportRoute } from './routes/import-route.tsx';
 import { LandingRoute } from './routes/landing-route.tsx';
 import { PlayerEditRoute } from './routes/player-routes.tsx';
 import { ProofSheetRoute } from './routes/proof-sheet-route.tsx';
-import { ReportRoute } from './routes/report-route.tsx';
+import { PracticeRoute } from './routes/practice-route.tsx';
 import { SettingsRoute } from './routes/settings-route.tsx';
+import { ReportRoute } from './routes/report-route.tsx';
 import { SharedProofSheetRoute } from './routes/shared-proof-sheet-route.tsx';
 import { UpgradeRoute } from './routes/upgrade-route.tsx';
 import { TournamentsRoute } from './routes/tournaments-route.tsx';
@@ -212,21 +214,47 @@ const gameReviewRoute = createRoute({
   path: '/games/$gameId',
   // ST-100. The ply a report evidence link deep-links to. Absent or invalid,
   // the review opens at the first recorded mistake as before.
-  // ST-102. `practice=1` marks an arrival from the report's "Practice this"
-  // link: the review opens that drill once, then the flag is stripped again.
-  validateSearch: (search: Record<string, unknown>): { ply?: number; practice?: boolean } => {
+  validateSearch: (search: Record<string, unknown>): { ply?: number } => {
     const ply =
       typeof search.ply === 'number' && Number.isInteger(search.ply) && search.ply >= 1
         ? search.ply
         : undefined;
-    // The router parses bare query values as JSON, so the link's `1` arrives
-    // as a number; accept the spelled-out boolean too.
-    return {
-      ...(ply !== undefined ? { ply } : {}),
-      ...(search.practice === true || search.practice === 1 ? { practice: true } : {}),
-    };
+    return ply !== undefined ? { ply } : {};
   },
   component: GameReviewRoute,
+});
+// ST-106. The puzzle drill a report card or a review mistake sends the player
+// to: one weakness group's deal, labelled by the surface that linked here.
+const practiceRoute = createRoute({
+  getParentRoute: () => accountRoute,
+  path: '/practice',
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): {
+    kind: WeaknessKind | null;
+    group: string | null;
+    label: string | null;
+    stream: 'tournament' | 'online';
+  } => {
+    const kind =
+      search.kind === 'motif' ||
+      search.kind === 'phase' ||
+      search.kind === 'opening' ||
+      search.kind === 'time_trouble'
+        ? search.kind
+        : null;
+    const group =
+      typeof search.group === 'string' && search.group.length > 0 && search.group.length <= 64
+        ? search.group
+        : null;
+    const label =
+      typeof search.label === 'string' && search.label.length > 0 && search.label.length <= 120
+        ? search.label
+        : null;
+    const stream = search.stream === 'online' ? ('online' as const) : ('tournament' as const);
+    return { kind, group, label, stream };
+  },
+  component: PracticeRoute,
 });
 
 const tournamentsRoute = createRoute({
@@ -301,6 +329,7 @@ const routeTree = rootRoute.addChildren([
     playerEditRoute,
     settingsRoute,
     reportRoute,
+    practiceRoute,
     focusRoute,
     proofSheetRoute,
     importRoute,

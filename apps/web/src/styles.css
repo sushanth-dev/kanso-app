@@ -18,6 +18,7 @@
   --color-raised: var(--kanso-color-surface-raised);
   --color-sunken: var(--kanso-color-surface-sunken);
   --color-primary: var(--kanso-color-text-primary);
+  --color-ink: var(--kanso-color-ink-900);
   --color-muted: var(--kanso-color-text-muted);
   --color-accent: var(--kanso-color-action-primary-default);
   --color-accent-hover: var(--kanso-color-action-primary-hover);

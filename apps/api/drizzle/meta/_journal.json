@@ -162,6 +162,20 @@
       "when": 1788173786984,
       "tag": "0022_tough_shatterstar",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1788190061044,
+      "tag": "0023_magical_terror",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1788268800000,
+      "tag": "0024_seed_puzzle_pool",
+      "breakpoints": true
     }
   ]
 }
