@@ -49,6 +49,8 @@ const fakeAi = (batches: (string[] | Error)[]) => {
     adviseWeaknesses,
     summarizeReport: vi.fn(),
     verifyAdviceSummary: vi.fn(),
+    recommendResources: vi.fn(),
+    verifyResourceAssessment: vi.fn(),
   };
   return { client, adviseWeaknesses };
 };

@@ -22,11 +22,12 @@ import { eq } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import type { Context } from 'hono';
-import { getPracticePuzzles, recordPracticePuzzle } from '../contract/routes.ts';
+import { getPracticePuzzles, getPracticeQueue, recordPracticePuzzle } from '../contract/routes.ts';
 import * as schema from '../db/schema.ts';
 import { player } from '../db/schema.ts';
 import { readSession } from '../session.ts';
 import { assembleDrill } from './assemble.ts';
+import { readQueue } from './queue.ts';
 import { recordDrill } from './record.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
@@ -78,6 +79,28 @@ export function mountPractice(
     return c.json(set, 200);
   });
 
+  app.openapi(getPracticeQueue, async (c) => {
+    const playerId = await ownPlayerId(deps.db, deps.getSession, c);
+    if (playerId === null) {
+      return c.json({ code: 'no_session', message: 'Sign in to use this endpoint.' }, 401);
+    }
+    const queue = await readQueue(deps.db, playerId);
+    return c.json(
+      {
+        due: queue.due.map((r) => ({ ...r, nextReviewAt: r.nextReviewAt.toISOString() })),
+        upcoming: queue.upcoming.map((r) => ({
+          ...r,
+          nextReviewAt: r.nextReviewAt.toISOString(),
+        })),
+        mastered: queue.mastered.map((r) => ({
+          ...r,
+          nextReviewAt: r.nextReviewAt.toISOString(),
+        })),
+      },
+      200,
+    );
+  });
+
   app.openapi(recordPracticePuzzle, async (c) => {
     const { puzzleId, kind, group, solved } = c.req.valid('json');
 
@@ -96,6 +119,14 @@ export function mountPractice(
         422,
       );
     }
-    return c.json({ attempts: outcome.attempts, solved: outcome.solved }, 200);
+    return c.json(
+      {
+        attempts: outcome.attempts,
+        solved: outcome.solved,
+        reviewLevel: outcome.reviewLevel,
+        nextReviewAt: outcome.nextReviewAt.toISOString(),
+      },
+      200,
+    );
   });
 }

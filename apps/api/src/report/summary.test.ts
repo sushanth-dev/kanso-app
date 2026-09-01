@@ -86,6 +86,8 @@ describe('generateSummary', () => {
       adviseWeaknesses: () => Promise.reject(new Error('not used here')),
       summarizeReport,
       verifyAdviceSummary: () => Promise.reject(new Error('not used here')),
+      recommendResources: () => Promise.reject(new Error('not used here')),
+      verifyResourceAssessment: () => Promise.reject(new Error('not used here')),
     };
     return { client, summarizeReport };
   };

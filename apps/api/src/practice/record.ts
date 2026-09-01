@@ -23,6 +23,10 @@ type Db = PostgresJsDatabase<typeof schema>;
 export interface DrillOutcome {
   attempts: number;
   solved: boolean;
+  /** The Leitner box after this attempt. */
+  reviewLevel: number;
+  /** When the puzzle returns for review. */
+  nextReviewAt: Date;
 }
 
 export async function recordDrill(
@@ -47,17 +51,44 @@ export async function recordDrill(
   return db.transaction(async (tx) => {
     const [row] = await tx
       .insert(puzzleAttempt)
-      .values({ playerId, puzzleId, kind, groupKey: group, attempts: 1, solved })
+      .values({
+        playerId,
+        puzzleId,
+        kind,
+        groupKey: group,
+        attempts: 1,
+        solved,
+        // A first-attempt solve enters box 1 (back tomorrow); a reveal or a
+        // fail stays in box 0, due now.
+        reviewLevel: solved ? 1 : 0,
+        nextReviewAt: solved ? sql`now() + interval '1 day'` : sql`now()`,
+        assignedAt: new Date(),
+      })
       .onConflictDoUpdate({
         target: [puzzleAttempt.playerId, puzzleAttempt.puzzleId],
         set: {
           attempts: sql`${puzzleAttempt.attempts} + 1`,
           solved: sql`${puzzleAttempt.solved} or excluded.solved`,
           lastAttemptAt: sql`now()`,
+          // A solve climbs one box (capped at 4, the 30-day mastered box);
+          // a reveal drops back to 0, due now, and the queue re-deals it.
+          reviewLevel: solved ? sql`least(${puzzleAttempt.reviewLevel} + 1, 4)` : sql`0`,
+          nextReviewAt: solved
+            ? sql`(case least(${puzzleAttempt.reviewLevel} + 1, 4)
+                when 1 then now() + interval '1 day'
+                when 2 then now() + interval '3 days'
+                when 3 then now() + interval '7 days'
+                else now() + interval '30 days' end)`
+            : sql`now()`,
         },
       })
       .returning();
     if (solved) await recordActivity(tx, playerId);
-    return { attempts: row!.attempts, solved: row!.solved };
+    return {
+      attempts: row!.attempts,
+      solved: row!.solved,
+      reviewLevel: row!.reviewLevel,
+      nextReviewAt: row!.nextReviewAt,
+    };
   });
 }
