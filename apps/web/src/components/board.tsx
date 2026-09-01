@@ -310,7 +310,10 @@ export function Board({
 
   if (targetSquares !== undefined && targetSquares.length > 0) {
     cells.push(
-      <g key="target-dots">
+      // The dots mark the squares the player is aiming at, so clicks must
+      // reach the square underneath - otherwise the best-move click lands on
+      // a painted circle with no handler and the attempt never registers.
+      <g key="target-dots" style={{ pointerEvents: 'none' }}>
         {[...new Set(targetSquares)].map((square) => {
           const centre = squareCenter(square, flipped);
           return (

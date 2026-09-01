@@ -240,28 +240,57 @@ export const SetGameColor = z
   .openapi('SetGameColor');
 
 /**
- * ST-102. The running tally for one practised position: the completed drill
- * count and whether the position was ever solved.
+ * ST-106. One pool puzzle as the drill client plays it: the position before
+ * the opponent's setup move and the full UCI line, whose first move is the
+ * setup and whose remainder is the solution. The client applies the setup
+ * move itself, so the board orientation follows the side to move.
  */
-export const PracticeAttempt = z
+export const PracticePuzzle = z
   .object({
-    gameId: Uuid,
-    ply: z.number().int(),
+    /** The Lichess puzzle id. */
+    id: z.string(),
+    fen: z.string(),
+    moves: z.string(),
+    rating: z.number().int(),
+  })
+  .openapi('PracticePuzzle');
+
+/**
+ * ST-106. One weakness group's drill: at least 20 pool puzzles matched to the
+ * group's theme and the player's rating by the prototype's fallback ladder.
+ */
+export const PracticeSet = z
+  .object({
+    kind: WeaknessKind,
+    group: z.string(),
+    theme: z.string().openapi({ example: 'hangingPiece' }),
+    rating: z.number().int().openapi({ example: 1500 }),
+    puzzles: z.array(PracticePuzzle).min(20),
+  })
+  .openapi('PracticeSet');
+
+/**
+ * ST-106. One completed drill on a pool puzzle: the client records the
+ * outcome once per drill, whether the player solved it or the solution was
+ * revealed. A solved drill records the day's activity (ST-103); a reveal
+ * never does.
+ */
+export const RecordPracticePuzzle = z
+  .object({
+    puzzleId: z.string().min(1).max(16),
+    kind: WeaknessKind,
+    group: z.string().min(1).max(64),
+    solved: z.boolean(),
+  })
+  .openapi('RecordPracticePuzzle');
+
+/** ST-106. The running tally for one drilled puzzle. */
+export const PracticePuzzleTally = z
+  .object({
     attempts: z.number().int(),
     solved: z.boolean(),
   })
-  .openapi('PracticeAttempt');
-
-/**
- * ST-102. One completed drill on a mistake: the client records the outcome
- * once per drill, whether the player solved it or the solution was revealed.
- */
-export const RecordPractice = z
-  .object({
-    ply: z.number().int(),
-    solved: z.boolean(),
-  })
-  .openapi('RecordPractice');
+  .openapi('PracticePuzzleTally');
 
 export const MovePly = z
   .object({
@@ -539,10 +568,6 @@ export const WeaknessEvidence = z
     phase: Phase.nullable(),
     judgement: Judgement,
     cpLoss: z.number().int(),
-    practiced: z.boolean().openapi({
-      description:
-        'ST-102. True when a solved practice attempt exists for this instance’s (gameId, ply).',
-    }),
   })
   .openapi('WeaknessEvidence');
 
@@ -569,6 +594,18 @@ export const Weakness = z
     done: z.boolean(),
     /** ST-105. When the advice was marked done; null while it stays open. */
     completedAt: z.iso.datetime().nullable(),
+    /**
+     * ST-106. The stable group identity `groupKeyOf` recovered from the
+     * label, or null when the label predates the map. The practice link
+     * carries it to the drill route; the client never derives it itself.
+     */
+    groupKey: z.string().nullable(),
+    /**
+     * ST-106. The solved drills the player has recorded against this
+     * weakness group's puzzle pool, from one grouped read. The Practiced
+     * badge means this count has reached a full drill set.
+     */
+    drilled: z.number().int(),
     /**
      * ST-098. The places the weakness was found: at most three, worst first,
      * from the same rows and window the leak was summed over.

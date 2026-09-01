@@ -1,15 +1,15 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AlertDialog } from '@astryxdesign/core/AlertDialog';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Heading } from '@astryxdesign/core/Heading';
+import { Link } from '@astryxdesign/core/Link';
 import { Spinner } from '@astryxdesign/core/Spinner';
 import { Text } from '@astryxdesign/core/Text';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams, useSearch } from '@tanstack/react-router';
-import { Chess, type Square } from 'chess.js';
 import { isActiveGame } from '../analysis-status.ts';
 import type { CctMove, GameDetail, Mistake, MovePly } from '../api/diagnosis-api.ts';
 import { diagnosisApi } from '../api/diagnosis-api.ts';
@@ -294,218 +294,6 @@ function PlayerColorDot({ playerColor }: { playerColor: GameDetail['playerColor'
   );
 }
 
-/** ST-101. The attempts a practice attempt allows before the reveal steps in. */
-const PRACTICE_ATTEMPTS = 3;
-
-/** ST-101. SAN comparison ignores case, whitespace, and check or mate annotation. */
-function normalizedSan(san: string): string {
-  return san
-    .replace(/[+#?!]/g, '')
-    .trim()
-    .toLowerCase();
-}
-
-/**
- * ST-101. Practice the move you missed. The board sits at the mistake's stored
- * position, oriented from the player's colour, with the played move not made.
- * The player finds the better move on the board — the played move refusing as
- * "not the best move" without ever naming the solution — and the reveal, asked
- * for or earned by three wrong tries, plays the best move and shows what the
- * position was actually worth. No clock, no streak, no motion (ADR-0017).
- */
-function PracticeSession({
-  mistake,
-  flipped,
-  playerColor,
-  notation,
-  stepControls,
-  onExit,
-}: {
-  mistake: Mistake;
-  flipped: boolean;
-  playerColor: GameDetail['playerColor'];
-  /** The notation panel keeps its place beside the board during practice. */
-  notation: ReactNode;
-  onExit: () => void;
-  /** The play-through controls, disabled while the practice is live. */
-  stepControls: ReactNode;
-}) {
-  const [chess] = useState(() => new Chess(mistake.fen));
-  const [fen, setFen] = useState(mistake.fen);
-  const [status, setStatus] = useState<'playing' | 'solved' | 'revealed'>('playing');
-  const [attemptsLeft, setAttemptsLeft] = useState(PRACTICE_ATTEMPTS);
-  const [selected, setSelected] = useState<string | null>(null);
-  const playing = status === 'playing';
-
-  // ST-102. The drill records its outcome - solved, or the answer was shown -
-  // so the report can flag the position as practised. A lost record is
-  // logged, never surfaced: the drill has already finished on screen, and a
-  // broken-looking drill would outweigh a missing practiced tick.
-  // ponytail: log-and-continue; queue retries if silent loss ever shows up.
-  const recordOutcome = (solved: boolean) => {
-    diagnosisApi.recordPractice(mistake.gameId, mistake.ply, solved).catch((error: unknown) => {
-      console.error('Recording the practice attempt failed.', error);
-    });
-  };
-
-  // The side-to-move pieces that can move: the drag handles.
-  const movableSquares = useMemo(
-    () => [...new Set(chess.moves({ verbose: true }).map((move) => move.from))],
-    [chess, fen],
-  );
-  const targets = useMemo<string[]>(
-    () =>
-      selected === null
-        ? []
-        : chess.moves({ square: selected as Square, verbose: true }).map((move) => move.to),
-    [chess, selected],
-  );
-
-  const playBestMove = () => {
-    try {
-      chess.move(mistake.bestMoveSan);
-    } catch {
-      // The stored analysis is inconsistent; the written reveal still stands.
-      return;
-    }
-    setFen(chess.fen());
-  };
-
-  const onSquareClick = (square: string) => {
-    if (!playing) return;
-    if (square === selected) {
-      setSelected(null);
-      return;
-    }
-    if (selected !== null && targets.includes(square)) {
-      const candidate = chess
-        .moves({ square: selected as Square, verbose: true })
-        .find(
-          (move) => move.to === square && (move.promotion === undefined || move.promotion === 'q'),
-        );
-      if (candidate !== undefined) {
-        if (normalizedSan(candidate.san) === normalizedSan(mistake.bestMoveSan)) {
-          chess.move(candidate.san);
-          setFen(chess.fen());
-          setStatus('solved');
-          recordOutcome(true);
-        } else {
-          const left = attemptsLeft - 1;
-          setAttemptsLeft(left);
-          if (left === 0) {
-            playBestMove();
-            setStatus('revealed');
-            recordOutcome(false);
-          }
-        }
-      }
-      setSelected(null);
-      return;
-    }
-    const piece = chess.get(square as Square);
-    setSelected(piece !== undefined && piece.color === chess.turn() ? square : null);
-  };
-
-  const phase =
-    mistake.phase === null ? null : mistake.phase.charAt(0).toUpperCase() + mistake.phase.slice(1);
-  const prompt = `${JUDGEMENT_LABEL[mistake.judgement]}${
-    phase === null ? '' : `, ${phase}`
-  }: find the better move`;
-
-  return (
-    <section aria-label="Position" className="space-y-4">
-      <div className="flex flex-wrap items-start gap-6">
-        <div className="flex w-[480px] max-w-full items-stretch gap-4">
-          <Board
-            fen={fen}
-            flipped={flipped}
-            selectedSquare={playing ? (selected ?? undefined) : undefined}
-            targetSquares={playing ? targets : undefined}
-            draggableSquares={playing ? movableSquares : undefined}
-            onSquareClick={playing ? onSquareClick : undefined}
-            label={`Practice. ${prompt}. ${chess.turn() === 'w' ? 'White' : 'Black'} to move. ${describePosition(fen)}`}
-          />
-          <PlayerColorDot playerColor={playerColor} />
-        </div>
-        {notation}
-      </div>
-      {stepControls}
-
-      <Card className="space-y-3 p-4">
-        {status === 'playing' ? (
-          <>
-            <Heading level={3}>{prompt}</Heading>
-            <div className="flex items-center gap-2">
-              <span aria-hidden="true" className="flex gap-1">
-                {Array.from({ length: PRACTICE_ATTEMPTS }, (_, pip) => (
-                  <span
-                    key={pip}
-                    className={`block size-3 rounded-full border border-border-strong ${
-                      pip < attemptsLeft ? 'bg-ink' : ''
-                    }`}
-                  />
-                ))}
-              </span>
-              <Text type="supporting" className="text-sm">
-                {attemptsLeft} {attemptsLeft === 1 ? 'attempt' : 'attempts'} left.
-              </Text>
-            </div>
-            {attemptsLeft < PRACTICE_ATTEMPTS ? (
-              <Text as="p" display="block">
-                Not the best move.
-              </Text>
-            ) : null}
-            <div className="flex flex-wrap gap-2">
-              <Button
-                label="Show me"
-                variant="secondary"
-                onClick={() => {
-                  playBestMove();
-                  setStatus('revealed');
-                  recordOutcome(false);
-                }}
-              />
-              <Button label="Back to review" variant="secondary" onClick={onExit} />
-            </div>
-          </>
-        ) : status === 'solved' ? (
-          <>
-            <Heading level={3}>Solved.</Heading>
-            <Text as="p" display="block">
-              You found it: <span className="font-mono">{mistake.bestMoveSan}</span> was the better
-              move.
-            </Text>
-            <Text as="p" display="block" type="supporting">
-              You had played <span className="font-mono">{mistake.moveSan}</span>.
-            </Text>
-            <Text as="p" display="block" type="supporting" className="font-mono text-sm">
-              Advantage: {evalLabel(mistake.evalBefore)} → {evalLabel(mistake.evalAfter)}
-            </Text>
-            <div>
-              <Button label="Back to review" variant="secondary" onClick={onExit} />
-            </div>
-          </>
-        ) : (
-          <>
-            <Heading level={3}>
-              The best move was <span className="font-mono">{mistake.bestMoveSan}</span>.
-            </Heading>
-            <Text as="p" display="block">
-              You played <span className="font-mono">{mistake.moveSan}</span>.
-            </Text>
-            <Text as="p" display="block" type="supporting" className="font-mono text-sm">
-              Advantage: {evalLabel(mistake.evalBefore)} → {evalLabel(mistake.evalAfter)}
-            </Text>
-            <div>
-              <Button label="Back to review" variant="secondary" onClick={onExit} />
-            </div>
-          </>
-        )}
-      </Card>
-    </section>
-  );
-}
-
 function GameSkeleton() {
   return (
     <div role="status" aria-label="Loading game review" aria-busy="true" className="space-y-4">
@@ -519,13 +307,10 @@ function GameSkeleton() {
 export function GameReviewScreen({
   game,
   targetPly,
-  autoPractice = false,
 }: {
   game: GameDetail;
   /** ST-100. The ply a report evidence link deep-links to; undefined otherwise. */
   targetPly?: number;
-  /** ST-102. The report's "Practice this" link arrived: open the flagged drill. */
-  autoPractice?: boolean;
 }) {
   const [plyIndex, setPlyIndex] = useState(() => initialPlyIndex(game, targetPly));
   const queryClient = useQueryClient();
@@ -536,19 +321,6 @@ export function GameReviewScreen({
   // Default the board to the player's own colour at the bottom; the player can
   // flip it manually rather than the board auto-flipping to the side to move.
   const [flipped, setFlipped] = useState(() => game.playerColor === 'black');
-
-  // ST-101. The mistake being practised, or null while the review plays through.
-  const [practiceMistake, setPracticeMistake] = useState<Mistake | null>(null);
-  const practising = practiceMistake !== null;
-
-  // ST-102. A "Practice this" deep-link arrives with autoPractice and the
-  // flagged ply: open that drill straight away. Mount only: the link means
-  // one arrival, one drill; the route strips the flag from the URL.
-  useEffect(() => {
-    if (!autoPractice) return;
-    const flagged = game.mistakes.find((mistake) => mistake.ply === targetPly);
-    if (flagged !== undefined) setPracticeMistake(flagged);
-  }, []);
 
   // When the player sets their colour (the game starts undecided), orient the
   // board to their side. A manual flip is left alone while the colour is still
@@ -591,6 +363,25 @@ export function GameReviewScreen({
   const currentPly = game.plies[plyIndex];
   const currentMistake = game.mistakes.find((mistake) => mistake.ply === currentPly?.ply);
 
+  // ST-106. The drill this mistake feeds: its motif when one was attributed,
+  // else the phase, because the theme map knows both kinds. A mistake with
+  // neither has no drill to offer.
+  const drillEntry =
+    currentMistake === undefined
+      ? null
+      : currentMistake.motif !== null
+        ? {
+            kind: 'motif' as const,
+            group: currentMistake.motif,
+            label: MOTIF_LABEL[currentMistake.motif] ?? currentMistake.motif,
+          }
+        : currentMistake.phase !== null
+          ? {
+              kind: 'phase' as const,
+              group: currentMistake.phase,
+              label: currentMistake.phase.charAt(0).toUpperCase() + currentMistake.phase.slice(1),
+            }
+          : null;
   const stepBy = (delta: number) => {
     setPlyIndex((index) => Math.min(Math.max(index + delta, 0), game.plies.length - 1));
   };
@@ -600,7 +391,7 @@ export function GameReviewScreen({
   };
 
   useEffect(() => {
-    if (game.plies.length === 0 || practiceMistake !== null) return;
+    if (game.plies.length === 0) return;
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'ArrowLeft') {
         event.preventDefault();
@@ -618,22 +409,21 @@ export function GameReviewScreen({
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [game.plies.length, practiceMistake]);
+  }, [game.plies.length]);
 
-  // The play-through controls persist into practice mode, disabled, so the
-  // review is visibly paused rather than gone.
+  // The review's own transport; no practice mode pauses it any more.
   const stepControls = (
     <div className="flex items-center gap-2">
       <Button
         label="Previous move"
         variant="secondary"
-        isDisabled={plyIndex === 0 || practising}
+        isDisabled={plyIndex === 0}
         onClick={() => stepBy(-1)}
       />
       <Button
         label="Next move"
         variant="secondary"
-        isDisabled={plyIndex === game.plies.length - 1 || practising}
+        isDisabled={plyIndex === game.plies.length - 1}
         onClick={() => stepBy(1)}
       />
       <Button
@@ -722,26 +512,6 @@ export function GameReviewScreen({
             No recorded moves in this game.
           </Text>
         </Card>
-      ) : practising ? (
-        <PracticeSession
-          key={practiceMistake.id}
-          mistake={practiceMistake}
-          flipped={flipped}
-          playerColor={game.playerColor}
-          notation={
-            <Notation
-              plies={game.plies}
-              mistakes={game.mistakes}
-              currentPly={currentPly}
-              onSelect={selectPly}
-            />
-          }
-          stepControls={stepControls}
-          onExit={() => {
-            selectPly(practiceMistake.ply);
-            setPracticeMistake(null);
-          }}
-        />
       ) : (
         <>
           <section aria-label="Position" className="space-y-4">
@@ -820,11 +590,13 @@ export function GameReviewScreen({
                     {MOTIF_LABEL[currentMistake.motif] ?? currentMistake.motif}
                   </Text>
                 ) : null}
-                <Button
-                  label="Try it yourself"
-                  variant="primary"
-                  onClick={() => setPracticeMistake(currentMistake)}
-                />
+                {drillEntry !== null ? (
+                  <Link
+                    href={`/practice?kind=${drillEntry.kind}&group=${encodeURIComponent(drillEntry.group)}&label=${encodeURIComponent(drillEntry.label)}&stream=${game.stream}`}
+                  >
+                    Drill this pattern
+                  </Link>
+                ) : null}
               </Card>
             )}
             {currentMistake !== undefined ? (
@@ -860,28 +632,9 @@ export function GameReviewRoute() {
   const { gameId } = useParams({ from: '/account/games/$gameId' });
   // ST-100. The ply a report evidence link deep-links to; absent on a plain
   // navigation, which leaves the first-mistake default in place.
-  const { ply, practice } = useSearch({ from: '/account/games/$gameId' });
-  // ST-102. The flag describes how the player arrived. Capture it once at
-  // mount so stripping it below cannot swallow the deep-link before the
-  // review screen has mounted (the game query keeps the screen off the tree
-  // for a beat).
-  const [practiceAsked] = useState(() => practice === true);
+  const { ply } = useSearch({ from: '/account/games/$gameId' });
   // The pathless account layout means the route id is /account/games/$gameId
   // but the navigation path is /games/$gameId.
-  const navigate = useNavigate({ from: '/games/$gameId' });
-  // ST-096. While the game is on the queue or on the engine, poll every five
-  // seconds so the review appears without a manual reload. A colourless game
-  // is waiting for the player, not the engine, so it does not poll.
-  // ST-102. The practice deep-link opens the drill once; the flag is stripped
-  // with a replace so refresh and back do not reopen it. Mount only: the flag
-  // describes how the player arrived, not a state to keep.
-  useEffect(() => {
-    if (practice !== true) return;
-    void navigate({
-      search: (prev) => ({ ...prev, practice: undefined }),
-      replace: true,
-    });
-  }, []);
   const gameQuery = useQuery({
     ...gameQueryOptions(gameId),
     refetchInterval: (query) =>
@@ -900,5 +653,5 @@ export function GameReviewRoute() {
     );
   }
 
-  return <GameReviewScreen game={gameQuery.data} targetPly={ply} autoPractice={practiceAsked} />;
+  return <GameReviewScreen game={gameQuery.data} targetPly={ply} />;
 }

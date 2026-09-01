@@ -43,6 +43,8 @@ const KIND_LABEL: Record<WeaknessKind, string> = {
   time_trouble: 'Time trouble',
 };
 
+const PRACTICED_THRESHOLD = 20;
+
 const TIME_TROUBLE_UNAVAILABLE: Record<'no_clock_data' | 'not_enough_evidence', string> = {
   no_clock_data: 'No clock data on these games, so time usage is not measured.',
   not_enough_evidence: 'Too few games with clock data to measure time usage.',
@@ -149,11 +151,10 @@ function WeaknessList({ weaknesses, stream, tournamentId }: WeaknessListProps) {
     <ol className="stagger-in space-y-4">
       {weaknesses.map((weakness) => {
         const expanded = expandedId === weakness.id;
-        // ST-102. The flagged instance a "Practice this" link enters at, and
-        // whether every instance has been drilled already.
-        const flagged = weakness.evidence[0];
-        const allPracticed =
-          weakness.evidence.length > 0 && weakness.evidence.every((i) => i.practiced);
+        // ST-106. The group's drill progress replaces the per-instance
+        // practiced ticks the replay practice fed: one full deal of 20
+        // solved drills earns the badge.
+        const practiced = weakness.drilled >= PRACTICED_THRESHOLD;
         return (
           <li key={weakness.id}>
             <Card>
@@ -182,7 +183,7 @@ function WeaknessList({ weaknesses, stream, tournamentId }: WeaknessListProps) {
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge label={KIND_LABEL[weakness.kind]} variant="neutral" />
                   {weakness.done ? <Badge label="Done (+100 XP)" variant="success" /> : null}
-                  {allPracticed ? <Badge label="Practiced" variant="neutral" /> : null}
+                  {practiced ? <Badge label="Practiced" variant="neutral" /> : null}
                   {weakness.eco !== null ? (
                     <Text type="supporting" className="font-mono text-sm">
                       {weakness.eco}
@@ -203,19 +204,19 @@ function WeaknessList({ weaknesses, stream, tournamentId }: WeaknessListProps) {
                     <dd className="font-mono">{weakness.halfPointsLost}</dd>
                   </div>
                 </dl>
-                {weakness.kind !== 'opening' || flagged !== undefined ? (
+                {weakness.groupKey !== null ? (
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                     {weakness.kind !== 'opening' ? (
                       <Link onClick={() => onToggle(weakness.id)} aria-expanded={expanded}>
                         {expanded ? 'Hide evidence' : 'Show evidence'}
                       </Link>
                     ) : null}
-                    {/* ST-102. One entry per card: the worst instance, straight into the drill. */}
-                    {flagged !== undefined ? (
-                      <Link href={`/games/${flagged.gameId}?ply=${flagged.ply}&practice=1`}>
-                        Practice this
-                      </Link>
-                    ) : null}
+                    {/* ST-106. The card's one entry: the group's 20-puzzle deal. */}
+                    <Link
+                      href={`/practice?kind=${weakness.kind}&group=${encodeURIComponent(weakness.groupKey)}&label=${encodeURIComponent(weakness.label)}&stream=${stream}`}
+                    >
+                      Practice 20 puzzles
+                    </Link>
                     {weakness.advice !== null && !weakness.done ? (
                       <Link
                         onClick={() => onCloseToggle(weakness.id)}

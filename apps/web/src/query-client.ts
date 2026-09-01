@@ -1,6 +1,6 @@
 import { queryOptions, QueryClient } from '@tanstack/react-query';
 import { accountApi, ApiRequestError } from './api/account-api.ts';
-import { diagnosisApi, type Stream } from './api/diagnosis-api.ts';
+import { diagnosisApi, type Stream, type WeaknessKind } from './api/diagnosis-api.ts';
 import { focusApi } from './api/focus-api.ts';
 import { proofSheetApi } from './api/proof-sheet-api.ts';
 import { tournamentApi } from './api/tournament-api.ts';
@@ -19,6 +19,15 @@ export const reportQueryOptions = (stream: Stream, tournamentId?: string) =>
     queryFn: () => diagnosisApi.getReport(stream, tournamentId),
     retry: false,
     staleTime: 30_000,
+  });
+
+/** ST-106. One weakness group's drill set; refetch deals a fresh set. */
+export const practiceQueryOptions = (kind: WeaknessKind, group: string) =>
+  queryOptions({
+    queryKey: ['practice', kind, group] as const,
+    queryFn: () => diagnosisApi.getPracticePuzzles(kind, group),
+    retry: false,
+    staleTime: 0,
   });
 
 export const gamesQueryOptions = (stream: Stream, tournamentId?: string) =>

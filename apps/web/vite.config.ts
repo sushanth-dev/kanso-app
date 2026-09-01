@@ -51,6 +51,13 @@ export default defineConfig({
         target: 'http://127.0.0.1:3000',
         bypass: htmlBypass,
       },
+      // ST-106: /practice is both a drill page and an API path. A browser
+      // navigation (Accept: text/html) is the page; a fetch is the API read,
+      // the same split /report and /games use above.
+      '/practice': {
+        target: 'http://127.0.0.1:3000',
+        bypass: htmlBypass,
+      },
       '/imports': 'http://127.0.0.1:3000',
       '/proof-sheets': 'http://127.0.0.1:3000',
       '/shared': {
