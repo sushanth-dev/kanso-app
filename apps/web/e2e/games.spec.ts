@@ -50,10 +50,9 @@ async function importPgn(page: Page): Promise<void> {
     buffer: Buffer.from(pgn, 'utf8'),
   });
   await page.getByRole('button', { name: 'Import games' }).click();
-  // A successful import navigates straight to the report (ST-029), which shows
-  // the still-analysing state until the analysis worker finishes.
-  await expect(page.getByRole('heading', { name: 'Tournament report' })).toBeVisible();
-  await expect(page.getByText('This report will appear as soon as it is ready.')).toBeVisible();
+  // A one-game upload sits under the report threshold (ST-096): the import
+  // lands on the imported game's review rather than the report (ST-029).
+  await expect(page.getByRole('heading', { name: 'Game review' })).toBeVisible();
 }
 
 test('lists an imported game and opens its review to the honest unanalysed state', async ({
@@ -65,7 +64,7 @@ test('lists an imported game and opens its review to the honest unanalysed state
   // The games list shows the imported, still-analysing game, not a shell.
   await page.goto('/games?stream=tournament');
   await expect(page.getByRole('heading', { name: 'Your games' })).toBeVisible();
-  await expect(page.getByText('Analysis in progress.')).toBeVisible();
+  await expect(page.getByText(/Waiting for your side/)).toBeVisible();
   await expectNoAxeViolations(page);
 
   // The review route, reached directly, renders the honest no-moves state for
@@ -91,7 +90,7 @@ test('deletes an imported game from the list after confirmation', async ({ page 
 
   await page.goto('/games?stream=tournament');
   await expect(page.getByRole('heading', { name: 'Your games' })).toBeVisible();
-  await expect(page.getByText('Analysis in progress.')).toBeVisible();
+  await expect(page.getByText(/Waiting for your side/)).toBeVisible();
 
   // The card's Delete button opens the confirmation dialog; confirming removes
   // the game and its card from the list.
@@ -101,6 +100,6 @@ test('deletes an imported game from the list after confirmation', async ({ page 
     .getByRole('alertdialog', { name: 'Delete this game?' })
     .getByRole('button', { name: 'Delete', exact: true })
     .click();
-  await expect(page.getByText('Analysis in progress.')).not.toBeVisible();
+  await expect(page.getByText(/Waiting for your side/)).not.toBeVisible();
   await expectNoAxeViolations(page);
 });
