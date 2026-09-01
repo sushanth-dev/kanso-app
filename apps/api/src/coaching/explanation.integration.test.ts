@@ -36,6 +36,12 @@ const aiClient: AiClient = {
   verifyAdviceSummary() {
     return Promise.reject(new Error('not used here'));
   },
+  recommendResources() {
+    return Promise.reject(new Error('not used here'));
+  },
+  verifyResourceAssessment() {
+    return Promise.reject(new Error('not used here'));
+  },
 };
 
 beforeAll(async () => {

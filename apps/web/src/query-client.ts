@@ -30,6 +30,22 @@ export const practiceQueryOptions = (kind: WeaknessKind, group: string) =>
     staleTime: 0,
   });
 
+/** ST-107. The puzzles page's pending, upcoming, and mastered buckets. */
+export const practiceQueueQueryOptions = () =>
+  queryOptions({
+    queryKey: ['practice-queue'] as const,
+    queryFn: () => diagnosisApi.getPracticeQueue(),
+    retry: false,
+  });
+
+/** ST-107. The curriculum page's list of every assigned action item. */
+export const actionItemsQueryOptions = () =>
+  queryOptions({
+    queryKey: ['action-items'] as const,
+    queryFn: () => diagnosisApi.listActionItems(),
+    retry: false,
+  });
+
 export const gamesQueryOptions = (stream: Stream, tournamentId?: string) =>
   queryOptions({
     queryKey: ['games', stream, tournamentId ?? null] as const,

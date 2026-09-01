@@ -4,9 +4,16 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, RouterContextProvider, RouterProvider } from '@tanstack/react-router';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { accountApi, ApiRequestError, type Me } from '../api/account-api.ts';
-import { diagnosisApi, type GameSummary, type Report } from '../api/diagnosis-api.ts';
+import {
+  diagnosisApi,
+  type ActionItem,
+  type ActionItemDone,
+  type GameSummary,
+  type Report,
+} from '../api/diagnosis-api.ts';
 import { tournamentApi, type TournamentSummary } from '../api/tournament-api.ts';
 import { createAppRouter } from '../router.tsx';
+import { ME_QUERY_KEY } from '../query-client.ts';
 import { ReportScreen } from './report-route.tsx';
 
 function tournamentFixture(overrides: Partial<TournamentSummary> = {}): TournamentSummary {
@@ -38,6 +45,20 @@ const evidenceInstance = {
   cpLoss: 240,
 };
 
+/** ST-107. One assigned resource; the curriculum the coach closes per item. */
+function actionItemFixture(overrides: Partial<ActionItem> = {}): ActionItem {
+  return {
+    id: 'ai-1',
+    resourceIndex: 1,
+    tier: 'beginner',
+    resource: '[Beginner] Laszlo Polgar - Chess: 5334 Problems, problems #1800-#1900',
+    status: 'pending',
+    dueAt: new Date(Date.now() + 7 * 86_400_000).toISOString(),
+    completedAt: null,
+    ...overrides,
+  };
+}
+
 const motifWeakness = {
   id: 'w-1',
   kind: 'motif' as const,
@@ -50,8 +71,7 @@ const motifWeakness = {
   occurrences: 9,
   rank: 1,
   advice: 'After every opponent move, count what each available capture wins.',
-  done: false,
-  completedAt: null,
+  actionItems: [actionItemFixture()],
   drilled: 0,
   groupKey: 'missed_capture',
   evidence: [evidenceInstance],
@@ -69,8 +89,7 @@ const openingWeakness = {
   occurrences: 5,
   rank: 2,
   advice: null,
-  done: false,
-  completedAt: null,
+  actionItems: [],
   drilled: 0,
   groupKey: 'B22',
   evidence: [],
@@ -162,7 +181,7 @@ function renderReport(report: Report, analyzingGames: GameSummary[] = []) {
       </RouterContextProvider>
     </QueryClientProvider>,
   );
-  return { user };
+  return { user, queryClient };
 }
 
 describe('ReportScreen', () => {
@@ -250,7 +269,7 @@ describe('ReportScreen', () => {
   test('ST-106: offers the group puzzle drill on a weakness card', () => {
     renderReport(reportFixture());
     // One entry per card; the ranked list leads with the motif weakness.
-    const links = screen.getAllByRole('link', { name: 'Practice 20 puzzles' });
+    const links = screen.getAllByRole('link', { name: 'Practice puzzles' });
     expect(links[0]!.getAttribute('href')).toBe(
       `/practice?kind=motif&group=${encodeURIComponent('missed_capture')}&label=${encodeURIComponent('Missed captures')}&stream=tournament`,
     );
@@ -263,6 +282,8 @@ describe('ReportScreen', () => {
       }),
     );
     expect(screen.getByText('Practiced')).toBeVisible();
+    // ST-107: the first deal done, the card names the next one.
+    expect(screen.getByRole('link', { name: 'Practice more puzzles' })).toBeInTheDocument();
   });
 
   test('ST-106: a partly drilled weakness carries no practised mark yet', () => {
@@ -272,80 +293,127 @@ describe('ReportScreen', () => {
       }),
     );
     expect(screen.queryByText('Practiced')).toBeNull();
-    expect(screen.getAllByRole('link', { name: 'Practice 20 puzzles' }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('link', { name: 'Practice puzzles' }).length).toBeGreaterThan(0);
   });
-  test('ST-105: offers mark as done on a card with advice', () => {
+  test('ST-107: lists a pending action item with its tier, resource, and an assessment link', () => {
     renderReport(reportFixture());
-    expect(screen.getByRole('button', { name: 'Mark as done' })).toBeInTheDocument();
+    // The tier tag is data for the badge, noise for the resource link.
+    expect(screen.getByText('Beginner')).toBeVisible();
+    const resourceName = 'Laszlo Polgar - Chess: 5334 Problems, problems #1800-#1900';
+    expect(screen.getByRole('link', { name: resourceName }).getAttribute('href')).toBe(
+      `https://www.google.com/search?q=${encodeURIComponent(resourceName)}`,
+    );
+    expect(screen.getByRole('button', { name: 'Take assessment' })).toBeInTheDocument();
   });
 
-  test('ST-105: shows the done badge on a completed weakness', () => {
+  test('ST-107: flags a pending action item past its due date', () => {
     renderReport(
       reportFixture({
-        weaknesses: [{ ...motifWeakness, done: true, completedAt: '2026-08-31T10:00:00.000Z' }],
+        weaknesses: [
+          {
+            ...motifWeakness,
+            actionItems: [
+              actionItemFixture({ dueAt: new Date(Date.now() - 86_400_000).toISOString() }),
+            ],
+          },
+        ],
+      }),
+    );
+    expect(screen.getByText('Overdue')).toBeVisible();
+  });
+
+  test('ST-107: shows the done badge on a passed assessment', () => {
+    const completedAt = '2026-08-31T10:00:00.000Z';
+    renderReport(
+      reportFixture({
+        weaknesses: [
+          {
+            ...motifWeakness,
+            actionItems: [actionItemFixture({ status: 'completed', completedAt })],
+          },
+        ],
       }),
     );
     expect(screen.getByText('Done (+100 XP)')).toBeVisible();
-    expect(screen.queryByRole('button', { name: 'Mark as done' })).toBeNull();
+    const passedOn = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(
+      new Date(completedAt),
+    );
+    expect(screen.getByText(`Assessment passed ${passedOn}`)).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Take assessment' })).toBeNull();
   });
 
-  test('ST-105: submitting a summary asks the coach to judge it', async () => {
-    const user = userEvent.setup();
-    const markAdviceDone = vi.spyOn(diagnosisApi, 'markAdviceDone').mockResolvedValue({
-      pass: true,
-      feedback: 'Good, keep that habit.',
-      completedAt: new Date().toISOString(),
-    });
-    renderReport(reportFixture());
+  test('ST-107: a passed assessment refetches the report and the award caches', async () => {
+    const { user, queryClient } = renderReport(reportFixture());
+    let resolveCoach: (result: ActionItemDone) => void = () => {};
+    const markActionItemDone = vi.spyOn(diagnosisApi, 'markActionItemDone').mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveCoach = resolve;
+        }),
+    );
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
 
-    await user.click(screen.getByRole('button', { name: 'Mark as done' }));
+    await user.click(screen.getByRole('button', { name: 'Take assessment' }));
+    expect(
+      screen.getByRole('form', { name: 'Submit this resource assessment' }),
+    ).toBeInTheDocument();
     await user.type(
-      screen.getByLabelText('In your own words, what did you do about this?'),
-      'I counted defenders before every capture for a week.',
+      screen.getByLabelText('In your own words, what is the core idea of this concept?'),
+      'Before every move, count what each available capture wins.',
     );
     await user.click(screen.getByRole('button', { name: 'Submit to the coach' }));
 
-    expect(markAdviceDone).toHaveBeenCalledWith({
-      stream: 'tournament',
-      tournamentId: null,
-      kind: 'motif',
-      label: 'Missed captures',
-      eco: null,
-      summary: 'I counted defenders before every capture for a week.',
+    // The coach is judging while the request runs.
+    expect(await screen.findByText('The coach is thinking...')).toBeVisible();
+    expect(markActionItemDone).toHaveBeenCalledWith({
+      actionItemId: 'ai-1',
+      summary: 'Before every move, count what each available capture wins.',
+    });
+
+    resolveCoach({
+      pass: true,
+      feedback: 'Exactly right.',
+      completedAt: new Date().toISOString(),
+    });
+    await waitFor(() => {
+      expect(invalidate.mock.calls.map(([options]) => options?.queryKey)).toEqual([
+        ['report'],
+        ['action-items'],
+        ME_QUERY_KEY,
+      ]);
     });
   });
 
-  test('ST-105: a rejected summary keeps the form open with the feedback', async () => {
-    const user = userEvent.setup();
-    vi.spyOn(diagnosisApi, 'markAdviceDone').mockResolvedValue({
+  test('ST-107: a rejected assessment keeps the form open with the feedback', async () => {
+    const { user } = renderReport(reportFixture());
+    vi.spyOn(diagnosisApi, 'markActionItemDone').mockResolvedValue({
       pass: false,
-      feedback: 'Name one concrete detail you actually did.',
+      feedback: 'Name one concrete idea from the resource and why it matters.',
       completedAt: null,
     });
-    renderReport(reportFixture());
 
-    await user.click(screen.getByRole('button', { name: 'Mark as done' }));
+    await user.click(screen.getByRole('button', { name: 'Take assessment' }));
     await user.type(
-      screen.getByLabelText('In your own words, what did you do about this?'),
+      screen.getByLabelText('In your own words, what is the core idea of this concept?'),
       'Details here.',
     );
     await user.click(screen.getByRole('button', { name: 'Submit to the coach' }));
 
-    expect(await screen.findByText('Name one concrete detail you actually did.')).toBeVisible();
+    expect(
+      await screen.findByText('Name one concrete idea from the resource and why it matters.'),
+    ).toBeVisible();
     expect(screen.getByRole('button', { name: 'Submit to the coach' })).toBeVisible();
   });
 
-  test('ST-105: refuses an empty summary before calling the coach', async () => {
-    const user = userEvent.setup();
-    const markAdviceDone = vi.spyOn(diagnosisApi, 'markAdviceDone');
-    markAdviceDone.mockClear();
-    renderReport(reportFixture());
+  test('ST-107: refuses an empty summary before calling the coach', async () => {
+    const { user } = renderReport(reportFixture());
+    const markActionItemDone = vi.spyOn(diagnosisApi, 'markActionItemDone').mockClear();
 
-    await user.click(screen.getByRole('button', { name: 'Mark as done' }));
+    await user.click(screen.getByRole('button', { name: 'Take assessment' }));
     await user.click(screen.getByRole('button', { name: 'Submit to the coach' }));
 
-    expect(await screen.findByText('Write a short summary of what you did first.')).toBeVisible();
-    expect(markAdviceDone).not.toHaveBeenCalled();
+    expect(await screen.findByText('Write a short summary of the core idea first.')).toBeVisible();
+    expect(markActionItemDone).not.toHaveBeenCalled();
   });
 });
 

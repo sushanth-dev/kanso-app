@@ -151,9 +151,14 @@ function DrillSession({
     return (
       <EmptyState
         title="Drill complete"
-        description={`${solvedCount} of ${puzzles.length} solved. The puzzles that fought back rotate into your next session's deal.`}
+        description={`${solvedCount} of ${puzzles.length} solved. Solved puzzles come back for review; the ones that fought back are due again today.`}
         headingLevel={1}
-        actions={<Link href={`/report?stream=${stream}`}>Back to the report</Link>}
+        actions={
+          <>
+            <Link href="/puzzles">See your puzzle queue</Link>
+            <Link href={`/report?stream=${stream}`}>Back to the report</Link>
+          </>
+        }
       />
     );
   }

@@ -18,10 +18,10 @@ import { and, asc, desc, eq, inArray, isNotNull, isNull, max, or, sql } from 'dr
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { z } from 'zod';
-import { getReport, markAdviceDone } from '../contract/routes.ts';
+import { getReport, listActionItems, markActionItemDone } from '../contract/routes.ts';
 import { Report } from '../contract/schemas.ts';
 import * as schema from '../db/schema.ts';
-import { game, puzzleAttempt, report, weakness } from '../db/schema.ts';
+import { actionItem, game, puzzleAttempt, report, weakness } from '../db/schema.ts';
 import { readSession } from '../session.ts';
 import { getOwnPlayerId } from '../players/claim.ts';
 import { leakBaseline, scoreLeaks, weaknessLeakRows } from '../analysis/leak.ts';
@@ -32,7 +32,7 @@ import { composeReport, type ComposedWeakness } from './compose.ts';
 import { adviceForReport } from './advice.ts';
 import { summaryForReport } from './summary.ts';
 import type { AiClient } from '../coaching/zai.ts';
-import { completedAdviceAt, completeAdvice, readAdviceProgress } from './advice-progress.ts';
+import { ensureActionItems, readItemsByGroup, completeItem } from './action-items.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
 type Stream = (typeof schema.streamEnum.enumValues)[number];
@@ -122,9 +122,9 @@ function toResponse(r: ReportRow, ws: WeaknessRow[]): ReportResponse {
       // ST-099. The model line stored with the report; `withEvidence` falls
       // back to the template copy when it is null.
       advice: w.advice,
-      // ST-105. Filled in by `withEvidence` from the progress table.
-      done: false,
-      completedAt: null,
+      // ST-107. Filled in by `withEvidence` from the action-item table; each
+      // weakness's curriculum of three resources carries its own done state.
+      actionItems: [],
       // ST-106. The group identity the practice link carries; recovered from
       // the label the row stores, so it survives regeneration.
       groupKey: groupKeyOf(w.kind, w.label, w.eco),
@@ -136,22 +136,22 @@ function toResponse(r: ReportRow, ws: WeaknessRow[]): ReportResponse {
 }
 
 /**
- * ST-098. Attach the places, the advice, the done state, and the drill count
+ * ST-098. Attach the places, the advice, the curriculum, and the drill count
  * to each weakness. The instances come from the same window the report was
  * computed over, so a stored report and its evidence stay consistent after
- * both leave the database. The done state and the drill count are one read
+ * both leave the database. The action items and the drill count are one read
  * each for the whole report, keyed by group, so both survive the weakness
  * rows being rewritten on regeneration.
  */
 async function withEvidence(
   db: Db,
+  ai: AiClient | null,
   playerId: string,
   stream: Stream,
   tournamentId: string | undefined,
   windowStart: Date | null,
   response: ReportResponse,
 ): Promise<ReportResponse> {
-  const progress = await readAdviceProgress(db, playerId);
   const groups = response.weaknesses
     .map((w) => ({ kind: w.kind, key: groupKeyOf(w.kind, w.label, w.eco) }))
     .filter((g): g is { kind: typeof g.kind; key: string } => g.key !== null);
@@ -175,11 +175,45 @@ async function withEvidence(
     // ST-099. The stored model line wins; the template remains the fallback
     // for reports generated without a key and for pre-ST-099 rows.
     w.advice = w.advice ?? adviceFor(w.kind, key ?? '', w.evidence);
-    // ST-105. An opening's key is its ECO, and a null key is never markable.
-    const completedAt = key === null ? undefined : progress.get(`${w.kind}:${key}`);
-    w.done = completedAt !== undefined;
-    w.completedAt = completedAt?.toISOString() ?? null;
     w.drilled = key === null ? 0 : (drilled.get(`${w.kind}:${key}`) ?? 0);
+  }
+  // ST-107. The curriculum fills itself here rather than only at generation,
+  // so reports stored before the model had a working model - or before this
+  // feature - gain their action items on the next read. Filled groups are
+  // idempotent: the ensure step re-reads what exists and asks for nothing.
+  await ensureActionItems(
+    db,
+    ai,
+    playerId,
+    response.weaknesses
+      .map((w) => ({
+        kind: w.kind,
+        label: w.label,
+        eco: w.eco,
+        groupKey: groupKeyOf(w.kind, w.label, w.eco),
+        advice: w.advice,
+      }))
+      .filter((r): r is typeof r & { groupKey: string } => r.groupKey !== null),
+  );
+  const items = await readItemsByGroup(
+    db,
+    playerId,
+    groups.map((g) => ({ kind: g.kind, groupKey: g.key })),
+  );
+  for (const w of response.weaknesses) {
+    const key = groupKeyOf(w.kind, w.label, w.eco);
+    w.actionItems =
+      key === null
+        ? []
+        : (items.get(`${w.kind}:${key}`) ?? []).map((item) => ({
+            id: item.id,
+            resourceIndex: item.resourceIndex,
+            tier: item.tier,
+            resource: item.resource,
+            status: item.status,
+            dueAt: item.dueAt.toISOString(),
+            completedAt: item.completedAt?.toISOString() ?? null,
+          }));
   }
   return response;
 }
@@ -300,6 +334,7 @@ export function mountReport(
         return c.json(
           await withEvidence(
             deps.db,
+            deps.aiClient,
             playerId,
             stream,
             inTournament,
@@ -315,6 +350,7 @@ export function mountReport(
       return c.json(
         await withEvidence(
           deps.db,
+          deps.aiClient,
           playerId,
           stream,
           inTournament,
@@ -433,15 +469,57 @@ export function mountReport(
     });
 
     return c.json(
-      await withEvidence(deps.db, playerId, stream, inTournament, baseline.windowStart, response),
+      await withEvidence(
+        deps.db,
+        deps.aiClient,
+        playerId,
+        stream,
+        inTournament,
+        baseline.windowStart,
+        response,
+      ),
       200,
     );
   });
-  // ST-105. The close-out judges a summary, so it exists only when the model
-  // does, the same mount condition as the coaching routes.
+  // ST-107. The curriculum page reads every assigned item, not one report's;
+  // a read, so it needs no model.
+  app.openapi(listActionItems, async (c) => {
+    const session = await readSession(deps.getSession, c);
+    if (session === null) {
+      return c.json({ code: 'no_session', message: 'Sign in to use this endpoint.' }, 401);
+    }
+    const playerId = await getOwnPlayerId(deps.db, session.userId);
+    if (playerId === null) {
+      return c.json({ code: 'not_found', message: 'No such player.' }, 404);
+    }
+    const items = await deps.db
+      .select()
+      .from(actionItem)
+      .where(eq(actionItem.playerId, playerId))
+      .orderBy(desc(actionItem.createdAt));
+    return c.json(
+      {
+        items: items.map((item) => ({
+          id: item.id,
+          kind: item.kind,
+          label: item.label,
+          resourceIndex: item.resourceIndex,
+          tier: item.tier,
+          resource: item.resource,
+          status: item.status,
+          summary: item.summary,
+          dueAt: item.dueAt.toISOString(),
+          completedAt: item.completedAt?.toISOString() ?? null,
+        })),
+      },
+      200,
+    );
+  });
+  // ST-107. The assessment judges a summary per action item, so it exists
+  // only when the model does, the same mount condition as the coaching routes.
   const ai = deps.aiClient;
   if (ai) {
-    app.openapi(markAdviceDone, async (c) => {
+    app.openapi(markActionItemDone, async (c) => {
       const body = c.req.valid('json');
       const session = await readSession(deps.getSession, c);
       if (session === null) {
@@ -451,65 +529,33 @@ export function mountReport(
       if (playerId === null) {
         return c.json({ code: 'not_found', message: 'No such player.' }, 404);
       }
-      const inTournament = body.tournamentId ?? undefined;
-      const stored = await latestReport(deps.db, playerId, body.stream, inTournament);
-      if (stored === null) {
-        return c.json({ code: 'no_report', message: 'No stored report for this scope.' }, 404);
+      // Only an item the player owns can be assessed; ownership is the
+      // lookup's where clause, so a foreign id is a plain miss.
+      const [item] = await deps.db
+        .select()
+        .from(actionItem)
+        .where(and(eq(actionItem.id, body.actionItemId), eq(actionItem.playerId, playerId)))
+        .limit(1);
+      if (item === undefined) {
+        return c.json({ code: 'no_such_item', message: 'No such action item.' }, 404);
       }
-      // Only a weakness the stored report actually shows can be marked; the
-      // group key, not the row id, is what the progress row is keyed by.
-      const weakness = stored.weaknesses.find(
-        (w) =>
-          w.kind === body.kind && w.label === body.label && (w.eco ?? null) === (body.eco ?? null),
-      );
-      if (weakness === undefined) {
-        return c.json(
-          { code: 'no_such_weakness', message: 'That weakness is not on the stored report.' },
-          422,
-        );
-      }
-      const key = groupKeyOf(weakness.kind, weakness.label, weakness.eco);
-      if (key === null) {
-        return c.json(
-          { code: 'no_such_weakness', message: 'That weakness has no stable group to mark.' },
-          422,
-        );
-      }
-      const doneAt = await completedAdviceAt(deps.db, playerId, weakness.kind, key);
-      if (doneAt !== null) {
+      if (item.status === 'completed') {
         // The prototype's guard: an already-done item never re-runs the model
         // and never re-pays the XP.
         return c.json(
-          { pass: true, feedback: 'This one was already done.', completedAt: doneAt.toISOString() },
-          200,
-        );
-      }
-      // The line the card serves: the stored model line, or the template copy.
-      const evidence = await weaknessEvidence(
-        deps.db,
-        playerId,
-        body.stream,
-        inTournament,
-        stored.windowStart,
-        [{ kind: weakness.kind, key }],
-      );
-      const advice =
-        weakness.advice ??
-        adviceFor(weakness.kind, key, evidence.get(`${weakness.kind}:${key}`) ?? []);
-      if (advice === null) {
-        return c.json(
           {
-            code: 'no_advice',
-            message: 'That weakness has no advice line to verify a summary against.',
+            pass: true,
+            feedback: 'This one was already done.',
+            completedAt: item.completedAt?.toISOString() ?? null,
           },
-          422,
+          200,
         );
       }
       let verdict;
       try {
-        verdict = await ai.verifyAdviceSummary({
-          label: weakness.label,
-          advice,
+        verdict = await ai.verifyResourceAssessment({
+          label: item.label,
+          resource: item.resource,
           summary: body.summary,
         });
       } catch {
@@ -521,10 +567,11 @@ export function mountReport(
       if (!verdict.pass) {
         return c.json({ pass: false, feedback: verdict.feedback, completedAt: null }, 200);
       }
-      const at = await completeAdvice(deps.db, playerId, weakness.kind, key, body.summary);
-      const completedAt = (
-        at ?? (await completedAdviceAt(deps.db, playerId, weakness.kind, key))
-      )?.toISOString();
+      const result = await completeItem(deps.db, playerId, item.id, body.summary);
+      if (result.outcome === 'no_such_item') {
+        return c.json({ code: 'no_such_item', message: 'No such action item.' }, 404);
+      }
+      const completedAt = result.completedAt?.toISOString() ?? null;
       return c.json(
         { pass: true, feedback: verdict.feedback, completedAt: completedAt ?? null },
         200,

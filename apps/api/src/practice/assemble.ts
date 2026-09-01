@@ -127,9 +127,37 @@ export async function assembleDrill(
         row.lichessRating ??
         DEFAULT_RATING);
 
+  const picked = new Map<string, DrillPuzzle>();
+  // ST-107. The deal a player left unfinished is honored first: the assigned
+  // rows with no recorded attempt open the next drill, so a closed tab is a
+  // pause, not a loss.
+  const pending = await db
+    .select({
+      lichessId: puzzle.lichessId,
+      fen: puzzle.fen,
+      moves: puzzle.moves,
+      rating: puzzle.rating,
+    })
+    .from(puzzleAttempt)
+    .innerJoin(puzzle, eq(puzzle.lichessId, puzzleAttempt.puzzleId))
+    .where(
+      and(
+        eq(puzzleAttempt.playerId, playerId),
+        eq(puzzleAttempt.kind, kind),
+        eq(puzzleAttempt.groupKey, group),
+        eq(puzzleAttempt.attempts, 0),
+      ),
+    )
+    .orderBy(puzzleAttempt.assignedAt)
+    .limit(DRILL_SIZE);
+  for (const p of pending) {
+    picked.set(p.lichessId, { id: p.lichessId, fen: p.fen, moves: p.moves, rating: p.rating });
+  }
+
   // The prototype's ladder: exact theme near the player's rating, then the
   // same theme wider, then the crushing fallback wider, then any theme wider.
-  const picked = new Map<string, DrillPuzzle>();
+  // Every rung excludes everything the player holds a row for, dealt or
+  // drilled, so no puzzle is ever dealt twice.
   await gather(db, playerId, theme, rating - 400, rating + 400, picked);
   await gather(db, playerId, theme, rating - 800, rating + 800, picked);
   if (theme !== 'crushing') {
@@ -138,5 +166,30 @@ export async function assembleDrill(
   await gather(db, playerId, null, rating - 800, rating + 800, picked);
 
   if (picked.size < DRILL_SIZE) return 'pool_empty';
+
+  // ST-107. Persist the deal the moment it is dealt, not only when drills are
+  // recorded: an abandoned session keeps its assignment, so the same puzzles
+  // never come back. ponytail: assigned-never-drilled rows shrink the usable
+  // pool one puzzle each; with the import's per-theme caps that is a slow
+  // ceiling, and the review queue is the upgrade path if it ever shows.
+  await db
+    .insert(puzzleAttempt)
+    .values(
+      [...picked.values()].map((p) => ({
+        playerId,
+        puzzleId: p.id,
+        kind,
+        groupKey: group,
+        attempts: 0,
+        solved: false,
+        reviewLevel: 0,
+        nextReviewAt: new Date(),
+        assignedAt: new Date(),
+      })),
+    )
+    .onConflictDoNothing({
+      target: [puzzleAttempt.playerId, puzzleAttempt.puzzleId],
+    });
+
   return { kind, group, theme, rating, puzzles: [...picked.values()] };
 }
