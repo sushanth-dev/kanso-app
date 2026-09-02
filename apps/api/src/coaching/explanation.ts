@@ -1,10 +1,12 @@
 /**
- * ST-080, ADR-0018. The explanation and Socratic-question endpoints.
+ * ST-080, ADR-0018, ST-111. The explanation and Socratic-question endpoints.
  *
  * Both call sites share one shape: load the mistake, check ownership through
- * its game, serve the stored text if it is already generated, otherwise call
- * the model once and cache the result on the mistake row. Nothing is
- * generated during analysis; most analyzed mistakes are never opened.
+ * its game, serve the stored text if it is already generated, otherwise
+ * check the plan's coach budget and call the model once, caching the result
+ * on the mistake row. Nothing is generated during analysis; most analyzed
+ * mistakes are never opened. The budget counts each generated text as 1 and
+ * reads stored rows, so a failed generation consumes nothing (ST-111).
  *
  * A failed model call is a 502, never a fallback to canned text (ADR-0018):
  * a player reading plausible generic prose about a mistake they did not make
@@ -20,6 +22,7 @@ import * as schema from '../db/schema.ts';
 import { game, mistake } from '../db/schema.ts';
 import { readSession } from '../session.ts';
 import { hasPlayerClaim } from '../players/claim.ts';
+import { coachRemaining } from '../billing/entitlement.ts';
 import type { AiClient, MistakeFacts } from './zai.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
@@ -45,7 +48,7 @@ function factsFrom(m: MistakeRow, g: GameRow): MistakeFacts {
   };
 }
 
-export type OwnedMistake = { mistake: MistakeRow; game: GameRow };
+export type OwnedMistake = { mistake: MistakeRow; game: GameRow; userId: string };
 export type LoadError = { status: 401 | 403 | 404; body: { code: string; message: string } };
 
 /**
@@ -74,7 +77,25 @@ export async function loadOwnedMistake(
     return { status: 403, body: { code: 'forbidden', message: 'Not your mistake.' } };
   }
 
-  return { mistake: mistakeRow, game: gameRow };
+  return { mistake: mistakeRow, game: gameRow, userId: session.userId };
+}
+
+/**
+ * ST-111. The plan's coach budget as a refusal, or `null` when the account
+ * may still generate. Fires only on the generate path; cached re-reads are
+ * free.
+ */
+async function coachBudgetExhausted(db: Db, userId: string): Promise<LoadError | null> {
+  if ((await coachRemaining(db, userId)) === 0) {
+    return {
+      status: 403,
+      body: {
+        code: 'upgrade_required',
+        message: 'You have used all your coach explanations for this month. Upgrade for more.',
+      },
+    };
+  }
+  return null;
 }
 
 export function mountExplanation(
@@ -97,6 +118,8 @@ export function mountExplanation(
       );
     }
 
+    const budget = await coachBudgetExhausted(deps.db, loaded.userId);
+    if (budget !== null) return c.json(budget.body, budget.status);
     let text: string;
     try {
       text = await deps.aiClient.explainMistake(factsFrom(loaded.mistake, loaded.game));
@@ -134,6 +157,8 @@ export function mountSocraticQuestion(
       );
     }
 
+    const budget = await coachBudgetExhausted(deps.db, loaded.userId);
+    if (budget !== null) return c.json(budget.body, budget.status);
     let question: string;
     try {
       question = await deps.aiClient.askSocraticQuestion(factsFrom(loaded.mistake, loaded.game));

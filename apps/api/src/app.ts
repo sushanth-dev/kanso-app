@@ -19,6 +19,7 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { routes } from './contract/routes.ts';
 import { mountMe } from './account/me.ts';
 import { mountConfirmGuardian } from './account/confirm-guardian.ts';
+import { mountFeedback } from './account/feedback.ts';
 import { isConsentGated } from './account/consent-request.ts';
 import { mountHealth } from './health.ts';
 import { mountUpdatePlayer } from './account/update-player.ts';
@@ -314,6 +315,7 @@ export function createApp({
     mountHealth(app, { db });
     mountMe(app, { db, getSession: effectiveGetSession });
     mountUpdatePlayer(app, { db, getSession: effectiveGetSession });
+    mountFeedback(app, { db, getSession: effectiveGetSession });
     if (auth) {
       mountDeleteAccount(app, {
         db,

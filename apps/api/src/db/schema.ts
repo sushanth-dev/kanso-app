@@ -854,6 +854,22 @@ export const puzzleAttempt = pgTable(
   ],
 );
 
+// ─── Feedback ────────────────────────────────────────────────────────────────
+
+/**
+ * ST-111. One submitted feedback message. Read in SQL; nothing renders it
+ * back into the product. The cascade rides the ST-109 account deletion, so
+ * erasure needs no separate step here.
+ */
+export const feedback = pgTable('feedback', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  message: text('message').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 // ─── Relations ───────────────────────────────────────────────────────────────
 
 export const playerRelations = relations(player, ({ many }) => ({

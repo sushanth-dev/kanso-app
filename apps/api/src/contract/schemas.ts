@@ -897,6 +897,24 @@ export const CctScan = z
   })
   .openapi('CctScan');
 
+// ─── Feedback ────────────────────────────────────────────────────────────────
+
+/**
+ * ST-111. One feedback message from a signed-in player. Read in SQL; nothing
+ * renders it back into the product, so the bound exists to keep one message
+ * a message, not a data dump.
+ */
+export const FeedbackCreate = z.object({
+  message: z.string().trim().min(1).max(2000),
+});
+
+export const FeedbackStored = z
+  .object({
+    id: Uuid,
+    createdAt: z.iso.datetime(),
+  })
+  .openapi('FeedbackStored');
+
 // ─── Ops ─────────────────────────────────────────────────────────────────────
 
 /**

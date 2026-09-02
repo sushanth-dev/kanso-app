@@ -2,7 +2,8 @@ import type { Context } from 'hono';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { createApp } from '../app.ts';
-import { game, mistake, player } from '../db/schema.ts';
+import { coachUnitsThisMonth } from '../billing/entitlement.ts';
+import { game, mistake, player, subscription } from '../db/schema.ts';
 import { user } from '../db/auth-schema.ts';
 import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-harness.ts';
 import type { AiClient } from './zai.ts';
@@ -188,5 +189,150 @@ describe('GET /mistakes/{mistakeId}/question', () => {
     const mistakeId = await seedMistake(OWNER);
     const res = await app(OTHER).request(`/mistakes/${mistakeId}/question`);
     expect(res.status).toBe(403);
+  });
+});
+
+/**
+ * ST-111. One player and N single-mistake games, so a suite can spend the
+ * plan's coach budget generation by generation.
+ */
+async function seedMistakes(ownerId: string, count: number): Promise<string[]> {
+  await harness.db
+    .insert(user)
+    .values({ id: ownerId, name: 'Owner', email: 'owner@example.com', emailVerified: true })
+    .onConflictDoNothing();
+  const [createdPlayer] = await harness.db
+    .insert(player)
+    .values({ ownerUserId: ownerId, displayName: 'Test Player' })
+    .returning({ id: player.id });
+  const createdGames = await harness.db
+    .insert(game)
+    .values(
+      Array.from({ length: count }, (_, i) => ({
+        playerId: createdPlayer!.id,
+        stream: 'tournament' as const,
+        source: 'pgn_upload' as const,
+        pgnHash: `hash_${ownerId}_${i}`,
+        pgn: '[Result "0-1"]\n\n1. e4 e5 2. Nf3 Qf6 3. Nc3 Qxf3 0-1',
+        result: '0-1' as const,
+        playerColor: 'black' as const,
+        opening: 'Sicilian Defense',
+        eco: 'B20',
+      })),
+    )
+    .returning({ id: game.id });
+  const createdMistakes = await harness.db
+    .insert(mistake)
+    .values(
+      createdGames.map((g, _i) => ({
+        gameId: g.id,
+        ply: 6,
+        moveNumber: 3,
+        movingColor: 'black' as const,
+        phase: 'opening' as const,
+        fen: 'rnbqkbnr/pppp1ppp/8/4p3/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 3',
+        moveSan: 'Qf6',
+        bestMoveSan: 'Nc6',
+        evalBeforeCp: 30,
+        evalAfterCp: -200,
+        judgement: 'blunder' as const,
+        cpLoss: 230,
+        winProbDrop: 0.4,
+        motif: 'hanging_piece',
+        explanationGeneratedAt: null,
+        socraticQuestionGeneratedAt: null,
+      })),
+    )
+    .returning({ id: mistake.id });
+  return createdMistakes.map((m) => m.id);
+}
+
+describe('ST-111 plan caps on generated coach texts', () => {
+  test('beginner: the 11th generated text is refused before the model is called', async () => {
+    const ids = await seedMistakes(OWNER, 11);
+    for (const id of ids.slice(0, 10)) {
+      const res = await app(OWNER).request(`/mistakes/${id}/explanation`);
+      expect(res.status).toBe(200);
+    }
+    expect(explainCalls).toBe(10);
+
+    const refused = await app(OWNER).request(`/mistakes/${ids[10]}/explanation`);
+    expect(refused.status).toBe(403);
+    const body = (await refused.json()) as { code: string; message: string };
+    expect(body.code).toBe('upgrade_required');
+    // The refusal fires on the budget check, so the model is never called.
+    expect(explainCalls).toBe(10);
+  });
+
+  test('beginner: explanation and question share one budget, two units per mistake', async () => {
+    const ids = await seedMistakes(OWNER, 6);
+    for (const id of ids.slice(0, 5)) {
+      const explanation = await app(OWNER).request(`/mistakes/${id}/explanation`);
+      expect(explanation.status).toBe(200);
+      const question = await app(OWNER).request(`/mistakes/${id}/question`);
+      expect(question.status).toBe(200);
+    }
+    expect(await coachUnitsThisMonth(harness.db, OWNER)).toBe(10);
+
+    const refusedExplanation = await app(OWNER).request(`/mistakes/${ids[5]}/explanation`);
+    expect(refusedExplanation.status).toBe(403);
+    const refusedQuestion = await app(OWNER).request(`/mistakes/${ids[5]}/question`);
+    expect(refusedQuestion.status).toBe(403);
+  });
+
+  test('beginner: cached texts re-read 200 at zero remaining', async () => {
+    const ids = await seedMistakes(OWNER, 5);
+    for (const id of ids) {
+      const explanation = await app(OWNER).request(`/mistakes/${id}/explanation`);
+      expect(explanation.status).toBe(200);
+      const question = await app(OWNER).request(`/mistakes/${id}/question`);
+      expect(question.status).toBe(200);
+    }
+    // The budget is spent: five mistakes, two texts each.
+    expect(await coachUnitsThisMonth(harness.db, OWNER)).toBe(10);
+
+    // Both stored texts on mistake 0 re-read from storage, never refused.
+    const cached = await app(OWNER).request(`/mistakes/${ids[0]}/explanation`);
+    expect(cached.status).toBe(200);
+    const cachedQuestion = await app(OWNER).request(`/mistakes/${ids[0]}/question`);
+    expect(cachedQuestion.status).toBe(200);
+    expect(explainCalls).toBe(5);
+    expect(questionCalls).toBe(5);
+  });
+
+  test('intermediate: refuses at the 101st generated text', async () => {
+    const ids = await seedMistakes(OWNER, 101);
+    await harness.db.insert(subscription).values({ userId: OWNER, tier: 'intermediate' });
+    for (const id of ids.slice(0, 100)) {
+      const res = await app(OWNER).request(`/mistakes/${id}/explanation`);
+      expect(res.status).toBe(200);
+    }
+    const refused = await app(OWNER).request(`/mistakes/${ids[100]}/explanation`);
+    expect(refused.status).toBe(403);
+    const body = (await refused.json()) as { code: string };
+    expect(body.code).toBe('upgrade_required');
+  });
+
+  test('pro: never refuses', async () => {
+    const ids = await seedMistakes(OWNER, 11);
+    await harness.db.insert(subscription).values({ userId: OWNER, tier: 'pro' });
+    for (const id of ids) {
+      const res = await app(OWNER).request(`/mistakes/${id}/explanation`);
+      expect(res.status).toBe(200);
+    }
+    expect(explainCalls).toBe(11);
+  });
+
+  test('a failed generation stores nothing and consumes nothing', async () => {
+    const [id] = await seedMistakes(OWNER, 1);
+    fail = true;
+    const failed = await app(OWNER).request(`/mistakes/${id}/explanation`);
+    expect(failed.status).toBe(502);
+    expect(await coachUnitsThisMonth(harness.db, OWNER)).toBe(0);
+
+    fail = false;
+    const retry = await app(OWNER).request(`/mistakes/${id}/explanation`);
+    expect(retry.status).toBe(200);
+    expect(await coachUnitsThisMonth(harness.db, OWNER)).toBe(1);
   });
 });

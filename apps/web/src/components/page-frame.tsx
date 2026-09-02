@@ -24,19 +24,26 @@ const NAV_ENTRIES: NavEntry[] = [
     label: 'Progress',
     items: [
       { label: 'Report', to: '/report' },
-      { label: 'Proof sheet', to: '/proof-sheet' },
-      { label: 'Puzzles', to: '/puzzles' },
       { label: 'Curriculum', to: '/curriculum' },
+      { label: 'Puzzles', to: '/puzzles' },
       { label: 'Focus', to: '/focus' },
+      { label: 'Proof sheet', to: '/proof-sheet' },
       { label: 'Rating gap', to: '/transfer-gap' },
     ],
   },
   {
     label: 'Games',
     items: [
+      { label: 'Import', to: '/import' },
       { label: 'Games', to: '/games' },
       { label: 'Tournaments', to: '/tournaments' },
-      { label: 'Import', to: '/import' },
+    ],
+  },
+  {
+    label: 'Help',
+    items: [
+      { label: "What's new", to: '/whats-new' },
+      { label: 'Feedback', to: '/feedback' },
     ],
   },
   { label: 'Plans', to: '/upgrade' },
@@ -64,6 +71,8 @@ export function PageFrame({ children }: PageFrameProps) {
     '/upgrade',
     '/player',
     '/tournaments',
+    '/whats-new',
+    '/feedback',
   ].some((base) => pathname === base || pathname.startsWith(`${base}/`));
   const [mobileOpen, setMobileOpen] = useState(false);
 

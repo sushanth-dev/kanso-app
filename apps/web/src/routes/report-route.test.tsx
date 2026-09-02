@@ -7,13 +7,11 @@ import { accountApi, ApiRequestError, type Me } from '../api/account-api.ts';
 import {
   diagnosisApi,
   type ActionItem,
-  type ActionItemDone,
   type GameSummary,
   type Report,
 } from '../api/diagnosis-api.ts';
 import { tournamentApi, type TournamentSummary } from '../api/tournament-api.ts';
 import { createAppRouter } from '../router.tsx';
-import { ME_QUERY_KEY } from '../query-client.ts';
 import { ReportScreen } from './report-route.tsx';
 
 function tournamentFixture(overrides: Partial<TournamentSummary> = {}): TournamentSummary {
@@ -329,125 +327,15 @@ describe('ReportScreen', () => {
     expect(screen.queryByText('Practiced')).toBeNull();
     expect(screen.getAllByRole('link', { name: 'Practice puzzles' }).length).toBeGreaterThan(0);
   });
-  test('ST-107: lists a pending action item with its tier, resource, and an assessment link', () => {
+  test('ST-111: the weakness card links to the curriculum instead of listing items', () => {
     renderReport(reportFixture());
-    // The tier tag is data for the badge, noise for the resource link.
-    expect(screen.getByText('Beginner')).toBeVisible();
-    const resourceName = 'Laszlo Polgar - Chess: 5334 Problems, problems #1800-#1900';
-    expect(screen.getByRole('link', { name: resourceName }).getAttribute('href')).toBe(
-      `https://www.google.com/search?q=${encodeURIComponent(resourceName)}`,
-    );
-    expect(screen.getByRole('button', { name: 'Take assessment' })).toBeInTheDocument();
-  });
-
-  test('ST-107: flags a pending action item past its due date', () => {
-    renderReport(
-      reportFixture({
-        weaknesses: [
-          {
-            ...motifWeakness,
-            actionItems: [
-              actionItemFixture({ dueAt: new Date(Date.now() - 86_400_000).toISOString() }),
-            ],
-          },
-        ],
-      }),
-    );
-    expect(screen.getByText('Overdue')).toBeVisible();
-  });
-
-  test('ST-107: shows the done badge on a passed assessment', () => {
-    const completedAt = '2026-08-31T10:00:00.000Z';
-    renderReport(
-      reportFixture({
-        weaknesses: [
-          {
-            ...motifWeakness,
-            actionItems: [actionItemFixture({ status: 'completed', completedAt })],
-          },
-        ],
-      }),
-    );
-    expect(screen.getByText('Done (+100 XP)')).toBeVisible();
-    const passedOn = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(
-      new Date(completedAt),
-    );
-    expect(screen.getByText(`Assessment passed ${passedOn}`)).toBeVisible();
+    // The items exist, but the card shows the link, never the list.
+    expect(screen.queryByText(/Laszlo Polgar/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Take assessment' })).toBeNull();
-  });
-
-  test('ST-107: a passed assessment refetches the report and the award caches', async () => {
-    const { user, queryClient } = renderReport(reportFixture());
-    let resolveCoach: (result: ActionItemDone) => void = () => {};
-    const markActionItemDone = vi.spyOn(diagnosisApi, 'markActionItemDone').mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          resolveCoach = resolve;
-        }),
+    expect(screen.getByRole('link', { name: 'View curriculum' })).toHaveAttribute(
+      'href',
+      '/curriculum',
     );
-    const invalidate = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
-
-    await user.click(screen.getByRole('button', { name: 'Take assessment' }));
-    expect(
-      screen.getByRole('form', { name: 'Submit this resource assessment' }),
-    ).toBeInTheDocument();
-    await user.type(
-      screen.getByLabelText('In your own words, what is the core idea of this concept?'),
-      'Before every move, count what each available capture wins.',
-    );
-    await user.click(screen.getByRole('button', { name: 'Submit to the coach' }));
-
-    // The coach is judging while the request runs.
-    expect(await screen.findByText('The coach is thinking...')).toBeVisible();
-    expect(markActionItemDone).toHaveBeenCalledWith({
-      actionItemId: 'ai-1',
-      summary: 'Before every move, count what each available capture wins.',
-    });
-
-    resolveCoach({
-      pass: true,
-      feedback: 'Exactly right.',
-      completedAt: new Date().toISOString(),
-    });
-    await waitFor(() => {
-      expect(invalidate.mock.calls.map(([options]) => options?.queryKey)).toEqual([
-        ['report'],
-        ['action-items'],
-        ME_QUERY_KEY,
-      ]);
-    });
-  });
-
-  test('ST-107: a rejected assessment keeps the form open with the feedback', async () => {
-    const { user } = renderReport(reportFixture());
-    vi.spyOn(diagnosisApi, 'markActionItemDone').mockResolvedValue({
-      pass: false,
-      feedback: 'Name one concrete idea from the resource and why it matters.',
-      completedAt: null,
-    });
-
-    await user.click(screen.getByRole('button', { name: 'Take assessment' }));
-    await user.type(
-      screen.getByLabelText('In your own words, what is the core idea of this concept?'),
-      'Details here.',
-    );
-    await user.click(screen.getByRole('button', { name: 'Submit to the coach' }));
-
-    expect(
-      await screen.findByText('Name one concrete idea from the resource and why it matters.'),
-    ).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Submit to the coach' })).toBeVisible();
-  });
-
-  test('ST-107: refuses an empty summary before calling the coach', async () => {
-    const { user } = renderReport(reportFixture());
-    const markActionItemDone = vi.spyOn(diagnosisApi, 'markActionItemDone').mockClear();
-
-    await user.click(screen.getByRole('button', { name: 'Take assessment' }));
-    await user.click(screen.getByRole('button', { name: 'Submit to the coach' }));
-
-    expect(await screen.findByText('Write a short summary of the core idea first.')).toBeVisible();
-    expect(markActionItemDone).not.toHaveBeenCalled();
   });
 });
 
@@ -545,7 +433,12 @@ describe('ReportRoute', () => {
     // The answer lands in the served report: the patch rewrote the cached
     // report, advice line and curriculum together, and the model ran once.
     expect(await screen.findByText(/Count defenders before every capture/)).toBeVisible();
-    expect(screen.getByText(/Laszlo Polgar/)).toBeVisible();
+    // ST-111: the patch lands the items in the cache, and the card answers
+    // with the curriculum link, not the list.
+    expect(screen.getByRole('link', { name: 'View curriculum' })).toHaveAttribute(
+      'href',
+      '/curriculum',
+    );
     expect(coachWeakness).toHaveBeenCalledTimes(1);
   });
 

@@ -59,6 +59,7 @@ const PLANS: PlanOption[] = [
       'Import from Chess.com or Lichess by username, plus PGN upload for tournament games.',
       'One diagnosis, ranked by what is costing the most rating.',
       'The rating leak number for the top weakness.',
+      '10 coach explanations a month.',
     ],
   },
   {
@@ -70,6 +71,7 @@ const PLANS: PlanOption[] = [
       'A focus, and verification afterwards, checked honestly.',
       'The proof sheet, the before-and-after page a coach sends a parent.',
       'Unlimited imports and re-analysis, up to the monthly cap.',
+      '100 coach explanations a month.',
     ],
     mostPopular: true,
   },
@@ -81,6 +83,7 @@ const PLANS: PlanOption[] = [
     features: [
       'Everything intermediate gives, with no monthly cap.',
       'History across seasons: compare this season to the last.',
+      'Unlimited coach explanations.',
     ],
   },
 ];
