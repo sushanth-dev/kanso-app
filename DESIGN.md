@@ -327,8 +327,12 @@ where nothing scrolls beneath.
   terracotta mark beside "Kanso Chess" in Source Serif 4. The signed-in
   header carries the wordmark and the horizontal top nav on one row: the nav
   sits to the right of the wordmark and groups routes into native
-  `<details>`/`<summary>` dropdowns (Progress, Games) alongside singleton
-  links (Plans, Settings). All nav text, summaries and leaves alike,
+  `<details>`/`<summary>` dropdowns (Progress, Games, Help) alongside
+  singleton links (Plans, Settings). The groups walk the loop the product
+  sells (ST-111): Progress leads with the Report and the work it assigns
+  (Curriculum, Puzzles, Focus), Games leads with Import, and Help carries
+  "What's new" and Feedback so a signed-in player can always see what
+  changed and say what broke. All nav text, summaries and leaves alike,
   is the terracotta accent; the active page is bold, not a hue shift. The
   dropdown opens on hover and closes on mouse leave so it follows the pointer.
   The summary is a md-radius control with the teal focus ring; the open panel
@@ -436,6 +440,13 @@ The instances come from the same rows and window the leak was summed over, so
 the places and the number cannot disagree. An opening weakness carries its
 evidence on the row and does not expand, because the games page already lists
 the games of an ECO.
+
+ST-111 moved the assigned resources off the report: the card carries a
+"View curriculum" link beside the practice link instead of listing the items,
+because the curriculum page owns the resources, their assessments, and their
+state, and a report that lists them shows the same thing twice. For an
+opening weakness the "Get resources" click stays the trigger that writes the
+group's resources; the link replaces the list once they exist.
 
 Games still analysing render as a numbered list ("Analyzing 3 games:"),
 on the report banner and in the full analysing state alike; a list grows
@@ -687,11 +698,12 @@ renders that fact as a fact sheet rather than a pitch. At `/upgrade`, a
 free account sees the boundary stated in plain words - "Your first diagnosis is
 free. The loop after it is paid." - and three plan cards, each stating its
 games-analysed limit, its feature list, and its one monthly price. Beginner
-is free (30 games a month, one ranked diagnosis); Intermediate is ₹799 a
-month (150 games, the full loop: focus, verification, proof sheet, unlimited
-imports) and is marked "Most popular"; Pro is ₹1,299 a month (uncapped, plus
-history across seasons). No discount, no other price, no invented feature;
-the copy states facts, never persuasion.
+is free (30 games a month, one ranked diagnosis, 10 coach explanations);
+Intermediate is ₹799 a month (150 games, the full loop: focus, verification,
+proof sheet, unlimited imports, 100 coach explanations) and is marked "Most
+popular"; Pro is ₹1,299 a month (uncapped, unlimited coach explanations,
+plus history across seasons). No discount, no other price, no invented
+feature; the copy states facts, never persuasion.
 
 The three cards sit in a three-column grid that collapses to one column at
 the 320px floor. Intermediate is given visual prominence beyond the orange

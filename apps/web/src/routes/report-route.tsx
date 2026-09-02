@@ -1,8 +1,6 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState } from 'react';
 import { Badge } from '@astryxdesign/core/Badge';
-import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
-import { Field } from '@astryxdesign/core/Field';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Heading } from '@astryxdesign/core/Heading';
 import { Link } from '@astryxdesign/core/Link';
@@ -14,7 +12,6 @@ import { MIN_REPORT_GAMES, isActiveGame } from '../analysis-status.ts';
 import { ApiRequestError } from '../api/account-api.ts';
 import {
   diagnosisApi,
-  type ActionItem,
   type GameSummary,
   type Report,
   type Stream,
@@ -23,12 +20,7 @@ import {
 } from '../api/diagnosis-api.ts';
 import { StreamToggle } from '../components/stream-toggle.tsx';
 import { ParticleReveal } from '../components/canvas-ui/ParticleReveal.tsx';
-import {
-  ME_QUERY_KEY,
-  gamesQueryOptions,
-  reportQueryOptions,
-  tournamentsQueryOptions,
-} from '../query-client.ts';
+import { gamesQueryOptions, reportQueryOptions, tournamentsQueryOptions } from '../query-client.ts';
 import { TournamentCard } from './tournaments-route.tsx';
 import { track } from '../analytics.ts';
 
@@ -146,9 +138,6 @@ interface WeaknessListProps {
 function WeaknessList({ weaknesses, stream, tournamentId }: WeaknessListProps) {
   const queryClient = useQueryClient();
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  // ST-107. One assessment form open at a time, keyed by action item id -
-  // done is per item now, not per weakness.
-  const [assessmentItemId, setAssessmentItemId] = useState<string | null>(null);
   // The weaknesses whose coaching answer has landed. The endpoint is
   // idempotent - a stored line costs no model call - so this only saves a
   // re-open from refetching.
@@ -186,8 +175,6 @@ function WeaknessList({ weaknesses, stream, tournamentId }: WeaknessListProps) {
       })
       .finally(() => setCoachingId((current) => (current === id ? null : current)));
   };
-  const onAssessToggle = (id: string) =>
-    setAssessmentItemId((current) => (current === id ? null : id));
   return (
     <ol className="stagger-in space-y-4">
       {weaknesses.map((weakness) => {
@@ -248,15 +235,22 @@ function WeaknessList({ weaknesses, stream, tournamentId }: WeaknessListProps) {
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                     {/* The click materializes the coaching: the model's line
                         for the mistake, or just the resources for an opening. */}
-                    <Link onClick={() => onToggle(weakness.id)} aria-expanded={expanded}>
-                      {weakness.kind === 'opening'
-                        ? expanded
-                          ? 'Hide resources'
-                          : 'Get resources'
-                        : expanded
-                          ? 'Hide evidence'
-                          : 'Show evidence'}
-                    </Link>
+                    {weakness.kind === 'opening' && weakness.actionItems.length === 0 ? (
+                      <Link onClick={() => onToggle(weakness.id)} aria-expanded={expanded}>
+                        {coachingId === weakness.id ? 'Writing your resources...' : 'Get resources'}
+                      </Link>
+                    ) : null}
+                    {weakness.kind !== 'opening' ? (
+                      <Link onClick={() => onToggle(weakness.id)} aria-expanded={expanded}>
+                        {expanded ? 'Hide evidence' : 'Show evidence'}
+                      </Link>
+                    ) : null}
+                    {/* ST-111. The report names the weakness; the curriculum
+                        page owns the resources, their assessments, and their
+                        state. */}
+                    {weakness.actionItems.length > 0 ? (
+                      <Link href="/curriculum">View curriculum</Link>
+                    ) : null}
                     {/* ST-106. The card's one entry: the group's 20-puzzle deal,
                         renamed once the first batch is done. */}
                     <Link
@@ -271,13 +265,6 @@ function WeaknessList({ weaknesses, stream, tournamentId }: WeaknessListProps) {
                     The coach is writing your note...
                   </Text>
                 ) : null}
-                {weakness.actionItems.length > 0 ? (
-                  <ActionItemsList
-                    items={weakness.actionItems}
-                    assessmentItemId={assessmentItemId}
-                    onAssessToggle={onAssessToggle}
-                  />
-                ) : null}
               </div>
               {expanded && weakness.kind !== 'opening' ? (
                 <EvidenceDetail weakness={weakness} />
@@ -287,74 +274,6 @@ function WeaknessList({ weaknesses, stream, tournamentId }: WeaknessListProps) {
         );
       })}
     </ol>
-  );
-}
-
-const TIER_LABEL: Record<ActionItem['tier'], string> = {
-  beginner: 'Beginner',
-  intermediate: 'Intermediate',
-  advanced: 'Advanced',
-};
-
-/** The tier tag the model prefixed is data for the badge, noise for the link. */
-function stripTierTag(resource: string): string {
-  return resource.replace(/^\[\w+\]\s*/, '');
-}
-
-const completedFormatter = new Intl.DateTimeFormat('en-US', {
-  month: 'short',
-  day: 'numeric',
-});
-
-/**
- * ST-107. One weakness's curriculum: the three assigned resources, each
- * closed by its own assessment. A pending item links to the real resource
- * and takes a summary the coach judges; a passed one carries its award.
- */
-function ActionItemsList({
-  items,
-  assessmentItemId,
-  onAssessToggle,
-}: {
-  items: ActionItem[];
-  assessmentItemId: string | null;
-  onAssessToggle: (id: string) => void;
-}) {
-  return (
-    <ul className="mt-2 space-y-2 border-t border-border pt-3">
-      {items.map((item) => {
-        const done = item.status === 'completed';
-        const open = assessmentItemId === item.id;
-        return (
-          <li key={item.id} className="space-y-1">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <Badge label={TIER_LABEL[item.tier]} variant="neutral" />
-              <Link
-                href={`https://www.google.com/search?q=${encodeURIComponent(stripTierTag(item.resource))}`}
-              >
-                {stripTierTag(item.resource)}
-              </Link>
-              {done ? (
-                <Badge label="Done (+100 XP)" variant="success" />
-              ) : new Date(item.dueAt).getTime() < Date.now() ? (
-                <Badge label="Overdue" variant="warning" />
-              ) : null}
-              {!done ? (
-                <Link onClick={() => onAssessToggle(item.id)} aria-expanded={open}>
-                  {open ? 'Cancel' : 'Take assessment'}
-                </Link>
-              ) : null}
-            </div>
-            {done && item.completedAt !== null ? (
-              <Text type="supporting" className="font-ui text-xs">
-                Assessment passed {completedFormatter.format(new Date(item.completedAt))}
-              </Text>
-            ) : null}
-            {open && !done ? <ActionItemAssessment itemId={item.id} /> : null}
-          </li>
-        );
-      })}
-    </ul>
   );
 }
 
@@ -391,103 +310,6 @@ function EvidenceDetail({ weakness }: { weakness: Weakness }) {
         </Text>
       )}
     </div>
-  );
-}
-
-const assessmentClassName =
-  'min-h-28 w-full resize-y rounded-control border border-border-strong bg-raised px-3 py-2 text-primary transition-control focus:border-focus focus:outline-none focus-visible:ring-2 focus-visible:ring-focus';
-
-/**
- * ST-107. The prototype's Proof of Work, now per action item: the player
- * writes what they took from the assigned resource, the coach judges the
- * summary, and a pass refetches the report so the item flips to done. A fail
- * keeps the form open with the coach's feedback; a failed call stores
- * nothing.
- */
-function ActionItemAssessment({ itemId }: { itemId: string }) {
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const [summary, setSummary] = useState('');
-  const [error, setError] = useState<string | undefined>(undefined);
-  const [feedback, setFeedback] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (summary.trim() === '') {
-      setError('Write a short summary of the core idea first.');
-      return;
-    }
-    setError(undefined);
-    setFeedback(null);
-    setSubmitting(true);
-    void diagnosisApi
-      .markActionItemDone({ actionItemId: itemId, summary: summary.trim() })
-      .then(async (result) => {
-        if (result.pass) {
-          // The refetched report carries the item's done state; the
-          // curriculum page and the account page carry the award.
-          await queryClient.invalidateQueries({ queryKey: ['report'] });
-          void queryClient.invalidateQueries({ queryKey: ['action-items'] });
-          void queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY });
-        } else {
-          setFeedback(result.feedback);
-        }
-      })
-      .catch((submitError: unknown) => {
-        if (submitError instanceof ApiRequestError && submitError.status === 401) {
-          queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
-          void navigate({ to: '/sign-in' });
-          return;
-        }
-        setError('The coach could not be reached. Nothing was saved. Please try again.');
-      })
-      .finally(() => {
-        setSubmitting(false);
-      });
-  };
-
-  return (
-    <form
-      className="mt-2 space-y-3 rounded-surface bg-raised p-3"
-      onSubmit={handleSubmit}
-      aria-label="Submit this resource assessment"
-    >
-      <Field
-        label="In your own words, what is the core idea of this concept?"
-        inputID={`assessment-${itemId}`}
-        status={error === undefined ? undefined : { type: 'error', message: error }}
-      >
-        <textarea
-          id={`assessment-${itemId}`}
-          name={`assessment-${itemId}`}
-          rows={4}
-          maxLength={2000}
-          value={summary}
-          onChange={(event) => {
-            setSummary(event.target.value);
-            setError(undefined);
-          }}
-          placeholder="Briefly summarize the key takeaway..."
-          aria-invalid={error === undefined ? undefined : true}
-          aria-describedby={error === undefined ? undefined : `assessment-${itemId}-status`}
-          className={assessmentClassName}
-        />
-      </Field>
-      {feedback !== null ? (
-        <Text as="p" display="block" className="text-sm text-primary" role="status">
-          {feedback}
-        </Text>
-      ) : null}
-      <Button
-        type="submit"
-        label={submitting ? 'The coach is thinking...' : 'Submit to the coach'}
-        variant="primary"
-        isDisabled={submitting}
-        isLoading={submitting}
-        className="min-h-11 press"
-      />
-    </form>
   );
 }
 

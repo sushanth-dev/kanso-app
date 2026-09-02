@@ -1,5 +1,10 @@
 import { describe, expect, test } from 'vitest';
-import { ANALYSIS_MONTHLY_CAP, PLAN_PRICES, nextRenewal } from './plans.ts';
+import {
+  ANALYSIS_MONTHLY_CAP,
+  EXPLANATION_MONTHLY_CAP,
+  PLAN_PRICES,
+  nextRenewal,
+} from './plans.ts';
 
 describe('plans', () => {
   test('prices are the ST-074 numbers in paise', () => {
@@ -11,6 +16,12 @@ describe('plans', () => {
     expect(ANALYSIS_MONTHLY_CAP.beginner).toBe(30);
     expect(ANALYSIS_MONTHLY_CAP.intermediate).toBe(150);
     expect(ANALYSIS_MONTHLY_CAP.pro).toBeNull();
+  });
+
+  test('explanation caps: beginner 10, intermediate 100, pro is not capped', () => {
+    expect(EXPLANATION_MONTHLY_CAP.beginner).toBe(10);
+    expect(EXPLANATION_MONTHLY_CAP.intermediate).toBe(100);
+    expect(EXPLANATION_MONTHLY_CAP.pro).toBeNull();
   });
 
   test('a plan renews a month later', () => {
