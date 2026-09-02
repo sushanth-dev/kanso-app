@@ -1,5 +1,5 @@
 /**
- * ST-074. The three plans, their prices, and their monthly analysis caps.
+ * ST-074. The three plans, their prices, and their monthly caps.
  *
  * `amountMinor` is what Razorpay's order API takes: minor units, paise for
  * INR. The plan names here, in `contract/schemas.ts`, and in `db/schema.ts`'s
@@ -25,6 +25,17 @@ export const CURRENCY = 'INR' as const;
 export const ANALYSIS_MONTHLY_CAP: Record<Tier, number | null> = {
   beginner: 30,
   intermediate: 150,
+  pro: null,
+};
+
+/**
+ * ST-111. Generated coach texts (explanation plus Socratic question, one
+ * shared budget) per calendar month; `null` is uncapped (pro). Cached
+ * re-reads of an already-generated text are free and never reach this cap.
+ */
+export const EXPLANATION_MONTHLY_CAP: Record<Tier, number | null> = {
+  beginner: 10,
+  intermediate: 100,
   pro: null,
 };
 

@@ -40,6 +40,8 @@ import { PuzzlesRoute } from './routes/puzzles-route.tsx';
 import { CurriculumRoute } from './routes/curriculum-route.tsx';
 import { ForgotPasswordRoute } from './routes/forgot-password-route.tsx';
 import { ResetPasswordRoute } from './routes/reset-password-route.tsx';
+import { WhatsNewRoute } from './routes/whats-new-route.tsx';
+import { FeedbackRoute } from './routes/feedback-route.tsx';
 
 interface RouterContext {
   queryClient: QueryClient;
@@ -275,6 +277,21 @@ const curriculumRoute = createRoute({
   component: CurriculumRoute,
 });
 
+// ST-111. The hand-curated list of what shipped recently, linked from the
+// Help nav group.
+const whatsNewRoute = createRoute({
+  getParentRoute: () => accountRoute,
+  path: '/whats-new',
+  component: WhatsNewRoute,
+});
+
+// ST-111. One bounded feedback message, stored against the account.
+const feedbackRoute = createRoute({
+  getParentRoute: () => accountRoute,
+  path: '/feedback',
+  component: FeedbackRoute,
+});
+
 const tournamentsRoute = createRoute({
   getParentRoute: () => accountRoute,
   path: '/tournaments',
@@ -359,6 +376,8 @@ const routeTree = rootRoute.addChildren([
     tournamentDetailRoute,
     transferGapRoute,
     upgradeRoute,
+    whatsNewRoute,
+    feedbackRoute,
   ]),
   sharedProofSheetRoute,
   guardianConfirmRoute,

@@ -28,6 +28,8 @@ import {
   Health,
   ImportJob,
   GenerateWeakness,
+  FeedbackCreate,
+  FeedbackStored,
   MarkActionItemDone,
   Me,
   MotifReport,
@@ -131,6 +133,22 @@ export const deleteAccount = createRoute({
     204: { description: 'Account deleted. Every session is now dead.' },
     ...authErrors,
     403: error('That password is not right.'),
+  },
+});
+
+export const submitFeedback = createRoute({
+  method: 'post',
+  path: '/feedback',
+  tags: ['Feedback'],
+  summary: 'Send product feedback from inside the app',
+  description:
+    'ST-111. One free-text message stored against the session account. Read in SQL; nothing is emailed and nothing renders it back into the product.',
+  request: {
+    body: json(FeedbackCreate, 'The feedback message.'),
+  },
+  responses: {
+    201: json(FeedbackStored, 'Stored.'),
+    ...authErrors,
   },
 });
 
@@ -601,7 +619,9 @@ export const getExplanation = createRoute({
   responses: {
     200: json(Explanation, 'The explanation.'),
     401: error('No session.'),
-    403: error('Not your mistake.'),
+    403: error(
+      "Not your mistake, or the plan's monthly coach budget is spent. Check the error code.",
+    ),
     404: error('No such mistake.'),
     502: error('The model call failed. Retry; we never substitute canned text.'),
   },
@@ -620,7 +640,9 @@ export const getSocraticQuestion = createRoute({
   responses: {
     200: json(SocraticQuestion, 'The question.'),
     401: error('No session.'),
-    403: error('Not your mistake.'),
+    403: error(
+      "Not your mistake, or the plan's monthly coach budget is spent. Check the error code.",
+    ),
     404: error('No such mistake.'),
     502: error('The model call failed. Retry; we never substitute canned text.'),
   },
@@ -807,6 +829,7 @@ export const routes = [
   getMe,
   updatePlayer,
   deleteAccount,
+  submitFeedback,
   confirmGuardian,
   startImport,
   getImport,

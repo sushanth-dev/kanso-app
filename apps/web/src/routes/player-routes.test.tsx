@@ -57,6 +57,7 @@ function accountApi(overrides: Partial<AccountApi> = {}): AccountApi {
     getMe: vi.fn(),
     updateMe: vi.fn(),
     deleteMe: vi.fn(),
+    submitFeedback: vi.fn(),
     ...overrides,
   };
 }

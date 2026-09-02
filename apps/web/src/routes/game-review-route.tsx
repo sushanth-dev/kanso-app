@@ -11,8 +11,10 @@ import { Text } from '@astryxdesign/core/Text';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams, useSearch } from '@tanstack/react-router';
 import { isActiveGame } from '../analysis-status.ts';
+import { ApiRequestError } from '../api/account-api.ts';
 import type { CctMove, GameDetail, Mistake, MovePly } from '../api/diagnosis-api.ts';
 import { diagnosisApi } from '../api/diagnosis-api.ts';
+import { UpgradePrompt } from '../components/upgrade-prompt.tsx';
 import { ParticleReveal } from '../components/canvas-ui/ParticleReveal.tsx';
 import { Board, describePosition } from '../components/board.tsx';
 import { evalLabel } from '../components/eval-bar.tsx';
@@ -260,9 +262,17 @@ function ExplanationCard({ mistakeId }: { mistakeId: string }) {
     <Card className="space-y-3 p-4">
       <Heading level={3}>Coach's take</Heading>
       {explanationQuery.isError ? (
-        <Text as="p" display="block" type="supporting" className="text-sm">
-          The explanation could not be loaded.
-        </Text>
+        explanationQuery.error instanceof ApiRequestError &&
+        explanationQuery.error.code === 'upgrade_required' ? (
+          <UpgradePrompt
+            title="You have used this month's coach explanations"
+            body="The coach's take is part of your plan: 10 explanations a month on Beginner, 100 on Intermediate, unlimited on Pro. Texts you already have stay free to re-read."
+          />
+        ) : (
+          <Text as="p" display="block" type="supporting" className="text-sm">
+            The explanation could not be loaded.
+          </Text>
+        )
       ) : (
         <Text as="p" display="block" className="text-sm">
           {explanationQuery.data?.text ?? 'Working out what happened here…'}
