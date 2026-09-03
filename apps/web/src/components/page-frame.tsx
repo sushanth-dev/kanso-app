@@ -5,6 +5,7 @@ import { IconButton } from '@astryxdesign/core/IconButton';
 import { Link } from '@astryxdesign/core/Link';
 import { Text } from '@astryxdesign/core/Text';
 import { StatusMessage, useStatusMessage } from './status-message.tsx';
+import { Mark } from './mark.tsx';
 import { RibbonFieldBackground } from './threeui/ribbon-field.tsx';
 
 export interface PageFrameProps {
@@ -100,7 +101,7 @@ export function PageFrame({ children }: PageFrameProps) {
       <header className="glass-top sticky top-0 z-20 border-b border-border-subtle">
         <div className="mx-auto w-full max-w-3xl px-4 py-4">
           <div className="flex items-center gap-2">
-            <span aria-hidden="true" className="size-2.5 shrink-0 rounded-control bg-accent" />
+            <Mark size={24} />
             <Text className="font-display text-xl leading-tight tracking-tight">Kanso Chess</Text>
             {showNav ? (
               <>

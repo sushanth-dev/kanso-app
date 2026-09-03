@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useParams } from '@tanstack/react-router';
 import { ApiRequestError } from '../api/account-api.ts';
 import { sharedProofSheetApi, type SharedProofSheet } from '../api/proof-sheet-api.ts';
+import { Mark } from '../components/mark.tsx';
 
 const STREAM_LABEL: Record<SharedProofSheet['stream'], string> = {
   tournament: 'Tournament',
@@ -60,6 +61,9 @@ export function SharedProofSheetScreen({ sheet }: { sheet: SharedProofSheet }) {
 
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-16 font-ui">
+      <div aria-hidden="true" className="mb-6">
+        <Mark size={28} />
+      </div>
       <Text as="p" display="block" type="supporting" className="text-sm">
         {sheet.playerDisplayName}'s focus
       </Text>
