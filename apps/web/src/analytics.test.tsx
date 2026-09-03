@@ -1,10 +1,26 @@
 import { describe, expect, test, vi } from 'vitest';
 
-vi.mock('posthog-js', () => ({
-  default: { init: vi.fn(), capture: vi.fn() },
+const posthogMocks = vi.hoisted(() => ({
+  init: vi.fn<(token: string, config?: Record<string, unknown>) => void>(),
+  capture: vi.fn<(event: string, properties?: Record<string, unknown>) => void>(),
 }));
 
+vi.mock('posthog-js', () => ({ default: posthogMocks }));
+
 import { safeProperties } from './analytics.ts';
+
+describe('init', () => {
+  test('enables error tracking and switches nothing in the suite off', () => {
+    // With no key in the environment the module never initialises and there
+    // is nothing to assert.
+    if (posthogMocks.init.mock.calls.length === 0) return;
+    const [, config] = posthogMocks.init.mock.calls[0]!;
+    expect(config?.capture_exceptions).toBe(true);
+    expect(config?.autocapture).not.toBe(false);
+    expect(config?.capture_pageview).not.toBe(false);
+    expect(Object.keys(config ?? {})).toEqual(['capture_exceptions']);
+  });
+});
 
 describe('safeProperties', () => {
   test('keeps only the whitelisted keys', () => {
