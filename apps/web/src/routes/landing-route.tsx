@@ -31,6 +31,7 @@ import { Link } from '@astryxdesign/core/Link';
 import { Text } from '@astryxdesign/core/Text';
 import { useQuery } from '@tanstack/react-query';
 
+import { Mark } from '../components/mark.tsx';
 import { ParallaxPiece } from '../components/parallax-piece.tsx';
 import { WarpFieldBackground } from '../components/threeui/warp-field.tsx';
 import { meQueryOptions } from '../query-client.ts';
@@ -120,7 +121,7 @@ export function LandingRoute() {
         <header className="glass-top sticky top-0 z-20 border-b border-border-subtle">
           <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-4">
             <span className="flex items-center gap-2">
-              <span aria-hidden="true" className="size-2.5 shrink-0 rounded-control bg-accent" />
+              <Mark size={26} />
               <Text className="font-display text-xl leading-tight tracking-tight">Kanso Chess</Text>
             </span>
             {signedIn ? (

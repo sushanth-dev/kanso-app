@@ -57,7 +57,7 @@ export default tseslint.config(
   // Config files sit outside every tsconfig, so type-aware rules cannot run on
   // them. Syntax rules still do.
   {
-    files: ['*.mjs', '*.js', 'vitest.config.mts', 'scripts/**/*.mjs'],
+    files: ['*.mjs', '*.js', 'vitest.config.mts', 'scripts/**/*.mjs', 'apps/*/scripts/**/*.mjs'],
     ...tseslint.configs.disableTypeChecked,
     languageOptions: { globals: globals.node },
   },
