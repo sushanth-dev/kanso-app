@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- The Kanso Chess mark, favicon variant (ST-113): the hero pawn's lathe
+       profile with the construction layer dropped, since hairlines turn to
+       mush at 16-32 px. Raster derivatives are generated from this file:
+       node apps/web/scripts/favicon-rasters.mjs -->
+  <path fill="#a03f22" d="M 322 830 L 322 735 L 360 735 L 432.2 388.91 A 114 114 0 1 1 591.8 388.91 L 664 735 L 702 735 L 702 830 Z"/>
+</svg>
