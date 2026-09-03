@@ -34,7 +34,7 @@ export const ANALYSIS_MONTHLY_CAP: Record<Tier, number | null> = {
  * re-reads of an already-generated text are free and never reach this cap.
  */
 export const EXPLANATION_MONTHLY_CAP: Record<Tier, number | null> = {
-  beginner: 10,
+  beginner: 50,
   intermediate: 100,
   pro: null,
 };

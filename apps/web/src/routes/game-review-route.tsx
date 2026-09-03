@@ -266,7 +266,7 @@ function ExplanationCard({ mistakeId }: { mistakeId: string }) {
         explanationQuery.error.code === 'upgrade_required' ? (
           <UpgradePrompt
             title="You have used this month's coach explanations"
-            body="The coach's take is part of your plan: 10 explanations a month on Beginner, 100 on Intermediate, unlimited on Pro. Texts you already have stay free to re-read."
+            body="The coach's take is part of your plan: 50 explanations a month on Beginner, 100 on Intermediate, unlimited on Pro. Texts you already have stay free to re-read."
           />
         ) : (
           <Text as="p" display="block" type="supporting" className="text-sm">

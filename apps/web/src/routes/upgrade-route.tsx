@@ -59,7 +59,7 @@ const PLANS: PlanOption[] = [
       'Import from Chess.com or Lichess by username, plus PGN upload for tournament games.',
       'One diagnosis, ranked by what is costing the most rating.',
       'The rating leak number for the top weakness.',
-      '10 coach explanations a month.',
+      '50 coach explanations a month.',
     ],
   },
   {
