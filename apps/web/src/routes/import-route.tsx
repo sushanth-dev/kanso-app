@@ -52,6 +52,13 @@ type ImportOutcome =
   | { kind: 'too-many-games'; message: string }
   | { kind: 'daily-cap'; message: string };
 
+/** ST-115. The batch a tournament import hands to the debrief. */
+interface DebriefBatch {
+  gameIds: string[];
+  tournamentId: string | null;
+  gameId: string | null;
+}
+
 function gamesLabel(count: number): string {
   return count === 1 ? 'game' : 'games';
 }
@@ -168,6 +175,7 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
   const [outcome, setOutcome] = useState<ImportOutcome | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [pgnFile, setPgnFile] = useState<File | null>(null);
+  const [debrief, setDebrief] = useState<DebriefBatch | null>(null);
 
   function readPgnFile(file: File | null) {
     setPgnError(undefined);
@@ -255,15 +263,22 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
           void queryClient.invalidateQueries({ queryKey: ['round-decay'] });
           // ST-093: carry the batch's game ids so the analysing counter counts
           // this upload only, not every game already in the stream.
-          // ST-096: a tournament upload still under six games cannot generate
-          // a report, so it lands on the batch's first review page instead,
-          // where the analysing loader runs. Online imports have no tournament
-          // to count and always go to the report.
+          // ST-115: a tournament batch ends in the debrief instead of a
+          // navigation. gameId rides only when the old landing was the game
+          // review (ST-096: under six games no report can generate), so the
+          // debrief's skip lands where the import used to. Online imports
+          // keep today's path and always go to the report.
           const firstGameId = job.gameIds[0];
           const underThreshold =
             job.stream === 'tournament' &&
             (job.tournament === null || job.tournament.gameCount < MIN_REPORT_GAMES);
-          if (underThreshold && firstGameId !== undefined) {
+          if (job.stream === 'tournament' && job.gameIds.length > 0) {
+            setDebrief({
+              gameIds: job.gameIds,
+              tournamentId: job.tournament?.id ?? null,
+              gameId: underThreshold && firstGameId !== undefined ? firstGameId : null,
+            });
+          } else if (underThreshold && firstGameId !== undefined) {
             await navigate({ to: '/games/$gameId', params: { gameId: firstGameId } });
           } else {
             await navigate({
@@ -349,6 +364,29 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
       ) : formError !== null ? (
         <div className="mt-4">
           <StatusMessage tone="error">{formError}</StatusMessage>
+        </div>
+      ) : null}
+
+      {debrief !== null ? (
+        <div className="mt-4 space-y-3">
+          <Button
+            label="Start the debrief"
+            variant="primary"
+            className="min-h-11 press"
+            onClick={() => {
+              void navigate({
+                to: '/debrief',
+                search: {
+                  gameIds: debrief.gameIds,
+                  ...(debrief.tournamentId !== null ? { tournamentId: debrief.tournamentId } : {}),
+                  ...(debrief.gameId !== null ? { gameId: debrief.gameId } : {}),
+                },
+              });
+            }}
+          />
+          <Text as="p" display="block" type="supporting">
+            What happened, your one focus, and your first drill, in order.
+          </Text>
         </div>
       ) : null}
 
