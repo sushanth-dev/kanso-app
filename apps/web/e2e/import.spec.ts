@@ -111,8 +111,19 @@ test('imports a PGN upload and opens the imported game review', async ({ page })
   const importResponse = waitForImportResponse(page);
   await page.getByRole('button', { name: 'Import games' }).click();
   expect((await importResponse).status()).toBe(202);
-  // A one-game upload sits under the report threshold (ST-096): the import
-  // lands on the imported game's review rather than the report.
+  // ST-115: a tournament upload no longer navigates away; it ends in the
+  // debrief, and the game id rides so skip lands where the import used to.
+  await expect(page.getByRole('button', { name: 'Start the debrief' })).toBeVisible();
+  await page.getByRole('button', { name: 'Start the debrief' }).click();
+  await expect(page.getByRole('heading', { name: 'Your one focus' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your first drill' })).toBeVisible();
+  // One game cannot generate a report; the debrief says so instead of
+  // pretending a diagnosis exists.
+  await expect(page.getByText('Your first drill appears when the report lands.')).toBeVisible();
+  await expectNoAxeViolations(page);
+  // Skip lands on the imported game's review, exactly where the import
+  // landed before the debrief existed.
+  await page.getByRole('button', { name: 'Skip the debrief' }).click();
   await expect(page.getByRole('heading', { name: 'Game review' })).toBeVisible();
   await expectNoAxeViolations(page);
 
