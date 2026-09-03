@@ -773,6 +773,13 @@ export const FocusMeasurement = z
     currentValue: z.number().nullable(),
     unit: z.string(),
     trend: FocusTrend,
+    /**
+     * ST-116. The games-to-verdict distance: 0 exactly when `trend` is a
+     * verdict, the current half's deficit when the window floor is the
+     * refusing cause, and null when importing alone cannot close the gap.
+     * Never a promise the verifier would refuse.
+     */
+    gamesToGo: z.number().int().nullable(),
   })
   .openapi('FocusMeasurement');
 

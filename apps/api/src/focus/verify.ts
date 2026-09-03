@@ -55,6 +55,27 @@ export function trendFor(
 }
 
 /**
+ * ST-116. The distance a refused measurement still owes. 0 exactly when a
+ * verdict exists; the current half's deficit when the window floor is the
+ * refusing cause; null when importing alone cannot close the gap - a thin
+ * baseline half no import can fill, or a scorer refusal whose denominator is
+ * not games the player can add. One computation serves both the refusal the
+ * verifier makes and the countdown the player sees, so they cannot disagree.
+ */
+export function gamesToGoFor(
+  baselineValue: number | null,
+  currentValue: number | null,
+  gamesBefore: number,
+  windowGames: number,
+): number | null {
+  if (baselineValue !== null && currentValue !== null) return 0;
+  if (gamesBefore >= FOCUS_WINDOW_GAMES && windowGames < FOCUS_WINDOW_GAMES) {
+    return FOCUS_WINDOW_GAMES - windowGames;
+  }
+  return null;
+}
+
+/**
  * Split a stream's analysed games, newest first, at `startedAt` into two
  * equal-sized windows: the games since the commitment and the games before it.
  * Each half is capped at {@link FOCUS_WINDOW_GAMES}; the caller decides refusal.
