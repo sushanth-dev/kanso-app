@@ -50,8 +50,12 @@ async function importPgn(page: Page): Promise<void> {
     buffer: Buffer.from(pgn, 'utf8'),
   });
   await page.getByRole('button', { name: 'Import games' }).click();
-  // A one-game upload sits under the report threshold (ST-096): the import
-  // lands on the imported game's review rather than the report (ST-029).
+  // ST-115: a tournament upload ends in the debrief instead of navigating.
+  // A one-game upload sits under the report threshold (ST-096), so skipping
+  // the debrief lands on the imported game's review, where the import ended
+  // before ST-115.
+  await page.getByRole('button', { name: 'Start the debrief' }).click();
+  await page.getByRole('button', { name: 'Skip the debrief' }).click();
   await expect(page.getByRole('heading', { name: 'Game review' })).toBeVisible();
 }
 
