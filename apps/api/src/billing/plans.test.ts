@@ -18,8 +18,8 @@ describe('plans', () => {
     expect(ANALYSIS_MONTHLY_CAP.pro).toBeNull();
   });
 
-  test('explanation caps: beginner 10, intermediate 100, pro is not capped', () => {
-    expect(EXPLANATION_MONTHLY_CAP.beginner).toBe(10);
+  test('explanation caps: beginner 50, intermediate 100, pro is not capped', () => {
+    expect(EXPLANATION_MONTHLY_CAP.beginner).toBe(50);
     expect(EXPLANATION_MONTHLY_CAP.intermediate).toBe(100);
     expect(EXPLANATION_MONTHLY_CAP.pro).toBeNull();
   });
