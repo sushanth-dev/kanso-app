@@ -24,6 +24,7 @@ import { GamesRoute } from './routes/games-route.tsx';
 import { FocusRoute } from './routes/focus-route.tsx';
 import { GuardianConfirmRoute } from './routes/guardian-confirm-route.tsx';
 import { GuardianWaitingRoute } from './routes/guardian-waiting-route.tsx';
+import { DebriefRoute } from './routes/debrief-route.tsx';
 import { ImportRoute } from './routes/import-route.tsx';
 import { LandingRoute } from './routes/landing-route.tsx';
 import { PlayerEditRoute } from './routes/player-routes.tsx';
@@ -197,6 +198,31 @@ const importRoute = createRoute({
   component: ImportRoute,
 });
 
+// ST-115. The debrief: where a tournament import ends. Three anchored
+// sections - the batch's report, the one focus, the first drill - composing
+// the surfaces that already exist. Reached from the import, never from the
+// nav; a direct visit without a batch points back at the import.
+const debriefRoute = createRoute({
+  getParentRoute: () => accountRoute,
+  path: '/debrief',
+  validateSearch: (search: Record<string, unknown>) => {
+    const gameIds =
+      typeof search.gameIds === 'string'
+        ? [search.gameIds]
+        : Array.isArray(search.gameIds)
+          ? search.gameIds.filter((v): v is string => typeof v === 'string')
+          : undefined;
+    const tournamentId = typeof search.tournamentId === 'string' ? search.tournamentId : undefined;
+    const gameId = typeof search.gameId === 'string' ? search.gameId : undefined;
+    return {
+      ...(gameIds !== undefined ? { gameIds } : {}),
+      ...(tournamentId !== undefined ? { tournamentId } : {}),
+      ...(gameId !== undefined ? { gameId } : {}),
+    };
+  },
+  component: DebriefRoute,
+});
+
 const upgradeRoute = createRoute({
   getParentRoute: () => accountRoute,
   path: '/upgrade',
@@ -353,6 +379,7 @@ const routeTree = rootRoute.addChildren([
     focusRoute,
     proofSheetRoute,
     importRoute,
+    debriefRoute,
     gamesRoute,
     gameReviewRoute,
     tournamentsRoute,

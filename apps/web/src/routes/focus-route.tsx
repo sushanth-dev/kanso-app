@@ -270,7 +270,7 @@ function RankingSection({
   );
 }
 
-function CatalogueList({
+export function CatalogueList({
   catalogue,
   submitting,
   onChoose,
@@ -313,7 +313,7 @@ function CatalogueList({
   );
 }
 
-function CoachInstructionForm({
+export function CoachInstructionForm({
   catalogue,
   submitting,
   onSubmit,
@@ -510,13 +510,60 @@ function FocusError() {
   );
 }
 
-export function FocusRoute() {
+/**
+ * ST-115. The submit flow the focus page and the debrief's focus section
+ * share: one place for the analytics call, the cache invalidation, and the
+ * error mapping. Resolves true only when the focus was set, so the caller
+ * can leave the choice view without re-reading the query.
+ */
+export function useSetFocus() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { stream } = useSearch({ from: '/account/focus' });
-  const [choosing, setChoosing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  async function setFocus(body: SetFocus): Promise<boolean> {
+    setSubmitting(true);
+    setFormError(null);
+    try {
+      await focusApi.setFocus(body);
+      track('focus_set', {
+        source: body.source,
+        ...(body.source === 'coach' ? {} : { catalogueKey: body.catalogueKey }),
+      });
+      await queryClient.invalidateQueries({ queryKey: ['focus'] });
+      return true;
+    } catch (error) {
+      if (error instanceof ApiRequestError) {
+        if (error.status === 401) {
+          queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
+          await navigate({ to: '/sign-in' });
+          return false;
+        }
+        if (error.status === 403) {
+          setFormError('This focus cannot be set for this player.');
+          return false;
+        }
+        if (error.status === 404) {
+          setFormError('That focus is no longer available. Choose another.');
+          return false;
+        }
+      }
+      setFormError('The focus could not be set. Please try again.');
+      return false;
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return { setFocus, submitting, formError };
+}
+
+export function FocusRoute() {
+  const navigate = useNavigate();
+  const { stream } = useSearch({ from: '/account/focus' });
+  const [choosing, setChoosing] = useState(false);
+  const { setFocus, submitting, formError } = useSetFocus();
 
   const focusesQuery = useQuery(focusesQueryOptions());
   const focusQuery = useQuery(focusQueryOptions());
@@ -529,36 +576,8 @@ export function FocusRoute() {
   };
 
   async function handleSet(body: SetFocus) {
-    setSubmitting(true);
-    setFormError(null);
-    try {
-      await focusApi.setFocus(body);
-      track('focus_set', {
-        source: body.source,
-        ...(body.source === 'coach' ? {} : { catalogueKey: body.catalogueKey }),
-      });
-      await queryClient.invalidateQueries({ queryKey: ['focus'] });
-      setChoosing(false);
-    } catch (error) {
-      if (error instanceof ApiRequestError) {
-        if (error.status === 401) {
-          queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
-          await navigate({ to: '/sign-in' });
-          return;
-        }
-        if (error.status === 403) {
-          setFormError('This focus cannot be set for this player.');
-          return;
-        }
-        if (error.status === 404) {
-          setFormError('That focus is no longer available. Choose another.');
-          return;
-        }
-      }
-      setFormError('The focus could not be set. Please try again.');
-    } finally {
-      setSubmitting(false);
-    }
+    const set = await setFocus(body);
+    if (set) setChoosing(false);
   }
 
   if (focusesQuery.isPending || focusQuery.isPending) {

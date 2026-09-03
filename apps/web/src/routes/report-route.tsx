@@ -513,7 +513,7 @@ function TournamentDirectory({ onStreamChange }: { onStreamChange: (stream: Stre
 }
 
 /** One stream's or one tournament's report. */
-function ScopedReportRoute({
+export function ScopedReportRoute({
   stream,
   tournamentId,
   gameIds,
