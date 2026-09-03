@@ -14,6 +14,7 @@ import { focusCatalogue, playerFocus } from '../db/schema.ts';
 import { readSession } from '../session.ts';
 import { getOwnPlayerId } from '../players/claim.ts';
 import { resolveFocusFields } from './resolve.ts';
+import { FOCUS_DRILL_KINDS, practiceSummary } from './verify.ts';
 import { toActiveFocus, toCatalogueEntry } from './view.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
@@ -77,6 +78,29 @@ export function mountSetFocus(
         .returning();
     });
 
-    return c.json(toActiveFocus(row!, catalogue ? toCatalogueEntry(catalogue) : null, []), 200);
+    // ST-129. The response carries the same practice line the read will:
+    // the focus itself when it has a catalogue entry, the paired focus for
+    // a coach instruction.
+    const drillCatalogue =
+      catalogue ??
+      (result.focus.pairedFocusId !== null
+        ? ((
+            await deps.db
+              .select()
+              .from(focusCatalogue)
+              .where(eq(focusCatalogue.id, result.focus.pairedFocusId))
+              .limit(1)
+          )[0] ?? null)
+        : null);
+    const practice = await practiceSummary(
+      deps.db,
+      playerId,
+      drillCatalogue !== null ? FOCUS_DRILL_KINDS[drillCatalogue.key] : undefined,
+    );
+
+    return c.json(
+      toActiveFocus(row!, catalogue ? toCatalogueEntry(catalogue) : null, [], practice),
+      200,
+    );
   });
 }

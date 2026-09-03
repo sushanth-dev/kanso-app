@@ -5,7 +5,14 @@
  * with named constants rather than magic numbers.
  */
 import { describe, expect, test } from 'vitest';
-import { FOCUS_SPECS, FOCUS_WINDOW_GAMES, gamesToGoFor, splitWindow, trendFor } from './verify.ts';
+import {
+  FOCUS_DRILL_KINDS,
+  FOCUS_SPECS,
+  FOCUS_WINDOW_GAMES,
+  gamesToGoFor,
+  splitWindow,
+  trendFor,
+} from './verify.ts';
 
 const SPEC = FOCUS_SPECS['converting_won_positions']!;
 
@@ -101,5 +108,11 @@ describe('splitWindow', () => {
     const { baselineIds, currentIds } = splitWindow(started, [...afterGames, ...beforeGames]);
     expect(currentIds).toHaveLength(FOCUS_WINDOW_GAMES);
     expect(baselineIds).toHaveLength(FOCUS_WINDOW_GAMES);
+  });
+});
+
+describe('FOCUS_DRILL_KINDS', () => {
+  test('every catalogue focus names its drill family, so none can skip the map silently', () => {
+    expect(Object.keys(FOCUS_DRILL_KINDS).sort()).toEqual(Object.keys(FOCUS_SPECS).sort());
   });
 });
