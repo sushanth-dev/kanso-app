@@ -20,7 +20,13 @@ import { readSession } from '../session.ts';
 import { getOwnPlayerId } from '../players/claim.ts';
 import { FocusMeasurement } from '../contract/schemas.ts';
 import { FOCUS_COMPUTE } from './computations.ts';
-import { FOCUS_SPECS, FOCUS_WINDOW_GAMES, measureFocusStream, trendFor } from './verify.ts';
+import {
+  FOCUS_SPECS,
+  FOCUS_WINDOW_GAMES,
+  gamesToGoFor,
+  measureFocusStream,
+  trendFor,
+} from './verify.ts';
 import { toActiveFocus, toCatalogueEntry } from './view.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
@@ -69,6 +75,15 @@ function toMeasurement(
     currentValue: row.currentValue,
     unit: row.unit,
     trend: row.trend,
+    // Stored rows always have a full current half (thin-current drafts are
+    // never stored), so a stored refusal is never the countdown's case: a
+    // verdict reads 0, anything else null.
+    gamesToGo: gamesToGoFor(
+      row.baselineValue,
+      row.currentValue,
+      FOCUS_WINDOW_GAMES,
+      row.windowGames,
+    ),
   };
 }
 
@@ -141,6 +156,12 @@ export function mountGetFocus(
           (gameIds) => compute(deps.db, playerId, gameIds),
         );
         const trend = trendFor(spec, draft.baselineValue, draft.currentValue);
+        const gamesToGo = gamesToGoFor(
+          draft.baselineValue,
+          draft.currentValue,
+          draft.gamesBefore,
+          draft.windowGames,
+        );
         const measuredAt = new Date();
 
         // A window thin enough to refuse is returned, not stored: it changes
@@ -166,6 +187,7 @@ export function mountGetFocus(
           currentValue: draft.currentValue,
           unit: spec.unit,
           trend,
+          gamesToGo,
         });
       }
     }
