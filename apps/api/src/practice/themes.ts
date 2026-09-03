@@ -13,7 +13,9 @@
  * - `missed_capture` drills `advantage`, winning material by force.
  * - `missed_threat` drills `crushing`, spotting the strong continuation.
  * - The phase groups drill the same-name themes; an opening group keys on an
- *   ECO code the dump does not carry, so it drills `opening`-themed puzzles.
+ *   ECO code the dump does not carry, so it drills `opening`-themed puzzles -
+ *   after ST-122's opening rungs have preferred the ECO family the
+ *   generated `eco-openings.ts` maps it to.
  * - `time_trouble` has no theme of its own; the drill is decisive-move
  *   spotting, so `crushing`.
  *
@@ -41,7 +43,7 @@ const PHASE_THEMES: Record<string, string> = {
  * The kind decides which table the group key reads from, exactly as
  * `groupKeyOf` decided which table produced it; an opening group keys on the
  * ECO code `groupKeyOf` returned, so any group under the `opening` kind maps
- * to the opening theme.
+ * to the opening theme, with the mapped ECO family preferred first.
  */
 export function themeForGroup(kind: WeaknessKind, groupKey: string): string | null {
   switch (kind) {

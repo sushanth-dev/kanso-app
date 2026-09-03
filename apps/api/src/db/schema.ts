@@ -798,6 +798,13 @@ export const puzzle = pgTable(
     rating: integer('rating').notNull(),
     /** The dump's theme slugs, camelCase as Lichess writes them (`hangingPiece`). */
     themes: text('themes').array().notNull(),
+    /**
+     * ST-122. The dump's deepest opening tag (`Scandinavian_Defense_Main_Line`),
+     * null when the source game had no opening name. The drill's opening rungs
+     * prefix-match an ECO family against it; the import script is the only
+     * writer, beside the seed migration.
+     */
+    opening: text('opening'),
   },
   (t) => [
     index('puzzle_themes_idx').using('gin', t.themes),

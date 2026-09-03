@@ -368,7 +368,7 @@ export const getPracticePuzzles = createRoute({
   tags: ['Practice'],
   summary: 'A 20-puzzle drill set for one weakness group',
   description:
-    "ST-106. Puzzles come from the Lichess puzzle database the environment imports once, matched to the weakness group's theme and the player's rating by the prototype's fallback ladder: exact theme within 400, then 800, then the crushing fallback, then any theme. Puzzles the player already has an attempt row for are excluded while the pool allows it, so each open deals fresh material. Refuses with 503 while the pool cannot supply a full set, naming the missing import rather than dealing a short drill.",
+    "ST-106. Puzzles come from the Lichess puzzle database the environment imports once, matched to the weakness group's theme and the player's rating by the prototype's fallback ladder: exact theme within 400, then 800, then the crushing fallback, then any theme. ST-122: an opening group first prefers the ECO family its generated mapping points at, inside the same rating bands, before the theme ladder takes over. Puzzles the player already has an attempt row for are excluded while the pool allows it, so each open deals fresh material. Refuses with 503 while the pool cannot supply a full set, naming the missing import rather than dealing a short drill.",
   request: {
     query: z.object({
       kind: WeaknessKind,
