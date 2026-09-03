@@ -1,12 +1,17 @@
 /**
- * Product analytics (ADR-0038, ST-045).
+ * Product analytics and the PostHog suite (ADR-0038, amended 2026-09-03;
+ * ST-112).
  *
- * PostHog is client-side only, public key only, and autocapture is off. That
- * last point is load-bearing: autocapture reads the DOM, and a report page
- * shows a child's name and game content in the DOM; that must never reach a
- * third party. Only the explicit, property-only events below are sent.
+ * The full PostHog suite is on: web analytics (autocapture and pageviews, the
+ * SDK defaults), session replay, surveys, the support widget, feature flags,
+ * and error tracking (the one explicit line below). The amendment replaced
+ * ST-045's minimal surface: autocapture and replay read the DOM and the URL,
+ * so game content and whatever is on screen reaches PostHog Cloud. Sushanth
+ * accepted that trade on 3 September 2026 for PostHog's robustness, retiring
+ * the in-app feedback and what's-new pages the same day.
  *
- * Event contract (reuse these, do not invent new ones):
+ * The explicit event contract is unchanged and still property-only. Reuse
+ * these events, do not invent new ones:
  *
  * | Event | Properties | Objective |
  * | --- | --- | --- |
@@ -15,9 +20,8 @@
  * | `focus_set` | `{ source, catalogueKey? }` | O2 first step |
  * | `converted_to_paid` | `{ tier }` | O3 |
  *
- * No event carries a game position, an analysis, a child's name or email, or a
- * player id. PostHog's own anonymous distinct_id ties events to the account
- * holder, so nothing calls identify.
+ * Nothing calls identify: the SDK's anonymous distinct_id is the only identity
+ * PostHog holds for a player.
  */
 import posthog from 'posthog-js';
 
@@ -25,36 +29,34 @@ const key = import.meta.env.VITE_POSTHOG_KEY as string | undefined;
 
 if (key) {
   posthog.init(key, {
-    // Load-bearing (ADR-0038): neither autocapture nor pageview capture may
-    // read the DOM or the URL, both of which can carry a child's name or a
-    // player id on this product.
-    autocapture: false,
-    capture_pageview: false,
+    // Web analytics, session replay, surveys, the support widget and feature
+    // flags ride the SDK defaults. Error tracking is the one opt-in.
+    capture_exceptions: true,
   });
 }
 
 /**
- * The only property keys any event may carry (ADR-0038). A game position, an
- * analysis, a child's name or email, or a player id is not in this set, so
- * `safeProperties` drops it at the one choke point every event passes through,
- * rather than trusting each caller. The COPPA line is the one place this story
- * is strict rather than minimal.
+ * The only property keys an explicit event may carry (ADR-0038). It bounds the
+ * four events above, not the suite: autocapture and replay are the amended
+ * decision's acceptance and do not pass through here. An unexpected property
+ * is dropped at the one choke point every explicit event passes through,
+ * rather than trusting each caller.
  */
-const ALLOWED_PROPERTIES = new Set([
-  'source',
-  'gamesFound',
-  'gamesImported',
-  'stream',
-  'catalogueKey',
-  'tier',
-]);
+const ALLOWED_PROPERTIES: Record<string, true> = {
+  source: true,
+  gamesFound: true,
+  gamesImported: true,
+  stream: true,
+  catalogueKey: true,
+  tier: true,
+};
 
 export function safeProperties(
   properties: Record<string, string | number>,
 ): Record<string, string | number> {
   const safe: Record<string, string | number> = {};
   for (const [name, value] of Object.entries(properties)) {
-    if (ALLOWED_PROPERTIES.has(name)) safe[name] = value;
+    if (ALLOWED_PROPERTIES[name]) safe[name] = value;
   }
   return safe;
 }

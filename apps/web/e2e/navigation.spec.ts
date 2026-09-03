@@ -53,8 +53,6 @@ test('header nav groups routes into dropdowns and every route stays reachable', 
     ['Progress', 'Proof sheet', '/proof-sheet'],
     ['Games', 'Games', '/games'],
     ['Games', 'Import', '/import'],
-    ['Help', "What's new", '/whats-new'],
-    ['Help', 'Feedback', '/feedback'],
   ];
   const openedGroups = new Set<string>();
   for (const [group, label, href] of groupedRoutes) {
@@ -81,17 +79,6 @@ test('header nav groups routes into dropdowns and every route stays reachable', 
 
   await nav.getByRole('link', { name: 'Settings' }).click();
   await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
-
-  // ST-111. The Help routes render: the curated what's-new list and the
-  // feedback form.
-  await nav.getByRole('link', { name: "What's new" }).click();
-  await expect(page.getByRole('heading', { name: "What's new" })).toBeVisible();
-  await expectNoAxeViolations(page);
-
-  await nav.getByRole('link', { name: 'Feedback' }).click();
-  await expect(page.getByRole('heading', { name: 'Feedback' })).toBeVisible();
-  await expectNoAxeViolations(page);
-
   // The /account prefix is gone (ST-088): settings lives at /settings.
   await page.goto('/settings');
   await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();

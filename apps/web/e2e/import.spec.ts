@@ -21,6 +21,13 @@ async function blockExternalRequests(page: Page): Promise<string[]> {
   const viteOrigin = 'http://127.0.0.1:5173';
   await page.route('**/*', async (route) => {
     const url = new URL(route.request().url());
+    // PostHog is sanctioned third-party traffic (ADR-0038, amended
+    // 2026-09-03): let it through unrecorded. Everything else external stays
+    // blocked and recorded.
+    if (url.hostname.endsWith('posthog.com')) {
+      await route.continue();
+      return;
+    }
     if (['http:', 'https:'].includes(url.protocol) && url.origin !== viteOrigin) {
       externalRequests.push(route.request().url());
       await route.abort('blockedbyclient');
