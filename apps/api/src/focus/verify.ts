@@ -9,14 +9,17 @@
  * better". The model is recorded in ADR-0036 and cited the way
  * `performance-rating.ts` cites ADR-0032.
  */
-import { and, desc, eq, isNotNull } from 'drizzle-orm';
+import { and, desc, eq, gt, isNotNull, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import * as schema from '../db/schema.ts';
-import { game } from '../db/schema.ts';
+import { game, puzzleAttempt } from '../db/schema.ts';
+import { FocusPractice } from '../contract/schemas.ts';
+import { z } from '@hono/zod-openapi';
 import { classifyTimeControl } from '../chess/time-control.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
 type Stream = (typeof schema.streamEnum.enumValues)[number];
+type WeaknessKind = (typeof schema.weaknessKindEnum.enumValues)[number];
 
 export type FocusTrend = 'improving' | 'flat' | 'declining' | 'insufficient_evidence';
 
@@ -37,6 +40,51 @@ export const FOCUS_SPECS: Record<string, FocusSpec> = {
   opening_repertoire_results: { unit: 'points per game', threshold: 0.25 },
   tactical_alertness: { unit: 'share found', threshold: 0.1 },
 };
+
+/**
+ * ST-129. The drill family each focus draws its practice line from: every
+ * catalogue entry's `measureDescription` names exactly one weakness kind,
+ * and this map records that join. `converting_won_positions` → `phase` is
+ * the loosest pairing - won positions live late, so the phase cards are the
+ * drill families a conversion focus works from - an accepted approximation
+ * until a focus needs several kinds, which is a new decision.
+ */
+export const FOCUS_DRILL_KINDS: Record<string, WeaknessKind> = {
+  converting_won_positions: 'phase',
+  time_management: 'time_trouble',
+  opening_repertoire_results: 'opening',
+  tactical_alertness: 'motif',
+};
+
+/**
+ * ST-129. The player's worked drills inside one weakness kind. Rows exist
+ * from the moment a deal assigns a puzzle, so `attempts > 0` is what
+ * "worked" means; zero worked drills answer the honest zero, not a null -
+ * the surface renders that as its own empty state. An unknown kind (no
+ * measurable focus) answers null and the surface renders nothing.
+ */
+export async function practiceSummary(
+  db: Db,
+  playerId: string,
+  kind: WeaknessKind | undefined,
+): Promise<z.infer<typeof FocusPractice> | null> {
+  if (kind === undefined) return null;
+  const [row] = await db
+    .select({
+      total: sql<number>`count(*)`.mapWith(Number),
+      solved: sql<number>`count(*) filter (where ${puzzleAttempt.solved})`.mapWith(Number),
+      groups: sql<number>`count(distinct ${puzzleAttempt.groupKey})`.mapWith(Number),
+    })
+    .from(puzzleAttempt)
+    .where(
+      and(
+        eq(puzzleAttempt.playerId, playerId),
+        eq(puzzleAttempt.kind, kind),
+        gt(puzzleAttempt.attempts, 0),
+      ),
+    );
+  return row ?? { total: 0, solved: 0, groups: 0 };
+}
 
 /**
  * The trend for one baseline/current pair. A null value is a refusal, so the

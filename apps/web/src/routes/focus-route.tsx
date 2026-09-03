@@ -199,6 +199,38 @@ function CatalogueFocusCard({ focus }: { focus: ActiveFocus }) {
   );
 }
 
+/**
+ * ST-129. The practice line: effort beside the verdicts, never a third
+ * speed. It renders whenever the focus is measurable, including the honest
+ * zero; a null practice (no measurable focus) renders nothing.
+ */
+function PracticeLine({ practice }: { practice: ActiveFocus['practice'] }) {
+  if (practice === null) return null;
+  return (
+    <Card>
+      {practice.total === 0 ? (
+        <>
+          <Text as="p" display="block" className="mt-2">
+            No practice yet.
+          </Text>
+          <Text as="p" display="block" type="supporting" className="mt-1">
+            Drills you run from your report&rsquo;s weakness cards will show here.
+          </Text>
+        </>
+      ) : (
+        <Text as="p" display="block" className="mt-2">
+          {`Practice: ${practice.solved} of ${practice.total} drills solved across ${
+            practice.groups
+          } ${practice.groups === 1 ? 'group' : 'groups'}.`}
+        </Text>
+      )}
+      <Text as="p" display="block" type="supporting" className="mt-1 text-sm">
+        Practice measures effort. The online signal and the tournament proof measure play.
+      </Text>
+    </Card>
+  );
+}
+
 export function ActiveFocusView({
   focus,
   catalogue,
@@ -220,6 +252,7 @@ export function ActiveFocusView({
       ) : (
         <CatalogueFocusCard focus={focus} />
       )}
+      <PracticeLine practice={focus.practice} />
       <Button
         label="Change focus"
         variant="secondary"

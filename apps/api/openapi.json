@@ -2259,6 +2259,9 @@
             "items": {
               "$ref": "#/components/schemas/FocusMeasurement"
             }
+          },
+          "practice": {
+            "$ref": "#/components/schemas/FocusPractice"
           }
         },
         "required": [
@@ -2269,7 +2272,8 @@
           "unverified",
           "pairedFocusId",
           "startedAt",
-          "measurements"
+          "measurements",
+          "practice"
         ]
       },
       "FocusMeasurement": {
@@ -2328,6 +2332,28 @@
           "flat",
           "declining",
           "insufficient_evidence"
+        ]
+      },
+      "FocusPractice": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "total": {
+            "type": "integer"
+          },
+          "solved": {
+            "type": "integer"
+          },
+          "groups": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "solved",
+          "groups"
         ]
       },
       "SetFocus": {
