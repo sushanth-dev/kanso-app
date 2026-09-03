@@ -39,13 +39,6 @@ const NAV_ENTRIES: NavEntry[] = [
       { label: 'Tournaments', to: '/tournaments' },
     ],
   },
-  {
-    label: 'Help',
-    items: [
-      { label: "What's new", to: '/whats-new' },
-      { label: 'Feedback', to: '/feedback' },
-    ],
-  },
   { label: 'Plans', to: '/upgrade' },
   { label: 'Settings', to: '/settings' },
 ];
@@ -71,8 +64,6 @@ export function PageFrame({ children }: PageFrameProps) {
     '/upgrade',
     '/player',
     '/tournaments',
-    '/whats-new',
-    '/feedback',
   ].some((base) => pathname === base || pathname.startsWith(`${base}/`));
   const [mobileOpen, setMobileOpen] = useState(false);
 

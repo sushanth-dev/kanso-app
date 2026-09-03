@@ -7,7 +7,6 @@ export type Player = components['schemas']['Player'];
 export type UpdatePlayer = components['schemas']['UpdatePlayer'];
 export type ApiError = components['schemas']['ApiError'];
 export type Tier = components['schemas']['Tier'];
-export type FeedbackStored = components['schemas']['FeedbackStored'];
 
 export class ApiRequestError extends Error {
   constructor(
@@ -34,7 +33,6 @@ export interface AccountApi {
   getMe(): Promise<Me>;
   updateMe(body: UpdatePlayer): Promise<Player>;
   deleteMe(body: { password: string }): Promise<void>;
-  submitFeedback(body: { message: string }): Promise<FeedbackStored>;
 }
 
 export function createAccountApi(fetcher: typeof globalThis.fetch = globalThis.fetch): AccountApi {
@@ -57,11 +55,6 @@ export function createAccountApi(fetcher: typeof globalThis.fetch = globalThis.f
     async deleteMe(body: { password: string }): Promise<void> {
       const result = await client.DELETE('/account', { body });
       if (result.response.status === 204) return;
-      throw failure(result.response.status, result.error);
-    },
-    async submitFeedback(body: { message: string }): Promise<FeedbackStored> {
-      const result = await client.POST('/feedback', { body });
-      if (result.data !== undefined) return result.data;
       throw failure(result.response.status, result.error);
     },
   };

@@ -50,3 +50,15 @@ them.
 * **Data residency is deferred, not ignored.** PostHog Cloud is the default.
   The self-host option exists if the COPPA or residency picture changes, at
   which point this record is superseded rather than quietly patched.
+
+## Amendment 2026-09-03
+
+Sushanth turned the minimal surface into the full PostHog product suite
+(ST-112): web analytics (autocapture and pageviews), session replay, surveys,
+the support widget, feature flags, and error tracking. The property-only rule
+now governs only the explicit events, which keep their names and whitelist.
+Autocapture and session replay read the DOM and the URL, so game content and
+whatever is on screen reaches PostHog Cloud; we accepted that trade for
+PostHog's robustness, and it retired the ST-111 in-app feedback and what's-new
+pages the same day, replaced by PostHog's surveys and support. `identify`
+stays off. The self-host escape hatch below is unchanged.
