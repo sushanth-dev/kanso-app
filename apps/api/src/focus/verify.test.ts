@@ -5,7 +5,7 @@
  * with named constants rather than magic numbers.
  */
 import { describe, expect, test } from 'vitest';
-import { FOCUS_SPECS, FOCUS_WINDOW_GAMES, splitWindow, trendFor } from './verify.ts';
+import { FOCUS_SPECS, FOCUS_WINDOW_GAMES, gamesToGoFor, splitWindow, trendFor } from './verify.ts';
 
 const SPEC = FOCUS_SPECS['converting_won_positions']!;
 
@@ -27,6 +27,26 @@ describe('trendFor', () => {
     expect(trendFor(TIME_SPEC, 10, 13)).toBe('improving');
     expect(trendFor(TIME_SPEC, 10, 7)).toBe('declining');
     expect(trendFor(TIME_SPEC, 10, 12)).toBe('flat');
+  });
+});
+
+describe('gamesToGoFor', () => {
+  test('zero is a verdict, and only a verdict', () => {
+    expect(gamesToGoFor(0.5, 0.7, FOCUS_WINDOW_GAMES, FOCUS_WINDOW_GAMES)).toBe(0);
+  });
+
+  test('the current-half deficit is the distance when the baseline is full', () => {
+    expect(gamesToGoFor(null, null, FOCUS_WINDOW_GAMES, 9)).toBe(1);
+    expect(gamesToGoFor(null, null, FOCUS_WINDOW_GAMES, 0)).toBe(FOCUS_WINDOW_GAMES);
+  });
+
+  test('a thin baseline half is unreachable by importing, so the distance is null', () => {
+    expect(gamesToGoFor(null, null, FOCUS_WINDOW_GAMES - 1, 9)).toBeNull();
+    expect(gamesToGoFor(null, null, 3, FOCUS_WINDOW_GAMES)).toBeNull();
+  });
+
+  test('a scorer refusal under full windows is not a countdown', () => {
+    expect(gamesToGoFor(null, null, FOCUS_WINDOW_GAMES, FOCUS_WINDOW_GAMES)).toBeNull();
   });
 });
 describe('splitWindow', () => {

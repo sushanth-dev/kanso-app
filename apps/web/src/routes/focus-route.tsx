@@ -87,13 +87,31 @@ function gamesLabel(count: number): string {
 function FocusTrendCard({ measurement }: { measurement: FocusMeasurement }) {
   const games = measurement.windowGames;
   if (measurement.trend === 'insufficient_evidence') {
+    const toGo = measurement.gamesToGo;
     return (
       <Card>
         <Heading level={2}>{STREAM_LABEL[measurement.stream]}</Heading>
-        <Text as="p" display="block" type="supporting" className="mt-2">
-          We cannot say yet whether this is working. It rests on {games} analysed{' '}
-          {gamesLabel(games)} in this stream; more games will make a verdict possible.
-        </Text>
+        {toGo !== null ? (
+          <>
+            <Text as="p" display="block" className="mt-2">
+              {toGo} more {gamesLabel(toGo)} to go.
+            </Text>
+            <Text as="p" display="block" type="supporting" className="mt-1">
+              A verdict compares ten analysed games before your focus started with ten since; games
+              you import count toward the second ten.
+            </Text>
+          </>
+        ) : (
+          <Text as="p" display="block" type="supporting" className="mt-2">
+            We cannot say yet whether this is working. It rests on {games} analysed{' '}
+            {gamesLabel(games)} in this stream; more games may make a verdict possible.
+          </Text>
+        )}
+        {measurement.stream === 'online' && (
+          <Text as="p" display="block" type="supporting" className="mt-2 text-sm">
+            Online blitz games count; rapid and classical are excluded from the fast signal.
+          </Text>
+        )}
       </Card>
     );
   }

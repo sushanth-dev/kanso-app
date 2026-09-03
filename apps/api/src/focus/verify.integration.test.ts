@@ -184,6 +184,9 @@ describe('focus verification', () => {
     expect(tournament.windowGames).toBe(5);
     expect(tournament.baselineValue).toBeNull();
     expect(tournament.currentValue).toBeNull();
+    // The baseline half is thin too: no import count closes this gap, so the
+    // distance is null rather than a countdown the verifier would refuse.
+    expect(tournament.gamesToGo).toBeNull();
   });
 
   test('a converting trend is scoped to the player and the stream', async () => {
@@ -228,6 +231,51 @@ describe('focus verification', () => {
     expect(tournament.baselineValue).toBeCloseTo(0);
     expect(tournament.currentValue).toBeCloseTo(1);
     expect(tournament.trend).toBe('improving');
+    expect(tournament.gamesToGo).toBe(0);
+  });
+
+  test('ST-116: the countdown agrees with the refusal at the boundary', async () => {
+    const cookie = await signIn(EMAIL_A);
+    const playerId = await playerIdFor(cookie);
+    await seedFocus(playerId, {
+      catalogueId: await catalogueId('converting_won_positions'),
+      startedAt: STARTED,
+    });
+    // A full baseline: ten pre-focus games that all failed conversions.
+    for (let i = 1; i <= 10; i++) {
+      await seedConvertedGame(playerId, {
+        stream: 'tournament',
+        playedAt: d(`2026-07-${String(i).padStart(2, '0')}`),
+        won: false,
+      });
+    }
+    // Nine current games leave the floor one game away.
+    for (let i = 1; i <= 9; i++) {
+      await seedConvertedGame(playerId, {
+        stream: 'tournament',
+        playedAt: d(`2026-08-${15 + i}`),
+        won: true,
+      });
+    }
+
+    const body = await getFocus(cookie);
+    const measurements = body.measurements as Array<Record<string, unknown>>;
+    const tournament = measurements.find((m) => m.stream === 'tournament')!;
+    expect(tournament.trend).toBe('insufficient_evidence');
+    expect(tournament.gamesToGo).toBe(1);
+
+    // The game that closes the floor turns the distance to zero and the
+    // trend into a verdict; a non-zero distance never coexists with one.
+    await seedConvertedGame(playerId, {
+      stream: 'tournament',
+      playedAt: d('2026-08-25'),
+      won: true,
+    });
+    const after = await getFocus(cookie);
+    const afterMeasurements = after.measurements as Array<Record<string, unknown>>;
+    const afterTournament = afterMeasurements.find((m) => m.stream === 'tournament')!;
+    expect(afterTournament.trend).toBe('improving');
+    expect(afterTournament.gamesToGo).toBe(0);
   });
 
   test('a stored measurement is reused until new analysis changes the evidence', async () => {
@@ -257,6 +305,11 @@ describe('focus verification', () => {
     const firstMeasuredAt = (first.measurements as Array<Record<string, unknown>>).find(
       (m) => m.stream === 'tournament',
     )!.measuredAt;
+    // The stored verdict reads 0 on the stored path, same as the fresh one.
+    expect(
+      (first.measurements as Array<Record<string, unknown>>).find((m) => m.stream === 'tournament')!
+        .gamesToGo,
+    ).toBe(0);
 
     const second = await getFocus(cookie);
     const secondMeasuredAt = (second.measurements as Array<Record<string, unknown>>).find(
