@@ -226,3 +226,6 @@ Follow the writing style in the `project` repository
 - Never commit secrets or credentials.
 - Do not force push, amend published commits, or skip hooks unless Sushanth
   explicitly asks.
+- Watch every merge to green: `gh pr checks <PR> --watch` exits clean
+  before `gh pr merge` runs. kanso-app#151 merged over a failing
+  integration check; the watch is how it stays a one-off.
