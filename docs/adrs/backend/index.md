@@ -32,3 +32,4 @@ number sequence is shared with the frontend records.
 * [0036. Verify a focus over a rolling window of games](0036-verify-focus-rolling-window.md)
 * [0039. Process payments with Razorpay](0039-process-payments-razorpay.md)
 * [0041. Write the coaching prose with GLM-5.3-Flash from Z.AI](0041-glm-flash-coaching-prose.md)
+* [0042. Send email through Resend](0042-send-email-via-resend.md)
