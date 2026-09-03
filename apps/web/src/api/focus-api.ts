@@ -7,6 +7,16 @@ export type FocusCatalogueEntry = components['schemas']['FocusCatalogueEntry'];
 export type FocusMeasurement = components['schemas']['FocusMeasurement'];
 export type FocusTrend = components['schemas']['FocusTrend'];
 
+/**
+ * ST-129. Drill effort inside the active focus's family. Hand-written like
+ * `ActiveFocus` below so the nullable contract stays explicit.
+ */
+export interface FocusPractice {
+  total: number;
+  solved: number;
+  groups: number;
+}
+
 // Hand-written rather than re-exported: openapi-typescript renders the
 // nullable `catalogue` reference as `FocusCatalogueEntry & (Record<string,
 // never> | null)`, which drops the null and mismatches openapi-fetch's
@@ -20,6 +30,7 @@ export interface ActiveFocus {
   pairedFocusId: string | null;
   startedAt: string;
   measurements: FocusMeasurement[];
+  practice: FocusPractice | null;
 }
 
 // The request body is hand-written the same way `StartImportBody` is in

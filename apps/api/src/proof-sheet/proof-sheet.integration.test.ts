@@ -110,6 +110,9 @@ describe('the proof sheet', () => {
     const sheet = (await shared.json()) as Record<string, unknown>;
     expect(sheet.trend).toBe('insufficient_evidence');
     expect(sheet.playerDisplayName).toBe('alice');
+    // ST-129. Practice never reaches the proof sheet: the page is two-speed
+    // by construction, composed from verification snapshots only.
+    expect(sheet).not.toHaveProperty('practice');
     expect(sheet.focusTitle).toBe('Converting won positions');
     expect(sheet.beforeValue).toBeNull();
     expect(sheet.gamesAfter).toBe(0);

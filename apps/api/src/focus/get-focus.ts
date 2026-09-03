@@ -21,10 +21,12 @@ import { getOwnPlayerId } from '../players/claim.ts';
 import { FocusMeasurement } from '../contract/schemas.ts';
 import { FOCUS_COMPUTE } from './computations.ts';
 import {
+  FOCUS_DRILL_KINDS,
   FOCUS_SPECS,
   FOCUS_WINDOW_GAMES,
   gamesToGoFor,
   measureFocusStream,
+  practiceSummary,
   trendFor,
 } from './verify.ts';
 import { toActiveFocus, toCatalogueEntry } from './view.ts';
@@ -192,8 +194,16 @@ export function mountGetFocus(
       }
     }
 
+    // ST-129. Practice rides the measurable focus: the focus itself for a
+    // catalogue focus, the paired focus for a coach instruction.
+    const practice = await practiceSummary(
+      deps.db,
+      playerId,
+      measurable !== null ? FOCUS_DRILL_KINDS[measurable.key] : undefined,
+    );
+
     return c.json(
-      toActiveFocus(row, catalogue ? toCatalogueEntry(catalogue) : null, measurements),
+      toActiveFocus(row, catalogue ? toCatalogueEntry(catalogue) : null, measurements, practice),
       200,
     );
   });

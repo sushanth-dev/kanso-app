@@ -27,15 +27,23 @@ const catalogue: z.infer<typeof FocusCatalogueEntry> = {
 
 describe('toActiveFocus', () => {
   test('derives unverified from a null catalogue', () => {
-    expect(toActiveFocus(row, null, []).unverified).toBe(true);
-    expect(toActiveFocus(row, catalogue, []).unverified).toBe(false);
+    expect(toActiveFocus(row, null, [], null).unverified).toBe(true);
+    expect(toActiveFocus(row, catalogue, [], null).unverified).toBe(false);
   });
 
   test('passes measurements through untouched', () => {
-    expect(toActiveFocus(row, catalogue, []).measurements).toEqual([]);
+    expect(toActiveFocus(row, catalogue, [], null).measurements).toEqual([]);
   });
 
   test('serialises startedAt as ISO', () => {
-    expect(toActiveFocus(row, catalogue, []).startedAt).toBe('2026-08-16T00:00:00.000Z');
+    expect(toActiveFocus(row, catalogue, [], null).startedAt).toBe('2026-08-16T00:00:00.000Z');
+  });
+
+  test('passes practice through untouched', () => {
+    expect(toActiveFocus(row, catalogue, [], { total: 1, solved: 1, groups: 1 }).practice).toEqual({
+      total: 1,
+      solved: 1,
+      groups: 1,
+    });
   });
 });

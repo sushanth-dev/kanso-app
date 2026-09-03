@@ -94,6 +94,7 @@ function activeFocusFixture(overrides: Partial<ActiveFocus> = {}): ActiveFocus {
     pairedFocusId: null,
     startedAt: '2026-08-01T00:00:00.000Z',
     measurements: [],
+    practice: null,
     ...overrides,
   };
 }

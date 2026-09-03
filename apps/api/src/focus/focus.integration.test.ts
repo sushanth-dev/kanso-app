@@ -7,7 +7,7 @@ import { eq } from 'drizzle-orm';
 import { createApp } from '../app.ts';
 import { createAuth } from '../auth.ts';
 import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-harness.ts';
-import { focusCatalogue, playerFocus, subscription } from '../db/schema.ts';
+import { focusCatalogue, playerFocus, puzzle, puzzleAttempt, subscription } from '../db/schema.ts';
 
 let harness: IntegrationDatabase;
 
@@ -215,5 +215,114 @@ describe('the focus catalogue and one active focus', () => {
       body: setFocusBody('nope'),
     });
     expect(res.status).toBe(404);
+  });
+});
+
+describe('ST-129 practice beside verification', () => {
+  type PracticeBody = { practice: { total: number; solved: number; groups: number } | null };
+
+  async function seedPuzzle(id: string): Promise<void> {
+    await harness.db
+      .insert(puzzle)
+      .values({
+        lichessId: id,
+        fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+        moves: 'd2d4 d7d5',
+        rating: 1500,
+        themes: ['endgame'],
+      })
+      .onConflictDoNothing();
+  }
+
+  test('practice counts only worked drills in the focus family', async () => {
+    const cookie = await signIn(EMAIL_A);
+    const playerId = await playerIdFor(cookie);
+    const set = await app().request('/focus', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json', cookie },
+      body: setFocusBody(KEY), // converting_won_positions draws from phase.
+    });
+    expect(set.status).toBe(200);
+    for (const id of ['p1', 'p2', 'p3', 'p4', 'p5']) await seedPuzzle(id);
+    await harness.db.insert(puzzleAttempt).values([
+      { playerId, puzzleId: 'p1', kind: 'phase', groupKey: 'endgame', attempts: 2, solved: true },
+      { playerId, puzzleId: 'p2', kind: 'phase', groupKey: 'endgame', attempts: 1 },
+      {
+        playerId,
+        puzzleId: 'p3',
+        kind: 'phase',
+        groupKey: 'middlegame',
+        attempts: 1,
+        solved: true,
+      },
+      // Dealt but never worked, and worked inside another focus's family.
+      { playerId, puzzleId: 'p4', kind: 'phase', groupKey: 'opening' },
+      {
+        playerId,
+        puzzleId: 'p5',
+        kind: 'motif',
+        groupKey: 'hanging_piece',
+        attempts: 3,
+        solved: true,
+      },
+    ]);
+
+    const res = await app().request('/focus', { headers: { cookie } });
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as PracticeBody).practice).toEqual({
+      total: 3,
+      solved: 2,
+      groups: 2,
+    });
+  });
+
+  test('practice answers the honest zero before any drills', async () => {
+    const cookie = await signIn(EMAIL_A);
+    const set = await app().request('/focus', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json', cookie },
+      body: setFocusBody(KEY),
+    });
+    expect(set.status).toBe(200);
+
+    const res = await app().request('/focus', { headers: { cookie } });
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as PracticeBody).practice).toEqual({
+      total: 0,
+      solved: 0,
+      groups: 0,
+    });
+  });
+
+  test('a coach focus counts the paired focus family', async () => {
+    const cookie = await signIn(EMAIL_A);
+    const playerId = await playerIdFor(cookie);
+    const set = await app().request('/focus', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json', cookie },
+      body: JSON.stringify({
+        source: 'coach',
+        coachInstruction: 'Work on seeing the tactics you miss.',
+        pairedCatalogueKey: KEY_B, // tactical_alertness draws from motif.
+      }),
+    });
+    expect(set.status).toBe(200);
+    await seedPuzzle('p1');
+    await harness.db.insert(puzzleAttempt).values({
+      playerId,
+      puzzleId: 'p1',
+      kind: 'motif',
+      groupKey: 'hanging_piece',
+      attempts: 1,
+      solved: true,
+    });
+
+    const res = await app().request('/focus', { headers: { cookie } });
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as PracticeBody).practice).toEqual({
+      total: 1,
+      solved: 1,
+      groups: 1,
+    });
   });
 });

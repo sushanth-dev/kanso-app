@@ -71,6 +71,7 @@ function activeFocusFixture(overrides: Partial<ActiveFocus> = {}): ActiveFocus {
         gamesToGo: 5,
       },
     ],
+    practice: { solved: 12, total: 40, groups: 3 },
     ...overrides,
   };
 }
@@ -292,5 +293,52 @@ describe('ActiveFocusView', () => {
     renderActiveFocus(focus, [tacticalAlertness]);
     expect(screen.getByText(instruction)).toBeInTheDocument();
     expect(document.querySelector('script')).toBeNull();
+  });
+
+  test('ST-129: practice shows beside the verdicts under the standing label', () => {
+    renderActiveFocus(activeFocusFixture());
+    expect(
+      screen.getByText('Practice: 12 of 40 drills solved across 3 groups.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Practice measures effort. The online signal and the tournament proof measure play.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test('ST-129: zero practice renders the honest empty state, never a zero verdict', () => {
+    renderActiveFocus(activeFocusFixture({ practice: { solved: 0, total: 0, groups: 0 } }));
+    expect(screen.getByText('No practice yet.')).toBeInTheDocument();
+    expect(screen.getByText(/Drills you run from your report/)).toBeInTheDocument();
+    expect(screen.queryByText(/drills solved/)).not.toBeInTheDocument();
+  });
+
+  test('ST-129: a null practice renders nothing', () => {
+    renderActiveFocus(activeFocusFixture({ practice: null }));
+    expect(screen.queryByText(/Practice measures effort/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/No practice yet/)).not.toBeInTheDocument();
+  });
+
+  test('ST-129: a refused verdict keeps its own copy with practice beside it', () => {
+    const focus = activeFocusFixture({
+      measurements: [
+        {
+          stream: 'online',
+          measuredAt: '2026-08-16T00:00:00.000Z',
+          windowGames: 5,
+          baselineValue: null,
+          currentValue: null,
+          unit: 'share converted',
+          trend: 'insufficient_evidence',
+          gamesToGo: null,
+        },
+      ],
+    });
+    renderActiveFocus(focus);
+    expect(screen.getByText(/We cannot say yet whether this is working/)).toBeInTheDocument();
+    expect(
+      screen.getByText('Practice: 12 of 40 drills solved across 3 groups.'),
+    ).toBeInTheDocument();
   });
 });
