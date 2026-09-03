@@ -58,6 +58,7 @@ function activeFocusFixture(overrides: Partial<ActiveFocus> = {}): ActiveFocus {
         currentValue: 0.72,
         unit: 'share converted',
         trend: 'improving',
+        gamesToGo: 0,
       },
       {
         stream: 'online',
@@ -67,6 +68,7 @@ function activeFocusFixture(overrides: Partial<ActiveFocus> = {}): ActiveFocus {
         currentValue: null,
         unit: 'share converted',
         trend: 'insufficient_evidence',
+        gamesToGo: 5,
       },
     ],
     ...overrides,
@@ -216,10 +218,38 @@ describe('ActiveFocusView', () => {
     expect(screen.getByText(/Measured over 10 games\./)).toBeInTheDocument();
   });
 
-  test('renders insufficient evidence as prose, not a zero or a chart', () => {
+  test('ST-116: a reachable floor counts the games between the player and a verdict', () => {
     renderActiveFocus(activeFocusFixture());
+    expect(screen.getByText('5 more games to go.')).toBeInTheDocument();
+    expect(
+      screen.getByText(/ten analysed games before your focus started with ten since/),
+    ).toBeInTheDocument();
+    // The online card names the ST-040 scoping instead of promising a verdict
+    // the scoping retired.
+    expect(
+      screen.getByText(/rapid and classical are excluded from the fast signal/),
+    ).toBeInTheDocument();
+  });
+
+  test('ST-116: an unreachable floor refuses in prose, never a countdown', () => {
+    const focus = activeFocusFixture({
+      measurements: [
+        {
+          stream: 'tournament',
+          measuredAt: '2026-08-16T00:00:00.000Z',
+          windowGames: 10,
+          baselineValue: null,
+          currentValue: null,
+          unit: 'share converted',
+          trend: 'insufficient_evidence',
+          gamesToGo: null,
+        },
+      ],
+    });
+    renderActiveFocus(focus);
     expect(screen.getByText(/We cannot say yet whether this is working/)).toBeInTheDocument();
-    expect(screen.getByText(/more games will make a verdict possible/)).toBeInTheDocument();
+    expect(screen.getByText(/more games may make a verdict possible/)).toBeInTheDocument();
+    expect(screen.queryByText(/to go\./)).not.toBeInTheDocument();
   });
 
   test('shows a coach instruction verbatim, marked unverified, with the paired number', () => {
@@ -238,6 +268,7 @@ describe('ActiveFocusView', () => {
           currentValue: 0.55,
           unit: 'share found',
           trend: 'improving',
+          gamesToGo: 0,
         },
       ],
     });
