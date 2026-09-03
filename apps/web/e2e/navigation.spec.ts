@@ -36,6 +36,12 @@ test('header nav groups routes into dropdowns and every route stays reachable', 
   await page.goto('/sign-up');
   await signUp(page, 'E2E Nav', email, password);
   await expect(page.getByRole('heading', { name: 'Tournament report', exact: true })).toBeVisible();
+  // The mark's wiring (ST-113): the tab icon is the pawn, with the raster
+  // fallback and the apple-touch icon beside it.
+  await expect(page.locator('link[rel="icon"][href="/favicon.svg"]')).toHaveCount(1);
+  await expect(
+    page.locator('link[rel="apple-touch-icon"][href="/apple-touch-icon.png"]'),
+  ).toHaveCount(1);
   await expectNoAxeViolations(page);
 
   const nav = page.getByRole('navigation', { name: 'Account' });
