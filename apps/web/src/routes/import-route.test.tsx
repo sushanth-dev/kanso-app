@@ -266,7 +266,7 @@ describe('ImportScreen', () => {
     });
   });
 
-  test('imports a PGN upload as a tournament and navigates to the report', async () => {
+  test('ends a six-game tournament upload in the debrief, not a navigation', async () => {
     const user = userEvent.setup();
     const navigate = vi.fn();
     const pgn = '[Event "Test"]\n1. e4 e5 1-0';
@@ -276,7 +276,7 @@ describe('ImportScreen', () => {
         stream: 'tournament',
         gamesFound: 2,
         gamesImported: 2,
-        // ST-096: six or more games in the tournament means the report.
+        // ST-096: six or more games in the tournament means a report exists.
         tournament: { id: '00000000-0000-4000-8000-0000000000c1', gameCount: 7 },
       }),
     );
@@ -293,17 +293,19 @@ describe('ImportScreen', () => {
       pgn,
       stream: 'tournament',
     });
+    // ST-115: the import ends in the debrief, led by one primary action.
+    expect(navigate).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Start the debrief' }));
     expect(navigate).toHaveBeenCalledWith({
-      to: '/report',
+      to: '/debrief',
       search: {
-        stream: 'tournament',
         gameIds: ['00000000-0000-4000-8000-0000000000b1'],
         tournamentId: '00000000-0000-4000-8000-0000000000c1',
       },
     });
   });
 
-  test('routes a tournament upload under six games to the first game review', async () => {
+  test('hands an under-threshold tournament upload to the debrief with its game', async () => {
     const user = userEvent.setup();
     const navigate = vi.fn();
     const pgn = '[Event "Test"]\n1. e4 e5 1-0';
@@ -324,9 +326,17 @@ describe('ImportScreen', () => {
     );
     await user.click(screen.getByRole('button', { name: 'Import games' }));
     expect(await screen.findByText('Imported 2 games.')).toBeVisible();
+    // ST-115: no navigation on completion; the batch rides the CTA, and the
+    // game id rides only because the old landing was the game review.
+    expect(navigate).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Start the debrief' }));
     expect(navigate).toHaveBeenCalledWith({
-      to: '/games/$gameId',
-      params: { gameId: '00000000-0000-4000-8000-0000000000b1' },
+      to: '/debrief',
+      search: {
+        gameIds: ['00000000-0000-4000-8000-0000000000b1'],
+        tournamentId: '00000000-0000-4000-8000-0000000000c1',
+        gameId: '00000000-0000-4000-8000-0000000000b1',
+      },
     });
   });
 
@@ -405,6 +415,7 @@ describe('ImportScreen', () => {
       playerName: 'Player',
     });
     expect(navigate).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Start the debrief' })).not.toBeInTheDocument();
   });
 
   test('reports no games found for a tournament with an empty crosstable', async () => {
