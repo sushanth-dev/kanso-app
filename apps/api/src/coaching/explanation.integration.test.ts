@@ -248,56 +248,56 @@ async function seedMistakes(ownerId: string, count: number): Promise<string[]> {
 }
 
 describe('ST-111 plan caps on generated coach texts', () => {
-  test('beginner: the 11th generated text is refused before the model is called', async () => {
-    const ids = await seedMistakes(OWNER, 11);
-    for (const id of ids.slice(0, 10)) {
+  test('beginner: the 51st generated text is refused before the model is called', async () => {
+    const ids = await seedMistakes(OWNER, 51);
+    for (const id of ids.slice(0, 50)) {
       const res = await app(OWNER).request(`/mistakes/${id}/explanation`);
       expect(res.status).toBe(200);
     }
-    expect(explainCalls).toBe(10);
+    expect(explainCalls).toBe(50);
 
-    const refused = await app(OWNER).request(`/mistakes/${ids[10]}/explanation`);
+    const refused = await app(OWNER).request(`/mistakes/${ids[50]}/explanation`);
     expect(refused.status).toBe(403);
     const body = (await refused.json()) as { code: string; message: string };
     expect(body.code).toBe('upgrade_required');
     // The refusal fires on the budget check, so the model is never called.
-    expect(explainCalls).toBe(10);
+    expect(explainCalls).toBe(50);
   });
 
   test('beginner: explanation and question share one budget, two units per mistake', async () => {
-    const ids = await seedMistakes(OWNER, 6);
-    for (const id of ids.slice(0, 5)) {
+    const ids = await seedMistakes(OWNER, 26);
+    for (const id of ids.slice(0, 25)) {
       const explanation = await app(OWNER).request(`/mistakes/${id}/explanation`);
       expect(explanation.status).toBe(200);
       const question = await app(OWNER).request(`/mistakes/${id}/question`);
       expect(question.status).toBe(200);
     }
-    expect(await coachUnitsThisMonth(harness.db, OWNER)).toBe(10);
+    expect(await coachUnitsThisMonth(harness.db, OWNER)).toBe(50);
 
-    const refusedExplanation = await app(OWNER).request(`/mistakes/${ids[5]}/explanation`);
+    const refusedExplanation = await app(OWNER).request(`/mistakes/${ids[25]}/explanation`);
     expect(refusedExplanation.status).toBe(403);
-    const refusedQuestion = await app(OWNER).request(`/mistakes/${ids[5]}/question`);
+    const refusedQuestion = await app(OWNER).request(`/mistakes/${ids[25]}/question`);
     expect(refusedQuestion.status).toBe(403);
   });
 
   test('beginner: cached texts re-read 200 at zero remaining', async () => {
-    const ids = await seedMistakes(OWNER, 5);
+    const ids = await seedMistakes(OWNER, 25);
     for (const id of ids) {
       const explanation = await app(OWNER).request(`/mistakes/${id}/explanation`);
       expect(explanation.status).toBe(200);
       const question = await app(OWNER).request(`/mistakes/${id}/question`);
       expect(question.status).toBe(200);
     }
-    // The budget is spent: five mistakes, two texts each.
-    expect(await coachUnitsThisMonth(harness.db, OWNER)).toBe(10);
+    // The budget is spent: twenty-five mistakes, two texts each.
+    expect(await coachUnitsThisMonth(harness.db, OWNER)).toBe(50);
 
     // Both stored texts on mistake 0 re-read from storage, never refused.
     const cached = await app(OWNER).request(`/mistakes/${ids[0]}/explanation`);
     expect(cached.status).toBe(200);
     const cachedQuestion = await app(OWNER).request(`/mistakes/${ids[0]}/question`);
     expect(cachedQuestion.status).toBe(200);
-    expect(explainCalls).toBe(5);
-    expect(questionCalls).toBe(5);
+    expect(explainCalls).toBe(25);
+    expect(questionCalls).toBe(25);
   });
 
   test('intermediate: refuses at the 101st generated text', async () => {
