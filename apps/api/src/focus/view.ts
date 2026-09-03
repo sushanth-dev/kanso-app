@@ -6,7 +6,12 @@
  * passed in by the caller, one entry per stream the focus can be measured in.
  */
 import { z } from '@hono/zod-openapi';
-import { ActiveFocus, FocusCatalogueEntry, FocusMeasurement } from '../contract/schemas.ts';
+import {
+  ActiveFocus,
+  FocusCatalogueEntry,
+  FocusMeasurement,
+  FocusPractice,
+} from '../contract/schemas.ts';
 import type { focusCatalogue, playerFocus } from '../db/schema.ts';
 
 type CatalogueRow = typeof focusCatalogue.$inferSelect;
@@ -28,6 +33,7 @@ export function toActiveFocus(
   row: Pick<PlayerFocusRow, 'id' | 'source' | 'coachInstruction' | 'pairedFocusId' | 'startedAt'>,
   catalogue: z.infer<typeof FocusCatalogueEntry> | null,
   measurements: z.infer<typeof FocusMeasurement>[],
+  practice: z.infer<typeof FocusPractice> | null,
 ): z.infer<typeof ActiveFocus> {
   return {
     id: row.id,
@@ -38,5 +44,6 @@ export function toActiveFocus(
     pairedFocusId: row.pairedFocusId,
     startedAt: row.startedAt.toISOString(),
     measurements,
+    practice,
   };
 }

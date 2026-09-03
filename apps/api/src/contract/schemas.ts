@@ -783,6 +783,20 @@ export const FocusMeasurement = z
   })
   .openapi('FocusMeasurement');
 
+/**
+ * ST-129. Drill effort inside a focus's family, from `puzzle_attempt` rows.
+ * A row exists the moment a deal assigns a puzzle, so `total` counts rows
+ * with a completed drill (`attempts > 0`); `solved` is the sticky flag;
+ * `groups` is the distinct weakness groups worked.
+ */
+export const FocusPractice = z
+  .object({
+    total: z.number().int(),
+    solved: z.number().int(),
+    groups: z.number().int(),
+  })
+  .openapi('FocusPractice');
+
 export const ActiveFocus = z
   .object({
     id: Uuid,
@@ -797,6 +811,12 @@ export const ActiveFocus = z
     startedAt: z.iso.datetime(),
     /** F12. One entry per stream the focus can be measured in. */
     measurements: z.array(FocusMeasurement),
+    /**
+     * ST-129. The player's worked drills inside this focus's family, null
+     * when there is no measurable focus. It never enters verdict
+     * arithmetic: practice measures effort, the two speeds measure play.
+     */
+    practice: FocusPractice.nullable(),
   })
   .openapi('ActiveFocus');
 
