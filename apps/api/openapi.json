@@ -303,23 +303,6 @@
           "password"
         ]
       },
-      "FeedbackStored": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "id",
-          "createdAt"
-        ]
-      },
       "ImportJob": {
         "type": "object",
         "properties": {
@@ -2737,77 +2720,6 @@
           },
           "403": {
             "description": "That password is not right.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/feedback": {
-      "post": {
-        "tags": [
-          "Feedback"
-        ],
-        "summary": "Send product feedback from inside the app",
-        "description": "ST-111. One free-text message stored against the session account. Read in SQL; nothing is emailed and nothing renders it back into the product.",
-        "requestBody": {
-          "description": "The feedback message.",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "message": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 2000
-                  }
-                },
-                "required": [
-                  "message"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Stored.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FeedbackStored"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "The request body or query failed validation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "No session.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "The session has no claim on this player.",
             "content": {
               "application/json": {
                 "schema": {

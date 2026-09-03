@@ -327,12 +327,12 @@ where nothing scrolls beneath.
   terracotta mark beside "Kanso Chess" in Source Serif 4. The signed-in
   header carries the wordmark and the horizontal top nav on one row: the nav
   sits to the right of the wordmark and groups routes into native
-  `<details>`/`<summary>` dropdowns (Progress, Games, Help) alongside
+  `<details>`/`<summary>` dropdowns (Progress, Games) alongside
   singleton links (Plans, Settings). The groups walk the loop the product
   sells (ST-111): Progress leads with the Report and the work it assigns
-  (Curriculum, Puzzles, Focus), Games leads with Import, and Help carries
-  "What's new" and Feedback so a signed-in player can always see what
-  changed and say what broke. All nav text, summaries and leaves alike,
+  (Curriculum, Puzzles, Focus), and Games leads with Import. The Help group
+  is gone: ST-112 replaced in-app feedback and what's-new with PostHog
+  surveys and the support widget. All nav text, summaries and leaves alike,
   is the terracotta accent; the active page is bold, not a hue shift. The
   dropdown opens on hover and closes on mouse leave so it follows the pointer.
   The summary is a md-radius control with the teal focus ring; the open panel
