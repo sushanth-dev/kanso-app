@@ -12,6 +12,10 @@
  * empty pool answers honestly rather than with a short set, because "at
  * least 20" is the feature.
  *
+ * ST-122 adds two rungs ahead of the ladder: an opening group's mapped ECO
+ * family prefix inside the rating bands, so the player drills the opening
+ * they leak in before any generic theme.
+ *
  * The player's rating is the prototype's estimated-ELO stand-in, resolved
  * from the best rating the account actually holds: FIDE, then USCF, then the
  * two site ratings, then 1500.
@@ -22,6 +26,7 @@ import type { WeaknessKind } from '../analysis/leak.ts';
 import * as schema from '../db/schema.ts';
 import { player, puzzle, puzzleAttempt } from '../db/schema.ts';
 import { themeForGroup } from './themes.ts';
+import { ECO_OPENINGS } from './eco-openings.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
 
@@ -40,24 +45,35 @@ export interface DrillPuzzle {
   rating: number;
 }
 
-/** One assembled drill, with the theme the ladder matched and the rating band used. */
+/**
+ * One assembled drill, with the theme the ladder matched and the rating band
+ * used. `opening` names the ECO family the opening rungs preferred, humanized
+ * for the card ("Scandinavian Defense"); null when the deal fell through to
+ * the theme rungs.
+ */
 export interface DrillSet {
   kind: WeaknessKind;
   group: string;
   theme: string;
   rating: number;
   puzzles: DrillPuzzle[];
+  opening: string | null;
 }
 
 async function gather(
   db: Db,
   playerId: string,
   theme: string | null,
+  openingPrefix: string | null,
   low: number,
   high: number,
   into: Map<string, DrillPuzzle>,
 ): Promise<void> {
   if (into.size >= DRILL_SIZE) return;
+  // Exactly one of `theme` and `openingPrefix` is set: the theme rungs match
+  // the dump's tag array, the opening rungs prefix-match the family slug.
+  const familyMatch =
+    openingPrefix === null ? undefined : sql`${puzzle.opening} LIKE ${openingPrefix + '%'}`;
   // Already-picked ids are excluded inside the query, not after it: the rung
   // limit counts fresh rows only, so a thin rung can never hand back rows
   // the dedupe would just drop.
@@ -83,7 +99,7 @@ async function gather(
       and(
         gte(puzzle.rating, low),
         lte(puzzle.rating, high),
-        theme === null ? undefined : sql`${puzzle.themes} @> ARRAY[${theme}]::text[]`,
+        theme === null ? familyMatch : sql`${puzzle.themes} @> ARRAY[${theme}]::text[]`,
         ...exclusions,
       ),
     )
@@ -154,16 +170,30 @@ export async function assembleDrill(
     picked.set(p.lichessId, { id: p.lichessId, fen: p.fen, moves: p.moves, rating: p.rating });
   }
 
+  // ST-122. An opening group drills the opening first: the ECO's mapped
+  // family prefix inside the rating bands, then the prototype's theme ladder
+  // verbatim. The family comes from the generated ECO_OPENINGS map; an ECO
+  // it does not cover, or whose family the pool does not carry, falls
+  // through to the theme rungs.
+  const family = kind === 'opening' ? (ECO_OPENINGS[group.toUpperCase()] ?? null) : null;
+  let openingMatched: string | null = null;
+  if (family !== null) {
+    const before = picked.size;
+    await gather(db, playerId, null, family, rating - 400, rating + 400, picked);
+    await gather(db, playerId, null, family, rating - 800, rating + 800, picked);
+    if (picked.size > before) openingMatched = family.replaceAll('_', ' ');
+  }
+
   // The prototype's ladder: exact theme near the player's rating, then the
   // same theme wider, then the crushing fallback wider, then any theme wider.
   // Every rung excludes everything the player holds a row for, dealt or
   // drilled, so no puzzle is ever dealt twice.
-  await gather(db, playerId, theme, rating - 400, rating + 400, picked);
-  await gather(db, playerId, theme, rating - 800, rating + 800, picked);
+  await gather(db, playerId, theme, null, rating - 400, rating + 400, picked);
+  await gather(db, playerId, theme, null, rating - 800, rating + 800, picked);
   if (theme !== 'crushing') {
-    await gather(db, playerId, 'crushing', rating - 800, rating + 800, picked);
+    await gather(db, playerId, 'crushing', null, rating - 800, rating + 800, picked);
   }
-  await gather(db, playerId, null, rating - 800, rating + 800, picked);
+  await gather(db, playerId, null, null, rating - 800, rating + 800, picked);
 
   if (picked.size < DRILL_SIZE) return 'pool_empty';
 
@@ -191,5 +221,12 @@ export async function assembleDrill(
       target: [puzzleAttempt.playerId, puzzleAttempt.puzzleId],
     });
 
-  return { kind, group, theme, rating, puzzles: [...picked.values()] };
+  return {
+    kind,
+    group,
+    theme,
+    rating,
+    puzzles: [...picked.values()],
+    opening: openingMatched,
+  };
 }
