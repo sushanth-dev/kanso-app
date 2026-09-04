@@ -35,4 +35,50 @@ describe('classifyTimeControl', () => {
     expect(classifyTimeControl('40/9000')).toBeNull();
     expect(classifyTimeControl('nonsense')).toBeNull();
   });
+
+  test('every bucket boundary falls on the correct side', () => {
+    expect(classifyTimeControl('179+0')).toBe('bullet');
+    expect(classifyTimeControl('180+0')).toBe('blitz');
+    expect(classifyTimeControl('599+0')).toBe('blitz');
+    expect(classifyTimeControl('600+0')).toBe('rapid');
+    expect(classifyTimeControl('1799+0')).toBe('rapid');
+    expect(classifyTimeControl('1800+0')).toBe('classical');
+  });
+
+  test('increments and delays do not shift the bucket', () => {
+    expect(classifyTimeControl('120+59')).toBe('bullet');
+    expect(classifyTimeControl('179+999')).toBe('bullet'); // 179 base seconds: bullet, however long the delay
+    expect(classifyTimeControl('180+59')).toBe('blitz');
+    expect(classifyTimeControl('5400+30')).toBe('classical');
+  });
+
+  test('a control with no increment still classifies', () => {
+    expect(classifyTimeControl('60')).toBe('bullet');
+    expect(classifyTimeControl('300')).toBe('blitz');
+  });
+
+  test('zero base seconds is bullet rather than unparseable', () => {
+    expect(classifyTimeControl('0')).toBe('bullet');
+    expect(classifyTimeControl('0+2')).toBe('bullet');
+  });
+
+  test('an astronomically large base is still classical', () => {
+    expect(classifyTimeControl('99999999')).toBe('classical');
+  });
+
+  test('surrounding whitespace is trimmed before parsing', () => {
+    expect(classifyTimeControl('  180+2  ')).toBe('blitz');
+    expect(classifyTimeControl(' - ')).toBeNull();
+  });
+
+  test('malformed shapes are null rather than guessed', () => {
+    expect(classifyTimeControl('')).toBeNull(); // empty string
+    expect(classifyTimeControl('   ')).toBeNull(); // whitespace only
+    expect(classifyTimeControl('+')).toBeNull(); // increment only
+    expect(classifyTimeControl('+30')).toBeNull(); // no base before the plus
+    expect(classifyTimeControl('40/9000+30')).toBeNull(); // repeating with increment
+    expect(classifyTimeControl('18o+0')).toBeNull(); // letter in the digits
+    expect(classifyTimeControl('180 +2')).toBeNull(); // space inside the base
+    expect(classifyTimeControl('180-2')).toBeNull(); // wrong separator
+  });
 });

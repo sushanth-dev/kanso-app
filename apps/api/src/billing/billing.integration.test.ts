@@ -10,21 +10,22 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest'
 import type { Mailer } from '../account/mailer.ts';
 import { createApp } from '../app.ts';
 import { createAuth } from '../auth.ts';
-import { game, processedPayment, subscription } from '../db/schema.ts';
+import { game, mistake, processedPayment, subscription } from '../db/schema.ts';
 import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-harness.ts';
-import { analysisRemaining } from './entitlement.ts';
+import { analysisRemaining, coachRemaining, coachUnitsThisMonth, tierFor } from './entitlement.ts';
 import type { RazorpayClient } from './razorpay.ts';
 
 let harness: IntegrationDatabase;
 
 const PASSWORD = 'correct horse battery staple';
-
 let verifySignature = true;
+let orderOk = true;
 let orderSeq = 0;
 const createdOrders: Array<{ amount: number; currency: string; receipt: string }> = [];
 const razorpay: RazorpayClient = {
   keyId: 'rzp_test_key',
   createOrder(input) {
+    if (!orderOk) return Promise.resolve({ ok: false as const });
     orderSeq += 1;
     createdOrders.push(input);
     return Promise.resolve({ ok: true as const, orderId: `order_test_${orderSeq}` });
@@ -50,6 +51,7 @@ afterAll(async () => {
 beforeEach(async () => {
   await harness.reset();
   verifySignature = true;
+  orderOk = true;
   orderSeq = 0;
   createdOrders.length = 0;
 });
@@ -89,6 +91,20 @@ async function checkout(cookie: string, tier: string): Promise<string> {
   expect(res.status).toBe(200);
   const body = (await res.json()) as { orderId: string };
   return body.orderId;
+}
+
+/** Posts an arbitrary body to the webhook, optionally without the signature header. */
+async function sendRawWebhook(
+  body: unknown,
+  { withSignature = true }: { withSignature?: boolean } = {},
+): Promise<Response> {
+  const headers: Record<string, string> = { 'content-type': 'application/json' };
+  if (withSignature) headers['x-razorpay-signature'] = 'a-signature';
+  return await app().request('/payments/webhook', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body),
+  });
 }
 
 async function sendWebhook(orderId: string, paymentId = 'pay_1'): Promise<Response> {
@@ -226,5 +242,158 @@ describe('the three tiers', () => {
     await harness.db.insert(subscription).values({ userId, tier: 'pro' });
 
     expect(await analysisRemaining(harness.db, userId)).toBeNull();
+  });
+  test('tierFor answers beginner when the account has no subscription row', async () => {
+    const { userId } = await signUpCookie('tierless@example.com');
+    expect(await tierFor(harness.db, userId)).toBe('beginner');
+
+    await harness.db.insert(subscription).values({ userId, tier: 'intermediate' });
+    expect(await tierFor(harness.db, userId)).toBe('intermediate');
+  });
+
+  test('the coach budget counts one unit per generated text, this month only', async () => {
+    const { cookie, userId } = await signUpCookie('coach@example.com');
+    const playerId = await ownPlayerId(cookie);
+
+    async function insertGame(pgn: string): Promise<string> {
+      const [row] = await harness.db
+        .insert(game)
+        .values({
+          playerId,
+          stream: 'online',
+          source: 'chesscom',
+          pgn,
+          pgnHash: `hash-${pgn}`,
+          result: '1-0',
+          analysisStatus: 'complete',
+        })
+        .returning({ id: game.id });
+      return row!.id;
+    }
+
+    function insertMistake(gameId: string, ply: number, generatedAt: Date | null) {
+      return harness.db.insert(mistake).values({
+        gameId,
+        ply,
+        moveNumber: Math.ceil(ply / 2),
+        movingColor: 'white',
+        fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+        moveSan: 'Qh5?!',
+        bestMoveSan: 'Nf3',
+        judgement: 'mistake',
+        cpLoss: 200,
+        winProbDrop: 0.1,
+        explanation: 'You hung a piece.',
+        explanationGeneratedAt: generatedAt,
+        socraticQuestion: 'What was that piece defending?',
+        socraticQuestionGeneratedAt: generatedAt,
+      });
+    }
+
+    const monthStart = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1));
+    const lastMonth = new Date(monthStart);
+    lastMonth.setUTCMonth(lastMonth.getUTCMonth() - 1);
+
+    // Both texts on one mistake cost 2; a mistake generated last month and an
+    // untouched one cost nothing now.
+    const recent = await insertGame('pgn-recent');
+    await insertMistake(recent, 10, monthStart);
+    const old = await insertGame('pgn-old');
+    await insertMistake(old, 12, lastMonth);
+    await insertMistake(recent, 14, null);
+
+    expect(await coachUnitsThisMonth(harness.db, userId)).toBe(2);
+    expect(await coachRemaining(harness.db, userId)).toBe(48);
+  });
+
+  test('pro has no coach budget either', async () => {
+    const { userId } = await signUpCookie('coach-pro@example.com');
+    await harness.db.insert(subscription).values({ userId, tier: 'pro' });
+    expect(await coachRemaining(harness.db, userId)).toBeNull();
+  });
+
+  test('checkout for intermediate records the INR paise price', async () => {
+    const { cookie, userId } = await signUpCookie('intermediate@example.com');
+    const orderId = await checkout(cookie, 'intermediate');
+
+    expect(createdOrders[0]).toMatchObject({ amount: 79900, currency: 'INR' });
+    const [row] = await harness.db.select().from(processedPayment);
+    expect(row).toMatchObject({
+      userId,
+      tier: 'intermediate',
+      amount: 79900,
+      currency: 'INR',
+      razorpayPaymentId: null,
+    });
+    expect(orderId).toBeTruthy();
+  });
+
+  test('checkout answers 502 and records nothing when the provider fails', async () => {
+    const { cookie } = await signUpCookie('failed-order@example.com');
+    orderOk = false;
+
+    const res = await app().request('/payments/checkout', {
+      method: 'POST',
+      headers: { cookie, 'content-type': 'application/json' },
+      body: JSON.stringify({ tier: 'pro' }),
+    });
+    expect(res.status).toBe(502);
+    expect(await res.json()).toMatchObject({ code: 'upstream_error' });
+    expect(await harness.db.select().from(processedPayment)).toEqual([]);
+  });
+
+  test('checkout demands a session', async () => {
+    const res = await app().request('/payments/checkout', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ tier: 'pro' }),
+    });
+    expect(res.status).toBe(401);
+  });
+
+  test('a webhook without the signature header is refused', async () => {
+    const { cookie } = await signUpCookie('unsigned@example.com');
+    const orderId = await checkout(cookie, 'pro');
+
+    const res = await sendRawWebhook(
+      {
+        event: 'payment.captured',
+        payload: { payment: { entity: { id: 'pay_x', order_id: orderId } } },
+      },
+      { withSignature: false },
+    );
+    expect(res.status).toBe(401);
+  });
+
+  test('a non-capture event is acknowledged and flips nothing', async () => {
+    const { cookie } = await signUpCookie('failed-event@example.com');
+    const orderId = await checkout(cookie, 'pro');
+
+    expect(
+      (
+        await sendRawWebhook({
+          event: 'payment.failed',
+          payload: { payment: { entity: { id: 'pay_y', order_id: orderId } } },
+        })
+      ).status,
+    ).toBe(204);
+
+    const [row] = await harness.db.select().from(processedPayment);
+    expect(row!.razorpayPaymentId).toBeNull();
+    expect(await tierFor(harness.db, row!.userId)).toBe('beginner');
+  });
+
+  test('a capture whose entity is missing ids is acknowledged as nothing to do', async () => {
+    expect(
+      (await sendRawWebhook({ event: 'payment.captured', payload: { payment: { entity: {} } } }))
+        .status,
+    ).toBe(204);
+    expect((await sendRawWebhook({ event: 'payment.captured' })).status).toBe(204);
+  });
+
+  test('a capture for an order we never checked out is a 404', async () => {
+    const res = await sendWebhook('order_unknown');
+    expect(res.status).toBe(404);
+    expect(await res.json()).toMatchObject({ code: 'not_found' });
   });
 });

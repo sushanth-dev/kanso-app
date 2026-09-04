@@ -8,7 +8,7 @@
 import type { Context } from 'hono';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { createApp } from '../app.ts';
 import { player, puzzle, puzzleAttempt } from '../db/schema.ts';
 import { user } from '../db/auth-schema.ts';
@@ -356,5 +356,283 @@ describe('ST-122 opening-matched drills', () => {
     const attempts = await harness.db.select().from(puzzleAttempt);
     expect(attempts).toHaveLength(1);
     expect(attempts[0]!.attempts).toBe(1);
+  });
+});
+
+/** Forces a player's attempt row due now, as the clock would eventually. */
+async function makeDue(puzzleId: string): Promise<void> {
+  await harness.db
+    .update(puzzleAttempt)
+    .set({ nextReviewAt: new Date(Date.now() - 60_000) })
+    .where(and(eq(puzzleAttempt.playerId, await playerId()), eq(puzzleAttempt.puzzleId, puzzleId)));
+}
+
+describe('the rating the bands resolve from', () => {
+  /** A player's measured ratings, the stand-in for the estimated ELO. */
+  async function setRatings(ratings: Partial<typeof player.$inferInsert>): Promise<void> {
+    await harness.db.update(player).set(ratings).where(eq(player.ownerUserId, OWNER));
+  }
+
+  test('FIDE wins when every rating is present', async () => {
+    await seedPool(band(1900, 25));
+    await setRatings({
+      fideRating: 1900,
+      uscfRating: 1800,
+      chesscomRating: 1700,
+      lichessRating: 1600,
+    });
+    const res = await getDrill(OWNER, '?kind=motif&group=hanging_piece');
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { rating: number }).rating).toBe(1900);
+  });
+
+  test('USCF stands in when there is no FIDE rating', async () => {
+    await seedPool(band(1800, 25));
+    await setRatings({ uscfRating: 1800, chesscomRating: 1700 });
+    const res = await getDrill(OWNER, '?kind=motif&group=hanging_piece');
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { rating: number }).rating).toBe(1800);
+  });
+
+  test('chess.com is read ahead of lichess', async () => {
+    await seedPool(band(1700, 25));
+    await setRatings({ chesscomRating: 1700, lichessRating: 1600 });
+    const res = await getDrill(OWNER, '?kind=motif&group=hanging_piece');
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { rating: number }).rating).toBe(1700);
+  });
+
+  test('lichess is the last measured rating before the 1500 default', async () => {
+    await seedPool(band(1600, 25));
+    await setRatings({ lichessRating: 1600 });
+    const res = await getDrill(OWNER, '?kind=motif&group=hanging_piece');
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { rating: number }).rating).toBe(1600);
+  });
+
+  test('the resolved rating moves the bands, not just the echo', async () => {
+    await seedPool(band(1500, 25));
+    await setRatings({ fideRating: 2400 });
+    // 1500 sits outside 2400's widest band: the pool cannot supply a drill.
+    const tooFar = await getDrill(OWNER, '?kind=motif&group=hanging_piece');
+    expect(tooFar.status).toBe(503);
+
+    await setRatings({ fideRating: null });
+    const back = await getDrill(OWNER, '?kind=motif&group=hanging_piece');
+    expect(back.status).toBe(200);
+    expect(((await back.json()) as { rating: number }).rating).toBe(1500);
+  });
+});
+
+describe('the fallback ladder beyond the mapped theme', () => {
+  test('a thin theme widens to crushing, then to any theme, in ladder order', async () => {
+    // Eight in the mapped theme, ten crushing, five advantage: the near rung
+    // deals the eight, the crushing rung tops up to eighteen, the any-theme
+    // rung closes the drill - the last rung only fires on a real gap.
+    await seedPool(band(1500, 8));
+    await seedPool(
+      Array.from({ length: 10 }, (_, i) => ({
+        id: `c1500_${i}`,
+        rating: 1500,
+        themes: ['crushing'],
+      })),
+    );
+    await seedPool(
+      Array.from({ length: 5 }, (_, i) => ({
+        id: `a1500_${i}`,
+        rating: 1500,
+        themes: ['advantage'],
+      })),
+    );
+    const res = await getDrill(OWNER, '?kind=motif&group=hanging_piece');
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { theme: string; puzzles: { id: string }[] };
+    const ids = body.puzzles.map((p) => p.id);
+    expect(ids.filter((id) => id.startsWith('h1500'))).toHaveLength(8);
+    expect(ids.filter((id) => id.startsWith('c1500'))).toHaveLength(10);
+    expect(ids.filter((id) => id.startsWith('a1500'))).toHaveLength(2);
+    expect(ids.slice(0, 8).every((id) => id.startsWith('h1500'))).toBe(true);
+    expect(ids.slice(8, 18).every((id) => id.startsWith('c1500'))).toBe(true);
+    expect(ids.slice(18).every((id) => id.startsWith('a1500'))).toBe(true);
+    // The mapped theme is echoed even when the pool was too thin to fill with it.
+    expect(body.theme).toBe('hangingPiece');
+  });
+});
+
+describe('ST-107 the unfinished deal is honored', () => {
+  beforeEach(async () => {
+    await seedPool(band(1500, 25));
+  });
+
+  async function deal(): Promise<string[]> {
+    const res = await getDrill(OWNER, '?kind=motif&group=hanging_piece');
+    expect(res.status).toBe(200);
+    return ((await res.json()) as { puzzles: { id: string }[] }).puzzles.map((p) => p.id);
+  }
+
+  test('re-assembling without recording returns the same deal and adds no rows', async () => {
+    const first = await deal();
+    const second = await deal();
+    expect(new Set(second)).toEqual(new Set(first));
+    const rows = await harness.db.select().from(puzzleAttempt);
+    expect(rows).toHaveLength(20);
+  });
+
+  test('a recorded puzzle leaves the deal; the rest of it stands', async () => {
+    const first = await deal();
+    const recorded = first[0]!;
+    const post = await postDrill(OWNER, {
+      puzzleId: recorded,
+      kind: 'motif',
+      group: 'hanging_piece',
+      solved: true,
+    });
+    expect(post.status).toBe(200);
+
+    const second = await deal();
+    expect(second).not.toContain(recorded);
+    for (const id of first) {
+      if (id !== recorded) expect(second).toContain(id);
+    }
+    // The one slot the recorded puzzle freed is filled with fresh material.
+    expect(second.filter((id) => !first.includes(id))).toHaveLength(1);
+  });
+
+  test('a deal owed to another group is not honored here', async () => {
+    await deal(); // leaves twenty pending rows for hanging_piece
+    const res = await getDrill(OWNER, '?kind=motif&group=missed_threat');
+    expect(res.status).toBe(503);
+    expect(await res.json()).toMatchObject({ code: 'pool_empty' });
+  });
+});
+
+describe('ST-124 due reviews open the deal', () => {
+  beforeEach(async () => {
+    await seedPool(band(1500, 25));
+  });
+
+  async function deal(): Promise<string[]> {
+    const res = await getDrill(OWNER, '?kind=motif&group=hanging_piece');
+    expect(res.status).toBe(200);
+    return ((await res.json()) as { puzzles: { id: string }[] }).puzzles.map((p) => p.id);
+  }
+
+  async function drill(puzzleId: string, solved: boolean): Promise<void> {
+    const res = await postDrill(OWNER, {
+      puzzleId,
+      kind: 'motif',
+      group: 'hanging_piece',
+      solved,
+    });
+    expect(res.status).toBe(200);
+  }
+
+  test('a solved puzzle whose review time has passed is dealt again, ahead of fresh material', async () => {
+    const first = await deal();
+    const reviewed = first[0]!;
+    const failed = [first[1]!, first[2]!];
+    await drill(reviewed, true);
+    for (const id of failed) await drill(id, false);
+    await makeDue(reviewed);
+    for (const id of failed) await makeDue(id);
+
+    const second = await deal();
+    expect(second).toContain(reviewed);
+    // A failed puzzle, though due-now, is level 0: not a review, stays out.
+    for (const id of failed) expect(second).not.toContain(id);
+    // Pending rows open the deal, the due review closes them out, fresh fills the rest.
+    const pending = first.filter((id) => id !== reviewed && !failed.includes(id));
+    const reviewIndex = second.indexOf(reviewed);
+    expect(new Set(second.slice(0, reviewIndex))).toEqual(new Set(pending));
+    for (const fresh of second.filter((id) => !first.includes(id))) {
+      expect(second.indexOf(fresh)).toBeGreaterThan(reviewIndex);
+    }
+  });
+
+  test('a future review is not due and an early deal is filled from fresh material', async () => {
+    const first = await deal();
+    const solved = first[0]!; // climbs to level 1, due in two days
+    const revealed = first[1]!;
+    await drill(solved, true);
+    await drill(revealed, false);
+    await makeDue(revealed);
+
+    const second = await deal();
+    expect(second).toHaveLength(20);
+    expect(second).not.toContain(solved);
+    expect(second).not.toContain(revealed);
+  });
+});
+
+describe('ST-124 the review ladder on record', () => {
+  beforeEach(async () => {
+    await seedPool(band(1500, 25));
+  });
+
+  const DAY = 24 * 60 * 60 * 1000;
+
+  const drill = (puzzleId: string, solved: boolean) =>
+    postDrill(OWNER, { puzzleId, kind: 'motif', group: 'hanging_piece', solved });
+
+  function expectNear(iso: string, days: number): void {
+    expect(Math.abs(new Date(iso).getTime() - (Date.now() + days * DAY))).toBeLessThan(DAY / 2);
+  }
+
+  test('a solve climbs two, seven, thirty days and caps at the top rung', async () => {
+    const rungs: Array<[number, number]> = [
+      [1, 2],
+      [2, 7],
+      [3, 30],
+      [3, 30],
+    ];
+    for (const [level, days] of rungs) {
+      const res = await drill('h1500_0', true);
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { reviewLevel: number; nextReviewAt: string };
+      expect(body.reviewLevel).toBe(level);
+      expectNear(body.nextReviewAt, days);
+    }
+  });
+
+  test('a reveal drops the ladder back to due-now', async () => {
+    await drill('h1500_0', true);
+    const res = await drill('h1500_0', false);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { reviewLevel: number; nextReviewAt: string };
+    expect(body.reviewLevel).toBe(0);
+    expectNear(body.nextReviewAt, 0);
+  });
+
+  test('only a solve on a due rung stamps review_solved_at', async () => {
+    const pid = await playerId();
+    const row = () =>
+      harness.db
+        .select()
+        .from(puzzleAttempt)
+        .where(and(eq(puzzleAttempt.playerId, pid), eq(puzzleAttempt.puzzleId, 'h1500_0')));
+
+    // The first solve is not a review: it puts the puzzle on the ladder.
+    await drill('h1500_0', true);
+    const [afterFirst] = await row();
+    expect(afterFirst!.reviewSolvedAt).toBeNull();
+
+    await makeDue('h1500_0');
+    await drill('h1500_0', true);
+    const [afterDue] = await row();
+    expect(afterDue!.reviewSolvedAt).not.toBeNull();
+    const stamp = afterDue!.reviewSolvedAt!.getTime();
+    expect(afterDue!.reviewLevel).toBe(2);
+
+    // An early re-solve is extra practice and stamps nothing.
+    await drill('h1500_0', true);
+    const [afterEarly] = await row();
+    expect(afterEarly!.reviewSolvedAt!.getTime()).toBe(stamp);
+    expect(afterEarly!.reviewLevel).toBe(3);
+
+    // A reveal never touches the stamp.
+    await drill('h1500_0', false);
+    const [afterReveal] = await row();
+    expect(afterReveal!.reviewSolvedAt!.getTime()).toBe(stamp);
+    expect(afterReveal!.reviewLevel).toBe(0);
   });
 });
