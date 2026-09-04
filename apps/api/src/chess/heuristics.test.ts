@@ -30,6 +30,26 @@ describe('calculateTension', () => {
     const chess = new Chess('4r1k1/8/8/4Q3/8/8/8/4K3 w - - 0 1');
     expect(calculateTension(chess)).toBe(48);
   });
+  test('caps at 100 no matter how much material is en prise', () => {
+    // Seven black queens each attacked by (and attacking) a white rook: far
+    // past the 500 raw points the /5 needs to saturate.
+    const chess = new Chess('qqqqkqqq/8/8/8/8/8/8/RRRRKRRR w - - 0 1');
+    expect(calculateTension(chess)).toBe(100);
+  });
+
+  test('counts contested squares that hold no attacked piece', () => {
+    // The knights' attack sets overlap on d5 and e4; nothing is attacked.
+    const chess = new Chess('4k3/8/5n2/8/8/2N5/8/4K3 w - - 0 1');
+    expect(calculateTension(chess)).toBe(8); // 2 contested squares x 20 / 5
+  });
+
+  test('an attacked king carries no material value but its zone still counts', () => {
+    // Re7 attacks the black king (worth 0), is itself attacked by that king
+    // (+50), and the kings' overlapping attacks make d7 and f7 contested
+    // (+40): (50 + 40) / 5 = 18.
+    const chess = new Chess('4k3/4R3/8/8/8/8/8/4K3 w - - 0 1');
+    expect(calculateTension(chess)).toBe(18);
+  });
 });
 
 describe('calculateKingSafety', () => {
@@ -43,11 +63,27 @@ describe('calculateKingSafety', () => {
     expect(calculateKingSafety(chess, 'w')).toBe(40);
   });
 
-  test('each defender in the king zone mitigates 15% of the penalty', () => {
-    // Same queen attack, but the white rook e2 sits in the king zone, so one
-    // defender applies 15% mitigation: 100 - (60 * 0.85) = 49.
-    const chess = new Chess('4q1k1/8/8/8/8/8/4R3/4K3 w - - 0 1');
-    expect(calculateKingSafety(chess, 'w')).toBe(49);
+  test('reads the attack from the requested colour, not always from White', () => {
+    // Mirror of the queen attack above with colours swapped.
+    const chess = new Chess('4k3/8/8/8/8/8/8/4Q1K1 b - - 0 1');
+    expect(calculateKingSafety(chess, 'b')).toBe(40);
+  });
+
+  test('clamps to 0 when the raw penalty exceeds the scale', () => {
+    // Two black queens each attack the white king's 3x3 zone: 120 raw penalty
+    // with no defenders would score -20, which clamps to 0.
+    const chess = new Chess('7k/8/8/8/8/6q1/5q2/7K w - - 0 1');
+    expect(calculateKingSafety(chess, 'w')).toBe(0);
+  });
+
+  test('mitigation caps at 60% with four or more defenders', () => {
+    // Qd2 and Re2 occupy the zone; Bh3 and Ng3 attack into it (f1). Four
+    // defenders give exactly 60%: 100 - (60 * 0.4) = 76.
+    const four = new Chess('3qk3/8/8/8/8/6NB/3Q1R2/4K3 w - - 0 1');
+    expect(calculateKingSafety(four, 'w')).toBe(76);
+    // A fifth defender (Rh1 also attacks f1) adds nothing: still capped.
+    const five = new Chess('3qk3/8/8/8/8/6NB/3Q1R2/4K2R w - - 0 1');
+    expect(calculateKingSafety(five, 'w')).toBe(76);
   });
 });
 
@@ -65,6 +101,18 @@ describe('calculateActivity', () => {
     const chess = new Chess('4k3/8/8/8/3Q4/2B5/8/4K3 w - - 0 1');
     expect(calculateActivity(chess, 'w')).toBe(43);
   });
+
+  test('weights centre, extended-centre, and outer squares 5 / 2 / 1', () => {
+    // Rook f4 attacks d4 and e4 (centre, 10), c4/f3/f5/f6 (extended, 8) and
+    // eight outer squares (8); the king on a1 adds a2/b1/b2 (3). 29 / 2 = 15.
+    const chess = new Chess('4k3/8/8/8/5R2/8/8/K7 w - - 0 1');
+    expect(calculateActivity(chess, 'w')).toBe(15);
+  });
+
+  test('caps at 100 when the attack map is enormous', () => {
+    const chess = new Chess('4k3/8/8/8/8/8/QQQQQQQQ/QQQ2QQK w - - 0 1');
+    expect(calculateActivity(chess, 'w')).toBe(100);
+  });
 });
 
 describe('calculateGameSignature', () => {
@@ -74,6 +122,21 @@ describe('calculateGameSignature', () => {
 
 1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 d6 8. c3 O-O 9. h3 Nb8 10. d4 Nbd7`;
     expect(calculateGameSignature(pgn)).toEqual({ tension: 40, safety: 96, activity: 93 });
+  });
+
+  test('returns zeroes for a game with no moves', () => {
+    expect(calculateGameSignature('')).toEqual({ tension: 0, safety: 0, activity: 0 });
+  });
+
+  test('samples a single-move game once, on the mover-opponent turn', () => {
+    // After 1. e4 the sampled turn is Black: nothing is attacked (tension 0
+    // comes only from the contested a6, opened by the e-pawn), the black king
+    // is safe, and Black's activity matches the starting position's 83.
+    expect(calculateGameSignature('1. e4')).toEqual({ tension: 4, safety: 100, activity: 83 });
+  });
+
+  test('samples both positions of a two-move game', () => {
+    expect(calculateGameSignature('1. e4 e5')).toEqual({ tension: 6, safety: 100, activity: 84 });
   });
 });
 
@@ -95,5 +158,16 @@ describe('analyzeFullGame', () => {
     const result = analyzeFullGame(fens, 'black');
     expect(result.map((m) => m.moveNumber)).toEqual([1]);
     expect(result[0]).toEqual({ moveNumber: 1, tension: 4, safety: 100, activity: 83 });
+  });
+
+  test('derives the move number when the fen omits the fullmove counter', () => {
+    // A four-field fen leaves parseInt undefined; the fallback derives the
+    // move number from the position index: ceil((i + 1) / 2).
+    const bare = [
+      '4k3/8/8/8/8/8/8/4K3 w - -',
+      '4k3/8/8/8/8/8/8/4K3 b - -',
+      '4k3/8/8/8/8/8/8/4K3 w - -',
+    ];
+    expect(analyzeFullGame(bare, 'white').map((m) => m.moveNumber)).toEqual([1, 2]);
   });
 });

@@ -270,7 +270,9 @@ function hasMateInOne(pos: OpsChess, moverColor: OpsColor): boolean {
   for (const [from, toSet] of mover.allDests()) {
     for (const to of toSet) {
       const c = mover.clone();
-      c.play({ from, to });
+      // chessops only promotes when the move carries a promotion piece; without
+      // one a pawn lands on the backrank and the follow-up fromSetup throws.
+      c.play({ from, to, promotion: to < 8 || to >= 56 ? 'queen' : undefined });
       if (c.isCheckmate()) return true;
     }
   }
@@ -299,7 +301,7 @@ function detectThreat(
   const beforeMate = hasMateInOne(prePos, moverColor);
 
   const after = prePos.clone();
-  after.play({ from, to });
+  after.play({ from, to, promotion: to < 8 || to >= 56 ? 'queen' : undefined });
   if (after.isCheck()) return null; // checks are handled separately
 
   // Checkmate is the stronger threat; report it before a Material threat.
