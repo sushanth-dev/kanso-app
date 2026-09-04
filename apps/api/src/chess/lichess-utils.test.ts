@@ -22,7 +22,10 @@ import { describe, expect, test } from 'vitest';
 import {
   classifyMove,
   gameAccuracy,
+  mateWinningChances,
   moveAccuracy,
+  moveAccuracyFromEvals,
+  povChances,
   winPercent,
   winProbDrop,
 } from './lichess-utils.ts';
@@ -50,6 +53,35 @@ describe('winPercent', () => {
   test('refuses an evaluation that is neither a score nor a mate', () => {
     expect(() => winPercent({})).toThrow();
   });
+
+  test('clamps deep mates: everything beyond mate in 10 scores the same', () => {
+    expect(winPercent({ mate: 50 })).toBe(winPercent({ mate: 10 }));
+    expect(winPercent({ mate: -50 })).toBe(winPercent({ mate: -10 }));
+  });
+
+  test('a mate present in the evaluation wins over any centipawn score', () => {
+    expect(winPercent({ cp: 0, mate: 5 })).toBe(winPercent({ mate: 5 }));
+  });
+});
+
+describe('povChances', () => {
+  test('flips the sign for Black rather than re-deriving it', () => {
+    expect(povChances('black', { cp: 100 })).toBe(-povChances('white', { cp: 100 }));
+    expect(povChances('black', { mate: 3 })).toBe(-povChances('white', { mate: 3 }));
+  });
+});
+
+describe('mateWinningChances', () => {
+  test('a shorter mate is worth more, and the sign mirrors the side delivering it', () => {
+    expect(mateWinningChances(1)).toBeGreaterThan(mateWinningChances(5));
+    expect(mateWinningChances(5)).toBeGreaterThan(mateWinningChances(10));
+    expect(mateWinningChances(-1)).toBeCloseTo(-mateWinningChances(1), 12);
+  });
+
+  test('saturates at mate in 10', () => {
+    expect(mateWinningChances(50)).toBe(mateWinningChances(10));
+    expect(mateWinningChances(-50)).toBe(mateWinningChances(-10));
+  });
 });
 
 describe('winProbDrop', () => {
@@ -62,6 +94,10 @@ describe('winProbDrop', () => {
 
   test('an improvement is zero rather than a negative drop', () => {
     expect(winProbDrop('white', { cp: -100 }, { cp: 100 })).toBe(0);
+  });
+
+  test('saturates at a full probability swing', () => {
+    expect(winProbDrop('white', { cp: 5000 }, { cp: -5000 })).toBeCloseTo(1, 10);
   });
 });
 
@@ -207,6 +243,85 @@ describe('classifyMove: mate transitions', () => {
       mateEvent: 'MateCreated',
     });
   });
+
+  test('the gentleness floors are strict inequalities', () => {
+    // Exactly -800 CP is not "below -800", so it stays a Blunder; one
+    // centipawn further crosses into Mistake, and -1500/-1501 split Mistake
+    // from Inaccuracy the same way.
+    expect(classifyMove('white', { cp: -800 }, { mate: -3 })).toEqual({
+      judgement: 'Blunder',
+      mateEvent: 'MateCreated',
+    });
+    expect(classifyMove('white', { cp: -801 }, { mate: -3 })).toEqual({
+      judgement: 'Mistake',
+      mateEvent: 'MateCreated',
+    });
+    expect(classifyMove('white', { cp: -1500 }, { mate: -3 })).toEqual({
+      judgement: 'Mistake',
+      mateEvent: 'MateCreated',
+    });
+    expect(classifyMove('white', { cp: -1501 }, { mate: -3 })).toEqual({
+      judgement: 'Inaccuracy',
+      mateEvent: 'MateCreated',
+    });
+  });
+
+  test('losing a mate to a position where the opponent has one is still MateLost', () => {
+    // The mover's mate vanished and the opponent's appeared — the MateLost
+    // disjunct fires with no centipawn score to compare against.
+    expect(classifyMove('white', { mate: 1 }, { mate: -1 })).toEqual({
+      judgement: 'Blunder',
+      mateEvent: 'MateLost',
+    });
+    expect(classifyMove('black', { mate: -1 }, { mate: 1 })).toEqual({
+      judgement: 'Blunder',
+      mateEvent: 'MateLost',
+    });
+  });
+
+  test('the mate-lost floors mirror the created ones', () => {
+    expect(classifyMove('white', { mate: 2 }, { cp: 800 })).toEqual({
+      judgement: 'Blunder',
+      mateEvent: 'MateLost',
+    });
+    expect(classifyMove('white', { mate: 2 }, { cp: 801 })).toEqual({
+      judgement: 'Mistake',
+      mateEvent: 'MateLost',
+    });
+    expect(classifyMove('white', { mate: 2 }, { cp: 1500 })).toEqual({
+      judgement: 'Mistake',
+      mateEvent: 'MateLost',
+    });
+    expect(classifyMove('white', { mate: 2 }, { cp: 1501 })).toEqual({
+      judgement: 'Inaccuracy',
+      mateEvent: 'MateLost',
+    });
+  });
+
+  test('a deepening forced loss against the mover is not flagged', () => {
+    // Both evaluations are mates against White: no centipawn guard applies and
+    // the sigmoid is saturated, so there is nothing meaningful to report.
+    expect(classifyMove('white', { mate: -5 }, { mate: -1 })).toBeNull();
+    expect(classifyMove('black', { mate: 5 }, { mate: 1 })).toBeNull();
+  });
+
+  test('escaping a forced loss by ordinary means is not flagged', () => {
+    // The opponent's mate disappears into a dead-equal score: an improvement.
+    expect(classifyMove('white', { mate: -3 }, { cp: 0 })).toBeNull();
+  });
+});
+
+describe('moveAccuracyFromEvals', () => {
+  test("reads the evaluation from the moving player's side", () => {
+    // Black turning equality into a two-pawn lead is a perfect move; giving a
+    // two-pawn lead back costs exactly what it would cost White mirrored.
+    expect(moveAccuracyFromEvals('black', { cp: 0 }, { cp: -200 })).toBe(100);
+    expect(moveAccuracyFromEvals('white', { cp: 0 }, { cp: 200 })).toBe(100);
+    expect(moveAccuracyFromEvals('black', { cp: -200 }, { cp: 0 })).toBeLessThan(50);
+    expect(moveAccuracyFromEvals('white', { cp: 200 }, { cp: 0 })).toBe(
+      moveAccuracyFromEvals('black', { cp: -200 }, { cp: 0 }),
+    );
+  });
 });
 
 describe('classifyMove: a good move is not a mistake', () => {
@@ -229,9 +344,19 @@ describe('moveAccuracy', () => {
     expect(large).toBeGreaterThanOrEqual(0);
     expect(small).toBeLessThanOrEqual(100);
   });
+
+  test('clamps to 0 when the whole game is given away', () => {
+    expect(moveAccuracy(100, 0)).toBe(0);
+  });
 });
 
 describe('gameAccuracy', () => {
+  test('attributes a swing to the player who moved when Black starts', () => {
+    // With Black to move first, the evals go 15 (after Black's move) then
+    // -600 (after White's reply): White dropped from +0.15 to lost, so White
+    // scores 8.4 while Black is perfect.
+    expect(gameAccuracy('black', [15, -600])).toEqual({ white: 8.4, black: 100 });
+  });
   test('refuses to score a game too short to say anything about', () => {
     expect(gameAccuracy('white', [])).toBeNull();
     expect(gameAccuracy('white', [20])).toBeNull();

@@ -34,4 +34,14 @@ describe('themeForGroup', () => {
     expect(themeForGroup('motif', 'nope')).toBeNull();
     expect(themeForGroup('phase', 'hanging_piece')).toBeNull();
   });
+
+  test('time_trouble maps whatever key it is handed, the kind deciding alone', () => {
+    expect(themeForGroup('time_trouble', 'B01')).toBe('crushing');
+  });
+
+  test("a kind only reads its own table, never another kind's keys", () => {
+    expect(themeForGroup('motif', 'opening')).toBeNull();
+    expect(themeForGroup('motif', 'endgame')).toBeNull();
+    expect(themeForGroup('phase', 'missed_check')).toBeNull();
+  });
 });

@@ -47,6 +47,10 @@ function stripBracketed(name: string): string {
  */
 function cleanTokens(part: string): string[] {
   const tokens = part
+    // Diacritics fold to their ASCII skeleton before the punctuation sweep, so
+    // "Müller" tokenizes as "muller" rather than the ü splitting it in two.
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
     .replace(/['’‘-]/g, '')
     .replace(/[^A-Za-z0-9\s]/g, ' ')
     .split(/\s+/)
