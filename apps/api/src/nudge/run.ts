@@ -65,11 +65,22 @@ function isSqsEvent(event: unknown): event is { Records: { body: string }[] } {
   );
 }
 
-export async function handler(rawEvent: unknown, deps?: RunDeps): Promise<void> {
+/**
+ * The production entry. One positional argument only: Lambda calls handlers
+ * as (event, context), so an optional second "deps" parameter would receive
+ * the context object and read a database out of it. Injection goes through
+ * runFor.
+ */
+export async function handler(rawEvent: unknown): Promise<void> {
+  await runFor(runDepsFromEnv(), rawEvent);
+}
+
+/** The injection seam the tests call: the same body, with explicit deps. The
+ * event defaults to the empty schedule trigger; sqs events are passed whole. */
+export async function runFor(deps: RunDeps, rawEvent: unknown = {}): Promise<void> {
   const records = isSqsEvent(rawEvent) ? rawEvent.Records : null;
   const trigger = records === null ? 'schedule' : 'sqs';
-  const d = deps ?? runDepsFromEnv();
-
+  const d = deps;
   if (d.mailer === null) {
     log('info', 'nudge_run_skipped', { trigger, reason: 'provider_unconfigured' });
     return;
