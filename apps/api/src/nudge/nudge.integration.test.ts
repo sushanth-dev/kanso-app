@@ -25,7 +25,7 @@ import { session, user } from '../db/auth-schema.ts';
 import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-harness.ts';
 import type { Mailer } from '../account/mailer.ts';
 import { CONTINUATION_BODY, type NudgeQueueConfig } from './queue.ts';
-import { handler, type RunDeps } from './run.ts';
+import { runFor, type RunDeps } from './run.ts';
 import { signUnsubscribeToken, verifyUnsubscribeToken } from './unsubscribe-token.ts';
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -147,7 +147,7 @@ describe('nudge selection', () => {
       lastSignIn: ago(1),
     });
 
-    await handler({}, depsFor(fakeMailer()));
+    await runFor(depsFor(fakeMailer()));
 
     expect(await sentUserIds()).toHaveLength(1);
   });
@@ -155,7 +155,7 @@ describe('nudge selection', () => {
   test('never emails an account with zero games', async () => {
     await seedAccount({ lastSignIn: ago(1) });
 
-    await handler({}, depsFor(fakeMailer()));
+    await runFor(depsFor(fakeMailer()));
 
     expect(await sentUserIds()).toEqual([]);
   });
@@ -169,7 +169,7 @@ describe('nudge selection', () => {
       lastSignIn: ago(1),
     });
 
-    await handler({}, depsFor(fakeMailer()));
+    await runFor(depsFor(fakeMailer()));
 
     expect(await sentUserIds()).toEqual([]);
   });
@@ -183,7 +183,7 @@ describe('nudge selection', () => {
       lastSignIn: ago(1),
     });
 
-    await handler({}, depsFor(fakeMailer()));
+    await runFor(depsFor(fakeMailer()));
 
     expect(await sentUserIds()).toHaveLength(1);
   });
@@ -194,7 +194,7 @@ describe('nudge selection', () => {
       lastSignIn: ago(31),
     });
 
-    await handler({}, depsFor(fakeMailer()));
+    await runFor(depsFor(fakeMailer()));
 
     expect(await sentUserIds()).toEqual([]);
   });
@@ -206,7 +206,7 @@ describe('nudge selection', () => {
       unsubscribedAt: ago(1),
     });
 
-    await handler({}, depsFor(fakeMailer()));
+    await runFor(depsFor(fakeMailer()));
 
     expect(await sentUserIds()).toEqual([]);
   });
@@ -218,7 +218,7 @@ describe('nudge selection', () => {
       nudgedAt: [ago(3)],
     });
 
-    await handler({}, depsFor(fakeMailer()));
+    await runFor(depsFor(fakeMailer()));
 
     expect(await sentUserIds()).toEqual([]);
   });
@@ -230,7 +230,7 @@ describe('nudge selection', () => {
       nudgedAt: [ago(8)],
     });
 
-    await handler({}, depsFor(fakeMailer()));
+    await runFor(depsFor(fakeMailer()));
 
     expect(await sentUserIds()).toHaveLength(1);
   });
@@ -246,7 +246,7 @@ describe('nudge pacing', () => {
     }
     const mailer = fakeMailer();
 
-    await handler({}, depsFor(mailer));
+    await runFor(depsFor(mailer));
 
     expect(mailer.calls).toHaveLength(90);
     expect(await sentUserIds()).toHaveLength(90);
@@ -270,7 +270,7 @@ describe('nudge pacing', () => {
       });
     }
 
-    await handler({}, depsFor(fakeMailer()));
+    await runFor(depsFor(fakeMailer()));
 
     expect(await sentUserIds()).toHaveLength(4);
   });
@@ -287,7 +287,7 @@ describe('nudge pacing', () => {
     }
     const mailer = fakeMailer();
 
-    await handler({}, depsFor(mailer));
+    await runFor(depsFor(mailer));
 
     expect(mailer.calls).toEqual([]);
     expect(await sentUserIds()).toEqual([]);
@@ -301,9 +301,9 @@ describe('nudge provider', () => {
       lastSignIn: ago(1),
     });
 
-    await handler(
-      {},
+    await runFor(
       { db: harness.db, mailer: null, appOrigin: 'http://localhost:3000', queueConfig: null },
+      {},
     );
 
     expect(await sentUserIds()).toEqual([]);
@@ -321,7 +321,7 @@ describe('nudge provider', () => {
       lastSignIn: ago(1),
     });
 
-    await handler({}, depsFor(fakeMailer(['bad@example.com'])));
+    await runFor(depsFor(fakeMailer(['bad@example.com'])));
 
     expect(await sentUserIds()).toHaveLength(1);
   });
@@ -375,7 +375,7 @@ describe('nudge continuation queue', () => {
         });
       }
 
-      await handler({}, depsFor(fakeMailer(), config));
+      await runFor(depsFor(fakeMailer(), config), {});
 
       expect(await drain()).toEqual([CONTINUATION_BODY]);
     },
@@ -389,7 +389,7 @@ describe('nudge continuation queue', () => {
       });
     }
 
-    await handler({}, depsFor(fakeMailer(), config));
+    await runFor(depsFor(fakeMailer(), config), {});
 
     expect(await drain()).toEqual([]);
   });
@@ -408,9 +408,9 @@ describe('nudge continuation queue', () => {
         lastSignIn: ago(1),
       });
 
-      await handler(
-        {},
+      await runFor(
         depsFor(fakeMailer(['failing_a@example.com', 'failing_b@example.com']), config),
+        {},
       );
 
       expect(await drain()).toEqual([]);
@@ -421,7 +421,7 @@ describe('nudge continuation queue', () => {
   test.skipIf(endpoint === undefined)(
     'acknowledges a foreign message by ignoring it rather than looping on it',
     async () => {
-      await handler({ Records: [{ body: 'not-a-continuation' }] }, depsFor(fakeMailer(), config));
+      await runFor(depsFor(fakeMailer(), config), { Records: [{ body: 'not-a-continuation' }] });
 
       expect(await drain()).toEqual([]);
       expect(await sentUserIds()).toEqual([]);
