@@ -81,7 +81,7 @@ fi
 #    CORS_ORIGINS, which server.ts loads itself.
 export APP_ORIGIN="http://127.0.0.1:5173"
 export BETTER_AUTH_URL="http://127.0.0.1:5173"
-export SES_FROM_ADDRESS="sender@example.com"
+export MAIL_FROM_ADDRESS="sender@example.com"
 export IMPORT_PROVIDER_STUB=1
 export MAILER_STUB=1
 export RAZORPAY_STUB=1
