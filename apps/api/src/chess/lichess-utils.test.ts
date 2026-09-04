@@ -378,3 +378,61 @@ describe('gameAccuracy', () => {
     expect(result!.white).toBeLessThan(result!.black);
   });
 });
+describe('classifyMove: the mistake band itself', () => {
+  /**
+   * Every Mistake in the golden tests above arrives via the blunder floor or
+   * the inaccuracy upgrade. A drop between 0.2 and 0.3 that dodges both
+   * guards is classified directly, and that base path is what a retune of the
+   * thresholds would move first.
+   */
+  test('classifies a drop in the 20 to 30 percent band as a Mistake outright', () => {
+    // +1.5 to dead equal: 150 CP is outside the near-equality window, the
+    // drop lands in the band, and neither guard touches a Mistake.
+    expect(classifyMove('white', { cp: 150 }, { cp: 0 })).toEqual({ judgement: 'Mistake' });
+    expect(classifyMove('black', { cp: -150 }, { cp: 0 })).toEqual({ judgement: 'Mistake' });
+  });
+
+  test('says nothing about a small drop from a clearly won position', () => {
+    // +6 to +4: a 200 CP swing is past the deadzone, but the sigmoid is flat
+    // out there, so the win-probability drop stays under every threshold.
+    expect(classifyMove('white', { cp: 600 }, { cp: 400 })).toBeNull();
+  });
+});
+
+describe('classifyMove: mate transitions with no centipawn anchor', () => {
+  test('a mate swinging from one side to the other is judged from the mover', () => {
+    // White's mate disappears and Black's appears in the same move: the
+    // MateLost disjunct fires without any centipawn score, and the floor
+    // comparison reads the (absent) current cp as zero — a Blunder.
+    expect(classifyMove('white', { mate: 5 }, { mate: -3 })).toEqual({
+      judgement: 'Blunder',
+      mateEvent: 'MateLost',
+    });
+  });
+
+  test('a mate the opponent no longer has while gaining their own is not flagged', () => {
+    // The mover was being mated and still is not: no mate event applies and
+    // the sigmoid is saturated on both ends, so there is nothing to report.
+    expect(classifyMove('white', { mate: -5 }, { mate: 2 })).toBeNull();
+  });
+});
+
+describe('moveAccuracyFromEvals: mate scores', () => {
+  test('inverts a mate score for Black before reading the curve', () => {
+    // Black was being mated in three and now mates in two: an inversion that
+    // must flip the mate sign without inventing a centipawn score.
+    expect(moveAccuracyFromEvals('black', { mate: 3 }, { mate: -2 })).toBe(100);
+    expect(moveAccuracyFromEvals('black', { mate: -2 }, { mate: 3 })).toBeLessThan(50);
+  });
+});
+
+describe('gameAccuracy: zero-accuracy moves', () => {
+  test('refuses to score a game in which a player gave away the full point', () => {
+    // Black moves with the eval swinging +30 to -30 (from Black's side, a
+    // total collapse): the move's accuracy clamps to 0, the harmonic mean of
+    // an all-zero subset is undefined, and the roll-up returns null rather
+    // than a number built on it.
+    expect(gameAccuracy('white', [-3000, 3000])).toBeNull();
+    expect(gameAccuracy('black', [3000, -3000])).toBeNull();
+  });
+});

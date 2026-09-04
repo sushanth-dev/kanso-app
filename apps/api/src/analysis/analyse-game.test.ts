@@ -36,6 +36,19 @@ describe('mergeAdjacentComments', () => {
     expect(clockMs).toEqual([180000]);
   });
 
+  test('comments separated by a newline merge the same way', () => {
+    // Provider exports do not always keep the pair on one line.
+    const spread = '1. e4 { 0.12/0 }\n{ [%clk 0:03:00] } e5 1-0';
+    expect(mergeAdjacentComments(spread)).toBe('1. e4 { 0.12/0   [%clk 0:03:00] } e5 1-0');
+  });
+
+  test('several adjacent pairs merge in one pass, and the texts survive', () => {
+    const merged = mergeAdjacentComments('1. e4 {a} {b} e5 {c} {d} 1-0');
+    expect(merged).toBe('1. e4 {a b} e5 {c d} 1-0');
+    const chess = new Chess();
+    expect(() => chess.loadPgn(merged)).not.toThrow();
+  });
+
   test('a game malformed for another reason still fails after the merge', () => {
     const illegal = '1. e4 Xx9';
     expect(mergeAdjacentComments(illegal)).toBe(illegal);

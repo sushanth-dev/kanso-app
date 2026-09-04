@@ -6,10 +6,13 @@
  */
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { ApiRequestError } from '../api/account-api.ts';
+import { diagnosisApi, type ActionItemDone, type ActionItemList } from '../api/diagnosis-api.ts';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { diagnosisApi, type ActionItemDone, type ActionItemList } from '../api/diagnosis-api.ts';
 import { ME_QUERY_KEY } from '../query-client.ts';
+import { createMemoryHistory, RouterContextProvider } from '@tanstack/react-router';
+import { createAppRouter } from '../router.tsx';
 import { CurriculumRoute } from './curriculum-route.tsx';
 
 type ActionItemRow = ActionItemList['items'][number];
@@ -158,5 +161,200 @@ describe('CurriculumRoute', () => {
 
     expect(await screen.findByText('Write a short summary of the core idea first.')).toBeVisible();
     expect(markActionItemDone).not.toHaveBeenCalled();
+  });
+
+  test('ST-107: refuses a whitespace-only summary before calling the coach', async () => {
+    const user = userEvent.setup();
+    renderCurriculum([actionItemFixture()]);
+    const markActionItemDone = vi.spyOn(diagnosisApi, 'markActionItemDone');
+
+    await user.click(await screen.findByRole('button', { name: 'Take assessment' }));
+    await user.type(
+      screen.getByLabelText('In your own words, what is the core idea of this concept?'),
+      '    ',
+    );
+    await user.click(screen.getByRole('button', { name: 'Submit to coach' }));
+
+    expect(await screen.findByText('Write a short summary of the core idea first.')).toBeVisible();
+    expect(markActionItemDone).not.toHaveBeenCalled();
+  });
+
+  test('ST-107: sends the coach the trimmed summary', async () => {
+    const user = userEvent.setup();
+    renderCurriculum([actionItemFixture()]);
+    const markActionItemDone = vi.spyOn(diagnosisApi, 'markActionItemDone').mockResolvedValue({
+      pass: true,
+      feedback: 'Exactly right.',
+      completedAt: new Date().toISOString(),
+    });
+
+    await user.click(await screen.findByRole('button', { name: 'Take assessment' }));
+    await user.type(
+      screen.getByLabelText('In your own words, what is the core idea of this concept?'),
+      '  Count the captures before moving. ',
+    );
+    await user.click(screen.getByRole('button', { name: 'Submit to coach' }));
+
+    expect(await screen.findByText('The coach is satisfied! +100 XP earned.')).toBeVisible();
+    expect(markActionItemDone).toHaveBeenCalledWith({
+      actionItemId: 'ai-1',
+      summary: 'Count the captures before moving.',
+    });
+  });
+
+  test('ST-107: offers a retry when the coach cannot be reached', async () => {
+    const user = userEvent.setup();
+    renderCurriculum([actionItemFixture()]);
+    vi.spyOn(diagnosisApi, 'markActionItemDone').mockRejectedValue(new Error('socket hang up'));
+
+    await user.click(await screen.findByRole('button', { name: 'Take assessment' }));
+    await user.type(
+      screen.getByLabelText('In your own words, what is the core idea of this concept?'),
+      'Something concrete.',
+    );
+    await user.click(screen.getByRole('button', { name: 'Submit to coach' }));
+
+    expect(
+      await screen.findByText(
+        'The coach could not be reached. Nothing was saved. Please try again.',
+      ),
+    ).toBeVisible();
+    // The attempt survives so the player can resubmit it.
+    expect(screen.getByRole('button', { name: 'Submit to coach' })).toBeEnabled();
+  });
+
+  test('ST-107: a 401 from the coach clears the session and sends the player to sign-in', async () => {
+    const user = userEvent.setup();
+    const queryClient = new QueryClient();
+    const history = createMemoryHistory();
+    const router = createAppRouter({ history, queryClient });
+    queryClient.setQueryData(ME_QUERY_KEY, { userId: 'user-1' });
+    vi.spyOn(diagnosisApi, 'listActionItems').mockResolvedValue({ items: [actionItemFixture()] });
+    vi.spyOn(diagnosisApi, 'markActionItemDone').mockRejectedValue(
+      new ApiRequestError(401, 'unauthorized', undefined, 'No session.'),
+    );
+    render(
+      <QueryClientProvider client={queryClient}>
+        <RouterContextProvider router={router}>
+          <CurriculumRoute />
+        </RouterContextProvider>
+      </QueryClientProvider>,
+    );
+
+    await user.click(await screen.findByRole('button', { name: 'Take assessment' }));
+    await user.type(
+      screen.getByLabelText('In your own words, what is the core idea of this concept?'),
+      'Something concrete.',
+    );
+    await user.click(screen.getByRole('button', { name: 'Submit to coach' }));
+
+    await waitFor(() => {
+      expect(queryClient.getQueryData(ME_QUERY_KEY)).toBeUndefined();
+      expect(history.location.pathname).toBe('/sign-in');
+    });
+  });
+
+  test('ST-107: shows the deal-in-progress state while the list loads', async () => {
+    const { promise } = Promise.withResolvers<ActionItemList>();
+    vi.spyOn(diagnosisApi, 'listActionItems').mockReturnValue(promise);
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <CurriculumRoute />
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Training curriculum' })).toBeVisible();
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+  });
+
+  test('ST-107: explains an unloadable curriculum instead of showing items', async () => {
+    vi.spyOn(diagnosisApi, 'listActionItems').mockRejectedValue(new Error('boom'));
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <CurriculumRoute />
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText('Your curriculum could not be loaded')).toBeVisible();
+    expect(screen.getByText('Try again in a moment.')).toBeVisible();
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+  });
+
+  test('ST-107: an empty pending tab points back to the report', async () => {
+    renderCurriculum([]);
+
+    expect(await screen.findByText('No items yet')).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Get started' })).toHaveAttribute('href', '/report');
+    expect(screen.getByRole('tab', { name: 'Pending (0)' })).toBeVisible();
+    expect(screen.getByRole('tab', { name: 'Completed (0)' })).toBeVisible();
+  });
+
+  test('ST-107: splits items into pending and completed tabs', async () => {
+    const user = userEvent.setup();
+    renderCurriculum([
+      actionItemFixture(),
+      actionItemFixture({ id: 'ai-2', label: 'Weak open file' }),
+      actionItemFixture({ id: 'ai-3', label: 'Endgame technique', status: 'completed' }),
+    ]);
+
+    expect(await screen.findByRole('tab', { name: 'Pending (2)' })).toBeVisible();
+    expect(screen.getByRole('tab', { name: 'Completed (1)' })).toBeVisible();
+    expect(screen.getByRole('tab', { name: 'Pending (2)' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+
+    await user.click(screen.getByRole('tab', { name: 'Completed (1)' }));
+
+    expect(await screen.findByRole('tab', { name: 'Completed (1)' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(screen.getByRole('heading', { name: 'Endgame technique mastery' })).toBeVisible();
+    expect(
+      screen.queryByRole('heading', { name: 'Missed captures mastery' }),
+    ).not.toBeInTheDocument();
+  });
+
+  test('ST-107: a completed item without a date or summary shows only the badge', async () => {
+    const user = userEvent.setup();
+    renderCurriculum([
+      actionItemFixture({ id: 'ai-3', status: 'completed', completedAt: null, summary: null }),
+    ]);
+
+    await user.click(await screen.findByRole('tab', { name: /Completed/ }));
+
+    expect(await screen.findByText('Assessment passed')).toBeVisible();
+    expect(screen.queryByText(/^Passed on /)).not.toBeInTheDocument();
+  });
+
+  test('ST-107: a completed item shows the summary the coach accepted', async () => {
+    const user = userEvent.setup();
+    renderCurriculum([
+      actionItemFixture({
+        id: 'ai-3',
+        status: 'completed',
+        completedAt: '2026-08-31T10:00:00.000Z',
+        summary: 'Before moving, count what each capture wins.',
+      }),
+    ]);
+
+    await user.click(await screen.findByRole('tab', { name: /Completed/ }));
+
+    expect(await screen.findByText('Before moving, count what each capture wins.')).toBeVisible();
+  });
+
+  test('ST-107: cancelling collapses the assessment form', async () => {
+    const user = userEvent.setup();
+    renderCurriculum([actionItemFixture()]);
+
+    await user.click(await screen.findByRole('button', { name: 'Take assessment' }));
+    expect(screen.getByRole('form', { name: 'Take this assessment' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveAttribute('aria-expanded', 'true');
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.queryByRole('form', { name: 'Take this assessment' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Take assessment' })).toBeVisible();
   });
 });

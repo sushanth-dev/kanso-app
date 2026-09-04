@@ -123,4 +123,81 @@ describe('ProofSheetScreen', () => {
     expect(await screen.findByRole('heading', { name: 'Set a focus first' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Set a focus' })).toBeInTheDocument();
   });
+  test('shows a loading skeleton while the share links are fetched', async () => {
+    const { promise } = Promise.withResolvers<ProofSheet[]>();
+    vi.spyOn(proofSheetApi, 'listProofSheets').mockReturnValue(promise);
+
+    renderScreen();
+
+    expect(await screen.findByRole('status', { name: 'Loading share links' })).toBeVisible();
+  });
+
+  test('shows the plain empty state for a load failure that is not the paid boundary', async () => {
+    vi.spyOn(proofSheetApi, 'listProofSheets').mockRejectedValue(
+      new ApiRequestError(500, 'internal_error', undefined, 'Server error.'),
+    );
+    renderScreen();
+
+    expect(
+      await screen.findByRole('heading', { name: 'Your share links could not be loaded' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'The proof sheet is part of the paid loop' }),
+    ).not.toBeInTheDocument();
+  });
+
+  test('a generic create failure states the error and keeps the page usable', async () => {
+    vi.spyOn(proofSheetApi, 'listProofSheets').mockResolvedValue([]);
+    vi.spyOn(proofSheetApi, 'createProofSheet').mockRejectedValue(
+      new ApiRequestError(500, 'internal_error', undefined, 'Server error.'),
+    );
+    const { user } = renderScreen();
+
+    await user.click(await screen.findByRole('button', { name: 'Create a share link' }));
+
+    expect(
+      await screen.findByText('The share link could not be created. Please try again.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create a share link' })).toBeEnabled();
+    expect(screen.queryByRole('heading', { name: 'Set a focus first' })).not.toBeInTheDocument();
+  });
+
+  test('a revoke failure states the error and keeps the link', async () => {
+    vi.spyOn(proofSheetApi, 'listProofSheets').mockResolvedValue([sheetFixture()]);
+    vi.spyOn(proofSheetApi, 'revokeProofSheet').mockRejectedValue(
+      new ApiRequestError(500, 'internal_error', undefined, 'Server error.'),
+    );
+    const { user } = renderScreen();
+
+    await user.click(await screen.findByRole('button', { name: 'Revoke link' }));
+    await user.click(screen.getByRole('button', { name: 'Confirm revoke' }));
+
+    expect(
+      await screen.findByText('The link could not be revoked. Please try again.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText(sheetFixture().url)).toBeInTheDocument();
+  });
+
+  test('keeping the link closes the confirmation without revoking', async () => {
+    vi.spyOn(proofSheetApi, 'listProofSheets').mockResolvedValue([sheetFixture()]);
+    const revoke = vi.spyOn(proofSheetApi, 'revokeProofSheet').mockResolvedValue(undefined);
+    const { user } = renderScreen();
+
+    await user.click(await screen.findByRole('button', { name: 'Revoke link' }));
+    await user.click(screen.getByRole('button', { name: 'Keep link' }));
+
+    expect(screen.queryByText(/Anyone holding this link/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Revoke link' })).toBeInTheDocument();
+    expect(revoke).not.toHaveBeenCalled();
+  });
+
+  test('copy labels the button as copied', async () => {
+    vi.spyOn(proofSheetApi, 'listProofSheets').mockResolvedValue([sheetFixture()]);
+    vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+    const { user } = renderScreen();
+
+    await user.click(await screen.findByRole('button', { name: 'Copy' }));
+
+    expect(await screen.findByRole('button', { name: 'Copied' })).toBeInTheDocument();
+  });
 });

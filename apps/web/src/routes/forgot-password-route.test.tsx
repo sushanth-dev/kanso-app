@@ -57,4 +57,50 @@ describe('ForgotPasswordRoute', () => {
 
     expect(await screen.findByText(/too many attempts/i)).toBeVisible();
   });
+  test('maps any other refusal or a thrown failure to the try-again copy', async () => {
+    requestPasswordReset.mockResolvedValue({
+      data: null,
+      error: { status: 500, statusText: 'Internal Server Error' },
+    });
+    renderForgot();
+    const user = userEvent.setup();
+
+    await user.type(await screen.findByLabelText('Email'), 'alice@example.com');
+    await user.click(screen.getByRole('button', { name: 'Send reset link' }));
+    expect(await screen.findByText('Something went wrong. Try again.')).toBeVisible();
+
+    requestPasswordReset.mockRejectedValue(new TypeError('Failed to fetch'));
+    await user.click(screen.getByRole('button', { name: 'Send reset link' }));
+    expect(await screen.findAllByText('Something went wrong. Try again.')).toHaveLength(1);
+  });
+
+  test('keeps native email constraints and links back to sign-in', async () => {
+    renderForgot();
+
+    const email = await screen.findByLabelText('Email');
+    expect(email).toHaveAttribute('type', 'email');
+    expect(email).toHaveAttribute('autocomplete', 'email');
+    expect(email).toBeRequired();
+    expect(email).toHaveAttribute('maxlength', '254');
+    expect(screen.getByRole('link', { name: 'Back to sign in' })).toHaveAttribute(
+      'href',
+      '/sign-in',
+    );
+  });
+
+  test('the sent state still offers the way back to sign-in', async () => {
+    requestPasswordReset.mockResolvedValue({ data: { status: true }, error: null });
+    renderForgot();
+    const user = userEvent.setup();
+
+    await user.type(await screen.findByLabelText('Email'), 'alice@example.com');
+    await user.click(screen.getByRole('button', { name: 'Send reset link' }));
+
+    expect(await screen.findByRole('heading', { name: 'Check your email' })).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Back to sign in' })).toHaveAttribute(
+      'href',
+      '/sign-in',
+    );
+    expect(screen.queryByRole('button', { name: 'Send reset link' })).not.toBeInTheDocument();
+  });
 });
