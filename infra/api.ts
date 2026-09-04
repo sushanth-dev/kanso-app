@@ -64,6 +64,12 @@ const handler = new sst.aws.Function('ApiHandler', {
     RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID ?? '',
     RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET ?? '',
     RAZORPAY_WEBHOOK_SECRET: process.env.RAZORPAY_WEBHOOK_SECRET ?? '',
+    // The Resend credentials the mailer sends with (ADR-0042, ST-125). Read
+    // from .env at deploy time like the session secret; unset or empty, the
+    // consent flow fails loud rather than issuing a link that was never
+    // mailed. The from address is the verified kansochess.app identity.
+    RESEND_API_KEY: process.env.RESEND_API_KEY ?? '',
+    MAIL_FROM_ADDRESS: process.env.MAIL_FROM_ADDRESS ?? '',
   },
   // API Gateway caps a request at 30 seconds, so a longer function timeout is a
   // setting that never gets used.
