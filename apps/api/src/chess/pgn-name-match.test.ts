@@ -224,3 +224,61 @@ describe('fixes did not go too far', () => {
     expect(matches('Test Player', 'GM PLAYER, TEST')).toBe(true);
   });
 });
+
+describe('unicode and special characters', () => {
+  /**
+   * Crosstables print diacritics ("Müller, Heinz") that a player never types.
+   * Before the fold, "ü" was treated as a separator and the surname shattered
+   * into "m" and "ller", so an accented name could never match its ASCII
+   * spelling — the player's own games silently failed to attribute.
+   */
+  test('folds diacritics to their ASCII skeleton', () => {
+    expect(normalizeName('André Silva')).toEqual(new Set(['andre', 'silva']));
+    expect(normalizeName('Müller, Heinz')).toEqual(new Set(['muller', 'heinz']));
+  });
+
+  test('matches a typed ASCII name against an accented crosstable name', () => {
+    expect(matches('Andre Silva', 'Silva, André')).toBe(true);
+    expect(matches('Heinz Muller', 'Müller, Heinz')).toBe(true);
+  });
+
+  test('still matches when both sides carry the accents', () => {
+    expect(matches('André Silva', 'Silva, André')).toBe(true);
+  });
+
+  test('strips a curly apostrophe exactly like a straight one', () => {
+    expect(normalizeName('O’Brien')).toEqual(new Set(['obrien']));
+    expect(normalizeName("O'Brien")).toEqual(new Set(['obrien']));
+  });
+
+  test('a hyphen joins but other dashes separate', () => {
+    expect(normalizeName('Jean-Pierre')).toEqual(new Set(['jeanpierre']));
+    expect(normalizeName('Jean–Pierre')).toEqual(new Set(['jean', 'pierre']));
+  });
+});
+
+describe('abbreviation and surname-anchoring edges', () => {
+  test('a multi-letter abbreviation is not an initial', () => {
+    expect(matches('Te Player', 'Player, Test')).toBe(false);
+    expect(matches('Tes Player', 'Player, Test')).toBe(false);
+  });
+
+  /**
+   * Path A deliberately lets a player who typed only their surname match a
+   * namesake: the subset branch relaxes the symmetric surname check for a
+   * bare given-name list. Pinned as intended, not as an accident.
+   */
+  test('a player who typed only their surname matches a namesake', () => {
+    expect(matches('Player', 'Player, Anita')).toBe(true);
+  });
+
+  test('a surname that is only a title cannot anchor a match', () => {
+    // The comma makes "GM" the stated surname; after the title trim nothing is
+    // left to anchor on, so neither path may match.
+    expect(matches('GM, Test', 'Test Player')).toBe(false);
+  });
+
+  test('a compound surname matches when both sides carry it fully', () => {
+    expect(matches('Magnus Van der Berg', 'Van der Berg, Magnus')).toBe(true);
+  });
+});
