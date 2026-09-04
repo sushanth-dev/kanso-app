@@ -13,6 +13,7 @@ import {
   type RouterHistory,
 } from '@tanstack/react-router';
 import { ApiRequestError } from './api/account-api.ts';
+import { AnnouncementBanner } from './components/announcement-banner.tsx';
 import { PageFrame } from './components/page-frame.tsx';
 import { StatusMessageProvider } from './components/status-message.tsx';
 import { RouteError } from './components/route-error.tsx';
@@ -68,6 +69,7 @@ function RootComponent() {
   }
   return (
     <StatusMessageProvider>
+      <AnnouncementBanner />
       <PageFrame>{outlet}</PageFrame>
     </StatusMessageProvider>
   );

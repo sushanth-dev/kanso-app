@@ -343,6 +343,9 @@ where nothing scrolls beneath.
   widths. No drop shadows; depth stays the three brightness steps. ST-075's
   "wraps to two rows, no hamburger" decision is superseded; every route it
   made reachable stays reachable.
+  One slim dismissible bar may sit above the header: the announcement, its
+  wording and one link configured through the PostHog `announcements` flag's
+  payload. With no announcement it renders nothing.
 
 ### Account
 
