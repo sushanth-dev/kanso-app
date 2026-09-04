@@ -804,6 +804,37 @@ export const proofSheet = pgTable(
   (t) => [index('proof_sheet_focus_idx').on(t.playerFocusId)],
 );
 
+/**
+ * ST-117. The assignment link: the share act's second caller (ST-067). The
+ * creator records a catalogue focus and the coach's dictated instruction; the
+ * token opens a page that shows exactly that payload, and confirming it - a
+ * sessioned act - sets the player's active focus through the focus write path.
+ * Like the proof sheet: marked revoked rather than deleted, expiring, and the
+ * token is the only thing between a forwarded link and the payload. Unlike the
+ * proof sheet there is no snapshot: the payload is account-independent, so the
+ * read resolves the catalogue focus live and carries nothing else.
+ */
+export const assignmentLink = pgTable(
+  'assignment_link',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    createdByPlayerId: uuid('created_by_player_id')
+      .notNull()
+      .references(() => player.id, { onDelete: 'cascade' }),
+    catalogueId: uuid('catalogue_id')
+      .notNull()
+      .references(() => focusCatalogue.id),
+    /** F13. The coach's own words, kept verbatim. */
+    instruction: text('instruction').notNull(),
+    /** The share secret. Long, random, and the only thing standing between a forwarded link and the payload. */
+    token: text('token').notNull().unique(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+  },
+  (t) => [index('assignment_link_creator_idx').on(t.createdByPlayerId)],
+);
+
 // ─── Practice ────────────────────────────────────────────────────────────────
 
 /**

@@ -21,7 +21,8 @@ import { meQueryOptions, queryClient } from './query-client.ts';
 import type { WeaknessKind } from './api/diagnosis-api.ts';
 import { SignInRoute, SignUpRoute } from './routes/auth-routes.tsx';
 import { GameReviewRoute } from './routes/game-review-route.tsx';
-import { GamesRoute } from './routes/games-route.tsx';
+import { SharedProofSheetRoute } from './routes/shared-proof-sheet-route.tsx';
+import { SharedAssignmentRoute } from './routes/shared-assignment-route.tsx';
 import { FocusRoute } from './routes/focus-route.tsx';
 import { GuardianConfirmRoute } from './routes/guardian-confirm-route.tsx';
 import { GuardianWaitingRoute } from './routes/guardian-waiting-route.tsx';
@@ -34,7 +35,7 @@ import { ProofSheetRoute } from './routes/proof-sheet-route.tsx';
 import { PracticeRoute } from './routes/practice-route.tsx';
 import { SettingsRoute } from './routes/settings-route.tsx';
 import { ReportRoute } from './routes/report-route.tsx';
-import { SharedProofSheetRoute } from './routes/shared-proof-sheet-route.tsx';
+import { GamesRoute } from './routes/games-route.tsx';
 import { UpgradeRoute } from './routes/upgrade-route.tsx';
 import { TournamentsRoute } from './routes/tournaments-route.tsx';
 import { TournamentDetailRoute } from './routes/tournament-detail-route.tsx';
@@ -62,6 +63,7 @@ function RootComponent() {
   if (
     pathname === '/' ||
     pathname.startsWith('/shared/proof-sheets/') ||
+    pathname.startsWith('/shared/assignments/') ||
     pathname.startsWith('/guardians/') ||
     pathname.startsWith('/nudge/')
   ) {
@@ -331,6 +333,14 @@ const sharedProofSheetRoute = createRoute({
   component: SharedProofSheetRoute,
 });
 
+// ST-117. The assignment link a coach's instruction rides in on: public like
+// the shared proof sheet, because it is opened before anyone signs in.
+const sharedAssignmentRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/shared/assignments/$token',
+  component: SharedAssignmentRoute,
+});
+
 const guardianConfirmRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/guardians/confirm/$token',
@@ -402,6 +412,7 @@ const routeTree = rootRoute.addChildren([
     upgradeRoute,
   ]),
   sharedProofSheetRoute,
+  sharedAssignmentRoute,
   guardianConfirmRoute,
   guardianWaitingRoute,
   forgotPasswordRoute,

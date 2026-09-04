@@ -122,7 +122,9 @@ describe('the three tiers', () => {
   test('a beginner account is refused at every paid route', async () => {
     const { cookie } = await signUpCookie('beginner@example.com');
 
-    const paidPaths = ['/focuses', '/focus', '/proof-sheets'];
+    // ST-117. The assignment link routes are Focus-tagged, so the paid gate
+    // reaches them by derivation; '/assignments' pins it.
+    const paidPaths = ['/focuses', '/focus', '/proof-sheets', '/assignments'];
     for (const path of paidPaths) {
       const res = await app().request(path, { headers: { cookie } });
       expect(res.status).toBe(403);

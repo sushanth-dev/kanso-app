@@ -33,8 +33,10 @@ describe('toHonoPath', () => {
 
 describe('publicPaths', () => {
   test('is derived from the contract rather than restated', () => {
-    // Four routes are public, and each is deliberate. The shared proof sheet
-    // is read by someone with no account (F14, S6); the guardian consent
+    // Five routes are public, and each is deliberate. The shared proof sheet
+    // is read by someone with no account (F14, S6); the shared assignment read
+    // is the share act's second caller (ST-117) and answers before anyone
+    // signs in; the guardian consent
     // confirm route is reached from an email link (N7); `/health` is called by
     // a load balancer (E3); and the Razorpay webhook is called by Razorpay and
     // verifies the signature instead of a session (ST-044). A new public route
@@ -48,6 +50,7 @@ describe('publicPaths', () => {
       // opened from an email with no session and answers 404 on a bad token.
       '/nudge/unsubscribe/{token}',
       '/shared/proof-sheets/{token}',
+      '/shared/assignments/{token}',
       '/payments/webhook',
     ]);
   });
@@ -83,10 +86,21 @@ describe('the session guard', () => {
 
   test('lets the guardian consent confirm route through without a session', async () => {
     const app = createApp();
+
     const response = await app.request(`/guardians/confirm/${'x'.repeat(32)}`);
 
     // No handler is mounted without a database, so this falls through to the
     // 404. What matters is that it is not a 401: the consent link stays public.
+    expect(response.status).not.toBe(401);
+  });
+
+  test('lets the shared assignment read through without a session', async () => {
+    const app = createApp();
+    const response = await app.request(`/shared/assignments/${'x'.repeat(32)}`);
+
+    // No handler is mounted without a database, so this falls through to the
+    // 404. What matters is that it is not a 401: the link stays public. The
+    // confirm beside it is sessioned and is covered by the loop above.
     expect(response.status).not.toBe(401);
   });
 
