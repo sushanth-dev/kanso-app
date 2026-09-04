@@ -247,7 +247,7 @@ describe('SettingsScreen', () => {
 
     expect(screen.queryByLabelText('Confirm with your password')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Delete account' }));
-    expect(screen.getByLabelText('Confirm with your password')).toBeVisible();
+    expect(await screen.findByLabelText('Confirm with your password')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Delete forever' })).toBeDisabled();
   });
 
@@ -261,7 +261,7 @@ describe('SettingsScreen', () => {
     renderSettings();
 
     await user.click(screen.getByRole('button', { name: 'Delete account' }));
-    await user.type(screen.getByLabelText('Confirm with your password'), 'wrong');
+    await user.type(await screen.findByLabelText('Confirm with your password'), 'wrong');
     await user.click(screen.getByRole('button', { name: 'Delete forever' }));
 
     expect(await screen.findByText('That password is not right.')).toBeVisible();

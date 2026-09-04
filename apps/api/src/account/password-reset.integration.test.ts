@@ -29,6 +29,7 @@ const mailer: Mailer = {
     resets.push(input);
     return Promise.resolve();
   },
+  async sendNudge() {},
 };
 
 beforeAll(async () => {

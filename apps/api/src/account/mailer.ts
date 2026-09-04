@@ -1,5 +1,8 @@
 /**
- * The mailer seam: how a consent notice reaches a guardian, and nothing else.
+ * The mailer seam: how account emails reach players and guardians. Consent
+ * notices and password resets go to a guardian or a straying login; the nudge
+ * (ST-126) goes to a quiet tournament player, and is the one email that
+ * carries List-Unsubscribe headers.
  *
  * The story turns on the notice email actually being sent, so the production
  * default is Resend over HTTPS (ADR-0042) and it fails loud when unconfigured
@@ -19,6 +22,7 @@ import { join } from 'node:path';
 export interface Mailer {
   sendConsentNotice(input: { to: string; confirmUrl: string }): Promise<void>;
   sendPasswordReset(input: { to: string; resetUrl: string }): Promise<void>;
+  sendNudge(input: { to: string; importUrl: string; unsubscribeUrl: string }): Promise<void>;
 }
 
 export interface ResendConfig {
@@ -41,7 +45,13 @@ const RESEND_ENDPOINT = 'https://api.resend.com/emails';
 // client the SES SDK needed has nothing here to be kept alive for.
 async function send(
   config: ResendConfig,
-  email: { to: string; subject: string; text: string },
+  email: {
+    to: string;
+    subject: string;
+    text: string;
+    html?: string;
+    headers?: Record<string, string>;
+  },
 ): Promise<void> {
   const response = await fetch(RESEND_ENDPOINT, {
     method: 'POST',
@@ -54,7 +64,8 @@ async function send(
       to: [email.to],
       subject: email.subject,
       text: email.text,
-      html: `<p>${email.text}</p>`,
+      html: email.html ?? `<p>${email.text}</p>`,
+      ...(email.headers ? { headers: email.headers } : {}),
     }),
   });
   if (!response.ok) {
@@ -90,6 +101,32 @@ export function resendMailer(config: ResendConfig | null): Mailer {
         text: `Open this link to reset your KansoChess password: ${resetUrl}`,
       });
     },
+    async sendNudge({ to, importUrl, unsubscribeUrl }) {
+      if (config === null) {
+        throw new Error(
+          'RESEND_API_KEY or MAIL_FROM_ADDRESS is not set: a nudge email cannot be sent. See .env.example.',
+        );
+      }
+      await send(config, {
+        to,
+        subject: 'Played this weekend? Import the games',
+        text: [
+          'It is easier to import while the rounds are fresh, and every diagnosis',
+          'KansoChess offers comes from games you have imported.',
+          '',
+          `Import your games: ${importUrl}`,
+          '',
+          `One link stops these emails: ${unsubscribeUrl}`,
+        ].join('\n'),
+        html: [
+          '<p>It is easier to import while the rounds are fresh, and every diagnosis',
+          'KansoChess offers comes from games you have imported.</p>',
+          `<p><a href="${importUrl}">Import your games</a></p>`,
+          `<p><a href="${unsubscribeUrl}">Unsubscribe from these emails</a></p>`,
+        ].join(''),
+        headers: { 'List-Unsubscribe': `<${unsubscribeUrl}>` },
+      });
+    },
   };
 }
 
@@ -97,6 +134,8 @@ export function resendMailer(config: ResendConfig | null): Mailer {
 const STUB_DESTINATION = join(tmpdir(), 'kanso-consent-links.log');
 /** Where the stubbed mailer records reset links; shared with the e2e spec. */
 const RESET_STUB_DESTINATION = join(tmpdir(), 'kanso-reset-links.log');
+/** Where the stubbed mailer records nudge links; test infrastructure only. */
+const NUDGE_STUB_DESTINATION = join(tmpdir(), 'kanso-nudge-links.log');
 
 /**
  * The stubbed mailer for the Playwright consent journey (ST-053). A minor
@@ -112,6 +151,9 @@ export function stubMailer(): Mailer {
     },
     async sendPasswordReset({ resetUrl }) {
       await appendFile(RESET_STUB_DESTINATION, `${resetUrl}\n`);
+    },
+    async sendNudge({ importUrl, unsubscribeUrl }) {
+      await appendFile(NUDGE_STUB_DESTINATION, `${importUrl} ${unsubscribeUrl}\n`);
     },
   };
 }

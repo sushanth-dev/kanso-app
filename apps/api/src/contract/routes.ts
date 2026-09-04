@@ -158,6 +158,29 @@ export const confirmGuardian = createRoute({
   },
 });
 
+export const nudgeUnsubscribe = createRoute({
+  method: 'get',
+  path: '/nudge/unsubscribe/{token}',
+  tags: ['Account'],
+  summary: 'Unsubscribe from the post-tournament nudge',
+  /** The unsubscribe link is opened by a player with no session. */
+  security: [],
+  description:
+    "ST-126. The unauthenticated route the nudge email's unsubscribe link points at. It sets the flag exactly once: a valid token records it, a repeat click is a no-op, and a tampered or expired token answers 404 rather than revealing whether an account exists.",
+  request: {
+    params: z.object({
+      token: z
+        .string()
+        .min(32)
+        .openapi({ param: { name: 'token', in: 'path' } }),
+    }),
+  },
+  responses: {
+    204: { description: 'Unsubscribed, or already unsubscribed.' },
+    404: error('No such unsubscribe link, or it was tampered with or has expired.'),
+  },
+});
+
 // ─── Diagnosis ───────────────────────────────────────────────────────────────
 
 export const getTransferGap = createRoute({
@@ -826,6 +849,7 @@ export const routes = [
   updatePlayer,
   deleteAccount,
   confirmGuardian,
+  nudgeUnsubscribe,
   startImport,
   getImport,
   listGames,

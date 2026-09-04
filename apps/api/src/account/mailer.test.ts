@@ -101,6 +101,35 @@ describe('resendMailer', () => {
     expect(body.text).toBe(`Open this link to reset your KansoChess password: ${resetUrl}`);
   });
 
+  test('sends the nudge with one CTA, the unsubscribe footer, and the List-Unsubscribe header', async () => {
+    const fetcher = vi.fn().mockResolvedValue(recordedEmail('email-3'));
+    vi.stubGlobal('fetch', fetcher);
+    const importUrl = 'http://localhost:3000/import';
+    const unsubscribeUrl = 'http://localhost:3000/nudge/unsubscribe/some-token';
+
+    await expect(
+      resendMailer(config).sendNudge({ to: 'player@example.com', importUrl, unsubscribeUrl }),
+    ).resolves.toBeUndefined();
+
+    const [, init] = fetcher.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(init.body as string) as {
+      subject: string;
+      text: string;
+      html: string;
+      headers: Record<string, string>;
+    };
+    expect(body.subject).toBe('Played this weekend? Import the games');
+    // One call to action: the import link appears exactly once in the html,
+    // as the anchor. The unsubscribe link is the required footer, not a
+    // second CTA, and it is the machine-readable header's value.
+    expect(body.html).toContain(`<a href="${importUrl}">Import your games</a>`);
+    expect(body.html.split(importUrl)).toHaveLength(2);
+    expect(body.html).toContain(`<a href="${unsubscribeUrl}">Unsubscribe from these emails</a>`);
+    expect(body.headers['List-Unsubscribe']).toBe(`<${unsubscribeUrl}>`);
+    expect(body.text).toContain(importUrl);
+    expect(body.text).toContain(unsubscribeUrl);
+  });
+
   test('fails loud when Resend refuses the send, so no link is ever issued unmailed', async () => {
     const fetcher = vi
       .fn()
@@ -124,6 +153,13 @@ describe('resendMailer', () => {
     ).rejects.toThrow('RESEND_API_KEY or MAIL_FROM_ADDRESS is not set');
     await expect(
       resendMailer(null).sendPasswordReset({ to: 'guardian@example.com', resetUrl: 'u' }),
+    ).rejects.toThrow('RESEND_API_KEY or MAIL_FROM_ADDRESS is not set');
+    await expect(
+      resendMailer(null).sendNudge({
+        to: 'player@example.com',
+        importUrl: 'u',
+        unsubscribeUrl: 'u',
+      }),
     ).rejects.toThrow('RESEND_API_KEY or MAIL_FROM_ADDRESS is not set');
     expect(fetcher).not.toHaveBeenCalled();
   });
