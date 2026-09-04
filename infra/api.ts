@@ -70,6 +70,10 @@ const handler = new sst.aws.Function('ApiHandler', {
     // mailed. The from address is the verified kansochess.app identity.
     RESEND_API_KEY: process.env.RESEND_API_KEY ?? '',
     MAIL_FROM_ADDRESS: process.env.MAIL_FROM_ADDRESS ?? '',
+    // The PostHog project token the server-side exception capture reads
+    // (ADR-0038, second amendment). Public by design, like its web half;
+    // unset or empty, the API sends nothing to PostHog.
+    POSTHOG_KEY: process.env.POSTHOG_KEY ?? '',
   },
   // API Gateway caps a request at 30 seconds, so a longer function timeout is a
   // setting that never gets used.

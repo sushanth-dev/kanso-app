@@ -37,7 +37,11 @@ describe('verifyUnsubscribeToken', () => {
     const token = signUnsubscribeToken('user-1');
     const [body, sig] = token.split('.');
     assert(body !== undefined && sig !== undefined);
-    expect(verifyUnsubscribeToken(`${body}.${sig.slice(0, -1)}A`)).toEqual({
+    // The signature varies per run (the payload carries a wall-clock exp), so
+    // the flip must guarantee a change: flipping to 'A' is a no-op on the
+    // roughly one run in sixty-four whose signature already ends in 'A'.
+    const flipped = sig.endsWith('A') ? 'B' : 'A';
+    expect(verifyUnsubscribeToken(`${body}.${sig.slice(0, -1)}${flipped}`)).toEqual({
       ok: false,
       reason: 'tampered',
     });
