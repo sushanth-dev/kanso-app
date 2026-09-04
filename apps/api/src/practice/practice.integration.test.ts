@@ -7,6 +7,7 @@
  */
 import type { Context } from 'hono';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { eq } from 'drizzle-orm';
 import { createApp } from '../app.ts';
 import { player, puzzle, puzzleAttempt } from '../db/schema.ts';
@@ -40,6 +41,8 @@ interface PoolSeed {
   id: string;
   rating: number;
   themes: string[];
+  /** ST-122. The dump's deepest opening tag, absent when the game named none. */
+  opening?: string;
 }
 
 async function seedPool(rows: PoolSeed[]): Promise<void> {
@@ -51,6 +54,7 @@ async function seedPool(rows: PoolSeed[]): Promise<void> {
       moves: 'g1f3 b8c6',
       rating: row.rating,
       themes: row.themes,
+      opening: row.opening ?? null,
     })),
   );
 }
@@ -252,5 +256,105 @@ describe('POST /practice/puzzles', () => {
     expect(afterSolve!.currentStreak).toBe(1);
     expect(afterSolve!.xp).toBe(XP_PER_ACTIVITY_DAY);
     expect(afterSolve!.lastActivityDate).not.toBeNull();
+  });
+});
+
+describe('ST-122 opening-matched drills', () => {
+  /** Opening-theme puzzles around 1500, the band every deal here starts in. */
+  function openingBand(count: number, opening?: string): PoolSeed[] {
+    return Array.from({ length: count }, (_, i) => ({
+      id: `${opening ?? 'plain'}_${i}`,
+      rating: 1500,
+      themes: ['opening'],
+      opening,
+    }));
+  }
+
+  test('an opening group deals its mapped ECO family first and names it', async () => {
+    await seedPool(openingBand(8, 'Scandinavian_Defense_Main_Line'));
+    await seedPool(openingBand(30));
+    const response = await getDrill(OWNER, '?kind=opening&group=B01');
+    expect(response.status).toBe(200);
+    const set = (await response.json()) as { puzzles: { id: string }[]; opening: string | null };
+    const family = set.puzzles.filter((p) => p.id.startsWith('Scandinavian'));
+    expect(family).toHaveLength(8);
+    expect(set.opening).toBe('Scandinavian Defense');
+  });
+
+  test('a family the pool does not carry falls through to the theme rungs', async () => {
+    await seedPool(openingBand(25, 'Italian_Game'));
+    const response = await getDrill(OWNER, '?kind=opening&group=B01');
+    expect(response.status).toBe(200);
+    const set = (await response.json()) as { puzzles: { id: string }[]; opening: string | null };
+    expect(set.puzzles).toHaveLength(20);
+    expect(set.opening).toBeNull();
+  });
+
+  test('an ECO the map does not cover skips the opening rungs', async () => {
+    await seedPool(openingBand(25));
+    const response = await getDrill(OWNER, '?kind=opening&group=Z99');
+    expect(response.status).toBe(200);
+    const set = (await response.json()) as { puzzles: { id: string }[]; opening: string | null };
+    expect(set.puzzles).toHaveLength(20);
+    expect(set.opening).toBeNull();
+  });
+
+  test('a motif deal is unchanged by opening tags on the pool', async () => {
+    await seedPool(band(1500, 25));
+    await seedPool(openingBand(25, 'Scandinavian_Defense'));
+    const response = await getDrill(OWNER, '?kind=motif&group=hanging_piece');
+    expect(response.status).toBe(200);
+    const set = (await response.json()) as { puzzles: { id: string }[]; opening: string | null };
+    expect(set.puzzles.every((p) => p.id.startsWith('h1500_'))).toBe(true);
+    expect(set.opening).toBeNull();
+  });
+
+  test('re-applying the 0029 seed rewrites the opening and keeps attempts', async () => {
+    const seed = readFileSync(
+      new URL('../../drizzle/0029_seed_puzzle_openings.sql', import.meta.url),
+      'utf8',
+    );
+    const statement = seed.slice(seed.indexOf('INSERT INTO "puzzle"'));
+    expect(statement).toContain(
+      'ON CONFLICT ("lichess_id") DO UPDATE SET "opening" = EXCLUDED."opening"',
+    );
+
+    // The first tagged row of the real migration becomes the fixture: seeded
+    // with a null opening under a recorded attempt, then re-applied.
+    const row = /'([A-Za-z0-9]+)', '([^']+)', '([^']+)', (\d+), ARRAY\[[^\]]*\], '([^']+)'/.exec(
+      statement,
+    );
+    expect(row).not.toBeNull();
+    const id = row![1]!;
+    const fen = row![2]!;
+    const moves = row![3]!;
+    const rating = row![4]!;
+    const opening = row![5]!;
+    await harness.db.insert(puzzle).values({
+      lichessId: id,
+      fen,
+      moves,
+      rating: Number(rating),
+      themes: ['advantage'],
+      opening: null,
+    });
+    await harness.db.insert(puzzleAttempt).values({
+      playerId: await playerId(),
+      puzzleId: id,
+      kind: 'opening',
+      groupKey: 'B01',
+      attempts: 1,
+      solved: true,
+      reviewLevel: 1,
+      nextReviewAt: new Date(),
+      assignedAt: new Date(),
+    });
+
+    await harness.sql.unsafe(statement);
+    const [after] = await harness.db.select().from(puzzle).where(eq(puzzle.lichessId, id));
+    expect(after!.opening).toBe(opening);
+    const attempts = await harness.db.select().from(puzzleAttempt);
+    expect(attempts).toHaveLength(1);
+    expect(attempts[0]!.attempts).toBe(1);
   });
 });
