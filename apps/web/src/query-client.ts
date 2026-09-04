@@ -2,6 +2,7 @@ import { queryOptions, QueryClient } from '@tanstack/react-query';
 import { accountApi, ApiRequestError } from './api/account-api.ts';
 import { diagnosisApi, type Stream, type WeaknessKind } from './api/diagnosis-api.ts';
 import { focusApi } from './api/focus-api.ts';
+import { assignmentApi } from './api/assignment-api.ts';
 import { proofSheetApi } from './api/proof-sheet-api.ts';
 import { tournamentApi } from './api/tournament-api.ts';
 export const ME_QUERY_KEY = ['me'] as const;
@@ -74,6 +75,15 @@ export const cctScanQueryOptions = (mistakeId: string) =>
   queryOptions({
     queryKey: ['cct-scan', mistakeId] as const,
     queryFn: () => diagnosisApi.getCctScan(mistakeId),
+    retry: false,
+    staleTime: 30_000,
+  });
+
+/** ST-117. The focus surface's live assignment links. */
+export const assignmentsQueryOptions = () =>
+  queryOptions({
+    queryKey: ['assignments'] as const,
+    queryFn: () => assignmentApi.listAssignmentLinks(),
     retry: false,
     staleTime: 30_000,
   });
