@@ -38,6 +38,14 @@ export const practiceQueueQueryOptions = () =>
     retry: false,
   });
 
+/** ST-124. The due-for-review section the practice surface shows. */
+export const practiceReviewsQueryOptions = () =>
+  queryOptions({
+    queryKey: ['practice-reviews'] as const,
+    queryFn: () => diagnosisApi.getPracticeReviews(),
+    retry: false,
+  });
+
 /** ST-107. The curriculum page's list of every assigned action item. */
 export const actionItemsQueryOptions = () =>
   queryOptions({

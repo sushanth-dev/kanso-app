@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { useLocation } from '@tanstack/react-router';
+import { useQuery } from '@tanstack/react-query';
+import { Link as RouterLink, useLocation } from '@tanstack/react-router';
 import { Icon } from '@astryxdesign/core/Icon';
 import { IconButton } from '@astryxdesign/core/IconButton';
 import { Link } from '@astryxdesign/core/Link';
 import { Text } from '@astryxdesign/core/Text';
 import { StatusMessage, useStatusMessage } from './status-message.tsx';
 import { Mark } from './mark.tsx';
+import { meQueryOptions } from '../query-client.ts';
 import { RibbonFieldBackground } from './threeui/ribbon-field.tsx';
 
 export interface PageFrameProps {
@@ -51,6 +53,11 @@ function navEntryKey(entry: NavEntry): string {
 export function PageFrame({ children }: PageFrameProps) {
   const pathname = useLocation({ select: (location) => location.pathname });
   const { flash, markPresented, clearMessage } = useStatusMessage();
+  const me = useQuery(meQueryOptions());
+  // The brand returns to the product's front door: the report for a signed-in
+  // account, the landing page otherwise. Account routes resolve `me` in
+  // beforeLoad, so the signed-in answer is cached before the shell paints.
+  const brandHref = me.isSuccess ? '/report' : '/';
   const atDestination = flash !== null && pathname === flash.destination;
   const showNav = [
     '/settings',
@@ -101,8 +108,14 @@ export function PageFrame({ children }: PageFrameProps) {
       <header className="glass-top sticky top-0 z-20 border-b border-border-subtle">
         <div className="mx-auto w-full max-w-3xl px-4 py-4">
           <div className="flex items-center gap-2">
-            <Mark size={24} />
-            <Text className="font-display text-xl leading-tight tracking-tight">Kanso Chess</Text>
+            <RouterLink
+              to={brandHref}
+              className="inline-flex items-center gap-2"
+              aria-label="Kanso Chess"
+            >
+              <Mark size={24} />
+              <Text className="font-display text-xl leading-tight tracking-tight">Kanso Chess</Text>
+            </RouterLink>
             {showNav ? (
               <>
                 {/* Desktop: same row as the wordmark. */}

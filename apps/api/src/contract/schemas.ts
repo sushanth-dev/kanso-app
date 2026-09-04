@@ -300,14 +300,14 @@ export const RecordPracticePuzzle = z
   })
   .openapi('RecordPracticePuzzle');
 
-/** ST-106, ST-107. The running tally for one drilled puzzle, with its new review box. */
+/** ST-106, ST-107. The running tally for one drilled puzzle, with its new review rung. */
 export const PracticePuzzleTally = z
   .object({
     attempts: z.number().int(),
     solved: z.boolean(),
-    /** The Leitner box after this attempt: 0 failed or fresh, 4 mastered. */
-    reviewLevel: z.number().int().min(0).max(4),
-    /** When the puzzle returns for review; level 4 sits 30 days out. */
+    /** The review rung after this attempt: 0 failed or fresh, 3 the thirty-day top. */
+    reviewLevel: z.number().int().min(0).max(3),
+    /** When the puzzle returns for review; level 3 sits 30 days out. */
     nextReviewAt: z.iso.datetime(),
   })
   .openapi('PracticePuzzleTally');
@@ -321,7 +321,7 @@ export const PracticeQueueItem = z
     rating: z.number().int(),
     kind: WeaknessKind,
     group: z.string(),
-    reviewLevel: z.number().int().min(0).max(4),
+    reviewLevel: z.number().int().min(0).max(3),
     nextReviewAt: z.iso.datetime(),
     solved: z.boolean(),
     /** How many drills this puzzle has recorded; 0 means dealt but unstarted. */
@@ -341,6 +341,29 @@ export const PracticeQueue = z
     mastered: z.array(PracticeQueueItem),
   })
   .openapi('PracticeQueue');
+
+/** ST-124. One due review the practice surface's section offers, with its group. */
+export const PracticeReviewItem = z
+  .object({
+    puzzleId: z.string(),
+    kind: WeaknessKind,
+    group: z.string(),
+    reviewLevel: z.number().int().min(1).max(3),
+  })
+  .openapi('PracticeReviewItem');
+
+/**
+ * ST-124. The practice surface's due-for-review section: the player's due
+ * ladder puzzles, soonest first, capped at ten review solves per calendar
+ * day. `remaining` is what is left of the cap after today's review solves,
+ * so a spent day reads as empty with the reason attached.
+ */
+export const PracticeReviews = z
+  .object({
+    reviews: z.array(PracticeReviewItem),
+    remaining: z.number().int().min(0).max(10),
+  })
+  .openapi('PracticeReviews');
 
 export const MovePly = z
   .object({

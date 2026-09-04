@@ -9,6 +9,14 @@
  * between counts. The activity write runs in the same transaction and only
  * on a solve, so a reveal never pays; the once-per-day compare-and-swap in
  * `recordActivity` makes every repeat a no-op.
+ *
+ * ST-124. A solve advances the review ladder one rung - two days at level 1,
+ * seven at level 2, thirty at level 3, capped at 3 - and a reveal or a fail
+ * drops back to 0, due immediately. A review solve, meaning a solved drill
+ * on a puzzle that was already on the ladder with its review time passed,
+ * stamps `review_solved_at`; the due-reviews read counts today's stamps in
+ * UTC to hold the section to ten puzzles a day. Re-drilling a puzzle early,
+ * or re-solving one that failed, is extra practice and stamps nothing.
  */
 import { eq, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
@@ -23,7 +31,7 @@ type Db = PostgresJsDatabase<typeof schema>;
 export interface DrillOutcome {
   attempts: number;
   solved: boolean;
-  /** The Leitner box after this attempt. */
+  /** The review-ladder rung after this attempt: 0 failed or fresh, 3 the top. */
   reviewLevel: number;
   /** When the puzzle returns for review. */
   nextReviewAt: Date;
@@ -58,10 +66,10 @@ export async function recordDrill(
         groupKey: group,
         attempts: 1,
         solved,
-        // A first-attempt solve enters box 1 (back tomorrow); a reveal or a
-        // fail stays in box 0, due now.
+        // A first-attempt solve enters rung 1 (back in two days); a reveal
+        // or a fail stays at 0, due now.
         reviewLevel: solved ? 1 : 0,
-        nextReviewAt: solved ? sql`now() + interval '1 day'` : sql`now()`,
+        nextReviewAt: solved ? sql`now() + interval '2 days'` : sql`now()`,
         assignedAt: new Date(),
       })
       .onConflictDoUpdate({
@@ -70,16 +78,24 @@ export async function recordDrill(
           attempts: sql`${puzzleAttempt.attempts} + 1`,
           solved: sql`${puzzleAttempt.solved} or excluded.solved`,
           lastAttemptAt: sql`now()`,
-          // A solve climbs one box (capped at 4, the 30-day mastered box);
+          // A solve climbs one rung (capped at 3, the thirty-day rung);
           // a reveal drops back to 0, due now, and the queue re-deals it.
-          reviewLevel: solved ? sql`least(${puzzleAttempt.reviewLevel} + 1, 4)` : sql`0`,
+          reviewLevel: solved ? sql`least(${puzzleAttempt.reviewLevel} + 1, 3)` : sql`0`,
           nextReviewAt: solved
-            ? sql`(case least(${puzzleAttempt.reviewLevel} + 1, 4)
-                when 1 then now() + interval '1 day'
-                when 2 then now() + interval '3 days'
-                when 3 then now() + interval '7 days'
+            ? sql`(case least(${puzzleAttempt.reviewLevel} + 1, 3)
+                when 1 then now() + interval '2 days'
+                when 2 then now() + interval '7 days'
                 else now() + interval '30 days' end)`
             : sql`now()`,
+          // The pre-update columns in a DO UPDATE SET read the existing row,
+          // so `review_level >= 1 and next_review_at <= now()` is exactly
+          // "the puzzle was due on the ladder": a review solve. A redo of a
+          // failed puzzle (level 0) or an early re-drill stamps nothing.
+          reviewSolvedAt: solved
+            ? sql`case when ${puzzleAttempt.reviewLevel} >= 1
+                       and ${puzzleAttempt.nextReviewAt} <= now()
+                  then now() else ${puzzleAttempt.reviewSolvedAt} end`
+            : sql`${puzzleAttempt.reviewSolvedAt}`,
         },
       })
       .returning();
