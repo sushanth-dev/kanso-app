@@ -59,6 +59,9 @@ export function TransferGapRoute() {
     void queryClient.fetchQuery({
       ...transferGapQueryOptions(),
       queryFn: () => diagnosisApi.getTransferGap(true),
+      // A refresh click must reach the platforms even seconds after the last
+      // load; without this the spread's 30s staleTime serves the cache.
+      staleTime: 0,
     });
   };
 

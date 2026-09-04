@@ -250,4 +250,82 @@ describe('GamesRoute', () => {
       '/report?stream=tournament',
     );
   });
+  test('a failed delete states the error and keeps the game listed', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [gameFixture()],
+      total: 1,
+      page: 1,
+      limit: 100,
+    });
+    vi.spyOn(diagnosisApi, 'deleteGame').mockRejectedValue(
+      new ApiRequestError(500, 'internal_error', undefined, 'Server error.'),
+    );
+
+    renderRoute();
+
+    await user.click(await screen.findByRole('button', { name: 'Delete' }));
+    const dialog = await screen.findByRole('alertdialog', { name: 'Delete this game?' });
+    await user.click(within(dialog).getByRole('button', { name: 'Delete' }));
+
+    expect(
+      await screen.findByText('The game could not be deleted. Please try again.'),
+    ).toBeVisible();
+    expect(screen.getByText('Mina vs Opponent')).toBeVisible();
+  });
+
+  test('a failed re-queue keeps the failed label without crashing', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [gameFixture({ analysisStatus: 'failed' })],
+      total: 1,
+      page: 1,
+      limit: 100,
+    });
+    vi.spyOn(diagnosisApi, 'queueAnalysis').mockRejectedValue(
+      new ApiRequestError(500, 'internal_error', undefined, 'Server error.'),
+    );
+
+    renderRoute();
+
+    await user.click(await screen.findByRole('button', { name: 'Retry' }));
+
+    expect(await screen.findByText('Analysis failed.')).toBeVisible();
+  });
+
+  test('switching the stream reloads the other list and shows its empty state', async () => {
+    const user = userEvent.setup();
+    const listGames = vi
+      .spyOn(diagnosisApi, 'listGames')
+      .mockImplementation(() => Promise.resolve({ games: [], total: 0, page: 1, limit: 100 }));
+
+    renderRoute('/games?stream=tournament');
+
+    await screen.findByRole('heading', { name: 'No tournament games yet' });
+    await user.click(screen.getByRole('radio', { name: 'Online' }));
+
+    expect(await screen.findByRole('heading', { name: 'No online games yet' })).toBeVisible();
+    expect(listGames.mock.calls.some(([stream]) => stream === 'online')).toBe(true);
+  });
+
+  test('fills missing event, date, and player names with honest placeholders', async () => {
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [
+        gameFixture({
+          event: null,
+          playedAt: null,
+          whiteName: null,
+          blackName: null,
+        }),
+      ],
+      total: 1,
+      page: 1,
+      limit: 100,
+    });
+
+    renderRoute();
+    expect(await screen.findByText('Unknown vs Unknown')).toBeVisible();
+    expect(screen.getByText(/^Game$/)).toBeVisible();
+    expect(screen.queryByText(/Aug 14, 2026/)).not.toBeInTheDocument();
+  });
 });

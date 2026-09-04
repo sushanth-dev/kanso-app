@@ -35,4 +35,27 @@ describe('positionsToResearch', () => {
     expect(positionsToResearch(plies, scores, 0.2)).toEqual([]);
     expect(positionsToResearch(plies, scores, 0.05)).toEqual([0, 1]);
   });
+
+  test('a game with no plies researches nothing', () => {
+    expect(positionsToResearch([], [{ cp: 0 }], 0.085)).toEqual([]);
+  });
+
+  test('adjacent swings share a flank and stay sorted and unique', () => {
+    // Both plies swing; ply 1's after-position is ply 2's before-position, so
+    // index 1 must appear once.
+    const plies: SwingPly[] = [{ movingColor: 'white' }, { movingColor: 'black' }];
+    const scores = [{ cp: 500 }, { cp: 0 }, { cp: 500 }];
+    expect(positionsToResearch(plies, scores, 0.085)).toEqual([0, 1, 2]);
+  });
+
+  test('the mover improving is not a swing, whichever colour moves', () => {
+    // For Black, white-absolute cp falling is Black improving: the drop is
+    // computed from the mover's perspective, so this flags nothing.
+    const improvingBlack: SwingPly[] = [{ movingColor: 'black' }];
+    expect(positionsToResearch(improvingBlack, [{ cp: 500 }, { cp: 0 }], 0.085)).toEqual([]);
+
+    // ...and for White, white-absolute cp rising is White improving.
+    const improvingWhite: SwingPly[] = [{ movingColor: 'white' }];
+    expect(positionsToResearch(improvingWhite, [{ cp: 0 }, { cp: 500 }], 0.085)).toEqual([]);
+  });
 });

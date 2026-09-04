@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
-import { describe, expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import { accountApi, ApiRequestError, type Me } from '../api/account-api.ts';
 import { diagnosisApi, type Report } from '../api/diagnosis-api.ts';
 import { focusApi, type ActiveFocus, type FocusCatalogueEntry } from '../api/focus-api.ts';
@@ -12,6 +12,9 @@ vi.mock('../analytics.ts', () => ({
   track: vi.fn(),
 }));
 
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 const playerId = '00000000-0000-4000-8000-000000000001';
 
 const meFixture: Me = {
@@ -276,5 +279,122 @@ describe('DebriefRoute', () => {
         tournamentId,
       });
     });
+  });
+  test('shows a fallback when the focus itself fails to load', async () => {
+    vi.spyOn(accountApi, 'getMe').mockResolvedValue(meFixture);
+    vi.spyOn(diagnosisApi, 'getReport').mockRejectedValue(
+      new ApiRequestError(404, 'not_found', undefined, 'Not found.'),
+    );
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue(listGamesEmpty);
+    vi.spyOn(focusApi, 'getFocus').mockRejectedValue(
+      new ApiRequestError(500, 'internal_error', undefined, 'Server error.'),
+    );
+    vi.spyOn(focusApi, 'listFocuses').mockResolvedValue([]);
+
+    renderDebrief(`/debrief?gameIds=${gameId}`);
+    expect(
+      await screen.findByRole('heading', { name: 'Your focus could not be loaded' }),
+    ).toBeVisible();
+    expect(screen.queryByText('Choose a focus')).not.toBeInTheDocument();
+  });
+
+  test('says the catalogue could not be loaded when only the catalogue fails', async () => {
+    vi.spyOn(accountApi, 'getMe').mockResolvedValue(meFixture);
+    vi.spyOn(diagnosisApi, 'getReport').mockRejectedValue(
+      new ApiRequestError(404, 'not_found', undefined, 'Not found.'),
+    );
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue(listGamesEmpty);
+    vi.spyOn(focusApi, 'getFocus').mockRejectedValue(
+      new ApiRequestError(404, 'not_found', undefined, 'No focus.'),
+    );
+    vi.spyOn(focusApi, 'listFocuses').mockRejectedValue(
+      new ApiRequestError(500, 'internal_error', undefined, 'Server error.'),
+    );
+
+    renderDebrief(`/debrief?gameIds=${gameId}`);
+    expect(
+      await screen.findByText('The focus catalogue could not be loaded right now. Try again.'),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: 'Set Converting won positions' }),
+    ).not.toBeInTheDocument();
+  });
+
+  test('sets a paired coach-instruction focus from the debrief', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(accountApi, 'getMe').mockResolvedValue(meFixture);
+    vi.spyOn(diagnosisApi, 'getReport').mockResolvedValue(reportFixture());
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue(listGamesEmpty);
+    vi.spyOn(focusApi, 'getFocus').mockRejectedValue(
+      new ApiRequestError(404, 'not_found', undefined, 'No focus.'),
+    );
+    vi.spyOn(focusApi, 'listFocuses').mockResolvedValue([convertingWon]);
+    const setFocus = vi.spyOn(focusApi, 'setFocus').mockResolvedValue(activeFocusFixture());
+
+    renderDebrief(`/debrief?gameIds=${gameId}`);
+    await user.type(
+      await screen.findByLabelText('Coach instruction'),
+      '  Play through the endgame slowly.  ',
+    );
+    await user.selectOptions(
+      screen.getByLabelText('Paired measurable focus'),
+      'converting_won_positions',
+    );
+    await user.click(screen.getByRole('button', { name: 'Set coach focus' }));
+
+    await waitFor(() => {
+      expect(setFocus).toHaveBeenCalledWith({
+        source: 'coach',
+        coachInstruction: 'Play through the endgame slowly.',
+        pairedCatalogueKey: 'converting_won_positions',
+      });
+    });
+  });
+
+  test('refuses an empty coach instruction locally without calling the API', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(accountApi, 'getMe').mockResolvedValue(meFixture);
+    vi.spyOn(diagnosisApi, 'getReport').mockRejectedValue(
+      new ApiRequestError(404, 'not_found', undefined, 'Not found.'),
+    );
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue(listGamesEmpty);
+    vi.spyOn(focusApi, 'getFocus').mockRejectedValue(
+      new ApiRequestError(404, 'not_found', undefined, 'No focus.'),
+    );
+    vi.spyOn(focusApi, 'listFocuses').mockResolvedValue([convertingWon]);
+    const setFocus = vi.spyOn(focusApi, 'setFocus');
+
+    renderDebrief(`/debrief?gameIds=${gameId}`);
+    await user.click(await screen.findByRole('button', { name: 'Set coach focus' }));
+    expect(
+      await screen.findByText('Write the instruction in the coach’s own words.'),
+    ).toBeVisible();
+    expect(
+      screen.getAllByText(
+        'Choose a measurable focus to pair with, so we can still show whether the work is helping.',
+      ).length,
+    ).toBeGreaterThan(0);
+    expect(setFocus).not.toHaveBeenCalled();
+  });
+
+  test('shows the API refusal when setting a focus is rejected', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(accountApi, 'getMe').mockResolvedValue(meFixture);
+    vi.spyOn(diagnosisApi, 'getReport').mockRejectedValue(
+      new ApiRequestError(404, 'not_found', undefined, 'Not found.'),
+    );
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue(listGamesEmpty);
+    vi.spyOn(focusApi, 'getFocus').mockRejectedValue(
+      new ApiRequestError(404, 'not_found', undefined, 'No focus.'),
+    );
+    vi.spyOn(focusApi, 'listFocuses').mockResolvedValue([convertingWon]);
+    vi.spyOn(focusApi, 'setFocus').mockRejectedValue(
+      new ApiRequestError(403, 'forbidden', undefined, 'No.'),
+    );
+
+    renderDebrief(`/debrief?gameIds=${gameId}`);
+    await user.click(await screen.findByRole('button', { name: 'Set Converting won positions' }));
+
+    expect(await screen.findByText('This focus cannot be set for this player.')).toBeVisible();
   });
 });

@@ -117,6 +117,16 @@ describe('playerBody', () => {
       'Birth year must be a number.',
     );
   });
+
+  test('requires a username', () => {
+    expect(() => playerBody(formData({ displayName: '' }))).toThrow('Username is required.');
+  });
+
+  test('rejects a non-numeric uscfRating', () => {
+    expect(() => playerBody(formData({ displayName: 'Mina', uscfRating: 'not-a-number' }))).toThrow(
+      'USCF rating must be a number.',
+    );
+  });
 });
 
 describe('PlayerFormScreen', () => {
@@ -302,6 +312,72 @@ describe('PlayerFormScreen', () => {
     renderScreen();
     expect(screen.getByLabelText('Username')).toHaveValue('Mina');
     expect(screen.getByLabelText('Birth year')).toHaveValue(2013);
+  });
+
+  test('clears a field error when a later save succeeds', async () => {
+    const updateMe = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new ApiRequestError(
+          400,
+          'validation_error',
+          [{ path: 'birthYear', message: 'Must be a number.' }],
+          'Bad input.',
+        ),
+      )
+      .mockResolvedValue(player());
+    const { user } = renderScreen({ api: accountApi({ updateMe }) });
+
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+    expect(await screen.findByText('Must be a number.')).toBeVisible();
+    expect(screen.getByLabelText('Birth year')).toHaveAttribute('aria-invalid', 'true');
+
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+    // The form stays mounted under the injected navigate; the field's error
+    // status is what the retry is expected to clear.
+    await waitFor(() =>
+      expect(screen.getByLabelText('Birth year')).not.toHaveAttribute('aria-invalid'),
+    );
+  });
+
+  test('a 400 without field issues falls back to the generic failure', async () => {
+    const updateMe = vi
+      .fn()
+      .mockRejectedValue(new ApiRequestError(400, 'validation_error', [], 'Bad input.'));
+    const { user } = renderScreen({ api: accountApi({ updateMe }) });
+
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    expect(
+      await screen.findByText('The player could not be saved. Please try again.'),
+    ).toBeVisible();
+  });
+
+  test('does not leave the save button disabled forever on a failed mutation', async () => {
+    const updateMe = vi
+      .fn()
+      .mockRejectedValue(new ApiRequestError(500, 'internal', undefined, 'boom'));
+    const { user } = renderScreen({ api: accountApi({ updateMe }) });
+
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+    expect(
+      await screen.findByText('The player could not be saved. Please try again.'),
+    ).toBeVisible();
+
+    // A failed save re-enables the form so the player can retry.
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled();
+  });
+
+  test('keeps the save button disabled while the mutation is in flight', async () => {
+    const { promise, resolve } = Promise.withResolvers<Player>();
+    const updateMe = vi.fn().mockReturnValue(promise);
+    const { user } = renderScreen({ api: accountApi({ updateMe }) });
+
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+
+    resolve(player());
+    await waitFor(() => expect(updateMe).toHaveBeenCalledOnce());
   });
 });
 
