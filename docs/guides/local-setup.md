@@ -84,7 +84,7 @@ on your machine:
 
 ```sh
 docker run --rm -d -p 4566:4566 --name kanso-localstack \
-  -e SERVICES=ses,sqs localstack/localstack:4
+  -e SERVICES=sqs localstack/localstack:4
 ```
 
 The tests create and delete their own queues, so nothing needs to be set up

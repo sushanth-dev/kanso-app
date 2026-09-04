@@ -14,7 +14,7 @@ import postgres from 'postgres';
 import { createApp } from './app.ts';
 import { createAuth } from './auth.ts';
 import * as schema from './db/schema.ts';
-import { sesConfigFromEnv, sesMailer, stubMailer } from './account/mailer.ts';
+import { resendConfigFromEnv, resendMailer, stubMailer } from './account/mailer.ts';
 import { fixtureGameFetcher } from './import/fixture-game-fetcher.ts';
 import { stubRazorpayClient } from './billing/razorpay.ts';
 
@@ -36,7 +36,7 @@ const db = drizzle(sql, { schema });
 // The real session provider (ADR-0011). `createAuth` throws on a missing
 // `BETTER_AUTH_SECRET`, so a server that cannot authenticate refuses to start
 // rather than answering 401 forever.
-const mailer = process.env.MAILER_STUB === '1' ? stubMailer() : sesMailer(sesConfigFromEnv());
+const mailer = process.env.MAILER_STUB === '1' ? stubMailer() : resendMailer(resendConfigFromEnv());
 const auth = createAuth(db, { mailer });
 
 // The Playwright import journey (ST-029) stubs the provider with the captured
