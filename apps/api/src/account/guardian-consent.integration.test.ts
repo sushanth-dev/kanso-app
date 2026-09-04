@@ -31,6 +31,7 @@ const mailer: Mailer = {
     return Promise.resolve();
   },
   async sendPasswordReset() {},
+  async sendNudge() {},
 };
 
 beforeAll(async () => {
