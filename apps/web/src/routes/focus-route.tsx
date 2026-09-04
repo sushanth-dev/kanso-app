@@ -22,6 +22,7 @@ import {
 } from '../api/focus-api.ts';
 
 import { UpgradePrompt } from '../components/upgrade-prompt.tsx';
+import { AssignmentLinksSection } from '../components/assignment-links-section.tsx';
 import { ParticleReveal } from '../components/canvas-ui/ParticleReveal.tsx';
 import { track } from '../analytics.ts';
 import { StatusMessage } from '../components/status-message.tsx';
@@ -676,20 +677,38 @@ export function FocusRoute() {
 
   if (choosing || activeFocus === undefined) {
     return (
-      <FocusChoiceView
-        stream={stream}
-        onStreamChange={onStreamChange}
-        catalogue={catalogue}
-        catalogueFailed={focusesQuery.isError}
-        replacing={activeFocus ?? null}
-        submitting={submitting}
-        formError={formError}
-        onSet={handleSet}
-      />
+      <>
+        <FocusChoiceView
+          stream={stream}
+          onStreamChange={onStreamChange}
+          catalogue={catalogue}
+          catalogueFailed={focusesQuery.isError}
+          replacing={activeFocus ?? null}
+          submitting={submitting}
+          formError={formError}
+          onSet={handleSet}
+        />
+        <AssignmentLinksSection catalogue={catalogue} activeCatalogueKey={null} />
+      </>
     );
   }
 
+  // The link form pre-fills with the measurable focus the active one rides:
+  // the catalogue entry itself, or the paired focus for an F13 instruction.
+  const pairedEntry =
+    activeFocus.pairedFocusId !== null
+      ? catalogue.find((entry) => entry.id === activeFocus.pairedFocusId)
+      : undefined;
+  const activeCatalogueKey = activeFocus.catalogue?.key ?? pairedEntry?.key ?? null;
+
   return (
-    <ActiveFocusView focus={activeFocus} catalogue={catalogue} onChange={() => setChoosing(true)} />
+    <>
+      <ActiveFocusView
+        focus={activeFocus}
+        catalogue={catalogue}
+        onChange={() => setChoosing(true)}
+      />
+      <AssignmentLinksSection catalogue={catalogue} activeCatalogueKey={activeCatalogueKey} />
+    </>
   );
 }

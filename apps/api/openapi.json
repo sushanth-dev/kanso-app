@@ -2567,6 +2567,67 @@
           "periodEnd"
         ]
       },
+      "AssignmentLink": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "token": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "revokedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "token",
+          "url",
+          "createdAt",
+          "revokedAt",
+          "expiresAt"
+        ]
+      },
+      "SharedAssignment": {
+        "type": "object",
+        "properties": {
+          "focusTitle": {
+            "type": "string"
+          },
+          "focusDescription": {
+            "type": "string"
+          },
+          "instruction": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "focusTitle",
+          "focusDescription",
+          "instruction"
+        ]
+      },
       "CheckoutResponse": {
         "type": "object",
         "properties": {
@@ -5023,6 +5084,310 @@
           },
           "404": {
             "description": "No such page, or it was revoked or has expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/assignments": {
+      "post": {
+        "tags": [
+          "Focus"
+        ],
+        "summary": "Create a coach assignment link",
+        "description": "ST-117, F13, N8. The share act (ST-067) applied to the coach handoff: a tokened link holding a catalogue focus and the coach's instruction. The link grants only that payload; setting the focus still needs the player's session, which is what confirming is for.",
+        "requestBody": {
+          "description": "The focus, the instruction in the coach's words, and the optional expiry.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "catalogueKey": {
+                    "type": "string"
+                  },
+                  "instruction": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  },
+                  "expiresAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": [
+                  "catalogueKey",
+                  "instruction"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssignmentLink"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The session has no claim on this player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such catalogue key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Focus"
+        ],
+        "summary": "A player's live assignment links",
+        "description": "ST-117. The current links, newest first, excluding revoked and expired ones, exactly like the proof sheet list.",
+        "responses": {
+          "200": {
+            "description": "The player's live assignment links.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AssignmentLink"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The session has no claim on this player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/assignments/{assignmentId}": {
+      "delete": {
+        "tags": [
+          "Focus"
+        ],
+        "summary": "Revoke an assignment link",
+        "description": "ST-117, N8. Revocation is why the row is marked rather than deleted.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "assignmentId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Revoked. The link stops working immediately."
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not your assignment link.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such assignment link.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shared/assignments/{token}": {
+      "get": {
+        "tags": [
+          "Focus"
+        ],
+        "summary": "Read an assignment link by its token",
+        "security": [],
+        "description": "ST-117. An unauthenticated route that serves the focus and the instruction and nothing else - no games, no report, no account data. A revoked or expired token answers 404, indistinguishable from an unknown one.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 32
+            },
+            "required": true,
+            "name": "token",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The assignment.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedAssignment"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such assignment, or it was revoked or has expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shared/assignments/{token}/confirm": {
+      "post": {
+        "tags": [
+          "Focus"
+        ],
+        "summary": "Accept an assignment as the active focus",
+        "description": "ST-117, F13. Confirming needs the player's session: the link can pre-fill, only the player can set. The focus is written through the same path PUT /focus uses, so an unmeasurable instruction lands paired with a measurable focus and never stands alone. The response carries nothing: the act is visible on the focus surface.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 32
+            },
+            "required": true,
+            "name": "token",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The assignment is now the active focus."
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not yours to accept, or the tier does not allow it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such assignment, or it was revoked or has expired.",
             "content": {
               "application/json": {
                 "schema": {

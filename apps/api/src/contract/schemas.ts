@@ -904,6 +904,31 @@ export const SharedProofSheet = z
   })
   .openapi('SharedProofSheet');
 
+/** ST-117. A live assignment link, the share shape the proof sheet returns. */
+export const AssignmentLink = z
+  .object({
+    id: Uuid,
+    token: z.string(),
+    url: z.url(),
+    createdAt: z.iso.datetime(),
+    revokedAt: z.iso.datetime().nullable(),
+    expiresAt: z.iso.datetime().nullable(),
+  })
+  .openapi('AssignmentLink');
+
+/**
+ * ST-117. What an opened assignment link serves: the catalogue focus it names
+ * and the coach's instruction verbatim. Deliberately nothing else - no games,
+ * no report, no account data ride the token.
+ */
+export const SharedAssignment = z
+  .object({
+    focusTitle: z.string(),
+    focusDescription: z.string(),
+    instruction: z.string(),
+  })
+  .openapi('SharedAssignment');
+
 // ─── AI ──────────────────────────────────────────────────────────────────────
 
 /**
