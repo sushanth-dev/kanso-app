@@ -840,8 +840,10 @@ export const puzzleAttempt = pgTable(
     solved: boolean('solved').notNull().default(false),
     lastAttemptAt: timestamp('last_attempt_at', { withTimezone: true }).notNull().defaultNow(),
     /**
-     * ST-107. The Leitner box: 0 failed or fresh, 1-4 the mastered ladder
-     * (1/3/7/30 days). A solve promotes one box, a reveal drops back to 0.
+     * ST-124. The review ladder: 0 failed or fresh, then 1/2/3 at two, seven
+     * and thirty days. A solve advances one rung, capped at 3 - a solved
+     * level-3 puzzle returns every thirty days; a reveal or a fail drops
+     * back to 0, due immediately.
      */
     reviewLevel: smallint('review_level').notNull().default(0),
     /** When the puzzle returns for review; level 0 rows are due immediately. */
@@ -853,6 +855,13 @@ export const puzzleAttempt = pgTable(
      * abandoned session never deals the same puzzles again.
      */
     assignedAt: timestamp('assigned_at', { withTimezone: true }),
+    /**
+     * ST-124. The last review solve on this row: a completed, solved drill on
+     * a puzzle that was due on the ladder (level 1-3 with `next_review_at`
+     * passed). The ten-a-day review cap counts the rows whose UTC date is
+     * today, the same calendar the streak reads. Null when never reviewed.
+     */
+    reviewSolvedAt: timestamp('review_solved_at', { withTimezone: true }),
   },
   (t) => [
     primaryKey({ columns: [t.playerId, t.puzzleId] }),

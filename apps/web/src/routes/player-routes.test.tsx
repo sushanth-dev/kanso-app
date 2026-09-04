@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { QueryClient } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, RouterContextProvider } from '@tanstack/react-router';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { AccountApi, Me, Player } from '../api/account-api.ts';
@@ -75,18 +75,20 @@ function renderScreen({
   const history = createMemoryHistory();
   const router = createAppRouter({ history, queryClient });
   render(
-    <RouterContextProvider router={router}>
-      <StatusMessageProvider>
-        <PageFrame>
-          <PlayerFormScreen
-            me={me}
-            accountApi={api}
-            queryClient={queryClient}
-            navigate={navigate}
-          />
-        </PageFrame>
-      </StatusMessageProvider>
-    </RouterContextProvider>,
+    <QueryClientProvider client={queryClient}>
+      <RouterContextProvider router={router}>
+        <StatusMessageProvider>
+          <PageFrame>
+            <PlayerFormScreen
+              me={me}
+              accountApi={api}
+              queryClient={queryClient}
+              navigate={navigate}
+            />
+          </PageFrame>
+        </StatusMessageProvider>
+      </RouterContextProvider>
+    </QueryClientProvider>,
   );
   return { user, queryClient };
 }

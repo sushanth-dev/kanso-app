@@ -22,12 +22,17 @@ import { eq } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import type { Context } from 'hono';
-import { getPracticePuzzles, getPracticeQueue, recordPracticePuzzle } from '../contract/routes.ts';
+import {
+  getPracticePuzzles,
+  getPracticeQueue,
+  getPracticeReviews,
+  recordPracticePuzzle,
+} from '../contract/routes.ts';
 import * as schema from '../db/schema.ts';
 import { player } from '../db/schema.ts';
 import { readSession } from '../session.ts';
 import { assembleDrill } from './assemble.ts';
-import { readQueue } from './queue.ts';
+import { readDueReviews, readQueue } from './queue.ts';
 import { recordDrill } from './record.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
@@ -99,6 +104,14 @@ export function mountPractice(
       },
       200,
     );
+  });
+
+  app.openapi(getPracticeReviews, async (c) => {
+    const playerId = await ownPlayerId(deps.db, deps.getSession, c);
+    if (playerId === null) {
+      return c.json({ code: 'no_session', message: 'Sign in to use this endpoint.' }, 401);
+    }
+    return c.json(await readDueReviews(deps.db, playerId), 200);
   });
 
   app.openapi(recordPracticePuzzle, async (c) => {

@@ -32,6 +32,8 @@ export type TransferGap = components['schemas']['TransferGap'];
 export type Color = components['schemas']['Color'];
 export type PracticeSet = components['schemas']['PracticeSet'];
 export type PracticePuzzle = components['schemas']['PracticePuzzle'];
+export type PracticeReviews = components['schemas']['PracticeReviews'];
+export type PracticeReviewItem = components['schemas']['PracticeReviewItem'];
 
 export interface DiagnosisApi {
   getReport(stream: Stream, tournamentId?: string): Promise<Report>;
@@ -49,6 +51,8 @@ export interface DiagnosisApi {
   markActionItemDone(input: { actionItemId: string; summary: string }): Promise<ActionItemDone>;
   /** ST-107. The puzzles page's pending, upcoming, and mastered buckets. */
   getPracticeQueue(): Promise<PracticeQueue>;
+  /** ST-124. The practice surface's due-for-review section, cap included. */
+  getPracticeReviews(): Promise<PracticeReviews>;
   /** ST-107. Every assigned action item, newest first. */
   listActionItems(): Promise<ActionItemList>;
   /**
@@ -128,6 +132,11 @@ export function createDiagnosisApi(
     },
     async getPracticeQueue() {
       const result = await client.GET('/practice/queue', {});
+      if (result.data !== undefined) return result.data;
+      throw failure(result.response.status, result.error);
+    },
+    async getPracticeReviews() {
+      const result = await client.GET('/practice/reviews', {});
       if (result.data !== undefined) return result.data;
       throw failure(result.response.status, result.error);
     },
