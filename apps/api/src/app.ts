@@ -45,6 +45,7 @@ import { mountListFocuses } from './focus/list-focuses.ts';
 import { mountGetFocus } from './focus/get-focus.ts';
 import { mountSetFocus } from './focus/set-focus.ts';
 import { mountProofSheets } from './proof-sheet/proof-sheet.ts';
+import { mountAssignments } from './assignment/assignment.ts';
 import { mountCheckout } from './billing/checkout.ts';
 import { tierFor } from './billing/entitlement.ts';
 import {
@@ -343,6 +344,7 @@ export function createApp({
     mountGetFocus(app, { db, getSession: effectiveGetSession });
     mountSetFocus(app, { db, getSession: effectiveGetSession });
     mountProofSheets(app, { db, getSession: effectiveGetSession });
+    mountAssignments(app, { db, getSession: effectiveGetSession });
     mountCctScan(app, { db, getSession: effectiveGetSession });
     if (razorpay) {
       mountCheckout(app, { db, getSession: effectiveGetSession, razorpay });

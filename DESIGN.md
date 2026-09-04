@@ -610,6 +610,20 @@ UI's Particle Reveal (a still frame under reduced motion, `aria-hidden`),
 mirroring the game result and the report's rank-one weakness.
 does not pick (F8).
 
+ST-117 adds the assignment link to the same surface. Creation, list, copy, and
+confirm-then-revoke live in an "Assignment links" section on the focus page in
+both of its states, built from the shared primitives: a Card over FormLayout
+with a catalogue select, an instruction textarea, and the native date input
+for the optional expiry. The public reader (`/shared/assignments/$token`)
+renders outside the authenticated shell like the shared proof sheet, in the
+same quiet centered column: the focus title and description, then the coach's
+instruction verbatim under its label, then the one confirm action. Its four
+states are the proof sheet's: skeleton, payload, the one indistinguishable
+unavailable page, and the unreachable page with a retry. Confirming asks for
+the session first - signed out it offers sign-in, consent-gated it points to
+the waiting page, and a paid boundary names the paid loop rather than failing
+quietly.
+
 ### Entry and guardian consent
 
 Sign-in and sign-up render as one centered `Card` (`max-w-sm`) inside the

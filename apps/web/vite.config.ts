@@ -59,6 +59,7 @@ export default defineConfig({
         bypass: htmlBypass,
       },
       '/imports': 'http://127.0.0.1:3000',
+      '/assignments': 'http://127.0.0.1:3000',
       '/proof-sheets': 'http://127.0.0.1:3000',
       '/shared': {
         target: 'http://127.0.0.1:3000',

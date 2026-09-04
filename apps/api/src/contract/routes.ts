@@ -16,6 +16,7 @@ import {
   ActionItemDone,
   ActionItemList,
   ApiError,
+  AssignmentLink,
   CctScan,
   CheckoutRequest,
   DeleteAccount,
@@ -40,6 +41,7 @@ import {
   ProofSheet,
   RecordPracticePuzzle,
   Report,
+  SharedAssignment,
   WeaknessCoaching,
   SetFocus,
   SetGameColor,
@@ -808,6 +810,111 @@ export const getSharedProofSheet = createRoute({
   },
 });
 
+// ─── Assignment links ────────────────────────────────────────────────────────
+
+export const createAssignmentLink = createRoute({
+  method: 'post',
+  path: '/assignments',
+  tags: ['Focus'],
+  summary: 'Create a coach assignment link',
+  description:
+    "ST-117, F13, N8. The share act (ST-067) applied to the coach handoff: a tokened link holding a catalogue focus and the coach's instruction. The link grants only that payload; setting the focus still needs the player's session, which is what confirming is for.",
+  request: {
+    body: json(
+      z.object({
+        catalogueKey: z.string(),
+        instruction: z.string().min(1).max(500),
+        expiresAt: z.iso.datetime().optional(),
+      }),
+      "The focus, the instruction in the coach's words, and the optional expiry.",
+    ),
+  },
+  responses: {
+    201: json(AssignmentLink, 'Created.'),
+    ...authErrors,
+    404: error('No such catalogue key.'),
+  },
+});
+
+export const listAssignmentLinks = createRoute({
+  method: 'get',
+  path: '/assignments',
+  tags: ['Focus'],
+  summary: "A player's live assignment links",
+  description:
+    'ST-117. The current links, newest first, excluding revoked and expired ones, exactly like the proof sheet list.',
+  responses: {
+    200: json(z.array(AssignmentLink), "The player's live assignment links."),
+    ...authErrors,
+    404: error('No such player.'),
+  },
+});
+
+export const revokeAssignmentLink = createRoute({
+  method: 'delete',
+  path: '/assignments/{assignmentId}',
+  tags: ['Focus'],
+  summary: 'Revoke an assignment link',
+  description: 'ST-117, N8. Revocation is why the row is marked rather than deleted.',
+  request: {
+    params: z.object({
+      assignmentId: Uuid.openapi({ param: { name: 'assignmentId', in: 'path' } }),
+    }),
+  },
+  responses: {
+    204: { description: 'Revoked. The link stops working immediately.' },
+    401: error('No session.'),
+    403: error('Not your assignment link.'),
+    404: error('No such assignment link.'),
+  },
+});
+
+export const getSharedAssignment = createRoute({
+  method: 'get',
+  path: '/shared/assignments/{token}',
+  tags: ['Focus'],
+  summary: 'Read an assignment link by its token',
+  /** Answers without a session: the link is opened before anyone signs in. */
+  security: [],
+  description:
+    'ST-117. An unauthenticated route that serves the focus and the instruction and nothing else - no games, no report, no account data. A revoked or expired token answers 404, indistinguishable from an unknown one.',
+  request: {
+    params: z.object({
+      token: z
+        .string()
+        .min(32)
+        .openapi({ param: { name: 'token', in: 'path' } }),
+    }),
+  },
+  responses: {
+    200: json(SharedAssignment, 'The assignment.'),
+    404: error('No such assignment, or it was revoked or has expired.'),
+  },
+});
+
+export const confirmAssignment = createRoute({
+  method: 'post',
+  path: '/shared/assignments/{token}/confirm',
+  tags: ['Focus'],
+  summary: 'Accept an assignment as the active focus',
+  description:
+    "ST-117, F13. Confirming needs the player's session: the link can pre-fill, only the player can set. The focus is written through the same path PUT /focus uses, so an unmeasurable instruction lands paired with a measurable focus and never stands alone. The response carries nothing: the act is visible on the focus surface.",
+  request: {
+    params: z.object({
+      token: z
+        .string()
+        .min(32)
+        .openapi({ param: { name: 'token', in: 'path' } }),
+    }),
+  },
+  responses: {
+    204: { description: 'The assignment is now the active focus.' },
+    401: error('No session.'),
+    403: error('Not yours to accept, or the tier does not allow it.'),
+    404: error('No such assignment, or it was revoked or has expired.'),
+  },
+});
+
 // ─── Billing ────────────────────────────────────────────────────────────────
 
 export const createCheckout = createRoute({
@@ -882,6 +989,11 @@ export const routes = [
   createProofSheet,
   revokeProofSheet,
   getSharedProofSheet,
+  createAssignmentLink,
+  listAssignmentLinks,
+  revokeAssignmentLink,
+  getSharedAssignment,
+  confirmAssignment,
   createCheckout,
   razorpayWebhook,
 ] as const;
