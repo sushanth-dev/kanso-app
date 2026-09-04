@@ -41,9 +41,8 @@ export const nudgeRun = new sst.aws.Function('NudgeRun', {
   handler: 'apps/api/src/nudge/run.handler',
   vpc,
   link: [database],
-  // Unlike the analysis worker, the run sends to the queue it also drains:
-  // the continuation is its own message.
-  permissions: [{ actions: ['sqs:SendMessage'], resources: [nudgeQueue.arn] }],
+  // The run sends to the queue it also drains: the continuation is its own
+  // message, and the consumer grant below lets it drain it.
   environment: {
     DATABASE_URL: databaseUrl,
     NUDGE_QUEUE_URL: nudgeQueue.url,
@@ -61,11 +60,30 @@ export const nudgeRun = new sst.aws.Function('NudgeRun', {
   timeout: '5 minutes',
   memory: '256 MB',
   architecture: 'arm64',
+  // The queue grants, made here rather than by subscribe: subscribing by arn
+  // skips the platform's IAM grant. The receive set is the exact list the
+  // platform's own subscriber would have added.
+  permissions: [
+    {
+      actions: ['sqs:SendMessage'],
+      resources: [nudgeQueue.arn],
+    },
+    {
+      actions: [
+        'sqs:ChangeMessageVisibility',
+        'sqs:DeleteMessage',
+        'sqs:GetQueueAttributes',
+        'sqs:GetQueueUrl',
+        'sqs:ReceiveMessage',
+      ],
+      resources: [nudgeQueue.arn],
+    },
+  ],
 });
 
-// The component, not the arn: subscribing by arn skips the IAM grant and the
-// event source mapping fails with a missing sqs:ReceiveMessage permission.
-nudgeQueue.subscribe(nudgeRun);
+// The arn, so the same function serves both triggers; the grant above carries
+// the permission subscribe would have added.
+nudgeQueue.subscribe(nudgeRun.arn);
 
 // Sunday 13:00 UTC (ST-126): early afternoon in Europe, evening in India,
 // and never the small hours anywhere the players are.
