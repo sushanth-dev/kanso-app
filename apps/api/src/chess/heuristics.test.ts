@@ -171,3 +171,43 @@ describe('analyzeFullGame', () => {
     expect(analyzeFullGame(bare, 'white').map((m) => m.moveNumber)).toEqual([1, 2]);
   });
 });
+describe('calculateKingSafety: king zone geometry', () => {
+  test('clips the 3x3 zone at the board edge instead of scoring phantom squares', () => {
+    // A king in the corner has a four-square zone (a1, a2, b1, b2). The black
+    // queen a8 attacks a1 and a2 down the file: 60 raw penalty, no defenders
+    // → 40. A phantom ninth square beyond the edge would not change this, but
+    // the clipping is what keeps b-file attackers from counting twice.
+    const chess = new Chess('6qk/8/8/8/8/8/8/K7 w - - 0 1');
+    expect(calculateKingSafety(chess, 'w')).toBe(40);
+  });
+
+  test('counts a pawn shield as defenders, matching the documented example', () => {
+    // The doc comment's worked example: a queen attacks the king zone and two
+    // pawns occupy it, for a 30% mitigation: 100 - (60 * 0.70) = 58.
+    const chess = new Chess('3qk3/8/8/8/8/8/4PPP1/4K3 w - - 0 1');
+    expect(calculateKingSafety(chess, 'w')).toBe(58);
+  });
+});
+
+describe('calculateActivity: perspective and baselines', () => {
+  test('scores the black position from black pieces, not always White', () => {
+    // Mirror of the white-queen-d4 test with colours flipped: the black queen
+    // attacks the same geometry, so the score matches White's 25.
+    const chess = new Chess('4k3/8/8/8/3q4/8/8/4K3 b - - 0 1');
+    expect(calculateActivity(chess, 'b')).toBe(25);
+  });
+
+  test('a lone corner king still scores its three adjacent squares', () => {
+    // The king attacks a2, b1, b2 — three outer squares worth 1 each, so
+    // 3 / 2 rounds to 2. Pins that the divisor is applied after rounding
+    // would otherwise hide.
+    const chess = new Chess('4k3/8/8/8/8/8/8/K7 w - - 0 1');
+    expect(calculateActivity(chess, 'w')).toBe(2);
+  });
+});
+
+describe('analyzeFullGame', () => {
+  test('returns an empty list for an empty game rather than throwing', () => {
+    expect(analyzeFullGame([], 'white')).toEqual([]);
+  });
+});

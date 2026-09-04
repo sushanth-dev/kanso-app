@@ -81,4 +81,15 @@ describe('classifyTimeControl', () => {
     expect(classifyTimeControl('180 +2')).toBeNull(); // space inside the base
     expect(classifyTimeControl('180-2')).toBeNull(); // wrong separator
   });
+  test('segments after the increment are ignored, not treated as unparseable', () => {
+    // Some crosstables append a second phase ("180+2+3" for 3-minute with
+    // increment and delay): the base before the first plus still decides.
+    expect(classifyTimeControl('180+2+3')).toBe('blitz');
+    expect(classifyTimeControl('600+5+0')).toBe('rapid');
+  });
+
+  test('a minus sign with digits is not a negative base, just unparseable', () => {
+    expect(classifyTimeControl('-1')).toBeNull();
+    expect(classifyTimeControl('-0')).toBeNull();
+  });
 });

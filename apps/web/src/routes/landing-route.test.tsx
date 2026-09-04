@@ -108,4 +108,51 @@ describe('LandingRoute', () => {
     expect(screen.queryByRole('link', { name: 'Sign in' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Get your free diagnosis' })).not.toBeInTheDocument();
   });
+  test('states the three value props without a feature-card grid', async () => {
+    renderLanding();
+
+    expect(await screen.findByRole('heading', { name: 'What Kanso does' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Your tournament is a first-class object.' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Games arrive without typing.' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {
+        name: 'Verification is two-speed, and says which speed it is.',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /A tournament has a name, a date, a section, and five to nine classical games/,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test('ranks the synthetic weaknesses and shows the rating leak in numbers', async () => {
+    renderLanding();
+
+    expect(await screen.findByText('Time trouble from move 24')).toBeInTheDocument();
+    expect(screen.getByText('Passive opening choices')).toBeInTheDocument();
+    expect(screen.getByText('#1')).toBeInTheDocument();
+    expect(screen.getByText('#2')).toBeInTheDocument();
+    expect(screen.getByText('#3')).toBeInTheDocument();
+    expect(screen.getByText('34')).toBeInTheDocument();
+    expect(screen.getByText('21')).toBeInTheDocument();
+    expect(screen.getByText('12')).toBeInTheDocument();
+  });
+
+  test('keeps the skip link, the footer, and the sign-in call to action reachable', async () => {
+    renderLanding();
+    expect(await screen.findByRole('link', { name: 'Skip to main content' })).toHaveAttribute(
+      'href',
+      '#main-content',
+    );
+    expect(
+      screen.getByText(
+        'Kanso Chess is tournament-first chess improvement for junior players and their coaches.',
+      ),
+    ).toBeInTheDocument();
+  });
 });

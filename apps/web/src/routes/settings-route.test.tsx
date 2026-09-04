@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, RouterContextProvider } from '@tanstack/react-router';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { ApiRequestError, type Me, type Player } from '../api/account-api.ts';
 import { accountApi } from '../api/account-api.ts';
 import { ME_QUERY_KEY } from '../query-client.ts';
@@ -69,6 +69,12 @@ function renderSettings(
 }
 
 describe('SettingsScreen', () => {
+  // Spies on accountApi are per-test; without a restore the call history
+  // and mock implementations leak into later tests.
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
   test('renders one page: identity, streak, and settings sections under one H1', () => {
     renderSettings();
     expect(screen.getByRole('heading', { name: 'Your account', level: 1 })).toBeVisible();
@@ -276,11 +282,152 @@ describe('SettingsScreen', () => {
 
     await user.click(screen.getByRole('button', { name: 'Delete account' }));
     await user.type(
-      screen.getByLabelText('Confirm with your password'),
+      // The dialog opens through a state update from the click above; wait
+      // for it instead of assuming the field is already in the document.
+      await screen.findByLabelText('Confirm with your password'),
       'correct horse battery staple',
     );
     await user.click(screen.getByRole('button', { name: 'Delete forever' }));
 
     await waitFor(() => expect(signOut).toHaveBeenCalled());
+  });
+
+  test('a 401 while deleting closes the form and clears the me cache', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(accountApi, 'deleteMe').mockRejectedValue(
+      new ApiRequestError(401, 'unauthorized', undefined, 'No session.'),
+    );
+    const queryClient = new QueryClient();
+    const history = createMemoryHistory();
+    const router = createAppRouter({ history, queryClient });
+    queryClient.setQueryData(ME_QUERY_KEY, meFixture());
+    render(
+      <QueryClientProvider client={queryClient}>
+        <RouterContextProvider router={router}>
+          <SettingsScreen
+            me={meFixture()}
+            signOut={vi.fn().mockResolvedValue(undefined)}
+            accountApi={accountApi}
+            queryClient={queryClient}
+          />
+        </RouterContextProvider>
+      </QueryClientProvider>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Delete account' }));
+    await user.type(await screen.findByLabelText('Confirm with your password'), 'whatever');
+    await user.click(screen.getByRole('button', { name: 'Delete forever' }));
+
+    await waitFor(() => {
+      expect(queryClient.getQueryData(ME_QUERY_KEY)).toBeUndefined();
+    });
+    // The session died under us: the password form closes instead of
+    // reporting an error the player cannot act on.
+    expect(screen.queryByLabelText('Confirm with your password')).not.toBeInTheDocument();
+  });
+
+  test('an unexpected delete failure explains itself and keeps the form', async () => {
+    const user = userEvent.setup();
+    const deleteMe = vi.spyOn(accountApi, 'deleteMe').mockRejectedValue(new Error('network down'));
+    renderSettings();
+
+    await user.click(screen.getByRole('button', { name: 'Delete account' }));
+    await user.type(await screen.findByLabelText('Confirm with your password'), 'whatever');
+    await user.click(screen.getByRole('button', { name: 'Delete forever' }));
+
+    expect(await screen.findByText('The account could not be deleted.')).toBeVisible();
+    expect(deleteMe).toHaveBeenCalledWith({ password: 'whatever' });
+    expect(screen.getByLabelText('Confirm with your password')).toBeVisible();
+  });
+
+  test('keep my account closes the password form without a request', async () => {
+    const user = userEvent.setup();
+    const deleteMe = vi.spyOn(accountApi, 'deleteMe');
+    renderSettings();
+
+    await user.click(screen.getByRole('button', { name: 'Delete account' }));
+    await user.click(await screen.findByRole('button', { name: 'Keep my account' }));
+
+    expect(screen.queryByLabelText('Confirm with your password')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Delete account' })).toBeVisible();
+    expect(deleteMe).not.toHaveBeenCalled();
+  });
+
+  test('a successful delete still redirects even when sign-out fails', async () => {
+    const user = userEvent.setup();
+    // The account and the session cookie are already gone; a failing
+    // sign-out call cannot be allowed to skip the redirect.
+    const signOut = vi.fn().mockRejectedValue(new Error('HTTP failure'));
+    vi.spyOn(accountApi, 'deleteMe').mockResolvedValue(undefined);
+    renderSettings(meFixture(), signOut);
+
+    await user.click(screen.getByRole('button', { name: 'Delete account' }));
+    await user.type(await screen.findByLabelText('Confirm with your password'), 'whatever');
+    await user.click(screen.getByRole('button', { name: 'Delete forever' }));
+
+    await waitFor(() => expect(signOut).toHaveBeenCalledOnce());
+  });
+
+  test('saves empty username fields as omitted values', async () => {
+    const user = userEvent.setup();
+    const updateMe = vi.spyOn(accountApi, 'updateMe').mockResolvedValue(player());
+    renderSettings();
+
+    await user.click(screen.getByRole('button', { name: 'Save default usernames' }));
+
+    expect(await screen.findByText('Default usernames saved.')).toBeVisible();
+    expect(updateMe).toHaveBeenCalledWith({
+      chesscomUsername: undefined,
+      lichessUsername: undefined,
+    });
+  });
+
+  test('a successful save replaces an earlier failure message', async () => {
+    const user = userEvent.setup();
+    const updateMe = vi
+      .spyOn(accountApi, 'updateMe')
+      .mockRejectedValueOnce(new ApiRequestError(500, 'internal', undefined, 'boom'))
+      .mockResolvedValue(player());
+    renderSettings();
+
+    await user.click(screen.getByRole('button', { name: 'Save default usernames' }));
+    expect(await screen.findByText('The default usernames could not be saved.')).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: 'Save default usernames' }));
+    expect(await screen.findByText('Default usernames saved.')).toBeVisible();
+    expect(screen.queryByText('The default usernames could not be saved.')).not.toBeInTheDocument();
+    expect(updateMe).toHaveBeenCalledTimes(2);
+  });
+
+  test('disables the save button while the usernames are saving', async () => {
+    const user = userEvent.setup();
+    const { promise, resolve } = Promise.withResolvers<Player>();
+    vi.spyOn(accountApi, 'updateMe').mockReturnValue(promise);
+    renderSettings();
+
+    await user.click(screen.getByRole('button', { name: 'Save default usernames' }));
+    const button = screen.getByRole('button', { name: 'Save default usernames' });
+    expect(button).toBeDisabled();
+
+    resolve(player());
+    await waitFor(() => expect(button).toBeEnabled());
+  });
+
+  test('disables Delete forever while the deletion is running', async () => {
+    const user = userEvent.setup();
+    const signOut = vi.fn().mockResolvedValue(undefined);
+    const { promise, resolve } = Promise.withResolvers<void>();
+    vi.spyOn(accountApi, 'deleteMe').mockReturnValue(promise);
+    renderSettings(meFixture(), signOut);
+
+    await user.click(screen.getByRole('button', { name: 'Delete account' }));
+    await user.type(await screen.findByLabelText('Confirm with your password'), 'whatever');
+    await user.click(screen.getByRole('button', { name: 'Delete forever' }));
+
+    const button = screen.getByRole('button', { name: 'Delete forever' });
+    expect(button).toBeDisabled();
+
+    resolve();
+    await waitFor(() => expect(signOut).toHaveBeenCalledOnce());
   });
 });

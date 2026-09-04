@@ -9,7 +9,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { accountApi, type Me } from '../api/account-api.ts';
+import { ApiRequestError, accountApi, type Me } from '../api/account-api.ts';
 import { diagnosisApi, type PracticePuzzle, type PracticeSet } from '../api/diagnosis-api.ts';
 import { createAppRouter } from '../router.tsx';
 
@@ -239,6 +239,155 @@ describe('PracticeRoute', () => {
       group: 'hanging_piece',
       solved: false,
     });
+  });
+
+  test('shows the dealing state while the puzzle set loads', async () => {
+    const { promise } = Promise.withResolvers<PracticeSet>();
+    vi.spyOn(diagnosisApi, 'getPracticePuzzles').mockReturnValue(promise);
+    renderPath('/practice?kind=motif&group=hanging_piece&label=Hung%20a%20piece&stream=tournament');
+
+    expect(await screen.findByText('Dealing 20 puzzles for Hung a piece…')).toBeVisible();
+    expect(screen.queryByRole('heading', { name: 'Hung a piece' })).not.toBeInTheDocument();
+  });
+
+  test('a puzzle pool that is not ready says so and offers the report', async () => {
+    vi.spyOn(diagnosisApi, 'getPracticePuzzles').mockRejectedValue(
+      new ApiRequestError(503, 'unavailable', undefined, 'Pool warming up.'),
+    );
+    renderPath('/practice?kind=motif&group=hanging_piece&label=Hung%20a%20piece&stream=tournament');
+
+    expect(await screen.findByText('The puzzle pool is not ready')).toBeVisible();
+    expect(
+      screen.getByText(
+        'The puzzle import has not run for this environment yet, so there is nothing to deal. Try again later.',
+      ),
+    ).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Back to the report' })).toHaveAttribute(
+      'href',
+      '/report?stream=tournament',
+    );
+  });
+
+  test('a weakness without a drill says no drill is mapped', async () => {
+    vi.spyOn(diagnosisApi, 'getPracticePuzzles').mockRejectedValue(
+      new ApiRequestError(404, 'not_found', undefined, 'No drill.'),
+    );
+    renderPath('/practice?kind=motif&group=hanging_piece&label=Hung%20a%20piece&stream=tournament');
+
+    expect(await screen.findByText('This weakness has no drill')).toBeVisible();
+    expect(screen.getByText('No puzzle drill is mapped for Hung a piece.')).toBeVisible();
+  });
+
+  test('a failed review lookup answers honestly instead of guessing', async () => {
+    vi.spyOn(diagnosisApi, 'getPracticeReviews').mockRejectedValue(new Error('boom'));
+    renderPath('/practice');
+
+    expect(await screen.findByText('No weakness named')).toBeVisible();
+  });
+
+  test('a single due review is due now', async () => {
+    vi.spyOn(diagnosisApi, 'getPracticeReviews').mockResolvedValue({
+      reviews: [{ puzzleId: 'p1', kind: 'motif', group: 'hanging_piece', reviewLevel: 1 }],
+      remaining: 9,
+    });
+    renderPath('/practice');
+
+    expect(await screen.findByText('Due now')).toBeVisible();
+    expect(screen.queryByText(/due$/)).not.toBeInTheDocument();
+  });
+
+  test('the group name stands in when no label is given', async () => {
+    vi.spyOn(diagnosisApi, 'getPracticePuzzles').mockResolvedValue(
+      drillFixture([puzzle('p1', 'b8c6', 'g1f3')]),
+    );
+    renderPath('/practice?kind=motif&group=hanging_piece&stream=tournament');
+
+    expect(await screen.findByRole('heading', { name: 'hanging_piece', level: 1 })).toBeVisible();
+  });
+
+  test('the header counts the queue and the solves as the drill advances', async () => {
+    vi.spyOn(diagnosisApi, 'getPracticePuzzles').mockResolvedValue(
+      drillFixture([puzzle('p1', 'b8c6', 'g1f3'), puzzle('p2', 'b8a6', 'g1f3')]),
+    );
+    const record = vi.spyOn(diagnosisApi, 'recordPracticePuzzle').mockResolvedValue({
+      attempts: 1,
+      solved: true,
+      reviewLevel: 1,
+      nextReviewAt: new Date(Date.now() + 86_400_000).toISOString(),
+    });
+    const { user, container } = renderPath(
+      '/practice?kind=motif&group=hanging_piece&label=Hung%20a%20piece&stream=tournament',
+    );
+
+    await screen.findByText('Watch the setup move…');
+    await vi.advanceTimersByTimeAsync(600);
+    expect(await screen.findByText('Find the best move.')).toBeVisible();
+    expect(screen.getByText(/2 puzzles to go, 0 solved\./)).toBeVisible();
+
+    await user.click(square(container, 'g1'));
+    await user.click(square(container, 'f3'));
+    await screen.findByText('Solved.');
+    await vi.advanceTimersByTimeAsync(600);
+
+    expect(await screen.findByText(/1 puzzle to go, 1 solved\./)).toBeVisible();
+    expect(record).toHaveBeenCalledTimes(1);
+  });
+
+  test('a failed recording logs and still deals the next puzzle', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(diagnosisApi, 'getPracticePuzzles').mockResolvedValue(
+      drillFixture([puzzle('p1', 'b8c6', 'g1f3')]),
+    );
+    vi.spyOn(diagnosisApi, 'recordPracticePuzzle').mockRejectedValue(new Error('boom'));
+    const { user, container } = renderPath(
+      '/practice?kind=motif&group=hanging_piece&label=Hung%20a%20piece&stream=tournament',
+    );
+
+    await screen.findByText('Watch the setup move…');
+    await vi.advanceTimersByTimeAsync(600);
+    await screen.findByText('Find the best move.');
+    await user.click(square(container, 'g1'));
+    await user.click(square(container, 'f3'));
+    await screen.findByText('Solved.');
+    await vi.advanceTimersByTimeAsync(600);
+
+    // Log-and-continue: the tally is lost, the session is not.
+    expect(await screen.findByText('Drill complete')).toBeVisible();
+    expect(consoleError).toHaveBeenCalled();
+  });
+
+  test('drill complete names the score and the ways out', async () => {
+    vi.spyOn(diagnosisApi, 'getPracticePuzzles').mockResolvedValue(
+      drillFixture([puzzle('p1', 'b8c6', 'g1f3')]),
+    );
+    vi.spyOn(diagnosisApi, 'recordPracticePuzzle').mockResolvedValue({
+      attempts: 1,
+      solved: true,
+      reviewLevel: 1,
+      nextReviewAt: new Date(Date.now() + 86_400_000).toISOString(),
+    });
+    const { user, container } = renderPath(
+      '/practice?kind=motif&group=hanging_piece&label=Hung%20a%20piece&stream=tournament',
+    );
+
+    await screen.findByText('Watch the setup move…');
+    await vi.advanceTimersByTimeAsync(600);
+    await screen.findByText('Find the best move.');
+    await user.click(square(container, 'g1'));
+    await user.click(square(container, 'f3'));
+    await screen.findByText('Solved.');
+    await vi.advanceTimersByTimeAsync(600);
+
+    expect(await screen.findByText('Drill complete')).toBeVisible();
+    expect(screen.getByText(/1 of 1 solved\./)).toBeVisible();
+    expect(screen.getByRole('link', { name: 'See your puzzle queue' })).toHaveAttribute(
+      'href',
+      '/puzzles',
+    );
+    expect(screen.getByRole('link', { name: 'Back to the report' })).toHaveAttribute(
+      'href',
+      '/report?stream=tournament',
+    );
   });
 });
 

@@ -3,12 +3,19 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, RouterContextProvider, RouterProvider } from '@tanstack/react-router';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { track } from '../analytics.ts';
+
+vi.mock('../analytics.ts', () => ({
+  safeProperties: (properties: Record<string, string | number>) => properties,
+  track: vi.fn(),
+}));
 import { accountApi, ApiRequestError, type Me } from '../api/account-api.ts';
 import {
   diagnosisApi,
   type ActionItem,
   type GameSummary,
   type Report,
+  type WeaknessCoaching,
 } from '../api/diagnosis-api.ts';
 import { tournamentApi, type TournamentSummary } from '../api/tournament-api.ts';
 import { createAppRouter } from '../router.tsx';
@@ -336,6 +343,102 @@ describe('ReportScreen', () => {
       'href',
       '/curriculum',
     );
+  });
+  test('says honestly when the report carries no weaknesses yet', () => {
+    renderReport(reportFixture({ weaknesses: [], gamesCovered: 3 }));
+    expect(screen.getByRole('heading', { name: 'Not enough evidence to rank yet' })).toBeVisible();
+    expect(screen.getByText(/from your 3 games/)).toBeVisible();
+    expect(screen.queryByText('Show evidence')).toBeNull();
+  });
+
+  test('shows the leak floor away from the top rank too', () => {
+    renderReport(reportFixture({ weaknesses: [{ ...motifWeakness, saturated: true, rank: 2 }] }));
+    expect(screen.getByText('at least 34')).toBeVisible();
+  });
+
+  test('names the ECO beside an opening weakness', () => {
+    renderReport(reportFixture({ weaknesses: [openingWeakness] }));
+    expect(screen.getByText('B22')).toBeVisible();
+  });
+
+  test('admits when a weakness has no individual positions to show', async () => {
+    const { user } = renderReport(
+      reportFixture({ weaknesses: [{ ...motifWeakness, evidence: [] }] }),
+    );
+    await user.click(screen.getByText('Show evidence'));
+    expect(screen.getByText('No individual positions to show yet.')).toBeVisible();
+  });
+
+  test('keeps the template copy when the coaching fails, and retries on reopen', async () => {
+    const coachWeakness = vi
+      .spyOn(diagnosisApi, 'coachWeakness')
+      .mockClear()
+      .mockRejectedValueOnce(new Error('502'))
+      .mockResolvedValue({ advice: 'Count defenders.', actionItems: [] });
+    const { user } = renderReport(reportFixture());
+    await user.click(screen.getByText('Show evidence'));
+    await waitFor(() => {
+      expect(coachWeakness).toHaveBeenCalledTimes(1);
+    });
+    // The evidence stays open; the failure is silent, the template stands.
+    expect(screen.getByText(/count what each available capture wins/)).toBeVisible();
+    expect(screen.queryByText('The coach is writing your note...')).toBeNull();
+
+    await user.click(screen.getByText('Hide evidence'));
+    await user.click(screen.getByText('Show evidence'));
+    await waitFor(() => {
+      expect(coachWeakness).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  test('names the resources as being written while an opening asks for them', async () => {
+    vi.spyOn(diagnosisApi, 'coachWeakness')
+      .mockClear()
+      .mockReturnValue(Promise.withResolvers<WeaknessCoaching>().promise);
+    const { user } = renderReport(reportFixture({ weaknesses: [openingWeakness] }));
+    await user.click(screen.getByText('Get resources'));
+    expect(screen.getByText('Writing your resources...')).toBeVisible();
+    // The opening never gets the evidence expander, even expanded.
+    expect(screen.queryByRole('button', { name: 'Hide evidence' })).toBeNull();
+  });
+
+  test('counts one analysing game in the singular', () => {
+    renderReport(reportFixture(), [gameFixture({ id: 'g-1', analysisStatus: 'analyzing' })]);
+    const banner = screen.getByRole('status', { name: 'Analyzing games' });
+    expect(banner).toHaveTextContent('Analyzing 1 game:');
+    expect(banner.querySelector('ol')?.children).toHaveLength(1);
+  });
+
+  test('explains missing time trouble from thin clock evidence', () => {
+    renderReport(
+      reportFixture({
+        timeTroubleFromMove: null,
+        timeTroubleReason: 'not_enough_evidence',
+      }),
+    );
+    expect(screen.getByText('Too few games with clock data to measure time usage.')).toBeVisible();
+  });
+
+  test('offers no actions when a weakness has no drill group', () => {
+    renderReport(
+      reportFixture({
+        weaknesses: [
+          {
+            ...motifWeakness,
+            kind: 'time_trouble',
+            groupKey: null,
+            eco: null,
+            advice: null,
+            actionItems: [],
+          },
+        ],
+      }),
+    );
+    expect(screen.getByText('Time trouble')).toBeVisible();
+    expect(screen.queryByText('Show evidence')).toBeNull();
+    expect(screen.queryByText('Get resources')).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Practice puzzles' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'View curriculum' })).toBeNull();
   });
 });
 
@@ -776,5 +879,110 @@ describe('ReportRoute', () => {
         '/tournaments/00000000-0000-4000-8000-0000000000d1',
       );
     });
+  });
+  test('shows the retry empty state when the report fails for an unknown reason', async () => {
+    vi.spyOn(diagnosisApi, 'getReport').mockRejectedValue(
+      new ApiRequestError(500, 'internal_error', undefined, 'Boom.'),
+    );
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [],
+      total: 0,
+      page: 1,
+      limit: 100,
+    });
+
+    renderRoute();
+
+    expect(
+      await screen.findByRole('heading', { name: 'The report could not be loaded' }),
+    ).toBeVisible();
+    expect(screen.queryByRole('heading', { name: 'No analyzed games in this stream yet' })).toBe(
+      null,
+    );
+  });
+
+  test('records the report view once, when the report lands', async () => {
+    vi.mocked(track).mockClear();
+    vi.spyOn(diagnosisApi, 'getReport').mockResolvedValue(reportFixture({ stream: 'online' }));
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [gameFixture({ id: 'g-1', analysisStatus: 'complete' })],
+      total: 1,
+      page: 1,
+      limit: 100,
+    });
+
+    renderRoute();
+    await waitFor(() => {
+      expect(vi.mocked(track)).toHaveBeenCalledWith('report_viewed', { stream: 'online' });
+    });
+    // The data object is stable once landed; the effect does not repeat.
+    expect(vi.mocked(track)).toHaveBeenCalledTimes(1);
+  });
+
+  test('falls back to the stream heading when the tournament is not in the list', async () => {
+    const missing = '00000000-0000-4000-8000-0000000000ff';
+    const getReport = vi
+      .spyOn(diagnosisApi, 'getReport')
+      .mockResolvedValue(reportFixture({ stream: 'tournament', tournamentId: missing }));
+    vi.spyOn(tournamentApi, 'listTournaments').mockResolvedValue({ tournaments: [] });
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [],
+      total: 6,
+      page: 1,
+      limit: 100,
+    });
+
+    renderRoute(`/report?stream=tournament&tournamentId=${missing}`);
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Tournament report' }),
+    ).toBeVisible();
+    expect(getReport).toHaveBeenCalledWith('tournament', missing);
+  });
+
+  test('asks for the side on a single colourless game in the singular', async () => {
+    vi.spyOn(diagnosisApi, 'getReport').mockRejectedValue(reportNotFound);
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [gameFixture({ id: 'g-1', playerColor: null, analysisStatus: 'pending' })],
+      total: 1,
+      page: 1,
+      limit: 100,
+    });
+
+    renderRoute();
+
+    expect(
+      await screen.findByRole('heading', { name: '1 game needs your side before analysis' }),
+    ).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Open Games' })).toHaveAttribute('href', '/games');
+  });
+
+  test('keeps the served advice when the coach returns no line, but lands the items', async () => {
+    vi.spyOn(diagnosisApi, 'getReport').mockResolvedValue(
+      reportFixture({
+        stream: 'online',
+        weaknesses: [{ ...motifWeakness, advice: 'The template line.', actionItems: [] }],
+      }),
+    );
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [gameFixture({ id: 'g-1', analysisStatus: 'complete' })],
+      total: 1,
+      page: 1,
+      limit: 100,
+    });
+    vi.spyOn(diagnosisApi, 'coachWeakness')
+      .mockClear()
+      .mockResolvedValue({
+        advice: null,
+        actionItems: [actionItemFixture()],
+      });
+
+    renderRoute();
+    const user = userEvent.setup();
+    await user.click(await screen.findByText('Show evidence'));
+
+    // A null line keeps the template copy; the items still land in the cache.
+    expect(await screen.findByText('The template line.')).toBeVisible();
+    expect(screen.getByRole('link', { name: 'View curriculum' })).toBeVisible();
   });
 });
