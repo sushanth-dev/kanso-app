@@ -16,11 +16,15 @@
  * family prefix inside the rating bands, so the player drills the opening
  * they leak in before any generic theme.
  *
+ * ST-124 deals the group's due review puzzles - solved ladder rows whose
+ * review time has passed - ahead of any fresh material, so the drills that
+ * earned a return meet the player first.
+ *
  * The player's rating is the prototype's estimated-ELO stand-in, resolved
  * from the best rating the account actually holds: FIDE, then USCF, then the
  * two site ratings, then 1500.
  */
-import { and, eq, gte, lte, notInArray, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, lte, notInArray, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { WeaknessKind } from '../analysis/leak.ts';
 import * as schema from '../db/schema.ts';
@@ -170,6 +174,38 @@ export async function assembleDrill(
     picked.set(p.lichessId, { id: p.lichessId, fen: p.fen, moves: p.moves, rating: p.rating });
   }
 
+  // ST-124. The group's due reviews open the drill before any fresh material:
+  // puzzles the player has solved on the ladder whose review time has passed,
+  // soonest first, filling whatever the deal still needs. Failed or revealed
+  // puzzles (level 0) are not reviews and stay out; the fresh rungs below
+  // still exclude every row the player holds, so the ladder is the only way
+  // a drilled puzzle returns.
+  if (picked.size < DRILL_SIZE) {
+    const due = await db
+      .select({
+        lichessId: puzzle.lichessId,
+        fen: puzzle.fen,
+        moves: puzzle.moves,
+        rating: puzzle.rating,
+      })
+      .from(puzzleAttempt)
+      .innerJoin(puzzle, eq(puzzle.lichessId, puzzleAttempt.puzzleId))
+      .where(
+        and(
+          eq(puzzleAttempt.playerId, playerId),
+          eq(puzzleAttempt.kind, kind),
+          eq(puzzleAttempt.groupKey, group),
+          gte(puzzleAttempt.reviewLevel, 1),
+          lte(puzzleAttempt.nextReviewAt, sql`now()`),
+        ),
+      )
+      .orderBy(asc(puzzleAttempt.nextReviewAt))
+      .limit(DRILL_SIZE - picked.size);
+    for (const p of due) {
+      picked.set(p.lichessId, { id: p.lichessId, fen: p.fen, moves: p.moves, rating: p.rating });
+    }
+  }
+
   // ST-122. An opening group drills the opening first: the ECO's mapped
   // family prefix inside the rating bands, then the prototype's theme ladder
   // verbatim. The family comes from the generated ECO_OPENINGS map; an ECO
@@ -187,7 +223,8 @@ export async function assembleDrill(
   // The prototype's ladder: exact theme near the player's rating, then the
   // same theme wider, then the crushing fallback wider, then any theme wider.
   // Every rung excludes everything the player holds a row for, dealt or
-  // drilled, so no puzzle is ever dealt twice.
+  // drilled, so fresh material is never a repeat; only the ladder's due
+  // reviews above bring a drilled puzzle back.
   await gather(db, playerId, theme, null, rating - 400, rating + 400, picked);
   await gather(db, playerId, theme, null, rating - 800, rating + 800, picked);
   if (theme !== 'crushing') {

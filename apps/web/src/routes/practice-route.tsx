@@ -14,6 +14,7 @@
  * the player's own position back again.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Badge } from '@astryxdesign/core/Badge';
 import { Card } from '@astryxdesign/core/Card';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Heading } from '@astryxdesign/core/Heading';
@@ -26,7 +27,8 @@ import { Chess, type Square } from 'chess.js';
 import { Board, describePosition } from '../components/board.tsx';
 import { ApiRequestError } from '../api/account-api.ts';
 import { diagnosisApi, type PracticePuzzle, type WeaknessKind } from '../api/diagnosis-api.ts';
-import { practiceQueryOptions } from '../query-client.ts';
+import { practiceQueryOptions, practiceReviewsQueryOptions } from '../query-client.ts';
+import { drillHref, groupLabel } from './puzzles-route.tsx';
 
 /** The attempts one puzzle allows before the reveal steps in. */
 const ATTEMPTS = 3;
@@ -44,16 +46,85 @@ function uciMove(uci: string): { from: string; to: string; promotion?: string } 
 export function PracticeRoute() {
   const { kind, group, label, stream } = useSearch({ from: '/account/practice' });
   if (kind === null || group === null) {
-    return (
-      <EmptyState
-        title="No weakness named"
-        description="Open a weakness card in your report and choose its practice link."
-        headingLevel={1}
-        actions={<Link href="/report">Back to the report</Link>}
-      />
-    );
+    return <DueReviews />;
   }
   return <PracticeScreen kind={kind} group={group} label={label ?? group} stream={stream} />;
+}
+
+/**
+ * ST-124. The practice surface without a named weakness: the day's due
+ * reviews. Solved drills return on the ladder, and the section serves at
+ * most ten a day - the story's guard against review pressure. Each row
+ * folds the group's due puzzles into one link, because the drill deals a
+ * group's due puzzles before any fresh material.
+ */
+function DueReviews() {
+  const noWeakness = (
+    <EmptyState
+      title="No weakness named"
+      description="Open a weakness card in your report and choose its practice link."
+      headingLevel={1}
+      actions={<Link href="/report">Back to the report</Link>}
+    />
+  );
+  const query = useQuery(practiceReviewsQueryOptions());
+  if (query.isError) return noWeakness;
+  if (query.isPending) {
+    return (
+      <div className="flex items-center gap-3 py-16">
+        <Spinner />
+        <Text as="p" display="block" type="supporting">
+          Checking what is due for review…
+        </Text>
+      </div>
+    );
+  }
+
+  const { reviews, remaining } = query.data;
+  if (reviews.length === 0) {
+    if (remaining === 0) {
+      return (
+        <EmptyState
+          title="Today's reviews are done"
+          description="Ten due reviews is the day's cap, so the ladder cannot grind. Whatever is left comes back tomorrow."
+          headingLevel={1}
+          actions={<Link href="/report">Back to the report</Link>}
+        />
+      );
+    }
+    return noWeakness;
+  }
+
+  const groups = new Map<string, { kind: WeaknessKind; group: string; count: number }>();
+  for (const review of reviews) {
+    const key = `${review.kind}:${review.group}`;
+    const row = groups.get(key);
+    if (row) row.count += 1;
+    else groups.set(key, { kind: review.kind, group: review.group, count: 1 });
+  }
+  return (
+    <div className="space-y-4">
+      <header className="space-y-1">
+        <Heading level={1}>Due for review</Heading>
+        <Text as="p" display="block" type="supporting" className="text-sm">
+          Solved drills come back on the ladder - two, seven, then thirty days.
+        </Text>
+      </header>
+      <Card>
+        <ul>
+          {[...groups.values()].map(({ kind: reviewKind, group: reviewGroup, count }) => (
+            <li
+              key={`${reviewKind}:${reviewGroup}`}
+              className="flex items-center justify-between gap-3 border-b border-border-subtle py-3 last:border-b-0"
+            >
+              <Link href={drillHref(reviewKind, reviewGroup)}>{groupLabel(reviewGroup)}</Link>
+              <Badge label={count === 1 ? 'Due now' : `${count} due`} variant="warning" />
+            </li>
+          ))}
+        </ul>
+      </Card>
+    </div>
+  );
 }
 
 export function PracticeScreen({

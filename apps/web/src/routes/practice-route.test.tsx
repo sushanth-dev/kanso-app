@@ -93,9 +93,43 @@ afterEach(() => {
 });
 
 describe('PracticeRoute', () => {
-  test('an arrival without a group answers honestly', async () => {
+  test('an arrival without a group answers honestly when nothing is due', async () => {
+    vi.spyOn(diagnosisApi, 'getPracticeReviews').mockResolvedValue({
+      reviews: [],
+      remaining: 10,
+    });
     renderPath('/practice');
     expect(await screen.findByText('No weakness named')).toBeVisible();
+  });
+
+  test('an arrival without a group shows the day due reviews, folded per group', async () => {
+    vi.spyOn(diagnosisApi, 'getPracticeReviews').mockResolvedValue({
+      reviews: [
+        { puzzleId: 'p1', kind: 'motif', group: 'hanging_piece', reviewLevel: 1 },
+        { puzzleId: 'p2', kind: 'motif', group: 'hanging_piece', reviewLevel: 2 },
+        { puzzleId: 'p3', kind: 'phase', group: 'endgame', reviewLevel: 1 },
+      ],
+      remaining: 7,
+    });
+    renderPath('/practice');
+    expect(await screen.findByRole('heading', { name: 'Due for review' })).toBeVisible();
+    // Two due puzzles of one group fold into one row and one link.
+    expect(await screen.findByText('Hanging piece')).toBeVisible();
+    expect(screen.getByText('2 due')).toBeVisible();
+    expect(screen.getByText('Endgame')).toBeVisible();
+    const link = screen.getByRole('link', { name: 'Hanging piece' });
+    expect(link.getAttribute('href')).toBe(
+      '/practice?kind=motif&group=hanging_piece&stream=tournament',
+    );
+  });
+
+  test('a spent review cap empties the section with the reason', async () => {
+    vi.spyOn(diagnosisApi, 'getPracticeReviews').mockResolvedValue({
+      reviews: [],
+      remaining: 0,
+    });
+    renderPath('/practice');
+    expect(await screen.findByText("Today's reviews are done")).toBeVisible();
   });
 
   test('the deal starts by itself: setup move, then the player finds the answer', async () => {

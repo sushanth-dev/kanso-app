@@ -1057,7 +1057,7 @@
           "reviewLevel": {
             "type": "integer",
             "minimum": 0,
-            "maximum": 4
+            "maximum": 3
           },
           "nextReviewAt": {
             "type": "string",
@@ -1701,7 +1701,7 @@
           "reviewLevel": {
             "type": "integer",
             "minimum": 0,
-            "maximum": 4
+            "maximum": 3
           },
           "nextReviewAt": {
             "type": "string",
@@ -1726,6 +1726,51 @@
           "nextReviewAt",
           "solved",
           "attempts"
+        ]
+      },
+      "PracticeReviews": {
+        "type": "object",
+        "properties": {
+          "reviews": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PracticeReviewItem"
+            }
+          },
+          "remaining": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10
+          }
+        },
+        "required": [
+          "reviews",
+          "remaining"
+        ]
+      },
+      "PracticeReviewItem": {
+        "type": "object",
+        "properties": {
+          "puzzleId": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/WeaknessKind"
+          },
+          "group": {
+            "type": "string"
+          },
+          "reviewLevel": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3
+          }
+        },
+        "required": [
+          "puzzleId",
+          "kind",
+          "group",
+          "reviewLevel"
         ]
       },
       "ActionItemDone": {
@@ -3881,6 +3926,57 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PracticeQueue"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The session has no claim on this player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/practice/reviews": {
+      "get": {
+        "tags": [
+          "Practice"
+        ],
+        "summary": "The due-for-review section the practice surface shows",
+        "description": "ST-124. The player’s solved puzzles whose review time has passed, soonest first, capped at ten review solves per calendar day; `remaining` is what is left of the cap. Each row carries the group that owns it, so it links into that group’s drill, which deals its due puzzles first.",
+        "responses": {
+          "200": {
+            "description": "The due reviews and the day’s remaining cap.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PracticeReviews"
                 }
               }
             }
