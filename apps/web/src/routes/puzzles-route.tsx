@@ -28,15 +28,15 @@ const TABS: readonly { key: QueueTab; label: string }[] = [
   { key: 'mastered', label: 'Mastered' },
 ];
 
-/** 'hangingPiece' -> 'Hanging piece': the theme slug becomes a readable label. */
-function groupLabel(group: string): string {
-  const spaced = group.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+/** 'hangingPiece' or 'hanging_piece' -> 'Hanging piece': a slug becomes a label. */
+export function groupLabel(group: string): string {
+  const spaced = group.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/_/g, ' ');
   return spaced.charAt(0).toUpperCase() + spaced.slice(1).toLowerCase();
 }
 
 /** The drill for one group, in the tournament stream the queue serves. */
-function drillHref(item: PracticeQueueItem): string {
-  return `/practice?kind=${item.kind}&group=${encodeURIComponent(item.group)}&stream=tournament`;
+export function drillHref(kind: string, group: string): string {
+  return `/practice?kind=${kind}&group=${encodeURIComponent(group)}&stream=tournament`;
 }
 
 function dueLabel(nextReviewAt: string): string {
@@ -81,7 +81,7 @@ function PendingTab({ due }: { due: PracticeQueueItem[] }) {
   if (first === undefined) return null;
   return (
     <div className="space-y-4">
-      <Link href={drillHref(first)}>Practice now</Link>
+      <Link href={drillHref(first.kind, first.group)}>Practice now</Link>
       <QueueList items={due} endFor={() => <Badge label="Due now" variant="warning" />} />
     </div>
   );

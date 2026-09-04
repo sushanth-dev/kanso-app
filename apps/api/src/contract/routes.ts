@@ -35,6 +35,7 @@ import {
   Player,
   PracticePuzzleTally,
   PracticeQueue,
+  PracticeReviews,
   PracticeSet,
   ProofSheet,
   RecordPracticePuzzle,
@@ -552,6 +553,19 @@ export const getPracticeQueue = createRoute({
   },
 });
 
+export const getPracticeReviews = createRoute({
+  method: 'get',
+  path: '/practice/reviews',
+  tags: ['Practice'],
+  summary: 'The due-for-review section the practice surface shows',
+  description:
+    'ST-124. The player\u2019s solved puzzles whose review time has passed, soonest first, capped at ten review solves per calendar day; `remaining` is what is left of the cap. Each row carries the group that owns it, so it links into that group\u2019s drill, which deals its due puzzles first.',
+  responses: {
+    200: json(PracticeReviews, 'The due reviews and the day\u2019s remaining cap.'),
+    ...authErrors,
+  },
+});
+
 export const listActionItems = createRoute({
   method: 'get',
   path: '/report/action-items',
@@ -828,6 +842,7 @@ export const routes = [
   generateWeaknessCoaching,
   listActionItems,
   getPracticeQueue,
+  getPracticeReviews,
   markActionItemDone,
   getTransferGap,
   getRoundDecay,
