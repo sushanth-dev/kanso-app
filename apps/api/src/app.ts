@@ -57,6 +57,7 @@ import { mountExplanation, mountSocraticQuestion } from './coaching/explanation.
 import { mountCctScan } from './coaching/cct.ts';
 import { mountQueueAnalysis } from './analysis/queue-analysis.ts';
 import { httpZaiClient, zaiConfigFromEnv, type AiClient } from './coaching/zai.ts';
+import { captureApiException } from './analytics.ts';
 import { log } from './logging.ts';
 
 /** The shape of every error the API emits, from `ApiError` in the contract. */
@@ -360,10 +361,17 @@ export function createApp({
    * rather than taken from the error, because an exception message is written
    * for us and routinely carries a query, a path, or a connection string.
    */
-  app.onError((error, c) => {
+  app.onError(async (error, c) => {
     log('error', 'unhandled_error', {
       requestId: c.get('requestId'),
       error: error instanceof Error ? error.message : String(error),
+    });
+    // The same event reaches PostHog error tracking (ADR-0038, second
+    // amendment); the request id ties the issue to the log line above.
+    // Awaited, not fired: a Lambda freezes when this response returns.
+    await captureApiException(error, {
+      requestId: String(c.get('requestId') ?? ''),
+      path: c.req.path,
     });
     return c.json<ErrorBody>({ code: 'internal_error', message: 'Something went wrong.' }, 500);
   });
