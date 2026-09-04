@@ -18,5 +18,9 @@ import { createAuth } from './auth.ts';
 const placeholderDb = {} as never;
 
 export default createAuth(placeholderDb, {
-  mailer: { async sendConsentNotice() {}, async sendPasswordReset() {} },
+  mailer: {
+    async sendConsentNotice() {},
+    async sendPasswordReset() {},
+    async sendNudge() {},
+  },
 });

@@ -36,6 +36,7 @@ const razorpay: RazorpayClient = {
 const mailer: Mailer = {
   sendConsentNotice: () => Promise.resolve(),
   sendPasswordReset: () => Promise.resolve(),
+  sendNudge: () => Promise.resolve(),
 };
 
 beforeAll(async () => {

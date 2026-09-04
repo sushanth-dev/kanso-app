@@ -165,6 +165,13 @@ export const player = pgTable(
     xp: integer('xp').notNull().default(0),
     lastActivityDate: date('last_activity_date'),
 
+    /**
+     * ST-126. Set by the nudge unsubscribe route and read by the selection
+     * query on the same table, so the flag and the query cannot drift apart.
+     * Null means the account is still subscribed.
+     */
+    nudgeUnsubscribedAt: timestamp('nudge_unsubscribed_at', { withTimezone: true }),
+
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -228,6 +235,28 @@ export const processedPayment = pgTable('processed_payment', {
   razorpayPaymentId: text('razorpay_payment_id').unique(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * ST-126. One row per nudge email actually sent: the 7-day exclusion, the
+ * 24-hour pacing ledger, and AC 6's record all in one. Only successes are
+ * written, so a failed send does not spend the account's week or the
+ * provider's daily budget; the run writes the row before sending the next
+ * email. The user id is enough to identify the recipient - the email column
+ * records the address as it was, since the log outlives nothing else about
+ * the account.
+ */
+export const nudgeSend = pgTable(
+  'nudge_send',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    email: text('email').notNull(),
+    sentAt: timestamp('sent_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('nudge_send_user_sent_idx').on(t.userId, t.sentAt)],
+);
 
 // ─── Import and games ────────────────────────────────────────────────────────
 
