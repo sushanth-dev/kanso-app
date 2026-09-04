@@ -1,8 +1,9 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient } from '@tanstack/react-query';
 import { createMemoryHistory, RouterContextProvider } from '@tanstack/react-router';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { ME_QUERY_KEY } from '../query-client.ts';
 import { ApiRequestError, type Me, type Player } from '../api/account-api.ts';
 import type { ImportApi, ImportJob } from '../api/import-api.ts';
 import { createAppRouter } from '../router.tsx';
@@ -500,5 +501,206 @@ describe('ImportScreen', () => {
       gamesFound: 3,
       gamesImported: 3,
     });
+  });
+
+  test('renders the too-many-games refusal from the API', async () => {
+    const user = userEvent.setup();
+    startImport.mockRejectedValue(
+      new ApiRequestError(
+        422,
+        'too_many_games',
+        undefined,
+        'That upload carries more games than an import may hold.',
+      ),
+    );
+    renderScreen();
+
+    await user.type(screen.getByLabelText('Username'), 'mina123');
+    await user.click(screen.getByRole('button', { name: 'Import games' }));
+
+    expect(
+      await screen.findByText('That upload carries more games than an import may hold.'),
+    ).toBeVisible();
+  });
+
+  test('a dead session clears the me cache and sends the player to sign-in', async () => {
+    const user = userEvent.setup();
+    const navigate = vi.fn();
+    startImport.mockRejectedValue(
+      new ApiRequestError(401, 'unauthorized', undefined, 'No session.'),
+    );
+    const { queryClient } = renderScreen({ navigate });
+    queryClient.setQueryData(ME_QUERY_KEY, me);
+
+    await user.type(screen.getByLabelText('Username'), 'mina123');
+    await user.click(screen.getByRole('button', { name: 'Import games' }));
+
+    await waitFor(() => {
+      expect(queryClient.getQueryData(ME_QUERY_KEY)).toBeUndefined();
+      expect(navigate).toHaveBeenCalledWith({ to: '/sign-in' });
+    });
+  });
+
+  test('refuses an import that belongs to another account on 403', async () => {
+    const user = userEvent.setup();
+    startImport.mockRejectedValue(
+      new ApiRequestError(403, 'forbidden', undefined, 'Not your player.'),
+    );
+    renderScreen();
+
+    await user.type(screen.getByLabelText('Username'), 'mina123');
+    await user.click(screen.getByRole('button', { name: 'Import games' }));
+
+    expect(
+      await screen.findByText('This player cannot be imported from this account.'),
+    ).toBeVisible();
+  });
+
+  test('offers a retry when the import fails unexpectedly', async () => {
+    const user = userEvent.setup();
+    startImport.mockRejectedValue(new Error('socket hang up'));
+    renderScreen();
+
+    await user.type(screen.getByLabelText('Username'), 'mina123');
+    await user.click(screen.getByRole('button', { name: 'Import games' }));
+
+    expect(await screen.findByText('The import failed. Please try again.')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Import games' })).toBeEnabled();
+  });
+
+  test('requires a tournament name before any request', async () => {
+    const user = userEvent.setup();
+    renderScreen();
+
+    await user.selectOptions(screen.getByLabelText('Method'), 'uscf');
+    await user.click(screen.getByRole('button', { name: 'Import games' }));
+
+    expect(await screen.findByText('Enter the tournament name.')).toBeVisible();
+    expect(startImport).not.toHaveBeenCalled();
+  });
+
+  test('requires a player name before any request', async () => {
+    const user = userEvent.setup();
+    renderScreen();
+
+    await user.selectOptions(screen.getByLabelText('Method'), 'uscf');
+    await user.type(screen.getByLabelText('Tournament name'), 'City Open 2026');
+    await user.clear(screen.getByLabelText('Player name'));
+    await user.click(screen.getByRole('button', { name: 'Import games' }));
+
+    expect(await screen.findByText('Enter the player name.')).toBeVisible();
+    expect(startImport).not.toHaveBeenCalled();
+  });
+
+  test('reports an unresolved Lichess username on 422', async () => {
+    const user = userEvent.setup();
+    startImport.mockRejectedValue(
+      new ApiRequestError(422, 'username_not_found', undefined, 'No such account.'),
+    );
+    renderScreen();
+
+    await user.selectOptions(screen.getByLabelText('Method'), 'lichess');
+    await user.type(screen.getByLabelText('Username'), 'ghost');
+    await user.click(screen.getByRole('button', { name: 'Import games' }));
+
+    expect(await screen.findByText('No Lichess account by that username.')).toBeVisible();
+  });
+
+  test('reports nothing new in the singular', async () => {
+    const user = userEvent.setup();
+    startImport.mockResolvedValue(makeJob({ gamesFound: 1, gamesImported: 0 }));
+    renderScreen();
+
+    await user.type(screen.getByLabelText('Username'), 'mina123');
+    await user.click(screen.getByRole('button', { name: 'Import games' }));
+
+    expect(
+      await screen.findByText('Nothing new to import; all 1 game was already in this account.'),
+    ).toBeVisible();
+  });
+
+  test('reports one import and one rejection in the singular', async () => {
+    const user = userEvent.setup();
+    startImport.mockResolvedValue(makeJob({ gamesFound: 2, gamesImported: 1, gamesRejected: 1 }));
+    renderScreen();
+
+    await user.type(screen.getByLabelText('Username'), 'mina123');
+    await user.click(screen.getByRole('button', { name: 'Import games' }));
+
+    expect(
+      await screen.findByText('Imported 1 game. 1 game was rejected and not imported.'),
+    ).toBeVisible();
+  });
+
+  test('sends a tournament batch with no tournament to the debrief without an id', async () => {
+    const user = userEvent.setup();
+    const navigate = vi.fn();
+    const pgn = '[Event "Test"]\n1. e4 e5 1-0';
+    startImport.mockResolvedValue(
+      makeJob({
+        source: 'pgn_upload',
+        stream: 'tournament',
+        gamesFound: 1,
+        gamesImported: 1,
+        tournament: null,
+      }),
+    );
+    renderScreen({ navigate });
+    await user.selectOptions(screen.getByLabelText('Method'), 'pgn_upload');
+    await user.upload(
+      screen.getByLabelText('PGN file', { selector: 'input' }),
+      new File([pgn], 'games.pgn', { type: 'application/x-chess-pgn' }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Import games' }));
+    expect(await screen.findByText('Imported 1 game.')).toBeVisible();
+
+    await user.click(screen.getByRole('button', { name: 'Start the debrief' }));
+    expect(navigate).toHaveBeenCalledWith({
+      to: '/debrief',
+      search: {
+        gameIds: ['00000000-0000-4000-8000-0000000000b1'],
+        gameId: '00000000-0000-4000-8000-0000000000b1',
+      },
+    });
+  });
+
+  test('prefills the Lichess username and clears a field error when switching methods', async () => {
+    const user = userEvent.setup();
+    renderScreen({
+      me: {
+        ...me,
+        player: { ...ownedPlayer, lichessUsername: 'mina-lichess' },
+      },
+    });
+
+    // An implausible Chess.com username leaves an error behind.
+    await user.type(screen.getByLabelText('Username'), 'a');
+    await user.click(screen.getByRole('button', { name: 'Import games' }));
+    expect(await screen.findByText('Enter a valid Chess.com username.')).toBeVisible();
+
+    await user.selectOptions(screen.getByLabelText('Method'), 'lichess');
+    expect(screen.getByLabelText('Username')).toHaveValue('mina-lichess');
+    // The field's own error status clears with the method switch; the
+    // screen-reader live region keeps an announcer copy, so the field is
+    // what asserts.
+    expect(screen.getByLabelText('Username')).not.toHaveAttribute('aria-invalid');
+  });
+
+  test('says the season import is running while waiting', async () => {
+    const user = userEvent.setup();
+    const { promise, resolve } = Promise.withResolvers<ImportJob>();
+    startImport.mockReturnValue(promise);
+    renderScreen();
+
+    await user.type(screen.getByLabelText('Username'), 'mina123');
+    await user.click(screen.getByRole('button', { name: 'Import games' }));
+
+    expect(
+      await screen.findByText("Importing Mina's season... this usually takes about a minute."),
+    ).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Importing...' })).toBeDisabled();
+
+    resolve(makeJob({ gamesImported: 1 }));
+    expect(await screen.findByText('Imported 1 game.')).toBeVisible();
   });
 });

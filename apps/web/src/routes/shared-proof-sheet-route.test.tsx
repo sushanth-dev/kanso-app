@@ -72,6 +72,58 @@ describe('SharedProofSheetScreen', () => {
     expect(screen.getByText(instruction)).toBeInTheDocument();
     expect(document.querySelector('script')).toBeNull();
   });
+  test('renders the flat and declining verdicts with their arrows', () => {
+    render(<SharedProofSheetScreen sheet={sharedFixture({ trend: 'flat' })} />);
+    expect(screen.getByText('It has not changed yet.')).toBeInTheDocument();
+    expect(screen.getByText('→')).toBeInTheDocument();
+
+    render(<SharedProofSheetScreen sheet={sharedFixture({ trend: 'declining' })} />);
+    expect(screen.getByText('It is declining.')).toBeInTheDocument();
+    expect(screen.getByText('↓')).toBeInTheDocument();
+  });
+
+  test('renders a missing number as a dash, the singular game count, and the online stream', () => {
+    render(
+      <SharedProofSheetScreen
+        sheet={sharedFixture({
+          trend: 'flat',
+          beforeValue: null,
+          afterValue: null,
+          gamesBefore: 1,
+          gamesAfter: 1,
+          stream: 'online',
+        })}
+      />,
+    );
+
+    expect(screen.getAllByText('—')).toHaveLength(2);
+    expect(screen.getAllByText('over 1 game')).toHaveLength(2);
+    expect(screen.getByText(/Online games · /)).toBeInTheDocument();
+  });
+
+  test('sets the document title to the focus and restores it on unmount', () => {
+    const { unmount } = render(<SharedProofSheetScreen sheet={sharedFixture()} />);
+
+    expect(document.title).toBe('Converting won positions · Kanso Chess');
+    unmount();
+    expect(document.title).toBe('Kanso Chess');
+  });
+
+  test('shows a loading status while the shared page is fetched', async () => {
+    const { promise } = Promise.withResolvers<SharedProofSheet>();
+    vi.spyOn(sharedProofSheetApi, 'getShared').mockReturnValue(promise);
+
+    const history = createMemoryHistory({ initialEntries: ['/shared/proof-sheets/live'] });
+    const queryClient = new QueryClient();
+    const router = createAppRouter({ history, queryClient });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByRole('status', { name: 'Loading' })).toBeInTheDocument();
+  });
 });
 
 describe('SharedProofSheetRoute', () => {

@@ -55,4 +55,41 @@ describe('NudgeUnsubscribeRoute', () => {
       await screen.findByRole('heading', { name: 'This link is no longer available.' }),
     ).toBeInTheDocument();
   });
+  test('shows a loading status while the unsubscribe is recorded', async () => {
+    const { promise } = Promise.withResolvers<void>();
+    unsubscribe.mockReturnValue(promise);
+
+    renderAt('/nudge/unsubscribe/pending');
+
+    expect(await screen.findByRole('status', { name: 'Loading' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading')).not.toBeInTheDocument();
+  });
+
+  test('explains that only the nudge stops for a valid link', async () => {
+    unsubscribe.mockResolvedValue(undefined);
+
+    renderAt('/nudge/unsubscribe/valid');
+
+    expect(
+      await screen.findByRole('heading', { name: 'You are unsubscribed' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'One link stops these emails, and this was it. The nudge will not reach this address again; everything else in the app is unchanged.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test('a server failure reads the same as a dead link', async () => {
+    unsubscribe.mockRejectedValue(
+      new ApiRequestError(500, 'internal_error', undefined, 'Server error.'),
+    );
+
+    renderAt('/nudge/unsubscribe/broken');
+
+    expect(
+      await screen.findByRole('heading', { name: 'This link is no longer available.' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/You are unsubscribed/)).not.toBeInTheDocument();
+  });
 });

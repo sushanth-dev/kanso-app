@@ -3,8 +3,15 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, RouterContextProvider, RouterProvider } from '@tanstack/react-router';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { accountApi, type Me } from '../api/account-api.ts';
-import { diagnosisApi, type CctScan, type GameDetail, type Mistake } from '../api/diagnosis-api.ts';
+import { accountApi, ApiRequestError, type Me } from '../api/account-api.ts';
+import {
+  diagnosisApi,
+  type CctScan,
+  type Explanation,
+  type GameDetail,
+  type Mistake,
+  type SocraticQuestion,
+} from '../api/diagnosis-api.ts';
 import { createAppRouter } from '../router.tsx';
 import { GameReviewScreen } from './game-review-route.tsx';
 
@@ -374,6 +381,90 @@ describe('GameReviewScreen', () => {
       screen.queryByText('Your side was not recorded for this game. Which colour were you?'),
     ).not.toBeInTheDocument();
   });
+
+  test('says honestly when the scan itself fails', async () => {
+    vi.spyOn(diagnosisApi, 'getCctScan').mockRejectedValue(new Error('502'));
+    renderScreen(gameFixture());
+    expect(await screen.findByText('The scan could not be loaded.')).toBeInTheDocument();
+  });
+
+  test('groups the scan into checks and threats, skipping empty groups', async () => {
+    vi.spyOn(diagnosisApi, 'getCctScan').mockResolvedValue({
+      mistakeId: 'm-1',
+      checks: [{ san: 'Qd1+', uci: 'a1d1', type: 'Check', isGoodOption: true, isUseful: true }],
+      captures: [],
+      threats: [{ san: 'Qxa7', uci: 'a1a7', type: 'Threat', isGoodOption: false, isUseful: true }],
+    });
+    renderScreen(gameFixture());
+    expect(await screen.findByText('Checks')).toBeInTheDocument();
+    expect(screen.getByText('Threats')).toBeInTheDocument();
+    expect(screen.getByText('Qd1+')).toBeInTheDocument();
+    expect(screen.getByText('Qxa7')).toBeInTheDocument();
+    expect(screen.queryByText('Captures')).not.toBeInTheDocument();
+  });
+
+  test('renders the monthly budget prompt when the explanation is paywalled', async () => {
+    vi.spyOn(diagnosisApi, 'getExplanation').mockRejectedValue(
+      new ApiRequestError(402, 'upgrade_required', undefined, 'Upgrade required.'),
+    );
+    renderScreen(gameFixture());
+    expect(
+      await screen.findByRole('heading', { name: "You have used this month's coach explanations" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'See plans' })).toHaveAttribute('href', '/upgrade');
+  });
+
+  test('holds the working lines while the coach texts are being written', async () => {
+    vi.spyOn(diagnosisApi, 'getExplanation').mockReturnValue(
+      Promise.withResolvers<Explanation>().promise,
+    );
+    vi.spyOn(diagnosisApi, 'getSocraticQuestion').mockReturnValue(
+      Promise.withResolvers<SocraticQuestion>().promise,
+    );
+    renderScreen(gameFixture());
+    expect(await screen.findByText('Working out what happened here…')).toBeInTheDocument();
+    expect(screen.getByText('Thinking of a question to ask you…')).toBeInTheDocument();
+  });
+
+  test('drops the question line when the Socratic question fails', async () => {
+    vi.spyOn(diagnosisApi, 'getSocraticQuestion').mockRejectedValue(new Error('502'));
+    renderScreen(gameFixture());
+    expect(await screen.findByText(/hangs the queen/)).toBeInTheDocument();
+    expect(screen.queryByText('Thinking of a question to ask you…')).not.toBeInTheDocument();
+  });
+
+  test('falls back to generic names when the PGN omits the players', async () => {
+    const { user } = renderScreen(gameFixture({ whiteName: null, blackName: null }));
+    expect(screen.getByText('Unknown vs Unknown')).toBeInTheDocument();
+    // The opponent's ply names the generic side: the PGN carried no name.
+    await user.click(screen.getByRole('button', { name: /Nc3/ }));
+    expect(screen.getByText(/played/)).toHaveTextContent('White played Nc3');
+  });
+
+  test('glosses a draw from either side', () => {
+    renderScreen(gameFixture({ result: '1/2-1/2' }));
+    expect(screen.getByText('You drew.')).toBeInTheDocument();
+  });
+
+  test('glosses nothing when the game is unfinished or the side is unset', () => {
+    renderScreen(gameFixture({ result: '*' }));
+    expect(screen.queryByText(/^You (won|lost|drew)\.$/)).not.toBeInTheDocument();
+    renderScreen(gameFixture({ playerColor: null, result: '1-0' }));
+    expect(screen.queryByText(/^You (won|lost|drew)\.$/)).not.toBeInTheDocument();
+  });
+
+  test('clamps the arrow keys at the ends of the game', async () => {
+    const { user } = renderScreen(gameFixture());
+    await user.keyboard('{ArrowDown}{ArrowRight}');
+    expect(screen.getByText(/played/)).toHaveTextContent('Qxf3');
+    await user.keyboard('{ArrowUp}{ArrowLeft}');
+    expect(screen.getByText(/played/)).toHaveTextContent('Nf3');
+  });
+
+  test('shows the player-colour dot for the player\u2019s side', () => {
+    renderScreen(gameFixture({ playerColor: 'white', result: '1-0' }));
+    expect(screen.getByRole('img', { name: 'You play white' })).toBeInTheDocument();
+  });
 });
 
 describe('GameReviewScreen drill entry', () => {
@@ -383,6 +474,28 @@ describe('GameReviewScreen drill entry', () => {
     expect(link).toHaveAttribute(
       'href',
       `/practice?kind=motif&group=hanging_piece&label=${encodeURIComponent('Hung a piece')}&stream=tournament`,
+    );
+  });
+
+  test('ST-106: a mistake with no motif and no phase offers no drill', () => {
+    renderScreen(gameFixture({ mistakes: [{ ...mistakes[0]!, motif: null, phase: null }] }));
+    expect(screen.queryByRole('link', { name: 'Drill this pattern' })).not.toBeInTheDocument();
+  });
+
+  test('ST-106: a phase mistake drills the game phase', () => {
+    renderScreen(gameFixture({ mistakes: [{ ...mistakes[0]!, motif: null, phase: 'endgame' }] }));
+    expect(screen.getByRole('link', { name: 'Drill this pattern' })).toHaveAttribute(
+      'href',
+      `/practice?kind=phase&group=endgame&label=${encodeURIComponent('Endgame')}&stream=tournament`,
+    );
+  });
+
+  test('names an unrecognised motif as it arrived, never a blank label', () => {
+    renderScreen(gameFixture({ mistakes: [{ ...mistakes[0]!, motif: 'back_rank_tiredness' }] }));
+    expect(screen.getByText('back_rank_tiredness')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Drill this pattern' })).toHaveAttribute(
+      'href',
+      expect.stringContaining('group=back_rank_tiredness'),
     );
   });
 });
@@ -406,6 +519,7 @@ describe('GameReviewRoute', () => {
         <RouterProvider router={router} />
       </QueryClientProvider>,
     );
+    return { router };
   }
 
   test('shows the analysing loader while the game is on the engine, then the review', async () => {
@@ -447,5 +561,83 @@ describe('GameReviewRoute', () => {
       await screen.findByText('Your side was not recorded for this game. Which colour were you?'),
     ).toBeVisible();
     expect(screen.queryByRole('status', { name: 'Analysing game' })).toBeNull();
+  });
+  test('shows the honest error state when the game cannot be loaded', async () => {
+    vi.spyOn(diagnosisApi, 'getGame').mockRejectedValue(
+      new ApiRequestError(500, 'internal_error', undefined, 'Boom.'),
+    );
+    renderRoute();
+    expect(
+      await screen.findByRole('heading', { name: 'This game could not be loaded' }),
+    ).toBeVisible();
+  });
+
+  test('ST-100: the ply rides the URL onto the board', async () => {
+    vi.spyOn(diagnosisApi, 'getGame').mockResolvedValue(gameFixture());
+    renderRoute(`/games/${gameId}?ply=8`);
+    expect(await screen.findByText(/you played/)).toHaveTextContent('Qxf3');
+  });
+
+  test('returns to the games list after a confirmed delete', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(diagnosisApi, 'getGame').mockResolvedValue(gameFixture());
+    vi.spyOn(diagnosisApi, 'deleteGame').mockResolvedValue(undefined);
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue({
+      games: [],
+      total: 0,
+      page: 1,
+      limit: 100,
+    });
+    const { router } = renderRoute();
+    await user.click(await screen.findByRole('button', { name: 'Delete game' }));
+    await user.click(await screen.findByRole('button', { name: 'Delete' }));
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/games');
+    });
+  });
+
+  test('stays on the review with an error line when the delete fails', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(diagnosisApi, 'getGame').mockResolvedValue(gameFixture());
+    vi.spyOn(diagnosisApi, 'deleteGame').mockRejectedValue(
+      new ApiRequestError(500, 'internal_error', undefined, 'Boom.'),
+    );
+    const { router } = renderRoute();
+    await user.click(await screen.findByRole('button', { name: 'Delete game' }));
+    await user.click(await screen.findByRole('button', { name: 'Delete' }));
+    expect(
+      await screen.findByText('The game could not be deleted. Please try again.'),
+    ).toBeVisible();
+    expect(router.state.location.pathname).toBe(`/games/${gameId}`);
+  });
+
+  test('saves the colour, refetches the game, and orients to the player side', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(diagnosisApi, 'getGame')
+      .mockResolvedValueOnce(gameFixture({ playerColor: null, analysisStatus: 'complete' }))
+      .mockResolvedValue(gameFixture());
+    const setGameColor = vi.spyOn(diagnosisApi, 'setGameColor').mockResolvedValue(gameFixture());
+    renderRoute();
+    await user.click(await screen.findByRole('button', { name: 'I was Black' }));
+    expect(setGameColor).toHaveBeenCalledWith(gameId, 'black');
+    expect(await screen.findByRole('img', { name: 'You play black' })).toBeInTheDocument();
+    expect(
+      screen.queryByText('Your side was not recorded for this game. Which colour were you?'),
+    ).not.toBeInTheDocument();
+  });
+
+  test('says when the colour could not be saved', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(diagnosisApi, 'getGame').mockResolvedValue(
+      gameFixture({ playerColor: null, analysisStatus: 'complete' }),
+    );
+    vi.spyOn(diagnosisApi, 'setGameColor').mockRejectedValue(
+      new ApiRequestError(500, 'internal_error', undefined, 'Boom.'),
+    );
+    renderRoute();
+    await user.click(await screen.findByRole('button', { name: 'I was White' }));
+    expect(
+      await screen.findByText('Your colour could not be saved. Please try again.'),
+    ).toBeVisible();
   });
 });

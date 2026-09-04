@@ -81,4 +81,75 @@ describe('scoreLeaks', () => {
     ]);
     expect(leaks.map((l) => l.key)).toEqual(['one', 'many']);
   });
+
+  test('equal costs order by kind, then by key', () => {
+    // The tie-break is deterministic so the report's order never shuffles
+    // between renders.
+    const leaks = scoreLeaks(midTable, [
+      {
+        kind: 'phase',
+        key: 'endgame',
+        label: 'Endgame',
+        eco: null,
+        halfPointsLost: 1,
+        occurrences: 1,
+        gamesAffected: 1,
+      },
+      {
+        kind: 'motif',
+        key: 'missed_check',
+        label: 'Missed check',
+        eco: null,
+        halfPointsLost: 1,
+        occurrences: 1,
+        gamesAffected: 1,
+      },
+      {
+        kind: 'opening',
+        key: 'C10',
+        label: 'French',
+        eco: 'C10',
+        halfPointsLost: 1,
+        occurrences: 1,
+        gamesAffected: 1,
+      },
+      {
+        kind: 'opening',
+        key: 'B22',
+        label: 'Alapin',
+        eco: 'B22',
+        halfPointsLost: 1,
+        occurrences: 1,
+        gamesAffected: 1,
+      },
+    ]);
+    expect(leaks.map((l) => `${l.kind}/${l.key}`)).toEqual([
+      'motif/missed_check',
+      'opening/B22',
+      'opening/C10',
+      'phase/endgame',
+    ]);
+  });
+
+  test('a season with no weakness groups scores to an empty report', () => {
+    expect(scoreLeaks(midTable, [])).toEqual([]);
+  });
+
+  test('saturation carries through the conversion', () => {
+    // More half-points claimed than the season has room for: the floor flag
+    // must survive scoring, not just the estimate.
+    const [leak] = scoreLeaks({ games: 12, score: 6, avgOpponentElo: 1500 }, [
+      {
+        kind: 'phase',
+        key: 'middlegame',
+        label: 'Middlegame',
+        eco: null,
+        halfPointsLost: 8.5,
+        occurrences: 9,
+        gamesAffected: 5,
+      },
+    ]);
+    expect(leak!.saturated).toBe(true);
+    expect(leak!.ratingLeak).toBe(800);
+  });
 });

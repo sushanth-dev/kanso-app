@@ -46,4 +46,17 @@ describe('phaseFor', () => {
     expect(OPENING_MAX_PLY).toBe(20);
     expect(ENDGAME_MAX_NONPAWN_MATERIAL).toBe(13);
   });
+
+  test('black pieces count the same as white pieces', () => {
+    // The board field is case-insensitive: black's lowercase rook (5 points)
+    // with no queens is an endgame; black's lowercase queen keeps it out.
+    expect(phaseFor('4k3/8/8/8/8/8/1r6/6K1 b - - 0 40', 40)).toBe('endgame');
+    expect(phaseFor('2q5/8/8/8/8/8/1r6/6K1 b - - 0 40', 40)).toBe('middlegame');
+  });
+
+  test('a board with no pieces at all is the endgame', () => {
+    // An empty board field has no queens and no material; the function is
+    // total, so it must still answer with a phase.
+    expect(phaseFor('8/8/8/8/8/8/8/8 w - - 0 1', 1)).toBe('endgame');
+  });
 });

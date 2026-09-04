@@ -35,3 +35,16 @@ HTMLDialogElement.prototype.showModal = function () {
 HTMLDialogElement.prototype.close = function () {
   this.removeAttribute('open');
 };
+
+// The test runtime (Node 22+) implements Promise.withResolvers, but the
+// project's tsconfig lib predates it. Route tests use it for deferred
+// query resolution; declare the ambient type so typecheck matches reality.
+declare global {
+  interface PromiseConstructor {
+    withResolvers<T>(): {
+      promise: Promise<T>;
+      resolve: (value: T) => void;
+      reject: (reason?: unknown) => void;
+    };
+  }
+}

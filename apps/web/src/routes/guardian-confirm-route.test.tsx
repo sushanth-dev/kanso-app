@@ -56,4 +56,37 @@ describe('GuardianConfirmRoute', () => {
       await screen.findByRole('heading', { name: 'This link is no longer available.' }),
     ).toBeInTheDocument();
   });
+  test('shows a loading status while the consent is recorded', async () => {
+    const { promise } = Promise.withResolvers<void>();
+    confirmGuardian.mockReturnValue(promise);
+
+    renderAt('/guardians/confirm/loading');
+
+    expect(await screen.findByRole('status', { name: 'Loading' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading')).not.toBeInTheDocument();
+  });
+
+  test('thanks the guardian in plain words for a valid link', async () => {
+    confirmGuardian.mockResolvedValue(undefined);
+
+    renderAt('/guardians/confirm/valid');
+
+    expect(await screen.findByRole('heading', { name: 'Consent recorded' })).toBeInTheDocument();
+    expect(
+      screen.getByText("Thank you. The player's account is now ready to use."),
+    ).toBeInTheDocument();
+  });
+
+  test('a server failure reads the same as a dead link, never as a consent error', async () => {
+    confirmGuardian.mockRejectedValue(
+      new ApiRequestError(500, 'internal_error', undefined, 'Server error.'),
+    );
+
+    renderAt('/guardians/confirm/broken');
+
+    expect(
+      await screen.findByRole('heading', { name: 'This link is no longer available.' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Thank you/)).not.toBeInTheDocument();
+  });
 });

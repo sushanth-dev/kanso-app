@@ -294,3 +294,70 @@ describe('findCCT: promotions', () => {
     expect(result.threats.find((t) => t.san === 'b8=N')).toBeUndefined();
   });
 });
+describe('findCCT: usefulness corner cases', () => {
+  test('a checkmating move is always useful, before the category split even runs', () => {
+    // Re8 is back-rank mate; the mate branch in the 1-ply lookahead fires for
+    // every legal move before findCCT decides which list it lands in.
+    const result = findCCT('6k1/5ppp/8/8/8/8/5PPP/4R1K1 w - - 0 1');
+    const mate = result.checks.find((m) => m.san === 'Re8#');
+    expect(mate?.isUseful).toBe(true);
+    // With no engine move given, the heuristic also marks mate a good option.
+    expect(mate?.isGoodOption).toBe(true);
+  });
+
+  test('reads the recapture geometry for a black mover, not just White', () => {
+    // Black queen h4 takes the e4 pawn; the white knight f2 recaptures more
+    // cheaply, so the capture is a blunder by the same rule White's queen
+    // ran into in the mirrored position. The e2 pawn blocks the e-file, so
+    // Qxe4 is not a check and lands in captures, not checks.
+    const result = findCCT('4k3/8/8/8/4P2q/8/4PN2/4K3 b - - 0 1');
+    const capture = result.captures.find((m) => m.san === 'Qxe4');
+    expect(capture?.isUseful).toBe(false);
+    expect(capture?.isGoodOption).toBe(false);
+    // The same move would have been a check without the e2 blocker: the queen
+    // can still give check by taking the knight, and checks stay useful.
+    expect(result.checks.map((m) => m.san)).toContain('Qxf2+');
+  });
+});
+
+describe('hasXrayAttacker: blocker and colour edges', () => {
+  test('two pieces between the slider and the target kill the x-ray', () => {
+    // Pawns on a3 and a5 both sit between the rook a1 and a8; an x-ray needs
+    // exactly one blocker, so there is nothing behind the second piece.
+    const fen = '4k3/8/8/p7/8/p7/8/R3K3 w - - 0 1';
+    expect(hasXrayAttacker(fen, 'a8', 'w')).toBe(false);
+  });
+
+  test('a direct attack is contact, not an x-ray', () => {
+    // The rook a1 already attacks a8 with nothing in between; the x-ray count
+    // deliberately stays zero because the attack is not "through" anything.
+    const fen = '4k3/8/8/8/8/8/8/R3K3 w - - 0 1';
+    expect(hasXrayAttacker(fen, 'a8', 'w')).toBe(false);
+  });
+
+  test('reads the x-ray for the black side from the requested colour', () => {
+    // Black rook a7 x-rays a1 through the black queen a3: the mirror of the
+    // white rook-and-queen case that opens this file.
+    const fen = '4k3/r7/8/8/8/q7/8/6K1 b - - 0 1';
+    expect(hasXrayAttacker(fen, 'a1', 'b')).toBe(true);
+  });
+});
+
+describe('computeHygiene: x-ray defenders', () => {
+  test('counts a defender x-ray through a friendly blocker for the defending side', () => {
+    // The mirror of the attacker x-ray test: black knight e5 takes the white
+    // pawn f7, the black king backs it up by adjacency, and the white queen f3
+    // defends f7 in direct contact while the rook f1 x-rays through her.
+    const fen = '4k3/5P2/8/4n3/8/5Q2/8/5RK1 b - - 0 1';
+    expect(computeHygiene(fen, 'Nxf7')).toEqual({
+      targetSquare: 'f7',
+      fromSquare: 'e5',
+      attackersDC: 2,
+      attackersXC: 0,
+      defendersDC: 1,
+      defendersXC: 1,
+      attackers: 2,
+      defenders: 2,
+    });
+  });
+});

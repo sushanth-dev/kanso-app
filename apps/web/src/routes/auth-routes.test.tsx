@@ -105,6 +105,18 @@ describe('AuthScreen sign-in', () => {
       '/forgot-password',
     );
   });
+  test('maps a thrown sign-in failure to the same non-enumerating copy', async () => {
+    signInEmail.mockRejectedValue(new TypeError('Failed to fetch'));
+    const { user } = renderSignIn();
+
+    await user.type(screen.getByLabelText('Email'), 'player@example.com');
+    await user.type(screen.getByLabelText('Password'), 'a-secure-password');
+    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Email or password was not accepted.',
+    );
+  });
 });
 
 describe('AuthScreen sign-up', () => {
@@ -256,6 +268,63 @@ describe('AuthScreen sign-up', () => {
 
     await user.type(screen.getByLabelText('Name'), 'Player');
     await user.type(screen.getByLabelText('Email'), 'player@example.com');
+    await user.type(screen.getByLabelText('Password'), 'a-secure-password');
+    await user.type(screen.getByLabelText('Confirm password'), 'a-secure-password');
+    await user.type(screen.getByLabelText('Guardian email'), 'player@example.com');
+    await user.click(screen.getByRole('button', { name: 'Sign up' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The guardian email must be different from the sign-up email.',
+    );
+    expect(signUpEmail).not.toHaveBeenCalled();
+  });
+  test('hides the guardian email for an adult date of birth and omits it from the payload', async () => {
+    const { user } = renderSignUp();
+    signUpEmail.mockResolvedValue({ data: { user: {} }, error: null });
+
+    fireEvent.change(screen.getByLabelText('Date of birth'), {
+      target: { value: '2010-01-01' },
+    });
+    expect(screen.queryByLabelText('Guardian email')).not.toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('Name'), 'Player');
+    await user.type(screen.getByLabelText('Email'), 'player@example.com');
+    await user.type(screen.getByLabelText('Password'), 'a-secure-password');
+    await user.type(screen.getByLabelText('Confirm password'), 'a-secure-password');
+    await user.click(screen.getByRole('button', { name: 'Sign up' }));
+
+    await waitFor(() => {
+      expect(signUpEmail).toHaveBeenCalledWith(
+        expect.objectContaining({ dateOfBirth: '2010-01-01', guardianEmail: undefined }),
+      );
+    });
+  });
+
+  test('sends no date of birth when the field is left empty', async () => {
+    const { user } = renderSignUp();
+    signUpEmail.mockResolvedValue({ data: { user: {} }, error: null });
+
+    await user.type(screen.getByLabelText('Name'), 'Player');
+    await user.type(screen.getByLabelText('Email'), 'player@example.com');
+    await user.type(screen.getByLabelText('Password'), 'a-secure-password');
+    await user.type(screen.getByLabelText('Confirm password'), 'a-secure-password');
+    await user.click(screen.getByRole('button', { name: 'Sign up' }));
+
+    await waitFor(() => {
+      expect(signUpEmail).toHaveBeenCalledWith(
+        expect.objectContaining({ dateOfBirth: undefined, guardianEmail: undefined }),
+      );
+    });
+  });
+
+  test('rejects a guardian email matching the sign-up email case-insensitively', async () => {
+    const { user } = renderSignUp();
+
+    fireEvent.change(screen.getByLabelText('Date of birth'), {
+      target: { value: '2015-06-01' },
+    });
+    await user.type(screen.getByLabelText('Name'), 'Player');
+    await user.type(screen.getByLabelText('Email'), 'PLAYER@example.com');
     await user.type(screen.getByLabelText('Password'), 'a-secure-password');
     await user.type(screen.getByLabelText('Confirm password'), 'a-secure-password');
     await user.type(screen.getByLabelText('Guardian email'), 'player@example.com');

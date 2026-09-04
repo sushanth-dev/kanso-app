@@ -1,12 +1,19 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { createMemoryHistory, RouterContextProvider } from '@tanstack/react-router';
-import { describe, expect, test, vi } from 'vitest';
-import type { Report } from '../api/diagnosis-api.ts';
-import type { ActiveFocus, FocusCatalogueEntry } from '../api/focus-api.ts';
+import { createMemoryHistory, RouterContextProvider, RouterProvider } from '@tanstack/react-router';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { track } from '../analytics.ts';
+import { accountApi, ApiRequestError, type Me } from '../api/account-api.ts';
+import { diagnosisApi, type Report, type Weakness } from '../api/diagnosis-api.ts';
+import { focusApi, type ActiveFocus, type FocusCatalogueEntry } from '../api/focus-api.ts';
 import { createAppRouter } from '../router.tsx';
 import { ActiveFocusView, FocusChoiceView } from './focus-route.tsx';
+
+vi.mock('../analytics.ts', () => ({
+  safeProperties: (properties: Record<string, string | number>) => properties,
+  track: vi.fn(),
+}));
 
 const playerId = '00000000-0000-4000-8000-000000000001';
 
@@ -94,9 +101,9 @@ const emptyReport: Report = {
 function renderFocusChoice(props: Partial<Parameters<typeof FocusChoiceView>[0]> = {}) {
   const user = userEvent.setup();
   const queryClient = new QueryClient();
+  queryClient.setQueryData(['report', 'tournament', null], emptyReport);
   const history = createMemoryHistory();
   const router = createAppRouter({ history, queryClient });
-  queryClient.setQueryData(['report', 'tournament'], emptyReport);
   render(
     <QueryClientProvider client={queryClient}>
       <RouterContextProvider router={router}>
@@ -340,5 +347,520 @@ describe('ActiveFocusView', () => {
     expect(
       screen.getByText('Practice: 12 of 40 drills solved across 3 groups.'),
     ).toBeInTheDocument();
+  });
+});
+
+const rankingWeakness: Weakness = {
+  id: 'w-1',
+  kind: 'motif',
+  label: 'Missed captures',
+  eco: null,
+  ratingLeak: 34,
+  saturated: false,
+  halfPointsLost: 2.5,
+  gamesAffected: 6,
+  occurrences: 9,
+  rank: 1,
+  advice: null,
+  actionItems: [],
+  drilled: 0,
+  groupKey: null,
+  evidence: [],
+};
+
+function onlineReport(overrides: Partial<Report> = {}): Report {
+  return { ...emptyReport, stream: 'online', ...overrides };
+}
+
+describe('FocusChoiceView ranking section', () => {
+  test('admits honestly when the ranking has no evidence yet', () => {
+    renderFocusChoice();
+    expect(
+      screen.getByText('Not enough evidence to rank your weaknesses in this stream yet.'),
+    ).toBeInTheDocument();
+  });
+
+  test('holds a quiet loading row while the ranking loads', () => {
+    vi.spyOn(diagnosisApi, 'getReport').mockReturnValue(Promise.withResolvers<Report>().promise);
+    renderFocusChoice({ stream: 'online' });
+    const busy = document.querySelector('div[role="status"][aria-busy="true"]');
+    expect(busy).not.toBeNull();
+    expect(screen.queryByText('Ranked by rating leak.')).not.toBeInTheDocument();
+  });
+
+  test('names the missing ranking as a missing-import problem, not a failure', async () => {
+    vi.spyOn(diagnosisApi, 'getReport').mockRejectedValue(
+      new ApiRequestError(404, 'not_found', undefined, 'Not found.'),
+    );
+    renderFocusChoice({ stream: 'online' });
+    expect(
+      await screen.findByText(
+        'No analysed games in this stream yet. Import games to get a ranking.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test('names thin rated history as the reason a ranking refuses', async () => {
+    vi.spyOn(diagnosisApi, 'getReport').mockRejectedValue(
+      new ApiRequestError(422, 'not_enough_evidence', undefined, 'Too few rated games.'),
+    );
+    renderFocusChoice({ stream: 'online' });
+    expect(
+      await screen.findByText(
+        'Analysed games so far are too few rated ones for a ranking. Import more rated games.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test('keeps a failure to load the ranking from blaming the player', async () => {
+    vi.spyOn(diagnosisApi, 'getReport').mockRejectedValue(new Error('502'));
+    renderFocusChoice({ stream: 'online' });
+    expect(
+      await screen.findByText('Your ranking could not be loaded right now.'),
+    ).toBeInTheDocument();
+  });
+
+  test('ranks the weaknesses with the leak, floored when saturated', async () => {
+    vi.spyOn(diagnosisApi, 'getReport').mockResolvedValue(
+      onlineReport({
+        weaknesses: [
+          rankingWeakness,
+          { ...rankingWeakness, id: 'w-2', rank: 2, label: 'Hanging pieces', saturated: true },
+        ],
+      }),
+    );
+    renderFocusChoice({ stream: 'online' });
+    expect(await screen.findByText('Ranked by rating leak.')).toBeInTheDocument();
+    expect(screen.getByText('#1')).toBeInTheDocument();
+    expect(screen.getByText('Missed captures')).toBeInTheDocument();
+    expect(screen.getByText('#2')).toBeInTheDocument();
+    expect(screen.getByText('at least 34')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View full report' })).toHaveAttribute(
+      'href',
+      '/report?stream=online',
+    );
+  });
+
+  test('routes the ranking stream change through the toggle', async () => {
+    const onStreamChange = vi.fn();
+    const { user } = renderFocusChoice({ onStreamChange });
+    await user.click(screen.getByRole('radio', { name: 'Online' }));
+    expect(onStreamChange).toHaveBeenCalledWith('online');
+  });
+});
+
+describe('FocusChoiceView form and choice edges', () => {
+  test('requires the instruction before the coach focus can be set', async () => {
+    const onSet = vi.fn().mockResolvedValue(undefined);
+    const { user } = renderFocusChoice({ onSet });
+    await user.selectOptions(
+      screen.getByLabelText('Paired measurable focus'),
+      'tactical_alertness',
+    );
+    await user.click(screen.getByRole('button', { name: 'Set coach focus' }));
+    expect(
+      screen.getAllByText('Write the instruction in the coach\u2019s own words.').length,
+    ).toBeGreaterThan(0);
+    expect(onSet).not.toHaveBeenCalled();
+  });
+
+  test('clears each coach form error once the player fixes it', async () => {
+    const onSet = vi.fn().mockResolvedValue(undefined);
+    const { user } = renderFocusChoice({ onSet });
+    await user.click(screen.getByRole('button', { name: 'Set coach focus' }));
+    expect(
+      screen.getAllByText('Write the instruction in the coach\u2019s own words.').length,
+    ).toBeGreaterThan(0);
+    await user.type(screen.getByLabelText('Coach instruction'), 'Work on the clock.');
+    await user.selectOptions(
+      screen.getByLabelText('Paired measurable focus'),
+      'tactical_alertness',
+    );
+    // The live region keeps its announcement; the fields drop the invalid state.
+    expect(screen.getByLabelText('Coach instruction')).not.toHaveAttribute('aria-invalid');
+    expect(screen.getByLabelText('Paired measurable focus')).not.toHaveAttribute('aria-invalid');
+  });
+
+  test('says the replacement ends a coach focus without a catalogue name', () => {
+    renderFocusChoice({
+      replacing: activeFocusFixture({ source: 'coach', catalogue: null, unverified: true }),
+    });
+    expect(
+      screen.getByText('Setting a new focus ends your current coach focus.'),
+    ).toBeInTheDocument();
+  });
+
+  test('offers nothing to choose from when the catalogue arrives empty', () => {
+    renderFocusChoice({ catalogue: [] });
+    expect(screen.getByRole('heading', { name: 'Choose a focus' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Set Converting won positions' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Set Tactical alertness' })).toBeNull();
+  });
+
+  test('explains an unlisted single-stream focus by its stream', () => {
+    const endgameConversion: FocusCatalogueEntry = {
+      id: '44444444-4444-4444-8444-444444444444',
+      key: 'endgame_conversion',
+      title: 'Endgame conversion',
+      description: 'Turning winning endgames into points.',
+      measureDescription: 'The share of winning endgames converted.',
+      measurableStreams: ['tournament'],
+      version: 1,
+    };
+    renderFocusChoice({ catalogue: [endgameConversion] });
+    expect(screen.getByText('Measured in Tournament games only.')).toBeInTheDocument();
+  });
+});
+
+describe('ActiveFocusView headings and trend words', () => {
+  test('heads a coach focus without a catalogue as the coach\u2019s own', () => {
+    renderActiveFocus(activeFocusFixture({ source: 'coach', catalogue: null, unverified: true }));
+    expect(screen.getByRole('heading', { name: "Your coach's focus" })).toBeInTheDocument();
+  });
+
+  test('heads a catalogue-less self focus as the player\u2019s own', () => {
+    renderActiveFocus(activeFocusFixture({ catalogue: null }));
+    expect(screen.getByRole('heading', { name: 'Your focus' })).toBeInTheDocument();
+  });
+
+  test('hands the change request to the page', async () => {
+    const onChange = vi.fn();
+    const user = userEvent.setup();
+    const queryClient = new QueryClient();
+    const history = createMemoryHistory();
+    const router = createAppRouter({ history, queryClient });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <RouterContextProvider router={router}>
+          <ActiveFocusView focus={activeFocusFixture()} catalogue={[]} onChange={onChange} />
+        </RouterContextProvider>
+      </QueryClientProvider>,
+    );
+    await user.click(screen.getByRole('button', { name: 'Change focus' }));
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
+  test('reads a flat verdict as flat, never as a direction it does not have', () => {
+    renderActiveFocus(
+      activeFocusFixture({
+        measurements: [
+          {
+            stream: 'tournament',
+            measuredAt: '2026-08-16T00:00:00.000Z',
+            windowGames: 10,
+            baselineValue: 0.5,
+            currentValue: 0.5,
+            unit: 'share converted',
+            trend: 'flat',
+            gamesToGo: 0,
+          },
+        ],
+      }),
+    );
+    expect(screen.getByText(/Flat/)).toBeInTheDocument();
+    expect(screen.getByText('→')).toBeInTheDocument();
+    expect(screen.getByText(/0\.5 → 0\.5 share converted/)).toBeInTheDocument();
+  });
+
+  test('reads a declining verdict as declining', () => {
+    renderActiveFocus(
+      activeFocusFixture({
+        measurements: [
+          {
+            stream: 'tournament',
+            measuredAt: '2026-08-16T00:00:00.000Z',
+            windowGames: 10,
+            baselineValue: 0.6,
+            currentValue: 0.4,
+            unit: 'share converted',
+            trend: 'declining',
+            gamesToGo: 0,
+          },
+        ],
+      }),
+    );
+    expect(screen.getByText(/Declining/)).toBeInTheDocument();
+    expect(screen.getByText('↓')).toBeInTheDocument();
+  });
+
+  test('counts one remaining game in the singular', () => {
+    renderActiveFocus(
+      activeFocusFixture({
+        measurements: [
+          {
+            stream: 'online',
+            measuredAt: '2026-08-16T00:00:00.000Z',
+            windowGames: 1,
+            baselineValue: null,
+            currentValue: null,
+            unit: 'share converted',
+            trend: 'insufficient_evidence',
+            gamesToGo: 1,
+          },
+        ],
+      }),
+    );
+    expect(screen.getByText('1 more game to go.')).toBeInTheDocument();
+  });
+
+  test('measures a single-game window in the singular', () => {
+    renderActiveFocus(
+      activeFocusFixture({
+        measurements: [
+          {
+            stream: 'tournament',
+            measuredAt: '2026-08-16T00:00:00.000Z',
+            windowGames: 1,
+            baselineValue: 0.6,
+            currentValue: 0.7,
+            unit: 'share converted',
+            trend: 'improving',
+            gamesToGo: 0,
+          },
+        ],
+      }),
+    );
+    expect(screen.getByText(/Measured over 1 game\./)).toBeInTheDocument();
+  });
+});
+
+const meFixture: Me = {
+  userId: 'user-1',
+  email: 'player@example.com',
+  name: 'Player',
+  tier: 'beginner',
+  player: {
+    id: playerId,
+    displayName: 'Mina',
+    birthYear: 2013,
+    fideId: null,
+    fideRating: null,
+    uscfId: null,
+    uscfRating: null,
+    chesscomUsername: null,
+    lichessUsername: null,
+    chesscomRating: null,
+    lichessRating: null,
+    currentStreak: 0,
+    xp: 0,
+    level: 1,
+    createdAt: '2026-08-14T00:00:00.000Z',
+  },
+};
+
+function renderFocusRoute(path = '/focus') {
+  const history = createMemoryHistory({ initialEntries: [path] });
+  const queryClient = new QueryClient();
+  const router = createAppRouter({ history, queryClient });
+  render(
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  );
+  return { router, queryClient };
+}
+
+describe('FocusRoute', () => {
+  beforeEach(() => {
+    vi.mocked(track).mockClear();
+    vi.spyOn(accountApi, 'getMe').mockResolvedValue(meFixture);
+    // The choice view's ranking section reads the report; keep it refused so
+    // no test exercises the network by accident.
+    vi.spyOn(diagnosisApi, 'getReport').mockRejectedValue(
+      new ApiRequestError(404, 'not_found', undefined, 'Not found.'),
+    );
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  test('holds the skeleton while the focus queries resolve', async () => {
+    vi.spyOn(focusApi, 'getFocus').mockReturnValue(Promise.withResolvers<ActiveFocus>().promise);
+    vi.spyOn(focusApi, 'listFocuses').mockReturnValue(
+      Promise.withResolvers<FocusCatalogueEntry[]>().promise,
+    );
+    renderFocusRoute();
+    expect(await screen.findByRole('status', { name: 'Loading focus' })).toBeVisible();
+  });
+
+  test('renders the paid boundary when the focus requires an upgrade', async () => {
+    vi.spyOn(focusApi, 'getFocus').mockRejectedValue(
+      new ApiRequestError(402, 'upgrade_required', undefined, 'Upgrade required.'),
+    );
+    vi.spyOn(focusApi, 'listFocuses').mockResolvedValue([convertingWon]);
+    renderFocusRoute();
+    expect(
+      await screen.findByRole('heading', { name: 'Your focus is part of the paid loop' }),
+    ).toBeVisible();
+    expect(screen.queryByRole('heading', { name: 'Set your focus' })).not.toBeInTheDocument();
+  });
+
+  test('shows the retry empty state when the focus cannot be loaded', async () => {
+    vi.spyOn(focusApi, 'getFocus').mockRejectedValue(
+      new ApiRequestError(500, 'internal_error', undefined, 'Boom.'),
+    );
+    vi.spyOn(focusApi, 'listFocuses').mockResolvedValue([]);
+    renderFocusRoute();
+    expect(
+      await screen.findByRole('heading', { name: 'Your focus could not be loaded' }),
+    ).toBeVisible();
+    expect(screen.queryByRole('heading', { name: 'Set your focus' })).not.toBeInTheDocument();
+  });
+
+  test('offers the catalogue when no focus is set', async () => {
+    vi.spyOn(focusApi, 'getFocus').mockRejectedValue(
+      new ApiRequestError(404, 'not_found', undefined, 'No focus.'),
+    );
+    vi.spyOn(focusApi, 'listFocuses').mockResolvedValue([convertingWon, tacticalAlertness]);
+    renderFocusRoute();
+    expect(await screen.findByRole('heading', { name: 'Set your focus' })).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: 'Set Converting won positions' }),
+    ).toBeInTheDocument();
+  });
+
+  test('keeps the page honest when the catalogue itself fails', async () => {
+    vi.spyOn(focusApi, 'getFocus').mockRejectedValue(
+      new ApiRequestError(404, 'not_found', undefined, 'No focus.'),
+    );
+    vi.spyOn(focusApi, 'listFocuses').mockRejectedValue(
+      new ApiRequestError(500, 'internal_error', undefined, 'Boom.'),
+    );
+    renderFocusRoute();
+    expect(
+      await screen.findByText('The focus catalogue could not be loaded right now. Try again.'),
+    ).toBeVisible();
+    expect(screen.queryByRole('button', { name: /^Set / })).not.toBeInTheDocument();
+    expect(screen.queryByText('A focus from your coach')).not.toBeInTheDocument();
+  });
+
+  test('shows the active focus and reopens the choice view to replace it', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(focusApi, 'getFocus').mockResolvedValue(activeFocusFixture());
+    vi.spyOn(focusApi, 'listFocuses').mockResolvedValue([convertingWon]);
+    renderFocusRoute();
+    expect(await screen.findByRole('heading', { name: 'Converting won positions' })).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Change focus' }));
+    expect(await screen.findByRole('heading', { name: 'Set your focus' })).toBeVisible();
+    expect(
+      screen.getByText('Setting a new focus ends your current one: Converting won positions.'),
+    ).toBeInTheDocument();
+  });
+
+  test('sets a focus, reports it, and shows it after the refetch', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(focusApi, 'getFocus')
+      .mockRejectedValueOnce(new ApiRequestError(404, 'not_found', undefined, 'No focus.'))
+      .mockResolvedValue(activeFocusFixture());
+    vi.spyOn(focusApi, 'listFocuses').mockResolvedValue([convertingWon]);
+    const setFocus = vi.spyOn(focusApi, 'setFocus').mockResolvedValue(activeFocusFixture());
+    renderFocusRoute();
+    await user.click(await screen.findByRole('button', { name: 'Set Converting won positions' }));
+    expect(setFocus).toHaveBeenCalledWith({
+      source: 'self',
+      catalogueKey: 'converting_won_positions',
+    });
+    expect(vi.mocked(track)).toHaveBeenCalledWith('focus_set', {
+      source: 'self',
+      catalogueKey: 'converting_won_positions',
+    });
+    // The invalidation refetched the focus; the active view replaces the choice.
+    expect(await screen.findByRole('heading', { name: 'Converting won positions' })).toBeVisible();
+  });
+
+  test('sets a coach focus from the instruction form and reports it', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(focusApi, 'getFocus').mockRejectedValue(
+      new ApiRequestError(404, 'not_found', undefined, 'No focus.'),
+    );
+    vi.spyOn(focusApi, 'listFocuses').mockResolvedValue([tacticalAlertness]);
+    const setFocus = vi.spyOn(focusApi, 'setFocus').mockResolvedValue(activeFocusFixture());
+    renderFocusRoute();
+    await user.type(await screen.findByLabelText('Coach instruction'), 'Work on the clock.');
+    await user.selectOptions(
+      screen.getByLabelText('Paired measurable focus'),
+      'tactical_alertness',
+    );
+    await user.click(screen.getByRole('button', { name: 'Set coach focus' }));
+    expect(setFocus).toHaveBeenCalledWith({
+      source: 'coach',
+      coachInstruction: 'Work on the clock.',
+      pairedCatalogueKey: 'tactical_alertness',
+    });
+    // A coach focus has no catalogue key to report.
+    expect(vi.mocked(track)).toHaveBeenCalledWith('focus_set', { source: 'coach' });
+  });
+
+  test('maps a forbidden focus to an inline error and stays on the choice', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(focusApi, 'getFocus').mockRejectedValue(
+      new ApiRequestError(404, 'not_found', undefined, 'No focus.'),
+    );
+    vi.spyOn(focusApi, 'listFocuses').mockResolvedValue([convertingWon]);
+    vi.spyOn(focusApi, 'setFocus').mockRejectedValue(
+      new ApiRequestError(403, 'forbidden', undefined, 'No.'),
+    );
+    renderFocusRoute();
+    await user.click(await screen.findByRole('button', { name: 'Set Converting won positions' }));
+    expect(await screen.findByText('This focus cannot be set for this player.')).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Set your focus' })).toBeVisible();
+  });
+
+  test('sends the player back to the catalogue when the focus is retired', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(focusApi, 'getFocus').mockRejectedValue(
+      new ApiRequestError(404, 'not_found', undefined, 'No focus.'),
+    );
+    vi.spyOn(focusApi, 'listFocuses').mockResolvedValue([convertingWon]);
+    vi.spyOn(focusApi, 'setFocus').mockRejectedValue(
+      new ApiRequestError(404, 'not_found', undefined, 'Gone.'),
+    );
+    renderFocusRoute();
+    await user.click(await screen.findByRole('button', { name: 'Set Converting won positions' }));
+    expect(
+      await screen.findByText('That focus is no longer available. Choose another.'),
+    ).toBeVisible();
+  });
+
+  test('maps an unknown failure to the retry copy', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(focusApi, 'getFocus').mockRejectedValue(
+      new ApiRequestError(404, 'not_found', undefined, 'No focus.'),
+    );
+    vi.spyOn(focusApi, 'listFocuses').mockResolvedValue([convertingWon]);
+    vi.spyOn(focusApi, 'setFocus').mockRejectedValue(new Error('502'));
+    renderFocusRoute();
+    await user.click(await screen.findByRole('button', { name: 'Set Converting won positions' }));
+    expect(await screen.findByText('The focus could not be set. Please try again.')).toBeVisible();
+  });
+
+  test('returns to sign-in when the session expired mid-choice', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(focusApi, 'getFocus').mockRejectedValue(
+      new ApiRequestError(404, 'not_found', undefined, 'No focus.'),
+    );
+    vi.spyOn(focusApi, 'listFocuses').mockResolvedValue([convertingWon]);
+    vi.spyOn(focusApi, 'setFocus').mockRejectedValue(
+      new ApiRequestError(401, 'unauthorized', undefined, 'Expired.'),
+    );
+    const { router } = renderFocusRoute();
+    await user.click(await screen.findByRole('button', { name: 'Set Converting won positions' }));
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/sign-in');
+    });
+  });
+
+  test('switches the ranking stream through the URL', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(focusApi, 'getFocus').mockRejectedValue(
+      new ApiRequestError(404, 'not_found', undefined, 'No focus.'),
+    );
+    vi.spyOn(focusApi, 'listFocuses').mockResolvedValue([]);
+    const { router } = renderFocusRoute();
+    await user.click(await screen.findByRole('radio', { name: 'Online' }));
+    await waitFor(() => {
+      expect(router.state.location.search).toEqual({ stream: 'online' });
+    });
   });
 });

@@ -282,3 +282,35 @@ describe('abbreviation and surname-anchoring edges', () => {
     expect(matches('Magnus Van der Berg', 'Van der Berg, Magnus')).toBe(true);
   });
 });
+describe('degenerate surname parses', () => {
+  test('a comma with an empty surname states no surname at all', () => {
+    // A crosstable line like ", Magnus" (or a leading separator swallowed by
+    // the decoration strip) leaves nothing before the comma.
+    expect(parseName(', Magnus')).toEqual({ surname: null, given: ['magnus'] });
+  });
+
+  test('a user line with no surname to anchor on does not match', () => {
+    // Both match paths are anchored on a surname; with none stated, neither
+    // may fire, however many given names line up.
+    expect(matches(' , Magnus', 'Magnus Carlsen')).toBe(false);
+    expect(matches('Magnus Carlsen', ' , Anita')).toBe(false);
+  });
+});
+
+describe('extra name tokens on both sides', () => {
+  test('two people sharing given and surname are still separated by their middle names', () => {
+    // Both token sets overlap without either containing the other, so path A
+    // declines; path B then compares the given names positionally and the
+    // middle tokens disagree. Father-and-son-style lines stay distinct.
+    expect(matches('Magnus Q Carlsen', 'Carlsen, Magnus Oen')).toBe(false);
+  });
+});
+
+describe('unicode decomposition edges', () => {
+  test('a precomposed and a decomposed accented character normalize identically', () => {
+    // Å arrives as one codepoint (U+00C5) from some crosstables and as A plus
+    // a combining ring (U+030A) from others; NFD folds both to the same token.
+    expect(normalizeName('Åse')).toEqual(new Set(['ase']));
+    expect(normalizeName('A\u030Ase')).toEqual(new Set(['ase']));
+  });
+});
