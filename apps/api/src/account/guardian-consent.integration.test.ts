@@ -3,8 +3,8 @@
  * a real PostgreSQL with a fake mailer: a minor signs up with a date of birth
  * and a guardian email, the notice is mailed with a signed token, the gate
  * blocks the minor until the token is confirmed, and confirming records consent
- * exactly once. The fake mailer keeps this suite off SES; the real sender is
- * covered by `mailer.integration.test.ts` against LocalStack.
+ * exactly once. The fake mailer keeps this suite off the provider; the real
+ * sender's request shape is covered by `mailer.test.ts`.
  */
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
