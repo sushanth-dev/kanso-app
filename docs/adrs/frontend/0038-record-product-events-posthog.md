@@ -62,3 +62,14 @@ whatever is on screen reaches PostHog Cloud; we accepted that trade for
 PostHog's robustness, and it retired the ST-111 in-app feedback and what's-new
 pages the same day, replaced by PostHog's surveys and support. `identify`
 stays off. The self-host escape hatch below is unchanged.
+
+## Amendment 2026-09-04
+
+Server-side exceptions join the same Error tracking: the API now depends on
+`posthog-node`, and `app.onError` sends every unhandled exception with its
+request id and path as context before the response returns. The four product
+events stay client-side and property-only; the server is an error path, never
+a second event capture path. The key is the same public project token the web
+build ships, read as `POSTHOG_KEY` at deploy time. `identify` stays off; the
+server's exceptions carry a fixed anonymous distinct id (`kanso-api`) that
+only groups them.
