@@ -63,7 +63,9 @@ export const nudgeRun = new sst.aws.Function('NudgeRun', {
   architecture: 'arm64',
 });
 
-nudgeQueue.subscribe(nudgeRun.arn);
+// The component, not the arn: subscribing by arn skips the IAM grant and the
+// event source mapping fails with a missing sqs:ReceiveMessage permission.
+nudgeQueue.subscribe(nudgeRun);
 
 // Sunday 13:00 UTC (ST-126): early afternoon in Europe, evening in India,
 // and never the small hours anywhere the players are.
