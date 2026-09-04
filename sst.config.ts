@@ -28,11 +28,13 @@ export default $config({
     const analysis = await import('./infra/analysis.ts');
     const api = await import('./infra/api.ts');
     const web = await import('./infra/web.ts');
+    const nudge = await import('./infra/nudge.ts');
     return {
       api: api.api.url,
       web: web.web.url,
       database: database.database.host,
       analysisQueue: analysis.analysisQueue.url,
+      nudgeQueue: nudge.nudgeQueue.url,
     };
   },
 });

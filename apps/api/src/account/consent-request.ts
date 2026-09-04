@@ -19,7 +19,7 @@ import type { Mailer } from './mailer.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
 
-const APP_ORIGIN_DEFAULT = 'http://localhost:3000';
+export const APP_ORIGIN_DEFAULT = 'http://localhost:3000';
 
 function confirmUrlFor(token: string): string {
   const origin = process.env.APP_ORIGIN ?? APP_ORIGIN_DEFAULT;

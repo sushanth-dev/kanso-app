@@ -26,6 +26,7 @@ import { GuardianConfirmRoute } from './routes/guardian-confirm-route.tsx';
 import { GuardianWaitingRoute } from './routes/guardian-waiting-route.tsx';
 import { DebriefRoute } from './routes/debrief-route.tsx';
 import { ImportRoute } from './routes/import-route.tsx';
+import { NudgeUnsubscribeRoute } from './routes/nudge-unsubscribe-route.tsx';
 import { LandingRoute } from './routes/landing-route.tsx';
 import { PlayerEditRoute } from './routes/player-routes.tsx';
 import { ProofSheetRoute } from './routes/proof-sheet-route.tsx';
@@ -55,10 +56,13 @@ function RootComponent() {
   const outlet = <Outlet />;
   // The landing page and the shared page are public and render outside the
   // authenticated shell. The landing page carries its own header and footer.
+  // The nudge unsubscribe link (ST-126) joins them: it is opened from an email
+  // with no session.
   if (
     pathname === '/' ||
     pathname.startsWith('/shared/proof-sheets/') ||
-    pathname.startsWith('/guardians/')
+    pathname.startsWith('/guardians/') ||
+    pathname.startsWith('/nudge/')
   ) {
     return outlet;
   }
@@ -343,6 +347,14 @@ const resetPasswordRoute = createRoute({
   component: ResetPasswordRoute,
 });
 
+// ST-126. The nudge email's unsubscribe link: public, like the consent
+// confirm, because it is opened from an email with no session.
+const nudgeUnsubscribeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/nudge/unsubscribe/$token',
+  component: NudgeUnsubscribeRoute,
+});
+
 const guardianWaitingRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/guardians/waiting',
@@ -392,6 +404,7 @@ const routeTree = rootRoute.addChildren([
   guardianWaitingRoute,
   forgotPasswordRoute,
   resetPasswordRoute,
+  nudgeUnsubscribeRoute,
 ]);
 
 export interface CreateAppRouterOptions {

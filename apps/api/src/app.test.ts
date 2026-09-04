@@ -44,6 +44,9 @@ describe('publicPaths', () => {
     expect(publicPaths()).toEqual([
       '/health',
       '/guardians/confirm/{token}',
+      // ST-126. The nudge unsubscribe link, like the consent confirm, is
+      // opened from an email with no session and answers 404 on a bad token.
+      '/nudge/unsubscribe/{token}',
       '/shared/proof-sheets/{token}',
       '/payments/webhook',
     ]);

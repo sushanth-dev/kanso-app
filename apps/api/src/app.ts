@@ -19,6 +19,7 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { routes } from './contract/routes.ts';
 import { mountMe } from './account/me.ts';
 import { mountConfirmGuardian } from './account/confirm-guardian.ts';
+import { mountNudgeUnsubscribe } from './nudge/unsubscribe.ts';
 import { isConsentGated } from './account/consent-request.ts';
 import { mountHealth } from './health.ts';
 import { mountUpdatePlayer } from './account/update-player.ts';
@@ -322,6 +323,7 @@ export function createApp({
       });
     }
     mountConfirmGuardian(app, { db });
+    mountNudgeUnsubscribe(app, { db });
     mountImport(app, { db, getSession: effectiveGetSession, gameFetcher });
     mountListGames(app, { db, getSession: effectiveGetSession });
     mountGetGame(app, { db, getSession: effectiveGetSession });
