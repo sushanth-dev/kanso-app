@@ -24,18 +24,19 @@ export interface AnnouncementPayload {
 }
 
 export function parseAnnouncement(raw: unknown): AnnouncementPayload | null {
-  if (typeof raw !== 'string' || raw.length === 0) return null;
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed === 'object' && parsed !== null) {
-      const { message, href } = parsed as Record<string, unknown>;
-      if (typeof message !== 'string' || message.length === 0) return null;
-      return typeof href === 'string' && href.length > 0 ? { message, href } : { message };
+  if (typeof raw === 'string' && raw.length > 0) {
+    try {
+      return parseAnnouncement(JSON.parse(raw));
+    } catch {
+      return { message: raw }; // not JSON: the payload is the message itself
     }
-  } catch {
-    // Not JSON: the payload is the message itself.
   }
-  return { message: raw };
+  // The SDK contract is JsonType: posthog-js parses valid-JSON payloads
+  // before returning them, so the object form is the live path.
+  if (typeof raw !== 'object' || raw === null) return null;
+  const { message, href } = raw as Record<string, unknown>;
+  if (typeof message !== 'string' || message.length === 0) return null;
+  return typeof href === 'string' && href.length > 0 ? { message, href } : { message };
 }
 
 /** A stable key per message: the same message stays dismissed, an edited one shows. */

@@ -48,6 +48,17 @@ describe('parseAnnouncement', () => {
     });
   });
 
+  test('reads a payload the SDK already parsed to an object', () => {
+    // posthog-js declares getFeatureFlagPayload(): JsonType - valid-JSON
+    // payloads arrive parsed, and that is the shape production actually sends.
+    expect(parseAnnouncement({ message: 'New drills', href: '/puzzles' })).toEqual({
+      message: 'New drills',
+      href: '/puzzles',
+    });
+    expect(parseAnnouncement({ message: 'New drills' })).toEqual({ message: 'New drills' });
+    expect(parseAnnouncement({ href: '/puzzles' })).toBeNull();
+  });
+
   test('reads JSON with a message and one link', () => {
     expect(parseAnnouncement('{"message":"New drills","href":"/puzzles"}')).toEqual({
       message: 'New drills',
