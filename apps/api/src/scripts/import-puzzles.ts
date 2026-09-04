@@ -79,12 +79,14 @@ interface DumpRow {
   moves: string;
   rating: number;
   themes: string[];
+  /** ST-122. The dump's deepest opening tag, null when the source game named none. */
+  opening: string | null;
 }
 
 function parseLine(line: string): DumpRow | null {
   const columns = line.split(',');
   if (columns.length < 9) return null;
-  const [lichessId, fen, moves, rating, deviation, popularity, , themes] = columns;
+  const [lichessId, fen, moves, rating, deviation, popularity, , themes, , openingTags] = columns;
   if (!lichessId || !fen || !moves || themes === undefined) return null;
   const ratingValue = Number(rating);
   if (!Number.isFinite(ratingValue) || ratingValue < minRating || ratingValue > maxRating) {
@@ -95,7 +97,15 @@ function parseLine(line: string): DumpRow | null {
   }
   const kept = themes.split(' ').filter((theme) => theme in IMPORT_THEMES);
   if (kept.length === 0) return null;
-  return { lichessId, fen, moves, rating: ratingValue, themes: kept };
+  const tags = openingTags === undefined || openingTags === '' ? null : openingTags.split(' ');
+  return {
+    lichessId,
+    fen,
+    moves,
+    rating: ratingValue,
+    themes: kept,
+    opening: tags === null ? null : tags[tags.length - 1]!,
+  };
 }
 
 /** A kept row must actually play: the dump is machine-generated, not sacred. */

@@ -52,8 +52,15 @@ function puzzle(id: string, setup: string, solution: string): PracticePuzzle {
   };
 }
 
-function drillFixture(puzzles: PracticePuzzle[]): PracticeSet {
-  return { kind: 'motif', group: 'hanging_piece', theme: 'hangingPiece', rating: 1500, puzzles };
+function drillFixture(puzzles: PracticePuzzle[], opening: string | null = null): PracticeSet {
+  return {
+    kind: 'motif',
+    group: 'hanging_piece',
+    theme: 'hangingPiece',
+    rating: 1500,
+    puzzles,
+    opening,
+  };
 }
 
 function renderPath(path: string) {
@@ -198,5 +205,25 @@ describe('PracticeRoute', () => {
       group: 'hanging_piece',
       solved: false,
     });
+  });
+});
+
+describe('ST-122 opening-matched drills', () => {
+  test('a deal from the mapped family names it on the card', async () => {
+    vi.spyOn(diagnosisApi, 'getPracticePuzzles').mockResolvedValue(
+      drillFixture([puzzle('p1', 'b8c6', 'g1f3')], 'Scandinavian Defense'),
+    );
+    renderPath('/practice?kind=opening&group=B01&label=Scandinavian%20Defense&stream=tournament');
+    expect(await screen.findByText(/from your Scandinavian Defense\./)).toBeVisible();
+  });
+
+  test('a theme deal says nothing about an opening', async () => {
+    vi.spyOn(diagnosisApi, 'getPracticePuzzles').mockResolvedValue(
+      drillFixture([puzzle('p1', 'b8c6', 'g1f3')]),
+    );
+    renderPath('/practice?kind=motif&group=hanging_piece&label=Hung%20a%20piece&stream=tournament');
+    const line = await screen.findByText(/Theme: /);
+    expect(line.textContent).toContain('hangingPiece.');
+    expect(line.textContent).not.toContain('from your');
   });
 });

@@ -32,11 +32,12 @@ regexes = [
   '''(?i)@(localhost|127\.0\.0\.1|host\.docker\.internal)[:/]''',
 ]
 
-# The puzzle pool seed is thousands of FEN strings in single quotes. A FEN
+# The puzzle pool seeds are thousands of FEN strings in single quotes. A FEN
 # reads as a high-entropy assignment next to the preceding puzzle id, which
 # the generic-api-key heuristic cannot tell from an inline credential. The
-# file is public-domain chess data (ST-106); anything secret-shaped in it
-# would have to arrive through the Lichess dump, which carries no credentials.
+# files are public-domain chess data (ST-106, ST-122); anything secret-shaped
+# in them would have to arrive through the Lichess dump, which carries no
+# credentials.
 [[allowlists]]
 targetRules = ["generic-api-key"]
-paths = ['''apps/api/drizzle/0024_seed_puzzle_pool\.sql''']
+paths = ['''apps/api/drizzle/00(24|29)_seed_puzzle.*\.sql''']

@@ -101,6 +101,7 @@ export function PracticeScreen({
       key={`${kind}:${group}`}
       puzzles={set.puzzles}
       theme={set.theme}
+      opening={set.opening}
       label={label}
       kind={kind}
       group={group}
@@ -120,6 +121,7 @@ export function PracticeScreen({
 function DrillSession({
   puzzles,
   theme,
+  opening,
   label,
   kind,
   group,
@@ -127,6 +129,8 @@ function DrillSession({
 }: {
   puzzles: PracticePuzzle[];
   theme: string;
+  /** ST-122. The ECO family the opening rungs preferred, humanized; null on a theme deal. */
+  opening: string | null;
   label: string;
   kind: WeaknessKind;
   group: string;
@@ -170,7 +174,8 @@ function DrillSession({
         <Heading level={1}>{label}</Heading>
         <Text as="p" display="block" type="supporting" className="text-sm">
           {queue.length} puzzle{queue.length === 1 ? '' : 's'} to go, {solvedCount} solved. Theme:{' '}
-          <span className="font-mono">{theme}</span>.
+          <span className="font-mono">{theme}</span>
+          {opening === null ? '.' : `, from your ${opening}.`}
         </Text>
       </header>
       {/* The key gives every deal a fresh board and fresh circles. */}

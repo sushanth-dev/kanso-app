@@ -268,6 +268,8 @@ export const PracticePuzzle = z
 /**
  * ST-106. One weakness group's drill: at least 20 pool puzzles matched to the
  * group's theme and the player's rating by the prototype's fallback ladder.
+ * ST-122: an opening group's drill prefers its mapped ECO family first, and
+ * `opening` names that family for the card when the opening rungs dealt.
  */
 export const PracticeSet = z
   .object({
@@ -276,6 +278,10 @@ export const PracticeSet = z
     theme: z.string().openapi({ example: 'hangingPiece' }),
     rating: z.number().int().openapi({ example: 1500 }),
     puzzles: z.array(PracticePuzzle).min(20),
+    opening: z.string().nullable().openapi({
+      description:
+        'The ECO family the opening rungs preferred, humanized; null when the deal fell through to the theme rungs.',
+    }),
   })
   .openapi('PracticeSet');
 

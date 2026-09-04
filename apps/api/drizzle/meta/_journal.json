@@ -204,6 +204,13 @@
       "when": 1788402788724,
       "tag": "0028_needy_doctor_spectrum",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1788477594000,
+      "tag": "0029_seed_puzzle_openings",
+      "breakpoints": true
     }
   ]
 }
