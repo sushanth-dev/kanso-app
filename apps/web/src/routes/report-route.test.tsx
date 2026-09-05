@@ -9,7 +9,17 @@ vi.mock('../analytics.ts', () => ({
   safeProperties: (properties: Record<string, string | number>) => properties,
   track: vi.fn(),
 }));
+// ST-127. The report screen mounts the share-card section, whose query must
+// never hit the network in these tests; individual tests override the mock.
+vi.mock('../api/report-share-api.ts', () => ({
+  reportShareApi: {
+    listReportShareCards: vi.fn().mockResolvedValue([]),
+    createReportShareCard: vi.fn(),
+    revokeReportShareCard: vi.fn(),
+  },
+}));
 import { accountApi, ApiRequestError, type Me } from '../api/account-api.ts';
+import { reportShareApi, type ReportCardLink } from '../api/report-share-api.ts';
 import {
   diagnosisApi,
   type ActionItem,
@@ -199,6 +209,25 @@ describe('ReportScreen', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Missed captures')).toBeVisible();
     expect(screen.getByText(/covering 12 games/)).toBeVisible();
+  });
+
+  test('offers the share-card section beside the weaknesses', async () => {
+    const card: ReportCardLink = {
+      id: '77777777-7777-4777-8777-777777777777',
+      token: 'c'.repeat(43),
+      url: `http://localhost:3000/shared/cards/${'c'.repeat(43)}`,
+      createdAt: '2026-09-05T00:00:00.000Z',
+      revokedAt: null,
+      expiresAt: null,
+      ratingLeak: 84,
+      label: 'Hanging piece',
+    };
+    vi.spyOn(reportShareApi, 'listReportShareCards').mockResolvedValue([card]);
+
+    renderReport(reportFixture());
+    expect(await screen.findByText(/84 rating points - Hanging piece\./)).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Share cards' })).toBeVisible();
+    expect(screen.getByText(/84 rating points - Hanging piece\./)).toBeVisible();
   });
 
   test('labels a saturated leak as a floor', () => {

@@ -21,6 +21,7 @@ import {
 import { StreamToggle } from '../components/stream-toggle.tsx';
 import { ParticleReveal } from '../components/canvas-ui/ParticleReveal.tsx';
 import { gamesQueryOptions, reportQueryOptions, tournamentsQueryOptions } from '../query-client.ts';
+import { ReportShareCardsSection } from '../components/report-share-cards-section.tsx';
 import { TournamentCard } from './tournaments-route.tsx';
 import { track } from '../analytics.ts';
 
@@ -124,6 +125,9 @@ export function ReportScreen({
           tournamentId={report.tournamentId}
         />
       )}
+      {!isEmpty ? (
+        <ReportShareCardsSection stream={report.stream} tournamentId={report.tournamentId} />
+      ) : null}
     </div>
   );
 }

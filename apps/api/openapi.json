@@ -2684,6 +2684,25 @@
           "periodEnd"
         ]
       },
+      "SharedAssignment": {
+        "type": "object",
+        "properties": {
+          "focusTitle": {
+            "type": "string"
+          },
+          "focusDescription": {
+            "type": "string"
+          },
+          "instruction": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "focusTitle",
+          "focusDescription",
+          "instruction"
+        ]
+      },
       "AssignmentLink": {
         "type": "object",
         "properties": {
@@ -2724,25 +2743,6 @@
           "createdAt",
           "revokedAt",
           "expiresAt"
-        ]
-      },
-      "SharedAssignment": {
-        "type": "object",
-        "properties": {
-          "focusTitle": {
-            "type": "string"
-          },
-          "focusDescription": {
-            "type": "string"
-          },
-          "instruction": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "focusTitle",
-          "focusDescription",
-          "instruction"
         ]
       },
       "GameShareLink": {
@@ -2912,6 +2912,70 @@
           "playerColor",
           "plies",
           "mistakes"
+        ]
+      },
+      "ReportCardLink": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "token": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "revokedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "ratingLeak": {
+            "type": "integer"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "token",
+          "url",
+          "createdAt",
+          "revokedAt",
+          "expiresAt",
+          "ratingLeak",
+          "label"
+        ]
+      },
+      "SharedReportCard": {
+        "type": "object",
+        "properties": {
+          "ratingLeak": {
+            "type": "integer"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ratingLeak",
+          "label"
         ]
       },
       "CheckoutResponse": {
@@ -5442,6 +5506,49 @@
         }
       }
     },
+    "/shared/assignments/{token}": {
+      "get": {
+        "tags": [
+          "Focus"
+        ],
+        "summary": "Read an assignment link by its token",
+        "security": [],
+        "description": "ST-117. An unauthenticated route that serves the focus and the instruction and nothing else - no games, no report, no account data. A revoked or expired token answers 404, indistinguishable from an unknown one.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 32
+            },
+            "required": true,
+            "name": "token",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The assignment.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedAssignment"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such assignment, or it was revoked or has expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/assignments": {
       "post": {
         "tags": [
@@ -5637,49 +5744,6 @@
           },
           "404": {
             "description": "No such assignment link.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/shared/assignments/{token}": {
-      "get": {
-        "tags": [
-          "Focus"
-        ],
-        "summary": "Read an assignment link by its token",
-        "security": [],
-        "description": "ST-117. An unauthenticated route that serves the focus and the instruction and nothing else - no games, no report, no account data. A revoked or expired token answers 404, indistinguishable from an unknown one.",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "minLength": 32
-            },
-            "required": true,
-            "name": "token",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The assignment.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SharedAssignment"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "No such assignment, or it was revoked or has expired.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6012,6 +6076,272 @@
           },
           "404": {
             "description": "No such shared game, or it was revoked or has expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/report/share-cards": {
+      "post": {
+        "tags": [
+          "Report"
+        ],
+        "summary": "Create a shareable card of the report's biggest leak",
+        "description": "ST-127, F9. The share act (ST-067) applied to the report: a tokened link that opens one card - the headline leak number and its weakness label, frozen at creation from the same report read the report screen serves. The link grants only that payload; a share card is a share, not a profile.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "stream": {
+                    "$ref": "#/components/schemas/Stream"
+                  },
+                  "tournamentId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "expiresAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": [
+                  "stream"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportCardLink"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The session has no claim on this player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such player, no analyzed games in that scope yet, or no weakness to share.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Analysed games in the scope are too few for a report.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Report"
+        ],
+        "summary": "A player's live share cards",
+        "description": "ST-127. Every live card across the player's reports, newest first, excluding revoked and expired ones, exactly like the game share list.",
+        "responses": {
+          "200": {
+            "description": "The player's live share cards.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReportCardLink"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The session has no claim on this player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/report/share-cards/{shareLinkId}": {
+      "delete": {
+        "tags": [
+          "Report"
+        ],
+        "summary": "Revoke a report share card",
+        "description": "ST-127. Revocation is why the row is marked rather than deleted.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "shareLinkId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Revoked."
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not your share card.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such share card.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shared/cards/{token}": {
+      "get": {
+        "tags": [
+          "Report"
+        ],
+        "summary": "Read a report share card by its token",
+        "security": [],
+        "description": "ST-127, F9. The payload is exactly two fields: the headline leak number and its weakness label. No games, no opponent names, no account identity, no second weakness - the scoping test pins the key set.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "token",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The card.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedReportCard"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such shared card, or it was revoked or has expired.",
             "content": {
               "application/json": {
                 "schema": {
