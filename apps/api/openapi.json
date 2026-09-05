@@ -717,12 +717,19 @@
                 "items": {
                   "$ref": "#/components/schemas/Mistake"
                 }
+              },
+              "timeTroubleFromMove": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
               }
             },
             "required": [
               "pgn",
               "plies",
-              "mistakes"
+              "mistakes",
+              "timeTroubleFromMove"
             ]
           }
         ]

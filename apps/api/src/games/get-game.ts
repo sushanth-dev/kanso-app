@@ -12,12 +12,12 @@
  * `ply` for the played move's `uci`.
  */
 import type { Context } from 'hono';
-import { asc, eq } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
+import { and, asc, desc, eq, isNull } from 'drizzle-orm';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { getGame } from '../contract/routes.ts';
 import * as schema from '../db/schema.ts';
-import { game, mistake, movePly } from '../db/schema.ts';
+import { game, mistake, movePly, report } from '../db/schema.ts';
 import { readSession } from '../session.ts';
 import { hasPlayerClaim } from '../players/claim.ts';
 import { toGameSummary } from './game-summary.ts';
@@ -87,9 +87,26 @@ export function mountGetGame(
       return c.json({ code: 'forbidden', message: 'Not your game.' }, 403);
     }
 
-    const [plies, mistakes] = await Promise.all([
+    // ST-121. The onset comes from the stored report for the game's scope,
+    // the newest row, read rather than regenerated: the game read never runs
+    // the leak path. No row, or a row without an onset, serves null.
+    const [plies, mistakes, storedReports] = await Promise.all([
       deps.db.select().from(movePly).where(eq(movePly.gameId, gameId)).orderBy(asc(movePly.ply)),
       deps.db.select().from(mistake).where(eq(mistake.gameId, gameId)).orderBy(asc(mistake.ply)),
+      deps.db
+        .select({ timeTroubleFromMove: report.timeTroubleFromMove })
+        .from(report)
+        .where(
+          and(
+            eq(report.playerId, row.playerId),
+            eq(report.stream, row.stream),
+            row.tournamentId === null
+              ? isNull(report.tournamentId)
+              : eq(report.tournamentId, row.tournamentId),
+          ),
+        )
+        .orderBy(desc(report.generatedAt))
+        .limit(1),
     ]);
 
     return c.json(
@@ -98,6 +115,7 @@ export function mountGetGame(
         pgn: row.pgn,
         plies: plies.map(toMovePlyResponse),
         mistakes: mistakes.map(toMistakeResponse),
+        timeTroubleFromMove: storedReports[0]?.timeTroubleFromMove ?? null,
       },
       200,
     );
