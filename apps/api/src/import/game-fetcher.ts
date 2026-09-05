@@ -14,7 +14,6 @@
  */
 import { fetchChesscomGames } from './chesscom-games.ts';
 import { fetchLichessGames } from './lichess-games.ts';
-import { fetchUscfCrosstable } from './uscf-crosstable.ts';
 
 export interface ProviderGame {
   /** The provider's own game id; null only when the provider gives none. */
@@ -27,7 +26,7 @@ export type FetchGamesOutcome =
   | { ok: true; games: ProviderGame[] }
   | {
       ok: false;
-      code: 'username_not_found' | 'tournament_not_found' | 'name_mismatch';
+      code: 'username_not_found';
       /** Extra context for a refusal, such as the closest name found. */
       detail?: string;
     }
@@ -37,11 +36,9 @@ export type FetchGamesOutcome =
 export interface GameFetcher {
   chesscom(username: string, since: Date, maxGames: number): Promise<FetchGamesOutcome>;
   lichess(username: string, since: Date, maxGames: number): Promise<FetchGamesOutcome>;
-  uscf(tournamentName: string, playerName: string, maxGames: number): Promise<FetchGamesOutcome>;
 }
 
 export const httpGameFetcher: GameFetcher = {
   chesscom: fetchChesscomGames,
   lichess: fetchLichessGames,
-  uscf: fetchUscfCrosstable,
 };

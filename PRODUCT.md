@@ -46,8 +46,8 @@ One claim, three parts (from `project/main/docs/positioning.md`):
 1. **The tournament is a first-class object**, not a filter on a game stream.
    It has a name, date, section, result, and five to nine classical games,
    and it is how a junior, a coach, and a parent already think.
-2. **Games arrive without typing** where possible: PGN upload first, then
-   harvest of published tournament results, eventually scoresheet capture.
+2. **Games arrive without typing** where possible: PGN upload first,
+   eventually scoresheet capture.
 3. **Verification is two-speed and says which speed it is**: online blitz is
    the fast signal, on the opening and endgame; the next tournament is the
    proof for everything else.
