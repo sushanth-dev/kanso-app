@@ -26,7 +26,6 @@ const METHOD_OPTIONS: ReadonlyArray<{ value: ImportSource; label: string }> = [
   { value: 'chesscom', label: 'Chess.com username' },
   { value: 'lichess', label: 'Lichess username' },
   { value: 'pgn_upload', label: 'PGN upload' },
-  { value: 'uscf', label: 'Tournament by name' },
 ];
 
 const PROVIDER_LABEL: Record<ImportSource, string> = {
@@ -34,7 +33,6 @@ const PROVIDER_LABEL: Record<ImportSource, string> = {
   lichess: 'Lichess',
   // pgn_upload never reaches the provider, so its label is never shown.
   pgn_upload: 'PGN upload',
-  uscf: 'USCF',
 };
 
 const selectClassName =
@@ -42,12 +40,10 @@ const selectClassName =
 
 type ImportOutcome =
   | { kind: 'imported'; job: ImportJob }
-  | { kind: 'none-found'; method: ImportSource; label: string; tournamentName: string }
+  | { kind: 'none-found'; method: ImportSource; label: string }
   | { kind: 'nothing-new'; found: number }
   | { kind: 'username-not-found'; source: 'chesscom' | 'lichess' }
   | { kind: 'provider-error'; provider: string }
-  | { kind: 'tournament-not-found'; tournamentName: string }
-  | { kind: 'name-mismatch'; detail: string }
   | { kind: 'invalid-pgn'; issues: Array<{ path: string; message: string }> }
   | { kind: 'too-many-games'; message: string }
   | { kind: 'daily-cap'; message: string };
@@ -63,14 +59,9 @@ function gamesLabel(count: number): string {
   return count === 1 ? 'game' : 'games';
 }
 
-function outcomeForJob(
-  job: ImportJob,
-  method: ImportSource,
-  label: string,
-  tournamentName: string,
-): ImportOutcome {
+function outcomeForJob(job: ImportJob, method: ImportSource, label: string): ImportOutcome {
   if (job.gamesImported > 0) return { kind: 'imported', job };
-  if (job.gamesFound === 0) return { kind: 'none-found', method, label, tournamentName };
+  if (job.gamesFound === 0) return { kind: 'none-found', method, label };
   return { kind: 'nothing-new', found: job.gamesFound };
 }
 
@@ -93,10 +84,7 @@ function outcomeStatus(outcome: ImportOutcome): { tone: StatusTone; message: str
     case 'none-found':
       return {
         tone: 'info',
-        message:
-          outcome.method === 'uscf'
-            ? `No games found for ${outcome.label} in ${outcome.tournamentName}.`
-            : `No games found for ${outcome.label} in the last 12 months.`,
+        message: `No games found for ${outcome.label} in the last 12 months.`,
       };
     case 'nothing-new':
       return {
@@ -113,13 +101,6 @@ function outcomeStatus(outcome: ImportOutcome): { tone: StatusTone; message: str
         tone: 'error',
         message: `${outcome.provider} is unreachable; try again later.`,
       };
-    case 'tournament-not-found':
-      return {
-        tone: 'error',
-        message: `No USCF tournament found by the name "${outcome.tournamentName}".`,
-      };
-    case 'name-mismatch':
-      return { tone: 'error', message: outcome.detail };
     case 'invalid-pgn':
       return { tone: 'error', message: 'The upload contains a game that could not be parsed.' };
     case 'too-many-games':
@@ -134,11 +115,6 @@ function renderOutcome(outcome: ImportOutcome): ReactNode {
   return (
     <div className="mt-4">
       <StatusMessage tone={status.tone}>{status.message}</StatusMessage>
-      {outcome.kind === 'imported' && outcome.job.source === 'uscf' && (
-        <Text as="p" display="block" type="supporting" className="mt-2 text-sm">
-          These games carry results, not moves, so no analysis follows.
-        </Text>
-      )}
       {outcome.kind === 'invalid-pgn' && (
         <ul className="mt-2 list-disc pl-5 text-sm text-danger">
           {outcome.issues.map((issue) => (
@@ -167,10 +143,6 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
   const [usernameError, setUsernameError] = useState<string | undefined>(undefined);
   const [pgn, setPgn] = useState<string | null>(null);
   const [pgnError, setPgnError] = useState<string | undefined>(undefined);
-  const [tournamentName, setTournamentName] = useState('');
-  const [tournamentError, setTournamentError] = useState<string | undefined>(undefined);
-  const [playerName, setPlayerName] = useState(me.name);
-  const [playerNameError, setPlayerNameError] = useState<string | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
   const [outcome, setOutcome] = useState<ImportOutcome | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -190,8 +162,6 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
   function clearFieldErrors() {
     setUsernameError(undefined);
     setPgnError(undefined);
-    setTournamentError(undefined);
-    setPlayerNameError(undefined);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -212,7 +182,7 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
         return;
       }
       body = { source: method, username: trimmed };
-    } else if (method === 'pgn_upload') {
+    } else {
       if (pgn === null || pgn.trim() === '') {
         setPgnError('Choose a PGN file.');
         return;
@@ -220,31 +190,13 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
       // A PGN upload is always tournament games; a username import is always
       // online. The stream is fixed per method, not chosen.
       body = { source: 'pgn_upload', pgn, stream: 'tournament' };
-    } else {
-      const trimmedTournament = tournamentName.trim();
-      const trimmedPlayer = playerName.trim();
-      if (trimmedTournament === '') {
-        setTournamentError('Enter the tournament name.');
-        return;
-      }
-      if (trimmedPlayer === '') {
-        setPlayerNameError('Enter the player name.');
-        return;
-      }
-      body = { source: 'uscf', tournamentName: trimmedTournament, playerName: trimmedPlayer };
     }
 
     setSubmitting(true);
     try {
       const job = await importApi.startImport(body);
-      const label =
-        body.source === 'uscf'
-          ? body.playerName
-          : body.source === 'pgn_upload'
-            ? ''
-            : body.username;
-      const noneFoundTournament = body.source === 'uscf' ? body.tournamentName : '';
-      const nextOutcome = outcomeForJob(job, body.source, label, noneFoundTournament);
+      const label = body.source === 'pgn_upload' ? '' : body.username;
+      const nextOutcome = outcomeForJob(job, body.source, label);
       setOutcome(nextOutcome);
       if (nextOutcome.kind === 'imported') {
         track('game_imported', {
@@ -252,44 +204,42 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
           gamesFound: job.gamesFound,
           gamesImported: job.gamesImported,
         });
-        if (job.source !== 'uscf') {
-          // The report's games query may hold a stale empty cache from before
-          // the import; drop it so the freshly imported games show as analysing.
-          void queryClient.invalidateQueries({ queryKey: ['games'] });
-          // ST-093: an import creates or grows tournaments; the tournament
-          // queries hold 30s-stale caches that would hide the new rows.
-          void queryClient.invalidateQueries({ queryKey: ['tournaments'] });
-          void queryClient.invalidateQueries({ queryKey: ['tournament'] });
-          void queryClient.invalidateQueries({ queryKey: ['round-decay'] });
-          // ST-093: carry the batch's game ids so the analysing counter counts
-          // this upload only, not every game already in the stream.
-          // ST-115: a tournament batch ends in the debrief instead of a
-          // navigation. gameId rides only when the old landing was the game
-          // review (ST-096: under six games no report can generate), so the
-          // debrief's skip lands where the import used to. Online imports
-          // keep today's path and always go to the report.
-          const firstGameId = job.gameIds[0];
-          const underThreshold =
-            job.stream === 'tournament' &&
-            (job.tournament === null || job.tournament.gameCount < MIN_REPORT_GAMES);
-          if (job.stream === 'tournament' && job.gameIds.length > 0) {
-            setDebrief({
+        // The report's games query may hold a stale empty cache from before
+        // the import; drop it so the freshly imported games show as analysing.
+        void queryClient.invalidateQueries({ queryKey: ['games'] });
+        // ST-093: an import creates or grows tournaments; the tournament
+        // queries hold 30s-stale caches that would hide the new rows.
+        void queryClient.invalidateQueries({ queryKey: ['tournaments'] });
+        void queryClient.invalidateQueries({ queryKey: ['tournament'] });
+        void queryClient.invalidateQueries({ queryKey: ['round-decay'] });
+        // ST-093: carry the batch's game ids so the analysing counter counts
+        // this upload only, not every game already in the stream.
+        // ST-115: a tournament batch ends in the debrief instead of a
+        // navigation. gameId rides only when the old landing was the game
+        // review (ST-096: under six games no report can generate), so the
+        // debrief's skip lands where the import used to. Online imports
+        // keep today's path and always go to the report.
+        const firstGameId = job.gameIds[0];
+        const underThreshold =
+          job.stream === 'tournament' &&
+          (job.tournament === null || job.tournament.gameCount < MIN_REPORT_GAMES);
+        if (job.stream === 'tournament' && job.gameIds.length > 0) {
+          setDebrief({
+            gameIds: job.gameIds,
+            tournamentId: job.tournament?.id ?? null,
+            gameId: underThreshold && firstGameId !== undefined ? firstGameId : null,
+          });
+        } else if (underThreshold && firstGameId !== undefined) {
+          await navigate({ to: '/games/$gameId', params: { gameId: firstGameId } });
+        } else {
+          await navigate({
+            to: '/report',
+            search: {
+              stream: job.stream,
               gameIds: job.gameIds,
-              tournamentId: job.tournament?.id ?? null,
-              gameId: underThreshold && firstGameId !== undefined ? firstGameId : null,
-            });
-          } else if (underThreshold && firstGameId !== undefined) {
-            await navigate({ to: '/games/$gameId', params: { gameId: firstGameId } });
-          } else {
-            await navigate({
-              to: '/report',
-              search: {
-                stream: job.stream,
-                gameIds: job.gameIds,
-                ...(job.tournament !== null ? { tournamentId: job.tournament.id } : {}),
-              },
-            });
-          }
+              ...(job.tournament !== null ? { tournamentId: job.tournament.id } : {}),
+            },
+          });
         }
       }
     } catch (error) {
@@ -322,14 +272,6 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
           });
           return;
         }
-        if (error.code === 'tournament_not_found') {
-          setOutcome({ kind: 'tournament-not-found', tournamentName: tournamentName.trim() });
-          return;
-        }
-        if (error.code === 'name_mismatch') {
-          setOutcome({ kind: 'name-mismatch', detail: error.message });
-          return;
-        }
         if (error.code === 'upstream_error') {
           setOutcome({ kind: 'provider-error', provider: PROVIDER_LABEL[method] });
           return;
@@ -344,9 +286,7 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
   const waitingMessage =
     method === 'chesscom' || method === 'lichess'
       ? `Importing ${player.displayName}'s season... this usually takes about a minute.`
-      : method === 'pgn_upload'
-        ? 'Importing the uploaded games... usually a few seconds.'
-        : 'Importing the tournament crosstable... usually a few seconds.';
+      : 'Importing the uploaded games... usually a few seconds.';
 
   return (
     <Card>
@@ -446,7 +386,7 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
                 Imports the last 12 months of online games.
               </Text>
             </>
-          ) : method === 'pgn_upload' ? (
+          ) : (
             <>
               <FileInput
                 label="PGN file"
@@ -459,54 +399,6 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
                   pgnError === undefined ? undefined : { type: 'error' as const, message: pgnError }
                 }
               />
-            </>
-          ) : (
-            <>
-              <Field
-                label="Tournament name"
-                inputID="tournament-name"
-                status={
-                  tournamentError === undefined
-                    ? undefined
-                    : { type: 'error' as const, message: tournamentError }
-                }
-              >
-                <TextInput
-                  id="tournament-name"
-                  name="tournamentName"
-                  type="text"
-                  value={tournamentName}
-                  onChange={(event) => setTournamentName(event.target.value)}
-                  aria-invalid={tournamentError === undefined ? undefined : true}
-                  aria-describedby={
-                    tournamentError === undefined ? undefined : 'tournament-name-status'
-                  }
-                />
-              </Field>
-              <Field
-                label="Player name"
-                inputID="player-name"
-                status={
-                  playerNameError === undefined
-                    ? undefined
-                    : { type: 'error' as const, message: playerNameError }
-                }
-              >
-                <TextInput
-                  id="player-name"
-                  name="playerName"
-                  type="text"
-                  value={playerName}
-                  onChange={(event) => setPlayerName(event.target.value)}
-                  aria-invalid={playerNameError === undefined ? undefined : true}
-                  aria-describedby={
-                    playerNameError === undefined ? undefined : 'player-name-status'
-                  }
-                />
-              </Field>
-              <Text as="p" display="block" type="supporting">
-                USCF tournaments only for now. Imports the crosstable's results, not the moves.
-              </Text>
             </>
           )}
 

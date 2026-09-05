@@ -173,14 +173,6 @@ export const StartImport = z
       pgn: z.string().min(1).max(5_000_000),
       stream: Stream,
     }),
-    z.object({
-      source: z.literal('uscf'),
-      /** The event name, resolved to one USCF tournament by the provider's search. */
-      tournamentName: z.string().min(1).max(200),
-      /** The player's real name, matched against the crosstable by the ST-003/ST-010 matcher. */
-      playerName: z.string().min(1).max(80),
-      stream: z.literal('tournament'),
-    }),
   ])
   .openapi('StartImport');
 

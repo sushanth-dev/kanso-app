@@ -55,5 +55,4 @@ const getGames = (): Record<'chesscom' | 'lichess', ProviderGame[]> => {
 export const fixtureGameFetcher: GameFetcher = {
   chesscom: () => Promise.resolve<FetchGamesOutcome>({ ok: true, games: getGames().chesscom }),
   lichess: () => Promise.resolve<FetchGamesOutcome>({ ok: true, games: getGames().lichess }),
-  uscf: () => Promise.resolve<FetchGamesOutcome>({ ok: true, games: [] }),
 };

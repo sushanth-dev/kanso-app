@@ -123,13 +123,6 @@ describe('ImportScreen', () => {
     expect(
       screen.queryByRole('radiogroup', { name: 'Where were these games played?' }),
     ).not.toBeInTheDocument();
-
-    await user.selectOptions(screen.getByLabelText('Method'), 'uscf');
-    expect(
-      screen.getByText(
-        "USCF tournaments only for now. Imports the crosstable's results, not the moves.",
-      ),
-    ).toBeVisible();
   });
 
   test('rejects an implausible Chess.com username before any request', async () => {
@@ -395,82 +388,6 @@ describe('ImportScreen', () => {
     expect(screen.getByText('game 3: missing result header')).toBeVisible();
   });
 
-  test('imports a tournament, notes results carry no moves, and does not navigate', async () => {
-    const user = userEvent.setup();
-    const navigate = vi.fn();
-    startImport.mockResolvedValue(
-      makeJob({ source: 'uscf', stream: 'tournament', gamesFound: 3, gamesImported: 3 }),
-    );
-    renderScreen({ navigate });
-    await user.selectOptions(screen.getByLabelText('Method'), 'uscf');
-    await user.type(screen.getByLabelText('Tournament name'), 'State Champs');
-    expect(screen.getByLabelText('Player name')).toHaveValue('Player');
-    await user.click(screen.getByRole('button', { name: 'Import games' }));
-    expect(await screen.findByText('Imported 3 games.')).toBeVisible();
-    expect(
-      screen.getByText('These games carry results, not moves, so no analysis follows.'),
-    ).toBeVisible();
-    expect(startImport).toHaveBeenCalledWith({
-      source: 'uscf',
-      tournamentName: 'State Champs',
-      playerName: 'Player',
-    });
-    expect(navigate).not.toHaveBeenCalled();
-    expect(screen.queryByRole('button', { name: 'Start the debrief' })).not.toBeInTheDocument();
-  });
-
-  test('reports no games found for a tournament with an empty crosstable', async () => {
-    const user = userEvent.setup();
-    startImport.mockResolvedValue(
-      makeJob({ source: 'uscf', stream: 'tournament', gamesFound: 0, gamesImported: 0 }),
-    );
-    renderScreen();
-    await user.selectOptions(screen.getByLabelText('Method'), 'uscf');
-    await user.type(screen.getByLabelText('Tournament name'), 'State Champs');
-    await user.click(screen.getByRole('button', { name: 'Import games' }));
-    expect(await screen.findByText('No games found for Player in State Champs.')).toBeVisible();
-  });
-
-  test('reports an unknown tournament name on 422', async () => {
-    const user = userEvent.setup();
-    startImport.mockRejectedValue(
-      new ApiRequestError(
-        422,
-        'tournament_not_found',
-        undefined,
-        'No USCF tournament found by that name.',
-      ),
-    );
-    renderScreen();
-    await user.selectOptions(screen.getByLabelText('Method'), 'uscf');
-    await user.type(screen.getByLabelText('Tournament name'), 'Not A Real Event');
-    await user.click(screen.getByRole('button', { name: 'Import games' }));
-    expect(
-      await screen.findByText('No USCF tournament found by the name "Not A Real Event".'),
-    ).toBeVisible();
-  });
-
-  test('renders the name-mismatch detail verbatim on 422', async () => {
-    const user = userEvent.setup();
-    startImport.mockRejectedValue(
-      new ApiRequestError(
-        422,
-        'name_mismatch',
-        undefined,
-        'This tournament lists a Player but not Test Player; check the spelling.',
-      ),
-    );
-    renderScreen();
-    await user.selectOptions(screen.getByLabelText('Method'), 'uscf');
-    await user.type(screen.getByLabelText('Tournament name'), 'State Champs');
-    await user.click(screen.getByRole('button', { name: 'Import games' }));
-    expect(
-      await screen.findByText(
-        'This tournament lists a Player but not Test Player; check the spelling.',
-      ),
-    ).toBeVisible();
-  });
-
   test('renders the daily import cap message on 429', async () => {
     const user = userEvent.setup();
     startImport.mockRejectedValue(
@@ -566,30 +483,6 @@ describe('ImportScreen', () => {
 
     expect(await screen.findByText('The import failed. Please try again.')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Import games' })).toBeEnabled();
-  });
-
-  test('requires a tournament name before any request', async () => {
-    const user = userEvent.setup();
-    renderScreen();
-
-    await user.selectOptions(screen.getByLabelText('Method'), 'uscf');
-    await user.click(screen.getByRole('button', { name: 'Import games' }));
-
-    expect(await screen.findByText('Enter the tournament name.')).toBeVisible();
-    expect(startImport).not.toHaveBeenCalled();
-  });
-
-  test('requires a player name before any request', async () => {
-    const user = userEvent.setup();
-    renderScreen();
-
-    await user.selectOptions(screen.getByLabelText('Method'), 'uscf');
-    await user.type(screen.getByLabelText('Tournament name'), 'City Open 2026');
-    await user.clear(screen.getByLabelText('Player name'));
-    await user.click(screen.getByRole('button', { name: 'Import games' }));
-
-    expect(await screen.findByText('Enter the player name.')).toBeVisible();
-    expect(startImport).not.toHaveBeenCalled();
   });
 
   test('reports an unresolved Lichess username on 422', async () => {
