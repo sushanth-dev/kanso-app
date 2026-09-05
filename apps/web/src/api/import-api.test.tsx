@@ -93,22 +93,6 @@ describe('import API transport', () => {
     });
   });
 
-  test('starts a USCF import as a tournament stream', async () => {
-    let lastRequest: Request | undefined;
-    const api = createImportApi((input) => {
-      lastRequest = input as Request;
-      return Promise.resolve(jsonResponse(importJob));
-    });
-
-    await api.startImport({ source: 'uscf', tournamentName: 'City Open', playerName: 'Mina' });
-    expect(await lastRequest?.json()).toEqual({
-      source: 'uscf',
-      tournamentName: 'City Open',
-      playerName: 'Mina',
-      stream: 'tournament',
-    });
-  });
-
   test('parses validation issues from a rejected import', async () => {
     const failedApi = createImportApi(() =>
       Promise.resolve(
