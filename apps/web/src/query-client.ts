@@ -3,6 +3,7 @@ import { accountApi, ApiRequestError } from './api/account-api.ts';
 import { diagnosisApi, type Stream, type WeaknessKind } from './api/diagnosis-api.ts';
 import { focusApi } from './api/focus-api.ts';
 import { assignmentApi } from './api/assignment-api.ts';
+import { gameShareApi } from './api/game-share-api.ts';
 import { proofSheetApi } from './api/proof-sheet-api.ts';
 import { tournamentApi } from './api/tournament-api.ts';
 export const ME_QUERY_KEY = ['me'] as const;
@@ -84,6 +85,15 @@ export const assignmentsQueryOptions = () =>
   queryOptions({
     queryKey: ['assignments'] as const,
     queryFn: () => assignmentApi.listAssignmentLinks(),
+    retry: false,
+    staleTime: 30_000,
+  });
+
+/** ST-118. One reviewed game's live share links, on the review page. */
+export const gameShareLinksQueryOptions = (gameId: string) =>
+  queryOptions({
+    queryKey: ['game-share-links', gameId] as const,
+    queryFn: () => gameShareApi.listGameShareLinks(gameId),
     retry: false,
     staleTime: 30_000,
   });

@@ -31,6 +31,7 @@ import { mountGetGame } from './games/get-game.ts';
 import { mountSetGameColor } from './games/set-game-color.ts';
 import { mountPractice } from './practice/practice.ts';
 import { mountDeleteGame } from './games/delete-game.ts';
+import { mountGameShare } from './game-share/game-share.ts';
 import { mountListTournaments } from './tournaments/list-tournaments.ts';
 import { mountGetTournament } from './tournaments/get-tournament.ts';
 import { mountRoundDecay } from './tournaments/round-decay.ts';
@@ -332,6 +333,7 @@ export function createApp({
     mountSetGameColor(app, { db, getSession: effectiveGetSession });
     mountPractice(app, { db, getSession: effectiveGetSession });
     mountDeleteGame(app, { db, getSession: effectiveGetSession });
+    mountGameShare(app, { db, getSession: effectiveGetSession });
     mountQueueAnalysis(app, { db, getSession: effectiveGetSession });
     mountListTournaments(app, { db, getSession: effectiveGetSession });
     mountGetTournament(app, { db, getSession: effectiveGetSession });

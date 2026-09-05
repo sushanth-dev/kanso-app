@@ -232,6 +232,13 @@
       "when": 1788550621997,
       "tag": "0032_steep_lily_hollister",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1788553806659,
+      "tag": "0033_chief_vargas",
+      "breakpoints": true
     }
   ]
 }
