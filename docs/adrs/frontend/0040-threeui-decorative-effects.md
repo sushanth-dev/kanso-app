@@ -1,6 +1,6 @@
 # 0040. Use ThreeUI for decorative effects on non-board surfaces
 
-* Status: accepted
+* Status: superseded by [ADR-0043](0043-retire-canvas-ui-threeui-awwwards-redesign.md)
 * Date: 2026-08-26
 * Builds on: [ADR-0017](0017-canvas-ui-effects.md), [ADR-0005](0005-astryx-primitives.md)
 

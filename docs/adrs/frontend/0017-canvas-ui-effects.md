@@ -1,6 +1,6 @@
 # 0017. Use Canvas UI for decorative motion, on named surfaces only
 
-* Status: accepted
+* Status: superseded by [ADR-0043](0043-retire-canvas-ui-threeui-awwwards-redesign.md)
 * Date: 2026-08-03
 * Builds on: [ADR-0005](0005-astryx-primitives.md)
 
