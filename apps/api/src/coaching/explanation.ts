@@ -1,12 +1,14 @@
 /**
  * ST-080, ADR-0018, ST-111. The explanation and Socratic-question endpoints.
- *
  * Both call sites share one shape: load the mistake, check ownership through
- * its game, serve the stored text if it is already generated, otherwise
- * check the plan's coach budget and call the model once, caching the result
- * on the mistake row. Nothing is generated during analysis; most analyzed
- * mistakes are never opened. The budget counts each generated text as 1 and
- * reads stored rows, so a failed generation consumes nothing (ST-111).
+ * its game, serve the stored text if it is already generated, and otherwise
+ * generate once and cache the result on the mistake row. Generation needs a
+ * model (ST-130): with none configured the route answers 503
+ * `model_unavailable` before the budget check, because no plan buys a model
+ * back, and a cached text still serves. Nothing is generated during
+ * analysis; most analyzed mistakes are never opened. The budget counts each
+ * generated text as 1 and reads stored rows, so a failed generation consumes
+ * nothing (ST-111).
  *
  * A failed model call is a 502, never a fallback to canned text (ADR-0018):
  * a player reading plausible generic prose about a mistake they did not make
@@ -100,7 +102,7 @@ async function coachBudgetExhausted(db: Db, userId: string): Promise<LoadError |
 
 export function mountExplanation(
   app: OpenAPIHono,
-  deps: { db: Db; getSession: (c: Context) => unknown; aiClient: AiClient },
+  deps: { db: Db; getSession: (c: Context) => unknown; aiClient: AiClient | null },
 ): void {
   app.openapi(getExplanation, async (c) => {
     const { mistakeId } = c.req.valid('param');
@@ -128,6 +130,16 @@ export function mountExplanation(
       );
     }
 
+    // ST-130. Generation needs a model; without one the answer is a declared
+    // 503, not the 404 of an unmounted route, and it precedes the budget
+    // check: no plan buys a model back, so upgrade_required would mislead.
+    if (deps.aiClient === null) {
+      return c.json(
+        { code: 'model_unavailable', message: 'The coach is not available right now.' },
+        503,
+      );
+    }
+
     const exhausted = await coachBudgetExhausted(deps.db, loaded.userId);
     if (exhausted !== null) return c.json(exhausted.body, exhausted.status);
     let text: string;
@@ -152,7 +164,7 @@ export function mountExplanation(
 
 export function mountSocraticQuestion(
   app: OpenAPIHono,
-  deps: { db: Db; getSession: (c: Context) => unknown; aiClient: AiClient },
+  deps: { db: Db; getSession: (c: Context) => unknown; aiClient: AiClient | null },
 ) {
   app.openapi(getSocraticQuestion, async (c) => {
     const { mistakeId } = c.req.valid('param');
@@ -167,6 +179,13 @@ export function mountSocraticQuestion(
           generatedAt: loaded.mistake.socraticQuestionGeneratedAt!.toISOString(),
         },
         200,
+      );
+    }
+
+    if (deps.aiClient === null) {
+      return c.json(
+        { code: 'model_unavailable', message: 'The coach is not available right now.' },
+        503,
       );
     }
 
