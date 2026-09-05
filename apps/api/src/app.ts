@@ -39,6 +39,7 @@ import { realSessionReader, readSession } from './session.ts';
 import type * as schema from './db/schema.ts';
 import { httpRatingFetcher, type RatingFetcher } from './rating/rating-fetcher.ts';
 import { mountTransferGap } from './rating/transfer-gap.ts';
+import { mountTransferGapSeries } from './rating/transfer-gap-series.ts';
 import { mountMotifs } from './motifs/motifs.ts';
 import { mountPhases } from './phases/phases.ts';
 import { mountReport } from './report/report.ts';
@@ -339,6 +340,7 @@ export function createApp({
     mountGetTournament(app, { db, getSession: effectiveGetSession });
     mountRoundDecay(app, { db, getSession: effectiveGetSession });
     mountTransferGap(app, { db, getSession: effectiveGetSession, ratingFetcher });
+    mountTransferGapSeries(app, { db, getSession: effectiveGetSession });
     mountMotifs(app, { db, getSession: effectiveGetSession });
     mountPhases(app, { db, getSession: effectiveGetSession });
     mountReport(app, { db, getSession: effectiveGetSession, aiClient });

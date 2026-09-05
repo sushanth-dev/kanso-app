@@ -145,6 +145,43 @@ export const TransferGap = z
   })
   .openapi('TransferGap');
 
+/**
+ * ST-120. One point on the gap series: one imported tournament. `rating` is
+ * the over-the-board rating the event's own games carry; `gap` measures it
+ * against the latest online rating and is null before the first fetch stores
+ * one. Nothing here is recomputed at render time.
+ */
+export const GapSeriesPoint = z
+  .object({
+    tournamentId: Uuid,
+    /** The event as the player's file wrote it. */
+    name: z.string(),
+    /** The tournament's own date range start; the earliest dated game backs it. */
+    date: z.iso.datetime(),
+    rating: z.number().int(),
+    gap: z.number().int().nullable(),
+  })
+  .openapi('GapSeriesPoint');
+
+/**
+ * ST-120. The gap across the season. `platform` names which online rating the
+ * gaps measure against - Chess.com when present, else Lichess, mirroring the
+ * FIDE-else-USCF preference ST-018 set on the over-the-board side - and is
+ * null before the first fetch stores a rating. `skippedTournaments` counts
+ * events with no plotted point: the games carry no player-side Elo header, or
+ * no date to plot against.
+ */
+export const TransferGapSeries = z
+  .object({
+    playerId: Uuid,
+    platform: z.enum(['chesscom', 'lichess']).nullable(),
+    /** The latest online rating, the reference every point reads against. */
+    onlineRating: z.number().int().nullable(),
+    points: z.array(GapSeriesPoint),
+    skippedTournaments: z.number().int(),
+  })
+  .openapi('TransferGapSeries');
+
 // ─── Import ──────────────────────────────────────────────────────────────────
 
 /**

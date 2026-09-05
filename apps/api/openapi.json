@@ -1852,6 +1852,80 @@
           "lichess"
         ]
       },
+      "TransferGapSeries": {
+        "type": "object",
+        "properties": {
+          "playerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "platform": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "chesscom",
+              "lichess",
+              null
+            ]
+          },
+          "onlineRating": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "points": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GapSeriesPoint"
+            }
+          },
+          "skippedTournaments": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "playerId",
+          "platform",
+          "onlineRating",
+          "points",
+          "skippedTournaments"
+        ]
+      },
+      "GapSeriesPoint": {
+        "type": "object",
+        "properties": {
+          "tournamentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "rating": {
+            "type": "integer"
+          },
+          "gap": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "tournamentId",
+          "name",
+          "date",
+          "rating",
+          "gap"
+        ]
+      },
       "TournamentDecay": {
         "type": "object",
         "properties": {
@@ -4359,6 +4433,67 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TransferGap"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The session has no claim on this player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/transfer-gap/series": {
+      "get": {
+        "tags": [
+          "Diagnosis"
+        ],
+        "summary": "The rating gap as a series across the season",
+        "description": "ST-120. One point per imported tournament: x by the event's date, y by the gap between the latest online rating and the over-the-board rating the event's own games carry. Tournament games only, per S5's partition - an online game never puts a point on this line whatever its headers claim. The online side is the stored snapshot, never a fresh fetch; the gap read beside this one maintains it.",
+        "responses": {
+          "200": {
+            "description": "The gap series.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransferGapSeries"
                 }
               }
             }

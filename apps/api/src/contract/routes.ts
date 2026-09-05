@@ -56,6 +56,7 @@ import {
   TournamentDetail,
   TournamentList,
   TransferGap,
+  TransferGapSeries,
   UpdatePlayer,
   Uuid,
 } from './schemas.ts';
@@ -206,6 +207,20 @@ export const getTransferGap = createRoute({
   },
   responses: {
     200: json(TransferGap, 'The gap, fetched and snapshotted if needed.'),
+    ...authErrors,
+    404: error('No such player.'),
+  },
+});
+
+export const getTransferGapSeries = createRoute({
+  method: 'get',
+  path: '/transfer-gap/series',
+  tags: ['Diagnosis'],
+  summary: 'The rating gap as a series across the season',
+  description:
+    "ST-120. One point per imported tournament: x by the event's date, y by the gap between the latest online rating and the over-the-board rating the event's own games carry. Tournament games only, per S5's partition - an online game never puts a point on this line whatever its headers claim. The online side is the stored snapshot, never a fresh fetch; the gap read beside this one maintains it.",
+  responses: {
+    200: json(TransferGapSeries, 'The gap series.'),
     ...authErrors,
     404: error('No such player.'),
   },
@@ -1066,6 +1081,7 @@ export const routes = [
   getPracticeReviews,
   markActionItemDone,
   getTransferGap,
+  getTransferGapSeries,
   getRoundDecay,
   getMotifs,
   getPhases,
