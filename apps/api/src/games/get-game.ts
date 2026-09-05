@@ -26,7 +26,7 @@ type Db = PostgresJsDatabase<typeof schema>;
 type MovePlyRow = typeof movePly.$inferSelect;
 type MistakeRow = typeof mistake.$inferSelect;
 
-function toMovePlyResponse(row: MovePlyRow) {
+export function toMovePlyResponse(row: MovePlyRow) {
   return {
     ply: row.ply,
     san: row.san,
@@ -44,7 +44,7 @@ function toMovePlyResponse(row: MovePlyRow) {
   };
 }
 
-function toMistakeResponse(row: MistakeRow) {
+export function toMistakeResponse(row: MistakeRow) {
   return {
     id: row.id,
     gameId: row.gameId,

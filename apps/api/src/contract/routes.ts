@@ -42,6 +42,8 @@ import {
   RecordPracticePuzzle,
   Report,
   SharedAssignment,
+  SharedGame,
+  GameShareLink,
   WeaknessCoaching,
   SetFocus,
   SetGameColor,
@@ -915,6 +917,94 @@ export const confirmAssignment = createRoute({
   },
 });
 
+// ─── Game share links ────────────────────────────────────────────────────────
+
+export const createGameShareLink = createRoute({
+  method: 'post',
+  path: '/games/{gameId}/share-links',
+  tags: ['Games'],
+  summary: 'Create a read-only share link for one reviewed game',
+  description:
+    "ST-118, F7. The share act (ST-067) applied to the game review: a tokened link that opens one reviewed game's board, moves and mistakes read-only. The link grants only that payload; the coach texts and every account surface stay behind the session.",
+  request: {
+    params: z.object({
+      gameId: Uuid.openapi({ param: { name: 'gameId', in: 'path' } }),
+    }),
+    body: {
+      content: {
+        'application/json': { schema: z.object({ expiresAt: z.iso.datetime().optional() }) },
+      },
+      required: false,
+    },
+  },
+  responses: {
+    201: json(GameShareLink, 'Created.'),
+    ...authErrors,
+    403: error('Not your game.'),
+    404: error('No such game.'),
+  },
+});
+
+export const listGameShareLinks = createRoute({
+  method: 'get',
+  path: '/games/{gameId}/share-links',
+  tags: ['Games'],
+  summary: "A game's live share links",
+  description:
+    'ST-118. The current links for one game, newest first, excluding revoked and expired ones, exactly like the proof sheet list.',
+  request: {
+    params: z.object({
+      gameId: Uuid.openapi({ param: { name: 'gameId', in: 'path' } }),
+    }),
+  },
+  responses: {
+    200: json(z.array(GameShareLink), "The game's live share links."),
+    ...authErrors,
+    403: error('Not your game.'),
+    404: error('No such game.'),
+  },
+});
+
+export const revokeGameShareLink = createRoute({
+  method: 'delete',
+  path: '/games/{gameId}/share-links/{shareLinkId}',
+  tags: ['Games'],
+  summary: 'Revoke a game share link',
+  description: 'ST-118. Revocation is why the row is marked rather than deleted.',
+  request: {
+    params: z.object({
+      gameId: Uuid.openapi({ param: { name: 'gameId', in: 'path' } }),
+      shareLinkId: Uuid.openapi({ param: { name: 'shareLinkId', in: 'path' } }),
+    }),
+  },
+  responses: {
+    204: { description: 'Revoked.' },
+    ...authErrors,
+    403: error('Not your share link.'),
+    404: error('No such share link.'),
+  },
+});
+
+export const getSharedGame = createRoute({
+  method: 'get',
+  path: '/shared/games/{token}',
+  tags: ['Games'],
+  summary: 'Read a game share link by its token',
+  /** Answers without a session: the link is opened before anyone signs in. */
+  security: [],
+  description:
+    'ST-118, F7. The payload is exactly one reviewed game: the board data, the plies with their evaluations and best moves, and the mistakes with their cost. No coach texts, no account identity, nothing else on the account.',
+  request: {
+    params: z.object({
+      token: z.string().openapi({ param: { name: 'token', in: 'path' } }),
+    }),
+  },
+  responses: {
+    200: json(SharedGame, 'The game, read-only.'),
+    404: error('No such shared game, or it was revoked or has expired.'),
+  },
+});
+
 // ─── Billing ────────────────────────────────────────────────────────────────
 
 export const createCheckout = createRoute({
@@ -994,6 +1084,10 @@ export const routes = [
   revokeAssignmentLink,
   getSharedAssignment,
   confirmAssignment,
+  createGameShareLink,
+  listGameShareLinks,
+  revokeGameShareLink,
+  getSharedGame,
   createCheckout,
   razorpayWebhook,
 ] as const;
