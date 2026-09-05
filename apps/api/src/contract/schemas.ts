@@ -929,6 +929,36 @@ export const SharedAssignment = z
   })
   .openapi('SharedAssignment');
 
+/** ST-118. A live game share link, the share shape the proof sheet returns. */
+export const GameShareLink = z
+  .object({
+    id: Uuid,
+    token: z.string(),
+    url: z.string(),
+    createdAt: z.iso.datetime(),
+    revokedAt: z.iso.datetime().nullable(),
+    expiresAt: z.iso.datetime().nullable(),
+  })
+  .openapi('GameShareLink');
+
+/**
+ * ST-118. What an opened game share link serves: exactly one reviewed game,
+ * read-only. The PGN names travel with the game; nothing account-owned does -
+ * no player or game id, no stream, no report. The mistakes carry no coach
+ * explanation: that is generated prose on the account's budget, and sharing
+ * never spends a unit.
+ */
+export const SharedGame = z
+  .object({
+    whiteName: z.string().nullable(),
+    blackName: z.string().nullable(),
+    result: GameResult,
+    playerColor: z.enum(['white', 'black']).nullable(),
+    plies: z.array(MovePly),
+    mistakes: z.array(Mistake.omit({ explanation: true })),
+  })
+  .openapi('SharedGame');
+
 // ─── AI ──────────────────────────────────────────────────────────────────────
 
 /**

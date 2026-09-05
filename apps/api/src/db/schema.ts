@@ -835,6 +835,38 @@ export const assignmentLink = pgTable(
   (t) => [index('assignment_link_creator_idx').on(t.createdByPlayerId)],
 );
 
+/**
+ * ST-118. The game share link: the share act's third caller (ST-067). The
+ * token opens one reviewed game - board, moves, mistakes - read-only, with
+ * the coach texts excluded so generated prose never leaks and sharing never
+ * spends a budget unit. Like the proof sheet: marked revoked rather than
+ * deleted, expiring, and the token is the only thing between a forwarded link
+ * and the payload. The payload is the live game rows, so there is no snapshot:
+ * the game and its analysis are immutable once complete, which is what makes
+ * the live read the same thing a snapshot would pin.
+ */
+export const gameShareLink = pgTable(
+  'game_share_link',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    createdByPlayerId: uuid('created_by_player_id')
+      .notNull()
+      .references(() => player.id, { onDelete: 'cascade' }),
+    gameId: uuid('game_id')
+      .notNull()
+      .references(() => game.id, { onDelete: 'cascade' }),
+    /** The share secret. Long, random, and the only thing standing between a forwarded link and the payload. */
+    token: text('token').notNull().unique(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+  },
+  (t) => [
+    index('game_share_link_creator_idx').on(t.createdByPlayerId),
+    index('game_share_link_game_idx').on(t.gameId),
+  ],
+);
+
 // ─── Practice ────────────────────────────────────────────────────────────────
 
 /**
