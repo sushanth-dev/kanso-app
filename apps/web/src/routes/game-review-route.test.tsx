@@ -443,6 +443,14 @@ describe('GameReviewScreen', () => {
     expect(screen.getByRole('link', { name: 'See plans' })).toHaveAttribute('href', '/upgrade');
   });
 
+  test('renders the no-provider degradation copy when the coach is unavailable (ST-130)', async () => {
+    vi.spyOn(diagnosisApi, 'getExplanation').mockRejectedValue(
+      new ApiRequestError(503, 'model_unavailable', undefined, 'The coach is not available.'),
+    );
+    renderScreen(gameFixture());
+    expect(await screen.findByText('The explanation could not be loaded.')).toBeInTheDocument();
+  });
+
   test('shows the monthly coach budget counter on the card', async () => {
     renderScreen(gameFixture());
     expect(await screen.findByText('48 of 50 left this month')).toBeInTheDocument();
