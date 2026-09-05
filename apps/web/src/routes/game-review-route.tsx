@@ -100,10 +100,12 @@ function CctScanCard({ mistakeId }: { mistakeId: string }) {
   );
 }
 
-/** ST-080. AI explanation and Socratic question for the mistake, per ADR-0018. */
+/** ST-080, ST-128. AI explanation, Socratic question, and the monthly budget counter. */
 function ExplanationCard({ mistakeId }: { mistakeId: string }) {
   const explanationQuery = useQuery(explanationQueryOptions(mistakeId));
   const questionQuery = useQuery(socraticQuestionQueryOptions(mistakeId));
+
+  const counter = explanationQuery.data;
 
   return (
     <Card className="space-y-3 p-4">
@@ -130,6 +132,11 @@ function ExplanationCard({ mistakeId }: { mistakeId: string }) {
           {questionQuery.data?.question ?? 'Thinking of a question to ask you…'}
         </Text>
       )}
+      {counter?.remaining != null && counter?.monthlyCap != null ? (
+        <Text as="p" display="block" type="supporting" className="text-sm">
+          {counter.remaining} of {counter.monthlyCap} left this month
+        </Text>
+      ) : null}
     </Card>
   );
 }

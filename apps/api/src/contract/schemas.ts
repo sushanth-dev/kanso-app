@@ -1054,12 +1054,18 @@ export const SharedGame = z
 /**
  * ADR-0018. The model turns facts we computed into prose. There is no endpoint
  * that hands it a position, because there is no prompt that receives one.
+ *
+ * ST-128. `remaining` and `monthlyCap` carry the account's coach budget for
+ * the card's counter, straight from `EXPLANATION_MONTHLY_CAP`; both null on
+ * an unlimited plan, so a counter never renders for pro.
  */
 export const Explanation = z
   .object({
     mistakeId: Uuid,
     text: z.string(),
     generatedAt: z.iso.datetime(),
+    remaining: z.number().int().nullable(),
+    monthlyCap: z.number().int().nullable(),
   })
   .openapi('Explanation');
 
