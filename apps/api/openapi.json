@@ -1414,6 +1414,9 @@
             "items": {
               "$ref": "#/components/schemas/WeaknessEvidence"
             }
+          },
+          "lineConsistency": {
+            "$ref": "#/components/schemas/LineConsistency"
           }
         },
         "required": [
@@ -1431,7 +1434,8 @@
           "actionItems",
           "groupKey",
           "drilled",
-          "evidence"
+          "evidence",
+          "lineConsistency"
         ]
       },
       "ActionItem": {
@@ -1548,6 +1552,71 @@
           "phase",
           "judgement",
           "cpLoss"
+        ]
+      },
+      "LineConsistency": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "ok"
+                ]
+              },
+              "matched": {
+                "type": "integer"
+              },
+              "games": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "status",
+              "matched",
+              "games"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "below_floor"
+                ]
+              },
+              "games": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "status",
+              "games"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "no_full_line"
+                ]
+              },
+              "games": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "status",
+              "games"
+            ]
+          },
+          {
+            "type": "null"
+          }
         ]
       },
       "WeaknessCoaching": {

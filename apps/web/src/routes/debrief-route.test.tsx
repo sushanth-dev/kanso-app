@@ -57,6 +57,7 @@ const motifWeakness = {
   drilled: 0,
   groupKey: 'missed_capture',
   evidence: [],
+  lineConsistency: null,
 };
 
 function reportFixture(overrides: Partial<Report> = {}): Report {
