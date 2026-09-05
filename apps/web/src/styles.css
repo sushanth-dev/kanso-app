@@ -289,3 +289,43 @@ html[data-contrast='high'] .astryx-badge.info {
     animation-duration: 3s !important;
   }
 }
+
+/* ST-119: the shared proof sheet is the artifact that travels, and parents
+   print it. Print turns it into the black-on-white page paper expects: the
+   reader's theme cannot follow it onto the sheet, buttons are screen
+   furniture and go, and no animation or shadow survives. The sheet's
+   structure is typographic already, so nothing needs a border; the mark
+   keeps its accent and construction hairlines, its scribes reading only
+   where they cross the piece, exactly as the page token paints them on
+   screen. The report and focus surfaces are not in scope. */
+@media print {
+  html:has(.print-sheet),
+  html:has(.print-sheet) body {
+    background: #fff;
+  }
+  .print-sheet {
+    padding: 0;
+    background: #fff;
+    color: #000;
+  }
+  .print-sheet *,
+  .print-sheet *::before,
+  .print-sheet *::after {
+    color: #000;
+    animation: none;
+    transition: none;
+    box-shadow: none;
+    text-shadow: none;
+  }
+  .print-sheet button {
+    display: none;
+  }
+  .print-sheet dl,
+  .print-sheet blockquote {
+    break-inside: avoid;
+  }
+  .print-sheet svg {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}

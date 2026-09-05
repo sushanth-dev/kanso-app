@@ -72,6 +72,14 @@ describe('SharedProofSheetScreen', () => {
     expect(screen.getByText(instruction)).toBeInTheDocument();
     expect(document.querySelector('script')).toBeNull();
   });
+
+  test('carries the print hook on the sheet root with the mark inside it', () => {
+    const { container } = render(<SharedProofSheetScreen sheet={sharedFixture()} />);
+
+    const sheet = container.querySelector('main.print-sheet');
+    expect(sheet).not.toBeNull();
+    expect(sheet?.querySelector('svg')).not.toBeNull();
+  });
   test('renders the flat and declining verdicts with their arrows', () => {
     render(<SharedProofSheetScreen sheet={sharedFixture({ trend: 'flat' })} />);
     expect(screen.getByText('It has not changed yet.')).toBeInTheDocument();
@@ -123,6 +131,7 @@ describe('SharedProofSheetScreen', () => {
     );
 
     expect(await screen.findByRole('status', { name: 'Loading' })).toBeInTheDocument();
+    expect(document.querySelector('main.print-sheet')).not.toBeNull();
   });
 });
 
@@ -144,6 +153,7 @@ describe('SharedProofSheetRoute', () => {
     expect(
       await screen.findByRole('heading', { name: 'This link is no longer available.' }),
     ).toBeInTheDocument();
+    expect(document.querySelector('main.print-sheet')).not.toBeNull();
   });
 
   test('renders the unreachable page for a server error, never "no longer available" or a verdict', async () => {
@@ -164,6 +174,7 @@ describe('SharedProofSheetRoute', () => {
       await screen.findByRole('heading', { name: 'This page could not be reached.' }),
     ).toBeInTheDocument();
     expect(screen.getByText('Check your connection and try again.')).toBeInTheDocument();
+    expect(document.querySelector('main.print-sheet')).not.toBeNull();
     expect(screen.queryByText('This link is no longer available.')).not.toBeInTheDocument();
     expect(screen.queryByText('It is improving.')).not.toBeInTheDocument();
   });
