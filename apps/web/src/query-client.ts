@@ -175,4 +175,12 @@ export const transferGapQueryOptions = () =>
     staleTime: 30_000,
   });
 
+export const transferGapSeriesQueryOptions = () =>
+  queryOptions({
+    queryKey: ['transfer-gap-series'] as const,
+    queryFn: () => diagnosisApi.getTransferGapSeries(),
+    retry: false,
+    staleTime: 30_000,
+  });
+
 export const queryClient = new QueryClient();
