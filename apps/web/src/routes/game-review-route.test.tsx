@@ -10,6 +10,7 @@ import {
   type Explanation,
   type GameDetail,
   type Mistake,
+  type MovePly,
   type SocraticQuestion,
 } from '../api/diagnosis-api.ts';
 import { createAppRouter } from '../router.tsx';
@@ -134,10 +135,36 @@ function gameFixture(overrides: Partial<GameDetail> = {}): GameDetail {
         moveTimeMs: null,
       },
     ],
+    timeTroubleFromMove: null,
     mistakes,
     ...overrides,
   };
 }
+
+/** Eight plies whose white plies carry the stored clock readings 5:00→1:30. */
+function clockedPlies(): MovePly[] {
+  const sans = ['e4', 'e5', 'Nf3', 'Nc6', 'Bb5', 'a6', 'Bxc6', 'bxc6'];
+  const whiteClocks = [300_000, 240_000, 150_000, 90_000];
+  return sans.map((san, index) => {
+    const ply = index + 1;
+    const isWhite = ply % 2 === 1;
+    return {
+      ply,
+      san,
+      uci: 'g1f3',
+      fenBefore: isWhite ? START_W : START_B,
+      phase: 'opening',
+      evaluation: null,
+      bestMoveSan: null,
+      bestMoveUci: null,
+      clockMs: isWhite ? whiteClocks[(ply - 1) / 2]! : 295_000,
+      moveTimeMs: null,
+    };
+  });
+}
+
+const START_W = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+const START_B = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1';
 
 const meFixture: Me = {
   userId: 'user-1',
@@ -464,6 +491,47 @@ describe('GameReviewScreen', () => {
   test('shows the player-colour dot for the player\u2019s side', () => {
     renderScreen(gameFixture({ playerColor: 'white', result: '1-0' }));
     expect(screen.getByRole('img', { name: 'You play white' })).toBeInTheDocument();
+  });
+
+  test('ST-121: draws the player\u2019s clock curve and marks the report\u2019s onset', () => {
+    renderScreen(
+      gameFixture({ playerColor: 'white', plies: clockedPlies(), timeTroubleFromMove: 2 }),
+    );
+    const chart = screen.getByRole('img', { name: /remaining clock/i });
+    // Only the player's own readings set the curve: white's first and last clocks.
+    expect(chart).toHaveAccessibleName(/from 5:00 to 1:30/);
+    // The onset marker carries a label, never hue alone.
+    expect(screen.getByText('Time trouble \u00b7 move 2')).toBeInTheDocument();
+  });
+
+  test('ST-121: an onset past the game\u2019s last move marks nothing', () => {
+    renderScreen(
+      gameFixture({ playerColor: 'white', plies: clockedPlies(), timeTroubleFromMove: 9 }),
+    );
+    expect(screen.getByRole('img', { name: /remaining clock/i })).toHaveAccessibleName(
+      /^Your remaining clock after each of your moves, from 5:00 to 1:30\.$/,
+    );
+    expect(screen.queryByText(/Time trouble/)).not.toBeInTheDocument();
+  });
+
+  test('ST-121: a game whose player has no clock readings names no_clock_data', () => {
+    renderScreen(gameFixture());
+    expect(
+      screen.getByText('No clock data on this game, so there is no clock curve.'),
+    ).toBeInTheDocument();
+  });
+
+  test('ST-121: a single clock reading is not_enough_evidence', () => {
+    const plies = clockedPlies().map((ply) => (ply.ply === 1 ? ply : { ...ply, clockMs: null }));
+    renderScreen(gameFixture({ playerColor: 'white', plies }));
+    expect(
+      screen.getByText('Too few clock readings on your moves to draw a clock curve.'),
+    ).toBeInTheDocument();
+  });
+
+  test('ST-121: with the colour unset no clock is the player\u2019s yet', () => {
+    renderScreen(gameFixture({ playerColor: null, plies: clockedPlies() }));
+    expect(screen.getByText(/Set your colour above/)).toBeInTheDocument();
   });
 });
 
