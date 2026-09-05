@@ -2235,12 +2235,26 @@
           "generatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "remaining": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "monthlyCap": {
+            "type": [
+              "integer",
+              "null"
+            ]
           }
         },
         "required": [
           "mistakeId",
           "text",
-          "generatedAt"
+          "generatedAt",
+          "remaining",
+          "monthlyCap"
         ]
       },
       "SocraticQuestion": {

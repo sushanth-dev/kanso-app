@@ -22,7 +22,7 @@ import * as schema from '../db/schema.ts';
 import { game, mistake } from '../db/schema.ts';
 import { readSession } from '../session.ts';
 import { hasPlayerClaim } from '../players/claim.ts';
-import { coachRemaining } from '../billing/entitlement.ts';
+import { coachBudget, coachRemaining } from '../billing/entitlement.ts';
 import type { AiClient, MistakeFacts } from './zai.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
@@ -107,19 +107,29 @@ export function mountExplanation(
     const loaded = await loadOwnedMistake(deps.db, deps.getSession, c, mistakeId);
     if ('status' in loaded) return c.json(loaded.body, loaded.status);
 
+    // ST-128. The budget counter rides every explanation response. On the
+    // generate path it is read after the store, so the generation this
+    // response delivered is already counted; on a cached re-read nothing
+    // stored, and the read is free.
+    const counterFields = async () => {
+      const budget = await coachBudget(deps.db, loaded.userId);
+      return { remaining: budget?.remaining ?? null, monthlyCap: budget?.cap ?? null };
+    };
+
     if (loaded.mistake.explanation !== null) {
       return c.json(
         {
           mistakeId,
           text: loaded.mistake.explanation,
           generatedAt: loaded.mistake.explanationGeneratedAt!.toISOString(),
+          ...(await counterFields()),
         },
         200,
       );
     }
 
-    const budget = await coachBudgetExhausted(deps.db, loaded.userId);
-    if (budget !== null) return c.json(budget.body, budget.status);
+    const exhausted = await coachBudgetExhausted(deps.db, loaded.userId);
+    if (exhausted !== null) return c.json(exhausted.body, exhausted.status);
     let text: string;
     try {
       text = await deps.aiClient.explainMistake(factsFrom(loaded.mistake, loaded.game));
@@ -133,14 +143,17 @@ export function mountExplanation(
       .set({ explanation: text, explanationGeneratedAt: generatedAt })
       .where(eq(mistake.id, mistakeId));
 
-    return c.json({ mistakeId, text, generatedAt: generatedAt.toISOString() }, 200);
+    return c.json(
+      { mistakeId, text, generatedAt: generatedAt.toISOString(), ...(await counterFields()) },
+      200,
+    );
   });
 }
 
 export function mountSocraticQuestion(
   app: OpenAPIHono,
   deps: { db: Db; getSession: (c: Context) => unknown; aiClient: AiClient },
-): void {
+) {
   app.openapi(getSocraticQuestion, async (c) => {
     const { mistakeId } = c.req.valid('param');
     const loaded = await loadOwnedMistake(deps.db, deps.getSession, c, mistakeId);

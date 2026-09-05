@@ -336,3 +336,44 @@ describe('ST-111 plan caps on generated coach texts', () => {
     expect(await coachUnitsThisMonth(harness.db, OWNER)).toBe(1);
   });
 });
+
+describe('ST-128 coach budget counter on the explanation response', () => {
+  test('beginner: the generation this response delivered is already counted', async () => {
+    const [id] = await seedMistakes(OWNER, 1);
+    const res = await app(OWNER).request(`/mistakes/${id}/explanation`);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { remaining: number | null; monthlyCap: number | null };
+    expect(body.monthlyCap).toBe(50);
+    expect(body.remaining).toBe(49);
+  });
+
+  test('beginner: the cached re-read is free and shows the same count', async () => {
+    const [id] = await seedMistakes(OWNER, 1);
+    await app(OWNER).request(`/mistakes/${id}/explanation`);
+    const cached = await app(OWNER).request(`/mistakes/${id}/explanation`);
+    expect(cached.status).toBe(200);
+    const body = (await cached.json()) as { remaining: number | null; monthlyCap: number | null };
+    expect(body.remaining).toBe(49);
+    expect(body.monthlyCap).toBe(50);
+    expect(explainCalls).toBe(1);
+  });
+
+  test('intermediate: the counter reads the intermediate cap', async () => {
+    const [id] = await seedMistakes(OWNER, 1);
+    await harness.db.insert(subscription).values({ userId: OWNER, tier: 'intermediate' });
+    const res = await app(OWNER).request(`/mistakes/${id}/explanation`);
+    const body = (await res.json()) as { remaining: number | null; monthlyCap: number | null };
+    expect(body.monthlyCap).toBe(100);
+    expect(body.remaining).toBe(99);
+  });
+
+  test('pro: both counter fields are null, so no counter renders', async () => {
+    const [id] = await seedMistakes(OWNER, 1);
+    await harness.db.insert(subscription).values({ userId: OWNER, tier: 'pro' });
+    const res = await app(OWNER).request(`/mistakes/${id}/explanation`);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { remaining: number | null; monthlyCap: number | null };
+    expect(body.remaining).toBeNull();
+    expect(body.monthlyCap).toBeNull();
+  });
+});
