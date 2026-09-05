@@ -29,6 +29,7 @@ export type WeaknessCoaching = components['schemas']['WeaknessCoaching'];
 export type SocraticQuestion = components['schemas']['SocraticQuestion'];
 export type PracticePuzzleTally = components['schemas']['PracticePuzzleTally'];
 export type TransferGap = components['schemas']['TransferGap'];
+export type TransferGapSeries = components['schemas']['TransferGapSeries'];
 export type Color = components['schemas']['Color'];
 export type PracticeSet = components['schemas']['PracticeSet'];
 export type PracticePuzzle = components['schemas']['PracticePuzzle'];
@@ -66,6 +67,7 @@ export interface DiagnosisApi {
   getExplanation(mistakeId: string): Promise<Explanation>;
   getSocraticQuestion(mistakeId: string): Promise<SocraticQuestion>;
   getTransferGap(refresh?: boolean): Promise<TransferGap>;
+  getTransferGapSeries(): Promise<TransferGapSeries>;
 }
 
 export function createDiagnosisApi(
@@ -190,6 +192,11 @@ export function createDiagnosisApi(
       const result = await client.GET('/transfer-gap', {
         params: { query: refresh ? { refresh: 'true' } : {} },
       });
+      if (result.data !== undefined) return result.data;
+      throw failure(result.response.status, result.error);
+    },
+    async getTransferGapSeries() {
+      const result = await client.GET('/transfer-gap/series');
       if (result.data !== undefined) return result.data;
       throw failure(result.response.status, result.error);
     },
