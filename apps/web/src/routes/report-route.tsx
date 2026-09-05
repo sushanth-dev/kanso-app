@@ -231,6 +231,9 @@ function WeaknessList({ weaknesses, stream, tournamentId }: WeaknessListProps) {
                     <dd className="font-mono">{weakness.halfPointsLost}</dd>
                   </div>
                 </dl>
+                {weakness.lineConsistency !== null ? (
+                  <LineConsistencyNote lineConsistency={weakness.lineConsistency} />
+                ) : null}
                 {weakness.groupKey !== null ? (
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                     {/* The click materializes the coaching: the model's line
@@ -274,6 +277,43 @@ function WeaknessList({ weaknesses, stream, tournamentId }: WeaknessListProps) {
         );
       })}
     </ol>
+  );
+}
+/**
+ * ST-123. The line-following share beside the opening's other figures, and
+ * the honest withholdings: under the five-game floor the refusal names the
+ * floor, and no full line means nothing to compare against. The server sends
+ * null on an online report, where the figure does not apply.
+ */
+function LineConsistencyNote({
+  lineConsistency,
+}: {
+  lineConsistency: NonNullable<Weakness['lineConsistency']>;
+}) {
+  if (lineConsistency.status === 'ok') {
+    const percent = Math.round((lineConsistency.matched / lineConsistency.games) * 100);
+    return (
+      <Text as="p" display="block" type="supporting" className="text-sm">
+        You followed your most-played opening line (first ten plies) in{' '}
+        <span className="font-mono">
+          {lineConsistency.matched} of {lineConsistency.games}
+        </span>{' '}
+        games - <span className="font-mono">{percent}%</span>.
+      </Text>
+    );
+  }
+  if (lineConsistency.status === 'below_floor') {
+    return (
+      <Text as="p" display="block" type="supporting" className="text-sm">
+        Only {lineConsistency.games} {lineConsistency.games === 1 ? 'game' : 'games'} in this
+        opening - a consistency number needs at least five.
+      </Text>
+    );
+  }
+  return (
+    <Text as="p" display="block" type="supporting" className="text-sm">
+      No game in this opening reaches ten plies, so there is no full line to compare yet.
+    </Text>
   );
 }
 

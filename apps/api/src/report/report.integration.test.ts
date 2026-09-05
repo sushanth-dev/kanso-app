@@ -128,6 +128,19 @@ async function addClockMove(gameId: string, ply: number, clockMs: number): Promi
     clockMs,
   });
 }
+/** ST-123. One stored ply per SAN, enough for the first-ten-ply window. */
+async function addPlies(gameId: string, sans: string[]): Promise<void> {
+  if (sans.length === 0) return;
+  await harness.db.insert(movePly).values(
+    sans.map((san, i) => ({
+      gameId,
+      ply: i + 1,
+      san,
+      uci: '0000',
+      fenBefore: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+    })),
+  );
+}
 
 /** ST-107. One assigned resource in a weakness's curriculum. */
 interface ActionItemBody {
@@ -165,6 +178,12 @@ interface WeaknessBody {
     judgement: string;
     cpLoss: number;
   }[];
+  /** ST-123. The line-following figure; null outside the tournament stream. */
+  lineConsistency:
+    | { status: 'ok'; matched: number; games: number }
+    | { status: 'below_floor'; games: number }
+    | { status: 'no_full_line'; games: number }
+    | null;
   /** ST-107. The curriculum the read fills; empty when no model is set. */
   actionItems: ActionItemBody[];
 }
@@ -750,6 +769,107 @@ describe('GET /report model advice (ST-099)', () => {
       for (const instance of motif.evidence) {
         expect(instance.ply).toBe((instance.moveNumber - 1) * 2 + 1);
       }
+    });
+  });
+
+  describe('ST-123. Line consistency on the tournament report', () => {
+    const E4_LINE = ['e4', 'e5', 'Nf3', 'Nc6', 'Bb5', 'a6', 'Ba4', 'Nf6', 'O-O', 'Be7'];
+    const D4_LINE = ['d4', 'd5', 'c4', 'e6', 'Nc3', 'Nf6', 'Bg5', 'Be7', 'e3', 'O-O'];
+
+    test('the share rides the opening card: matched of games against the modal line', async () => {
+      const playerId = await makePlayer(OWNER);
+      for (let i = 0; i < 5; i++) {
+        const id = await seedRatedGame(playerId, {
+          stream: 'tournament',
+          eco: 'B22',
+          opening: 'Sicilian, Alapin',
+        });
+        await addPlies(id, E4_LINE);
+        if (i < 2) await addMistake(id, { halfPointsLost: 1, phase: 'middlegame' });
+      }
+      const deviant = await seedRatedGame(playerId, {
+        stream: 'tournament',
+        eco: 'B22',
+        opening: 'Sicilian, Alapin',
+      });
+      await addPlies(deviant, D4_LINE);
+
+      const res = await get(OWNER, 'tournament');
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as ReportBody;
+      const opening = body.weaknesses.find((w) => w.kind === 'opening')!;
+      expect(opening.eco).toBe('B22');
+      expect(opening.lineConsistency).toEqual({ status: 'ok', matched: 5, games: 6 });
+    });
+
+    test('the online report carries no consistency figure, whatever the moves show', async () => {
+      const playerId = await makePlayer(OWNER);
+      for (let i = 0; i < 6; i++) {
+        const id = await seedRatedGame(playerId, { stream: 'online', eco: 'B22' });
+        await addPlies(id, E4_LINE);
+        if (i < 2) await addMistake(id, { halfPointsLost: 1, phase: 'middlegame' });
+      }
+
+      const res = await get(OWNER, 'online');
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as ReportBody;
+      const opening = body.weaknesses.find((w) => w.kind === 'opening')!;
+      expect(opening.lineConsistency).toBeNull();
+    });
+
+    test('a group under the five-game floor is withheld, naming its size', async () => {
+      const playerId = await makePlayer(OWNER);
+      for (let i = 0; i < 2; i++) {
+        const id = await seedRatedGame(playerId, {
+          stream: 'tournament',
+          eco: 'C00',
+          opening: 'French, Tarrasch',
+        });
+        await addPlies(id, E4_LINE);
+        await addMistake(id, { halfPointsLost: 1, phase: 'middlegame' });
+      }
+      for (let i = 0; i < 4; i++) await seedRatedGame(playerId, { stream: 'tournament' });
+
+      const res = await get(OWNER, 'tournament');
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as ReportBody;
+      const opening = body.weaknesses.find((w) => w.kind === 'opening')!;
+      expect(opening.eco).toBe('C00');
+      expect(opening.lineConsistency).toEqual({ status: 'below_floor', games: 2 });
+    });
+
+    test('games outside the report window are out of the denominator', async () => {
+      const playerId = await makePlayer(OWNER);
+      for (let i = 0; i < 5; i++) {
+        const id = await seedRatedGame(playerId, {
+          stream: 'tournament',
+          eco: 'B22',
+          opening: 'Sicilian, Alapin',
+        });
+        await addPlies(id, E4_LINE);
+        if (i < 2) await addMistake(id, { halfPointsLost: 1, phase: 'middlegame' });
+      }
+      // Two more games in the same opening, played before the season window
+      // opened: played, stored, and excluded from this report's figure.
+      for (const playedAt of [new Date('2024-02-01T12:00:00Z'), new Date('2024-03-01T12:00:00Z')]) {
+        const id = await seedRatedGame(playerId, {
+          stream: 'tournament',
+          eco: 'B22',
+          opening: 'Sicilian, Alapin',
+          playedAt,
+          analyzedAt: playedAt,
+        });
+        await addPlies(id, E4_LINE);
+      }
+      // The report itself still needs its rated floor, met by games outside
+      // any opening group.
+      for (let i = 0; i < 2; i++) await seedRatedGame(playerId, { stream: 'tournament' });
+
+      const res = await get(OWNER, 'tournament');
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as ReportBody;
+      const opening = body.weaknesses.find((w) => w.kind === 'opening')!;
+      expect(opening.lineConsistency).toEqual({ status: 'ok', matched: 5, games: 5 });
     });
   });
 });

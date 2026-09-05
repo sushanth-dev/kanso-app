@@ -693,6 +693,32 @@ export const ActionItem = z
     completedAt: z.iso.datetime().nullable(),
   })
   .openapi('ActionItem');
+/**
+ * ST-123. How consistently the player follows their own opening lines in one
+ * ECO group: the share of the group's tournament games whose first ten plies
+ * match the player's modal line. Computed on the tournament stream only, per
+ * F12's partition; null on an online report, where the figure does not
+ * apply.
+ */
+export const LineConsistency = z
+  .discriminatedUnion('status', [
+    z.object({
+      status: z.literal('ok'),
+      /** Games in the group whose first ten plies are the modal line. */
+      matched: z.number().int(),
+      /** Every game in the group, whatever its length. */
+      games: z.number().int(),
+    }),
+    z.object({
+      status: z.literal('below_floor'),
+      games: z.number().int(),
+    }),
+    z.object({
+      status: z.literal('no_full_line'),
+      games: z.number().int(),
+    }),
+  ])
+  .openapi('LineConsistency');
 
 export const Weakness = z
   .object({
@@ -727,6 +753,8 @@ export const Weakness = z
     drilled: z.number().int().min(0),
     /** ST-098. The worst instances behind the aggregate, newest first. */
     evidence: z.array(WeaknessEvidence),
+    /** ST-123. The line-following share for opening groups; null elsewhere. */
+    lineConsistency: LineConsistency.nullable(),
   })
   .openapi('Weakness');
 

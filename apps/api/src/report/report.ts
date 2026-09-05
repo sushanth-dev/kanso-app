@@ -33,6 +33,7 @@ import { leakBaseline, scoreLeaks, weaknessLeakRows } from '../analysis/leak.ts'
 import { MIN_RATED_GAMES, SEASON_WINDOW_MS } from '../analysis/performance-rating.ts';
 import { scoreTimeTrouble, timeTroubleCounts } from '../phases/phases.ts';
 import { adviceFor, groupKeyOf, weaknessEvidence, type EvidenceInstance } from './evidence.ts';
+import { lineConsistencyByEco } from '../openings/line-consistency.ts';
 import { composeReport, type ComposedWeakness } from './compose.ts';
 import { generateAdvice } from './advice.ts';
 import { summaryForReport } from './summary.ts';
@@ -135,6 +136,10 @@ function toResponse(r: ReportRow, ws: WeaknessRow[]): ReportResponse {
       groupKey: groupKeyOf(w.kind, w.label, w.eco),
       // ST-106. Filled in by `withEvidence` from the drill attempt table.
       drilled: 0,
+      // ST-123. Filled in by `withEvidence` on the tournament stream; null
+      // otherwise - the figure is a tournament figure and never appears on
+      // an online card.
+      lineConsistency: null,
     })),
     narrative: r.narrative,
   };
@@ -206,6 +211,31 @@ async function withEvidence(
   for (const w of response.weaknesses) {
     const key = groupKeyOf(w.kind, w.label, w.eco);
     w.actionItems = key === null ? [] : (items.get(`${w.kind}:${key}`) ?? []).map(itemBody);
+  }
+  // ST-123. The consistency figure belongs to the tournament stream (F12's
+  // partition): computed for the report's scope, attached to opening
+  // weaknesses only, and left null everywhere else.
+  if (stream === 'tournament') {
+    const ecos = [
+      ...new Set(
+        response.weaknesses
+          .filter((w) => w.kind === 'opening' && w.eco !== null)
+          .map((w) => w.eco as string),
+      ),
+    ];
+    const consistency = await lineConsistencyByEco(
+      db,
+      playerId,
+      stream,
+      windowStart,
+      tournamentId,
+      ecos,
+    );
+    for (const w of response.weaknesses) {
+      if (w.kind === 'opening' && w.eco !== null) {
+        w.lineConsistency = consistency.get(w.eco) ?? null;
+      }
+    }
   }
   return response;
 }
