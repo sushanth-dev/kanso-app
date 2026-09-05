@@ -44,6 +44,8 @@ import {
   SharedAssignment,
   SharedGame,
   GameShareLink,
+  ReportCardLink,
+  SharedReportCard,
   WeaknessCoaching,
   SetFocus,
   SetGameColor,
@@ -1020,6 +1022,90 @@ export const getSharedGame = createRoute({
   },
 });
 
+// ─── Report share cards ──────────────────────────────────────────────────────
+
+export const createReportShareCard = createRoute({
+  method: 'post',
+  path: '/report/share-cards',
+  tags: ['Report'],
+  summary: "Create a shareable card of the report's biggest leak",
+  description:
+    'ST-127, F9. The share act (ST-067) applied to the report: a tokened link that opens one card - the headline leak number and its weakness label, frozen at creation from the same report read the report screen serves. The link grants only that payload; a share card is a share, not a profile.',
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            stream: Stream,
+            tournamentId: Uuid.optional(),
+            expiresAt: z.iso.datetime().optional(),
+          }),
+        },
+      },
+      required: true,
+    },
+  },
+  responses: {
+    201: json(ReportCardLink, 'Created.'),
+    ...authErrors,
+    404: error('No such player, no analyzed games in that scope yet, or no weakness to share.'),
+    422: error('Analysed games in the scope are too few for a report.'),
+  },
+});
+
+export const listReportShareCards = createRoute({
+  method: 'get',
+  path: '/report/share-cards',
+  tags: ['Report'],
+  summary: "A player's live share cards",
+  description:
+    "ST-127. Every live card across the player's reports, newest first, excluding revoked and expired ones, exactly like the game share list.",
+  responses: {
+    200: json(z.array(ReportCardLink), "The player's live share cards."),
+    ...authErrors,
+    404: error('No such player.'),
+  },
+});
+
+export const revokeReportShareCard = createRoute({
+  method: 'delete',
+  path: '/report/share-cards/{shareLinkId}',
+  tags: ['Report'],
+  summary: 'Revoke a report share card',
+  description: 'ST-127. Revocation is why the row is marked rather than deleted.',
+  request: {
+    params: z.object({
+      shareLinkId: Uuid.openapi({ param: { name: 'shareLinkId', in: 'path' } }),
+    }),
+  },
+  responses: {
+    204: { description: 'Revoked.' },
+    ...authErrors,
+    403: error('Not your share card.'),
+    404: error('No such share card.'),
+  },
+});
+
+export const getSharedReportCard = createRoute({
+  method: 'get',
+  path: '/shared/cards/{token}',
+  tags: ['Report'],
+  summary: 'Read a report share card by its token',
+  /** Answers without a session: the link is opened before anyone signs in. */
+  security: [],
+  description:
+    'ST-127, F9. The payload is exactly two fields: the headline leak number and its weakness label. No games, no opponent names, no account identity, no second weakness - the scoping test pins the key set.',
+  request: {
+    params: z.object({
+      token: z.string().openapi({ param: { name: 'token', in: 'path' } }),
+    }),
+  },
+  responses: {
+    200: json(SharedReportCard, 'The card.'),
+    404: error('No such shared card, or it was revoked or has expired.'),
+  },
+});
+
 // ─── Billing ────────────────────────────────────────────────────────────────
 
 export const createCheckout = createRoute({
@@ -1095,15 +1181,19 @@ export const routes = [
   createProofSheet,
   revokeProofSheet,
   getSharedProofSheet,
+  getSharedAssignment,
   createAssignmentLink,
   listAssignmentLinks,
   revokeAssignmentLink,
-  getSharedAssignment,
   confirmAssignment,
   createGameShareLink,
   listGameShareLinks,
   revokeGameShareLink,
   getSharedGame,
+  createReportShareCard,
+  listReportShareCards,
+  revokeReportShareCard,
+  getSharedReportCard,
   createCheckout,
   razorpayWebhook,
 ] as const;

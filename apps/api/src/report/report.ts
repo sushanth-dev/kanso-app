@@ -306,6 +306,187 @@ async function storeReport(
   });
 }
 
+/**
+ * The outcome of one report read: a rendered report, or one of the refusal
+ * bodies the endpoint answers with.
+ */
+type ProducedReport =
+  | { ok: true; report: ReportResponse }
+  | { ok: false; status: 404 | 422; body: { code: string; message: string } };
+
+/**
+ * ST-127. The report read, shared by the report endpoint and the share-card
+ * creation: the card snapshots its headline from the same read the report
+ * screen serves, so nothing recomputes for the card and no second report
+ * path can disagree with the first.
+ */
+export async function produceReport(
+  db: Db,
+  aiClient: AiClient | null,
+  playerId: string,
+  stream: Stream,
+  inTournament: string | undefined,
+): Promise<ProducedReport> {
+  const place = inTournament === undefined ? 'stream' : 'tournament';
+
+  const stored = await latestReport(db, playerId, stream, inTournament);
+  const latestAnalyzedAt = await maxAnalyzedAt(db, playerId, stream, inTournament);
+  const fresh =
+    stored !== null &&
+    latestAnalyzedAt !== null &&
+    stored.generatedAt.getTime() >= latestAnalyzedAt.getTime();
+
+  if (!fresh && stored !== null) {
+    // ST-098. While games in this scope are still analysing, the stored
+    // report is served as-is. Regenerating on every poll tick wrote new
+    // weakness ids each time, the client remounted its list around new keys,
+    // and the animations replayed - the flicker Sushanth kept seeing. The
+    // banner carries the progress; the quiet stream regenerates once.
+    const [row] = await db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(game)
+      .where(
+        and(
+          eq(game.playerId, playerId),
+          eq(game.stream, stream),
+          inTournament === undefined ? undefined : eq(game.tournamentId, inTournament),
+          or(
+            inArray(game.analysisStatus, ['queued', 'analyzing']),
+            and(eq(game.analysisStatus, 'pending'), isNotNull(game.playerColor)),
+          ),
+        ),
+      );
+    if ((row?.n ?? 0) > 0) {
+      return {
+        ok: true,
+        report: await withEvidence(
+          db,
+          playerId,
+          stream,
+          inTournament,
+          stored.windowStart,
+          toResponse(stored, stored.weaknesses),
+        ),
+      };
+    }
+  }
+
+  if (fresh) {
+    return {
+      ok: true,
+      report: await withEvidence(
+        db,
+        playerId,
+        stream,
+        inTournament,
+        stored.windowStart,
+        toResponse(stored, stored.weaknesses),
+      ),
+    };
+  }
+
+  const baseline = await leakBaseline(db, playerId, stream, inTournament);
+  if (baseline.kind === 'not_enough_evidence') {
+    // ST-095. Two different refusals shared one 404, and the web read both
+    // as "import your games" - a lie for a player whose games are analysed
+    // but too few. Zero analysed games stays the 404 the not-ready state
+    // renders; a thin history answers the same 422 the motifs and phase
+    // endpoints use, with the numbers in the message.
+    const [row] = await db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(game)
+      .where(
+        and(
+          eq(game.playerId, playerId),
+          eq(game.stream, stream),
+          eq(game.analysisStatus, 'complete'),
+          inTournament === undefined ? undefined : eq(game.tournamentId, inTournament),
+        ),
+      );
+    const analysed = row?.n ?? 0;
+    if (analysed === 0) {
+      return {
+        ok: false,
+        status: 404,
+        body: { code: 'not_found', message: `No analyzed games in this ${place} yet.` },
+      };
+    }
+    // ST-097. The refusal names both sets, because "6 analyzed games but
+    // needs 6 rated games" reads as a contradiction until the qualifying
+    // subset is stated. The rated count is the same in-window figure the
+    // baseline just computed and discarded.
+    const rated = baseline.ratedGames;
+    const games = analysed === 1 ? 'game' : 'games';
+    const verb = analysed === 1 ? 'counts' : 'count';
+    const lead =
+      rated === 0
+        ? `None of the ${analysed} analyzed ${games} in this ${place} ${verb} toward a report yet.`
+        : rated === analysed
+          ? `All ${analysed} analyzed ${games} in this ${place} ${verb} toward a report.`
+          : `Only ${rated} of the ${analysed} analyzed ${games} in this ${place} ${verb} toward a report.`;
+    return {
+      ok: false,
+      status: 422,
+      body: {
+        code: 'not_enough_evidence',
+        message:
+          `${lead} A report needs ${MIN_RATED_GAMES} rated games in the last year, ` +
+          `and a game counts when it has a decided result, a date, and both players' ratings.`,
+      },
+    };
+  }
+
+  const rows = await weaknessLeakRows(db, playerId, stream, baseline.windowStart, inTournament);
+  const leaks = scoreLeaks(baseline.baseline, rows);
+  const timeTrouble = scoreTimeTrouble(
+    await timeTroubleCounts(db, playerId, stream, { tournamentId: inTournament }),
+  );
+  const composed = composeReport(leaks, timeTrouble);
+  // The model no longer writes at generation - a report read must never
+  // pay for every mistake at once. Cards store the template copy; the
+  // click that opens a weakness buys its model line once, at the coaching
+  // endpoint below. The summary is the only generation-time model call.
+  const advice = new Map<string, string>();
+
+  // ST-100. The opening plan is written from the facts alone - the advice
+  // lines are written per weakness on demand and this plan never sees
+  // them. Null on model failure: the narrative column stays empty and the
+  // block is not rendered.
+  const narrative = aiClient
+    ? await summaryForReport(db, aiClient, {
+        playerId,
+        stream,
+        tournamentId: inTournament,
+        windowStart: baseline.windowStart,
+        gamesCovered: baseline.baseline.games,
+        timeTroubleFromMove: composed.timeTroubleFromMove,
+        weaknesses: composed.weaknesses,
+        advice,
+      })
+    : null;
+
+  const response = await storeReport(db, {
+    playerId,
+    stream,
+    tournamentId: inTournament ?? null,
+    gamesCovered: baseline.baseline.games,
+    windowStart: baseline.windowStart,
+    // `windowStart` is the latest rated game minus the season, so adding the
+    // season back recovers that latest date exactly.
+    windowEnd: new Date(baseline.windowStart.getTime() + SEASON_WINDOW_MS),
+    timeTroubleFromMove: composed.timeTroubleFromMove,
+    timeTroubleReason: composed.timeTroubleReason,
+    weaknesses: composed.weaknesses,
+    advice,
+    narrative,
+  });
+
+  return {
+    ok: true,
+    report: await withEvidence(db, playerId, stream, inTournament, baseline.windowStart, response),
+  };
+}
+
 export function mountReport(
   app: OpenAPIHono,
   deps: { db: Db; getSession: (c: Context) => unknown; aiClient: AiClient | null },
@@ -314,7 +495,6 @@ export function mountReport(
     const { stream, tournamentId } = c.req.valid('query');
     // `undefined` means the whole stream; a uuid means one tournament's games.
     const inTournament = tournamentId;
-    const place = inTournament === undefined ? 'stream' : 'tournament';
 
     const session = await readSession(deps.getSession, c);
     if (session === null) {
@@ -325,166 +505,11 @@ export function mountReport(
       return c.json({ code: 'not_found', message: 'No such player.' }, 404);
     }
 
-    const stored = await latestReport(deps.db, playerId, stream, inTournament);
-    const latestAnalyzedAt = await maxAnalyzedAt(deps.db, playerId, stream, inTournament);
-    const fresh =
-      stored !== null &&
-      latestAnalyzedAt !== null &&
-      stored.generatedAt.getTime() >= latestAnalyzedAt.getTime();
-
-    if (!fresh && stored !== null) {
-      // ST-098. While games in this scope are still analysing, the stored
-      // report is served as-is. Regenerating on every poll tick wrote new
-      // weakness ids each time, the client remounted its list around new keys,
-      // and the animations replayed - the flicker Sushanth kept seeing. The
-      // banner carries the progress; the quiet stream regenerates once.
-      const [row] = await deps.db
-        .select({ n: sql<number>`count(*)::int` })
-        .from(game)
-        .where(
-          and(
-            eq(game.playerId, playerId),
-            eq(game.stream, stream),
-            inTournament === undefined ? undefined : eq(game.tournamentId, inTournament),
-            or(
-              inArray(game.analysisStatus, ['queued', 'analyzing']),
-              and(eq(game.analysisStatus, 'pending'), isNotNull(game.playerColor)),
-            ),
-          ),
-        );
-      if ((row?.n ?? 0) > 0) {
-        return c.json(
-          await withEvidence(
-            deps.db,
-            playerId,
-            stream,
-            inTournament,
-            stored.windowStart,
-            toResponse(stored, stored.weaknesses),
-          ),
-          200,
-        );
-      }
+    const produced = await produceReport(deps.db, deps.aiClient, playerId, stream, inTournament);
+    if (!produced.ok) {
+      return c.json(produced.body, produced.status);
     }
-
-    if (fresh) {
-      return c.json(
-        await withEvidence(
-          deps.db,
-          playerId,
-          stream,
-          inTournament,
-          stored.windowStart,
-          toResponse(stored, stored.weaknesses),
-        ),
-        200,
-      );
-    }
-
-    const baseline = await leakBaseline(deps.db, playerId, stream, inTournament);
-    if (baseline.kind === 'not_enough_evidence') {
-      // ST-095. Two different refusals shared one 404, and the web read both
-      // as "import your games" - a lie for a player whose games are analysed
-      // but too few. Zero analysed games stays the 404 the not-ready state
-      // renders; a thin history answers the same 422 the motifs and phase
-      // endpoints use, with the numbers in the message.
-      const [row] = await deps.db
-        .select({ n: sql<number>`count(*)::int` })
-        .from(game)
-        .where(
-          and(
-            eq(game.playerId, playerId),
-            eq(game.stream, stream),
-            eq(game.analysisStatus, 'complete'),
-            inTournament === undefined ? undefined : eq(game.tournamentId, inTournament),
-          ),
-        );
-      const analysed = row?.n ?? 0;
-      if (analysed === 0) {
-        return c.json(
-          { code: 'not_found', message: `No analyzed games in this ${place} yet.` },
-          404,
-        );
-      }
-      // ST-097. The refusal names both sets, because "6 analyzed games but
-      // needs 6 rated games" reads as a contradiction until the qualifying
-      // subset is stated. The rated count is the same in-window figure the
-      // baseline just computed and discarded.
-      const rated = baseline.ratedGames;
-      const games = analysed === 1 ? 'game' : 'games';
-      const verb = analysed === 1 ? 'counts' : 'count';
-      const lead =
-        rated === 0
-          ? `None of the ${analysed} analyzed ${games} in this ${place} ${verb} toward a report yet.`
-          : rated === analysed
-            ? `All ${analysed} analyzed ${games} in this ${place} ${verb} toward a report.`
-            : `Only ${rated} of the ${analysed} analyzed ${games} in this ${place} ${verb} toward a report.`;
-      return c.json(
-        {
-          code: 'not_enough_evidence',
-          message:
-            `${lead} A report needs ${MIN_RATED_GAMES} rated games in the last year, ` +
-            `and a game counts when it has a decided result, a date, and both players' ratings.`,
-        },
-        422,
-      );
-    }
-
-    const rows = await weaknessLeakRows(
-      deps.db,
-      playerId,
-      stream,
-      baseline.windowStart,
-      inTournament,
-    );
-    const leaks = scoreLeaks(baseline.baseline, rows);
-    const timeTrouble = scoreTimeTrouble(
-      await timeTroubleCounts(deps.db, playerId, stream, { tournamentId: inTournament }),
-    );
-    const composed = composeReport(leaks, timeTrouble);
-    // The model no longer writes at generation - a report read must never
-    // pay for every mistake at once. Cards store the template copy; the
-    // click that opens a weakness buys its model line once, at the coaching
-    // endpoint below. The summary is the only generation-time model call.
-    const advice = new Map<string, string>();
-
-    // ST-100. The opening plan is written from the facts alone - the advice
-    // lines are written per weakness on demand and this plan never sees
-    // them. Null on model failure: the narrative column stays empty and the
-    // block is not rendered.
-    const narrative = deps.aiClient
-      ? await summaryForReport(deps.db, deps.aiClient, {
-          playerId,
-          stream,
-          tournamentId: inTournament,
-          windowStart: baseline.windowStart,
-          gamesCovered: baseline.baseline.games,
-          timeTroubleFromMove: composed.timeTroubleFromMove,
-          weaknesses: composed.weaknesses,
-          advice,
-        })
-      : null;
-
-    const response = await storeReport(deps.db, {
-      playerId,
-      stream,
-      tournamentId: inTournament ?? null,
-      gamesCovered: baseline.baseline.games,
-      windowStart: baseline.windowStart,
-      // `windowStart` is the latest rated game minus the season, so adding the
-      // season back recovers that latest date exactly.
-      windowEnd: new Date(baseline.windowStart.getTime() + SEASON_WINDOW_MS),
-      timeTroubleFromMove: composed.timeTroubleFromMove,
-      timeTroubleReason: composed.timeTroubleReason,
-      weaknesses: composed.weaknesses,
-      advice,
-      narrative,
-    });
-
-    return c.json(
-      await withEvidence(deps.db, playerId, stream, inTournament, baseline.windowStart, response),
-      200,
-    );
+    return c.json(produced.report, 200);
   });
   // ST-107. The curriculum page reads every assigned item, not one report's;
   // a read, so it needs no model.

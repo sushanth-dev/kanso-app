@@ -239,6 +239,13 @@
       "when": 1788553806659,
       "tag": "0033_chief_vargas",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1788624000000,
+      "tag": "0034_bright_wren",
+      "breakpoints": true
     }
   ]
 }
