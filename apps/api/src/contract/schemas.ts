@@ -402,6 +402,12 @@ export const GameDetail = GameSummary.extend({
   pgn: z.string(),
   plies: z.array(MovePly),
   mistakes: z.array(Mistake),
+  /**
+   * ST-121. The time-trouble onset the stored report for this game's stream
+   * computed (ST-042); null when no report row exists or it has no onset.
+   * Read, never regenerated, on the game read.
+   */
+  timeTroubleFromMove: z.number().int().nullable(),
 }).openapi('GameDetail');
 
 export const GameList = z

@@ -18,6 +18,7 @@ import { ParticleReveal } from '../components/canvas-ui/ParticleReveal.tsx';
 import { Board, describePosition } from '../components/board.tsx';
 import { GameShareLinksSection } from '../components/game-share-links-section.tsx';
 import { MoveCard, Notation, movingColorOf, resultGloss } from '../components/review-pieces.tsx';
+import { ClockCurve } from '../components/clock-curve.tsx';
 import { MOTIF_LABEL } from '../components/review-pieces.tsx';
 import {
   cctScanQueryOptions,
@@ -393,6 +394,8 @@ export function GameReviewScreen({
               />
             </div>
 
+            {/* ST-121. The clock curve sits under the move list it indexes. */}
+            <ClockCurve game={game} />
             {stepControls}
 
             <MoveCard

@@ -2,8 +2,8 @@ import type { Context } from 'hono';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { createApp } from '../app.ts';
-import { game, mistake, movePly, player } from '../db/schema.ts';
 import { user } from '../db/auth-schema.ts';
+import { game, mistake, movePly, player, report } from '../db/schema.ts';
 import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-harness.ts';
 
 let harness: IntegrationDatabase;
@@ -175,5 +175,44 @@ describe('GET /games/{gameId}', () => {
     expect(row!.currentStreak).toBe(0);
     expect(row!.xp).toBe(0);
     expect(row!.lastActivityDate).toBeNull();
+  });
+
+  test('ST-121: serves the newest stored stream report\u2019s onset, null without one', async () => {
+    const gameId = await seedReviewedGame(OWNER);
+    const [row] = await harness.db
+      .select({ playerId: game.playerId })
+      .from(game)
+      .where(eq(game.id, gameId));
+
+    // No report row yet: the onset is absent, and the read never regenerates.
+    const before = await app(OWNER).request(`/games/${gameId}`);
+    const beforeBody = (await before.json()) as { timeTroubleFromMove: number | null };
+    expect(beforeBody.timeTroubleFromMove).toBeNull();
+
+    // Two stored reports: the read takes the newest row, never recomputing.
+    await harness.db.insert(report).values([
+      {
+        playerId: row!.playerId,
+        stream: 'tournament',
+        tournamentId: null,
+        gamesCovered: 2,
+        timeTroubleFromMove: 20,
+        timeTroubleReason: null,
+        generatedAt: new Date(Date.now() - 60_000),
+      },
+      {
+        playerId: row!.playerId,
+        stream: 'tournament',
+        tournamentId: null,
+        gamesCovered: 3,
+        timeTroubleFromMove: 31,
+        timeTroubleReason: null,
+      },
+    ]);
+
+    const res = await app(OWNER).request(`/games/${gameId}`);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { timeTroubleFromMove: number | null };
+    expect(body.timeTroubleFromMove).toBe(31);
   });
 });
