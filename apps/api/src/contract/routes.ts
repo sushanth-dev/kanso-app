@@ -664,6 +664,7 @@ export const getExplanation = createRoute({
     ),
     404: error('No such mistake.'),
     502: error('The model call failed. Retry; we never substitute canned text.'),
+    503: error('No model is configured on this deployment. Already-generated texts still serve.'),
   },
 });
 
@@ -685,6 +686,7 @@ export const getSocraticQuestion = createRoute({
     ),
     404: error('No such mistake.'),
     502: error('The model call failed. Retry; we never substitute canned text.'),
+    503: error('No model is configured on this deployment. Already-generated texts still serve.'),
   },
 });
 

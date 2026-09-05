@@ -4982,6 +4982,16 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "No model is configured on this deployment. Already-generated texts still serve.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }
@@ -5046,6 +5056,16 @@
           },
           "502": {
             "description": "The model call failed. Retry; we never substitute canned text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "No model is configured on this deployment. Already-generated texts still serve.",
             "content": {
               "application/json": {
                 "schema": {
