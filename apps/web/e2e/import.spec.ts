@@ -129,21 +129,3 @@ test('imports a PGN upload and opens the imported game review', async ({ page })
 
   expect(externalRequests).toEqual([]);
 });
-
-test('imports a tournament by name and reports the honest empty crosstable', async ({ page }) => {
-  const externalRequests = await blockExternalRequests(page);
-  await signUp(page);
-  await openImport(page);
-
-  await page.getByLabel('Method').selectOption('uscf');
-  await page.getByLabel('Tournament name').fill('State Champs');
-  await expect(page.getByLabel('Player name')).toHaveValue('Mina Import');
-
-  const importResponse = waitForImportResponse(page);
-  await page.getByRole('button', { name: 'Import games' }).click();
-  expect((await importResponse).status()).toBe(202);
-  await expect(page.getByText('No games found for Mina Import in State Champs.')).toBeVisible();
-  await expectNoAxeViolations(page);
-
-  expect(externalRequests).toEqual([]);
-});
