@@ -464,7 +464,10 @@ export const movePly = pgTable(
     bestMoveSan: text('best_move_san'),
     bestMoveUci: text('best_move_uci'),
 
-    /** F6. Online games only. Null everywhere else, and `game.hasClockData` says which. */
+    /**
+     * F6, ST-042. Remaining clock after the move, written at analysis time
+     * for any stream whose PGN carries `%clk`; null when the ply has none.
+     */
     clockMs: integer('clock_ms'),
     moveTimeMs: integer('move_time_ms'),
   },
