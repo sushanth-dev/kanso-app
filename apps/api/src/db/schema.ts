@@ -870,6 +870,35 @@ export const gameShareLink = pgTable(
   ],
 );
 
+/**
+ * ST-127. The report's share card: the share act's fourth caller (ST-067).
+ * The token opens one card - the report's headline leak number and its
+ * weakness label, frozen at creation - and nothing else on the account: no
+ * games, no opponent names, no identity, no second weakness. The payload is
+ * two columns, so the card cannot grow into a profile by accident; the token
+ * is the only thing between a forwarded link and those two fields. Marked
+ * revoked rather than deleted, expiring, like every share-act row.
+ */
+export const reportCardLink = pgTable(
+  'report_card_link',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    createdByPlayerId: uuid('created_by_player_id')
+      .notNull()
+      .references(() => player.id, { onDelete: 'cascade' }),
+    /** The share secret. Long, random, and the only thing standing between a forwarded link and the payload. */
+    token: text('token').notNull().unique(),
+    /** F9. The headline figure at creation, in rating points. */
+    ratingLeak: integer('rating_leak').notNull(),
+    /** The headline weakness's display label at creation. */
+    label: text('label').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+  },
+  (t) => [index('report_card_link_creator_idx').on(t.createdByPlayerId)],
+);
+
 // ─── Practice ────────────────────────────────────────────────────────────────
 
 /**

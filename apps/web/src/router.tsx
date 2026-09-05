@@ -24,6 +24,7 @@ import { GameReviewRoute } from './routes/game-review-route.tsx';
 import { SharedProofSheetRoute } from './routes/shared-proof-sheet-route.tsx';
 import { SharedAssignmentRoute } from './routes/shared-assignment-route.tsx';
 import { SharedGameRoute } from './routes/shared-game-route.tsx';
+import { SharedCardRoute } from './routes/shared-card-route.tsx';
 import { FocusRoute } from './routes/focus-route.tsx';
 import { GuardianConfirmRoute } from './routes/guardian-confirm-route.tsx';
 import { GuardianWaitingRoute } from './routes/guardian-waiting-route.tsx';
@@ -66,6 +67,7 @@ function RootComponent() {
     pathname.startsWith('/shared/proof-sheets/') ||
     pathname.startsWith('/shared/assignments/') ||
     pathname.startsWith('/shared/games/') ||
+    pathname.startsWith('/shared/cards/') ||
     pathname.startsWith('/guardians/') ||
     pathname.startsWith('/nudge/')
   ) {
@@ -351,6 +353,14 @@ const sharedGameRoute = createRoute({
   component: SharedGameRoute,
 });
 
+// ST-127. The report's share card: public like the other shared pages,
+// because it is opened before anyone signs in.
+const sharedCardRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/shared/cards/$token',
+  component: SharedCardRoute,
+});
+
 const guardianConfirmRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/guardians/confirm/$token',
@@ -424,6 +434,7 @@ const routeTree = rootRoute.addChildren([
   sharedProofSheetRoute,
   sharedAssignmentRoute,
   sharedGameRoute,
+  sharedCardRoute,
   guardianConfirmRoute,
   guardianWaitingRoute,
   forgotPasswordRoute,

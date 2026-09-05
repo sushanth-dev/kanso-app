@@ -158,13 +158,23 @@ describe('GET /practice/queue (ST-107)', () => {
     expect(second).toHaveLength(20);
 
     const queue = await queueOf(OWNER);
-    expect(queue.upcoming.map((i) => i.puzzleId)).toContain(first[0]);
-    expect(queue.upcoming[0]!.nextReviewAt > new Date().toISOString()).toBe(true);
-    // The twenty untouched deals are pending now - the nineteen from the
-    // first deal plus the one fresh puzzle that topped the deal up. The
-    // solved one is not among them.
+    const solvedRow = queue.upcoming.find((i) => i.puzzleId === first[0]);
+    expect(solvedRow).toBeDefined();
+    // Two days out from the database's own clock, so the comparison cannot be
+    // flattered or broken by node-vs-Postgres clock skew on a containerized
+    // database - a few dozen milliseconds decide which bucket a just-dealt
+    // puzzle lands in, but never whether a two-day review is in the future.
+    expect(new Date(solvedRow!.nextReviewAt).getTime() - Date.now()).toBeGreaterThan(86_400_000);
+    // The twenty untouched deals stay pending - the nineteen from the first
+    // deal plus the one fresh puzzle that topped the deal up - whichever
+    // bucket their dealing timestamp fell into. The solved one is not among
+    // them; it waits in the review ladder instead.
+    const pending = [...queue.due, ...queue.upcoming]
+      .filter((i) => i.puzzleId !== first[0])
+      .map((i) => i.puzzleId);
+    expect(pending).toHaveLength(20);
+    expect(pending.filter((id) => first.includes(id))).toHaveLength(19);
     expect(queue.due.map((i) => i.puzzleId)).not.toContain(first[0]);
-    expect(queue.due).toHaveLength(20);
     expect(queue.mastered).toHaveLength(0);
   });
 
