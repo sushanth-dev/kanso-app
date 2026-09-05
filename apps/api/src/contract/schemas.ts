@@ -1004,6 +1004,33 @@ export const GameShareLink = z
   })
   .openapi('GameShareLink');
 
+/** ST-127. A live report share card, the share shape the game share returns, plus its frozen payload. */
+export const ReportCardLink = z
+  .object({
+    id: Uuid,
+    token: z.string(),
+    url: z.string(),
+    createdAt: z.iso.datetime(),
+    revokedAt: z.iso.datetime().nullable(),
+    expiresAt: z.iso.datetime().nullable(),
+    ratingLeak: z.number().int(),
+    label: z.string(),
+  })
+  .openapi('ReportCardLink');
+
+/**
+ * ST-127. What an opened share card serves: the headline leak number and its
+ * weakness label. Two fields, and the payload-scoping test pins the key set,
+ * so the card cannot quietly grow into a profile - no games, no opponents, no
+ * account identity, no second weakness.
+ */
+export const SharedReportCard = z
+  .object({
+    ratingLeak: z.number().int(),
+    label: z.string(),
+  })
+  .openapi('SharedReportCard');
+
 /**
  * ST-118. What an opened game share link serves: exactly one reviewed game,
  * read-only. The PGN names travel with the game; nothing account-owned does -
