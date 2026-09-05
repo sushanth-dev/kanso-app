@@ -70,6 +70,22 @@ export async function coachUnitsThisMonth(
     .where(eq(player.ownerUserId, userId));
   return Number(row?.units ?? 0);
 }
+
+/**
+ * ST-128. The plan's coach budget for display: units left this month and the
+ * cap they count against, both from `EXPLANATION_MONTHLY_CAP`; `null` when
+ * the plan is unlimited (pro), so a counter never renders for it.
+ */
+export async function coachBudget(
+  db: Db,
+  userId: string,
+  now = new Date(),
+): Promise<{ remaining: number; cap: number } | null> {
+  const cap = EXPLANATION_MONTHLY_CAP[await tierFor(db, userId)];
+  if (cap === null) return null;
+  return { remaining: Math.max(0, cap - (await coachUnitsThisMonth(db, userId, now))), cap };
+}
+
 /**
  * How many more coach texts the account's plan may generate this month; 0
  * at the cap, `null` when the plan has none (pro).
@@ -79,7 +95,5 @@ export async function coachRemaining(
   userId: string,
   now = new Date(),
 ): Promise<number | null> {
-  const cap = EXPLANATION_MONTHLY_CAP[await tierFor(db, userId)];
-  if (cap === null) return null;
-  return Math.max(0, cap - (await coachUnitsThisMonth(db, userId, now)));
+  return (await coachBudget(db, userId, now))?.remaining ?? null;
 }

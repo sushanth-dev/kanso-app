@@ -198,6 +198,8 @@ beforeEach(() => {
     mistakeId: 'm-1',
     text: 'Qf6 hangs the queen to Nc6; the knight forks it with the rook.',
     generatedAt: '2026-08-22T00:00:00.000Z',
+    remaining: 48,
+    monthlyCap: 50,
   });
   vi.spyOn(diagnosisApi, 'getSocraticQuestion').mockResolvedValue({
     mistakeId: 'm-1',
@@ -439,6 +441,24 @@ describe('GameReviewScreen', () => {
       await screen.findByRole('heading', { name: "You have used this month's coach explanations" }),
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'See plans' })).toHaveAttribute('href', '/upgrade');
+  });
+
+  test('shows the monthly coach budget counter on the card', async () => {
+    renderScreen(gameFixture());
+    expect(await screen.findByText('48 of 50 left this month')).toBeInTheDocument();
+  });
+
+  test('shows no counter on an unlimited plan', async () => {
+    vi.spyOn(diagnosisApi, 'getExplanation').mockResolvedValue({
+      mistakeId: 'm-1',
+      text: 'Qf6 hangs the queen to Nc6; the knight forks it with the rook.',
+      generatedAt: '2026-08-22T00:00:00.000Z',
+      remaining: null,
+      monthlyCap: null,
+    });
+    renderScreen(gameFixture());
+    expect(await screen.findByText(/hangs the queen/)).toBeInTheDocument();
+    expect(screen.queryByText(/left this month/)).not.toBeInTheDocument();
   });
 
   test('holds the working lines while the coach texts are being written', async () => {

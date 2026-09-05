@@ -12,7 +12,13 @@ import { createApp } from '../app.ts';
 import { createAuth } from '../auth.ts';
 import { game, mistake, processedPayment, subscription } from '../db/schema.ts';
 import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-harness.ts';
-import { analysisRemaining, coachRemaining, coachUnitsThisMonth, tierFor } from './entitlement.ts';
+import {
+  analysisRemaining,
+  coachBudget,
+  coachRemaining,
+  coachUnitsThisMonth,
+  tierFor,
+} from './entitlement.ts';
 import type { RazorpayClient } from './razorpay.ts';
 
 let harness: IntegrationDatabase;
@@ -306,6 +312,8 @@ describe('the three tiers', () => {
 
     expect(await coachUnitsThisMonth(harness.db, userId)).toBe(2);
     expect(await coachRemaining(harness.db, userId)).toBe(48);
+    // ST-128. The display shape carries the cap the remaining counts against.
+    expect(await coachBudget(harness.db, userId)).toEqual({ remaining: 48, cap: 50 });
   });
 
   test('pro has no coach budget either', async () => {
