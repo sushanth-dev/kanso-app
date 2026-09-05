@@ -80,6 +80,7 @@ const motifWeakness = {
   drilled: 0,
   groupKey: 'missed_capture',
   evidence: [evidenceInstance],
+  lineConsistency: null,
 };
 
 const openingWeakness = {
@@ -98,6 +99,7 @@ const openingWeakness = {
   drilled: 0,
   groupKey: 'B22',
   evidence: [],
+  lineConsistency: null,
 };
 
 function reportFixture(overrides: Partial<Report> = {}): Report {
@@ -255,8 +257,46 @@ describe('ReportScreen', () => {
       }),
     );
     expect(screen.getByText('Sicilian, Alapin')).toBeVisible();
+
     expect(screen.queryByText('Show evidence')).toBeNull();
     expect(screen.getByText('Get resources')).toBeVisible();
+  });
+  test('ST-123: the opening card carries the line-following share beside its figures', () => {
+    renderReport(
+      reportFixture({
+        weaknesses: [
+          { ...openingWeakness, lineConsistency: { status: 'ok', matched: 6, games: 10 } },
+        ],
+      }),
+    );
+    expect(screen.getByText(/You followed your most-played opening line/)).toBeVisible();
+    expect(screen.getByText('6 of 10')).toBeVisible();
+    expect(screen.getByText('60%')).toBeVisible();
+  });
+
+  test('ST-123: under the five-game floor the withholding names the floor', () => {
+    renderReport(
+      reportFixture({
+        weaknesses: [{ ...openingWeakness, lineConsistency: { status: 'below_floor', games: 3 } }],
+      }),
+    );
+    expect(screen.getByText(/Only 3 games in this opening/)).toBeVisible();
+    expect(screen.getByText(/needs at least five/)).toBeVisible();
+  });
+
+  test('ST-123: a group with no full line says so instead of showing a share', () => {
+    renderReport(
+      reportFixture({
+        weaknesses: [{ ...openingWeakness, lineConsistency: { status: 'no_full_line', games: 5 } }],
+      }),
+    );
+    expect(screen.getByText(/no full line to compare/)).toBeVisible();
+  });
+
+  test('ST-123: a null figure renders nothing - the online report carries no consistency', () => {
+    renderReport(reportFixture({ weaknesses: [openingWeakness] }));
+    expect(screen.queryByText(/most-played opening line/)).toBeNull();
+    expect(screen.queryByText(/needs at least five/)).toBeNull();
   });
 
   test('a click writes the coaching once; reopening the weakness never re-asks', async () => {
