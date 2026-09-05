@@ -5,7 +5,8 @@ import { Heading } from '@astryxdesign/core/Heading';
 import { Text } from '@astryxdesign/core/Text';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { diagnosisApi, type TransferGap } from '../api/diagnosis-api.ts';
-import { transferGapQueryOptions } from '../query-client.ts';
+import { transferGapQueryOptions, transferGapSeriesQueryOptions } from '../query-client.ts';
+import { GapSeriesCard } from '../components/gap-series.tsx';
 
 function ratingCell(label: string, rating: number | null, gap: number | null) {
   return (
@@ -53,6 +54,7 @@ function TransferGapCard({ gap }: { gap: TransferGap }) {
 export function TransferGapRoute() {
   const queryClient = useQueryClient();
   const gapQuery = useQuery(transferGapQueryOptions());
+  const seriesQuery = useQuery(transferGapSeriesQueryOptions());
   const refreshing = gapQuery.isFetching;
 
   const onRefresh = () => {
@@ -63,6 +65,9 @@ export function TransferGapRoute() {
       // load; without this the spread's 30s staleTime serves the cache.
       staleTime: 0,
     });
+    // The series reads the stored snapshot; a refresh that moves the rating
+    // must move the reference the points read against.
+    void queryClient.fetchQuery({ ...transferGapSeriesQueryOptions(), staleTime: 0 });
   };
 
   return (
@@ -94,6 +99,20 @@ export function TransferGapRoute() {
         />
       ) : (
         <TransferGapCard gap={gapQuery.data} />
+      )}
+
+      {seriesQuery.isPending ? (
+        <div role="status" aria-label="Loading gap series" aria-busy="true" className="space-y-3">
+          <div className="h-40 rounded-surface bg-sunken" />
+        </div>
+      ) : seriesQuery.isError ? (
+        <EmptyState
+          title="The gap series could not be loaded"
+          description="Try again in a moment."
+          headingLevel={2}
+        />
+      ) : (
+        <GapSeriesCard series={seriesQuery.data} />
       )}
     </div>
   );
