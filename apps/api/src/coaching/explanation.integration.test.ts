@@ -60,11 +60,11 @@ beforeEach(async () => {
   fail = false;
 });
 
-function app(userId: string | null) {
+function app(userId: string | null, model: AiClient | null = aiClient) {
   return createApp({
     db: harness.db,
     getSession: (userId == null ? () => null : sessionFor(userId)) as (c: Context) => unknown,
-    aiClient,
+    aiClient: model,
   });
 }
 
@@ -375,5 +375,48 @@ describe('ST-128 coach budget counter on the explanation response', () => {
     const body = (await res.json()) as { remaining: number | null; monthlyCap: number | null };
     expect(body.remaining).toBeNull();
     expect(body.monthlyCap).toBeNull();
+  });
+});
+
+describe('ST-130 no model configured', () => {
+  test('the coach routes mount and answer 503 model_unavailable to generate', async () => {
+    const [id] = await seedMistakes(OWNER, 1);
+
+    const explanation = await app(OWNER, null).request(`/mistakes/${id}/explanation`);
+    expect(explanation.status).toBe(503);
+    const explanationBody = (await explanation.json()) as { code: string };
+    expect(explanationBody.code).toBe('model_unavailable');
+
+    const question = await app(OWNER, null).request(`/mistakes/${id}/question`);
+    expect(question.status).toBe(503);
+    const questionBody = (await question.json()) as { code: string };
+    expect(questionBody.code).toBe('model_unavailable');
+  });
+
+  test('an already-generated text serves 200 with no model', async () => {
+    const id = await seedMistake(OWNER);
+    await harness.db
+      .update(mistake)
+      .set({ explanation: 'Stored prose.', explanationGeneratedAt: new Date() })
+      .where(eq(mistake.id, id));
+
+    const res = await app(OWNER, null).request(`/mistakes/${id}/explanation`);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { text: string };
+    expect(body.text).toBe('Stored prose.');
+  });
+
+  test('the 503 precedes the budget refusal: an exhausted account is not told to upgrade', async () => {
+    const ids = await seedMistakes(OWNER, 51);
+    for (const id of ids.slice(0, 50)) {
+      const res = await app(OWNER).request(`/mistakes/${id}/explanation`);
+      expect(res.status).toBe(200);
+    }
+    expect(await coachUnitsThisMonth(harness.db, OWNER)).toBe(50);
+
+    const refused = await app(OWNER, null).request(`/mistakes/${ids[50]}/explanation`);
+    expect(refused.status).toBe(503);
+    const refusedBody = (await refused.json()) as { code: string };
+    expect(refusedBody.code).toBe('model_unavailable');
   });
 });

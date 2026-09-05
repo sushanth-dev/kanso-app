@@ -356,10 +356,10 @@ export function createApp({
       mountCheckout(app, { db, getSession: effectiveGetSession, razorpay });
       mountRazorpayWebhook(app, { db, razorpay });
     }
-    if (aiClient) {
-      mountExplanation(app, { db, getSession: effectiveGetSession, aiClient });
-      mountSocraticQuestion(app, { db, getSession: effectiveGetSession, aiClient });
-    }
+    // ST-130. The coach routes mount unconditionally: without a model they
+    // still serve cached texts and answer 503 model_unavailable to generate.
+    mountExplanation(app, { db, getSession: effectiveGetSession, aiClient });
+    mountSocraticQuestion(app, { db, getSession: effectiveGetSession, aiClient });
   }
 
   app.notFound((c) => c.json<ErrorBody>({ code: 'not_found', message: 'No such endpoint.' }, 404));
