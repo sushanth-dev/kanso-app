@@ -51,6 +51,9 @@ describe('publicPaths', () => {
       '/nudge/unsubscribe/{token}',
       '/shared/proof-sheets/{token}',
       '/shared/assignments/{token}',
+      // ST-118. The shared game read is the share act's third caller and
+      // answers before anyone signs in.
+      '/shared/games/{token}',
       '/payments/webhook',
     ]);
   });
@@ -101,6 +104,15 @@ describe('the session guard', () => {
     // No handler is mounted without a database, so this falls through to the
     // 404. What matters is that it is not a 401: the link stays public. The
     // confirm beside it is sessioned and is covered by the loop above.
+    expect(response.status).not.toBe(401);
+  });
+
+  test('lets the shared game read through without a session', async () => {
+    const app = createApp();
+    const response = await app.request(`/shared/games/${'x'.repeat(32)}`);
+
+    // No handler is mounted without a database, so this falls through to the
+    // 404. What matters is that it is not a 401: the link stays public.
     expect(response.status).not.toBe(401);
   });
 

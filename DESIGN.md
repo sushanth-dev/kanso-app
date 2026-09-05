@@ -544,6 +544,25 @@ the board's aria-label keeps describing the live position through
 `describePosition`. **Back to review** returns to the play-through at the
 mistake's ply.
 
+ST-118 gives the review surface its share act. Creation, list, copy, and
+confirm-then-revoke live in a "Share links" section below the position on the
+review page, built from the same primitives as the proof sheet's shares: a
+Card over FormLayout with the native date input for the optional expiry, a
+mono link line with Copy beside it, and revoke behind its inline confirm. The
+public reader (`/shared/games/$token`) renders outside the authenticated shell
+in the same quiet centered column as the other shared pages: mark, "A shared
+game review", the PGN names as the heading, the raw result and the one-line
+gloss, then the review composition itself - the same board, notation panel,
+transport, and mistake card the owner's page renders, read-only. Every account
+affordance stays behind the session: no back link, no delete, no
+name-your-side prompt, no drill link, and no coach cards, because the
+explanation and the Socratic question consume the account's coach budget and
+carry generated prose. Opening a link never spends a unit. Its four states are
+the proof sheet's: skeleton, payload, the one indistinguishable unavailable
+page, and the unreachable page with a retry. The document title carries the
+pairing ("White name vs Black name"), so a browser tab names the game it
+holds.
+
 ### Import
 
 The import form is one `Card` at `/account/players/$playerId/import` with a
@@ -601,14 +620,12 @@ each with its arrow, so meaning never travels by hue alone. The numbers are
 `baselineValue` to `currentValue` in IBM Plex Mono with the measurement's
 `unit`, and `windowGames` sits beside every figure so five games reads as five,
 not fifty. `insufficient_evidence` is prose, never a zero or an empty chart:
-what cannot be said yet, and what would change it. A coach instruction is shown
-verbatim as text, marked "Unverified", with the paired focus named and its
-numbers labelled as the paired number rather than a measurement of the
-instruction.
-does not pick (F8). The active-focus verdict number reveals through Canvas
-UI's Particle Reveal (a still frame under reduced motion, `aria-hidden`),
-mirroring the game result and the report's rank-one weakness.
-does not pick (F8).
+what cannot be said yet, and what would change it. A coach instruction is
+shown verbatim as text, marked "Unverified", with the paired focus named and
+its numbers labelled as the paired number rather than a measurement of the
+instruction. The active-focus verdict number reveals through Canvas UI's
+Particle Reveal (a still frame under reduced motion, `aria-hidden`), mirroring
+the game result and the report's rank-one weakness.
 
 ST-117 adds the assignment link to the same surface. Creation, list, copy, and
 confirm-then-revoke live in an "Assignment links" section on the focus page in

@@ -2628,6 +2628,175 @@
           "instruction"
         ]
       },
+      "GameShareLink": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "token": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "revokedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "token",
+          "url",
+          "createdAt",
+          "revokedAt",
+          "expiresAt"
+        ]
+      },
+      "SharedGame": {
+        "type": "object",
+        "properties": {
+          "whiteName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "blackName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "result": {
+            "$ref": "#/components/schemas/GameResult"
+          },
+          "playerColor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "white",
+              "black",
+              null
+            ]
+          },
+          "plies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MovePly"
+            }
+          },
+          "mistakes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "gameId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "ply": {
+                  "type": "integer"
+                },
+                "moveNumber": {
+                  "type": "integer"
+                },
+                "movingColor": {
+                  "$ref": "#/components/schemas/Color"
+                },
+                "phase": {
+                  "$ref": "#/components/schemas/Phase"
+                },
+                "fen": {
+                  "type": "string"
+                },
+                "moveSan": {
+                  "type": "string"
+                },
+                "bestMoveSan": {
+                  "type": "string"
+                },
+                "evalBefore": {
+                  "$ref": "#/components/schemas/Evaluation"
+                },
+                "evalAfter": {
+                  "$ref": "#/components/schemas/Evaluation"
+                },
+                "judgement": {
+                  "$ref": "#/components/schemas/Judgement"
+                },
+                "cpLoss": {
+                  "type": "integer"
+                },
+                "winProbDrop": {
+                  "type": "number"
+                },
+                "motif": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "crossedResultBoundary": {
+                  "type": "boolean"
+                },
+                "halfPointsLost": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "id",
+                "gameId",
+                "ply",
+                "moveNumber",
+                "movingColor",
+                "phase",
+                "fen",
+                "moveSan",
+                "bestMoveSan",
+                "evalBefore",
+                "evalAfter",
+                "judgement",
+                "cpLoss",
+                "winProbDrop",
+                "motif",
+                "crossedResultBoundary",
+                "halfPointsLost"
+              ]
+            }
+          }
+        },
+        "required": [
+          "whiteName",
+          "blackName",
+          "result",
+          "playerColor",
+          "plies",
+          "mistakes"
+        ]
+      },
       "CheckoutResponse": {
         "type": "object",
         "properties": {
@@ -5388,6 +5557,283 @@
           },
           "404": {
             "description": "No such assignment, or it was revoked or has expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/games/{gameId}/share-links": {
+      "post": {
+        "tags": [
+          "Games"
+        ],
+        "summary": "Create a read-only share link for one reviewed game",
+        "description": "ST-118, F7. The share act (ST-067) applied to the game review: a tokened link that opens one reviewed game's board, moves and mistakes read-only. The link grants only that payload; the coach texts and every account surface stay behind the session.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "gameId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "expiresAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GameShareLink"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not your game.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such game.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Games"
+        ],
+        "summary": "A game's live share links",
+        "description": "ST-118. The current links for one game, newest first, excluding revoked and expired ones, exactly like the proof sheet list.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "gameId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The game's live share links.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GameShareLink"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not your game.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such game.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/games/{gameId}/share-links/{shareLinkId}": {
+      "delete": {
+        "tags": [
+          "Games"
+        ],
+        "summary": "Revoke a game share link",
+        "description": "ST-118. Revocation is why the row is marked rather than deleted.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "gameId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "shareLinkId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Revoked."
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not your share link.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such share link.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shared/games/{token}": {
+      "get": {
+        "tags": [
+          "Games"
+        ],
+        "summary": "Read a game share link by its token",
+        "security": [],
+        "description": "ST-118, F7. The payload is exactly one reviewed game: the board data, the plies with their evaluations and best moves, and the mistakes with their cost. No coach texts, no account identity, nothing else on the account.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "token",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The game, read-only.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedGame"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such shared game, or it was revoked or has expired.",
             "content": {
               "application/json": {
                 "schema": {
