@@ -23,7 +23,6 @@ import {
 
 import { UpgradePrompt } from '../components/upgrade-prompt.tsx';
 import { AssignmentLinksSection } from '../components/assignment-links-section.tsx';
-import { ParticleReveal } from '../components/canvas-ui/ParticleReveal.tsx';
 import { track } from '../analytics.ts';
 import { StatusMessage } from '../components/status-message.tsx';
 import { StreamToggle } from '../components/stream-toggle.tsx';
@@ -125,12 +124,10 @@ function FocusTrendCard({ measurement }: { measurement: FocusMeasurement }) {
           {TREND_ARROW[measurement.trend]}
         </span>
       </Text>
-      <ParticleReveal background="#f7f2ea" className="max-w-fit">
-        <Text as="p" display="block" className="mt-1 font-mono">
-          {formatValue(measurement.baselineValue)} → {formatValue(measurement.currentValue)}{' '}
-          {measurement.unit}
-        </Text>
-      </ParticleReveal>
+      <Text as="p" display="block" className="mt-1 font-mono">
+        {formatValue(measurement.baselineValue)} → {formatValue(measurement.currentValue)}{' '}
+        {measurement.unit}
+      </Text>
       <Text as="p" display="block" type="supporting" className="mt-1 text-sm">
         Measured over {games} {gamesLabel(games)}.
       </Text>

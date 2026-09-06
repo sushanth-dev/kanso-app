@@ -215,8 +215,8 @@ the three brightness steps, never by drop shadows.
 
 Glass is the one exception to flat, and it is a recipe, not a mood (ST-071,
 ST-094): every Card frosts the raised-paper token at 60% opacity over a 16px
-backdrop blur, so the ThreeUI particle field and the auth clouds read through
-the card, blurred. The recipe keeps one inset top highlight and one soft
+backdrop blur, so whatever sits behind reads through the card, blurred. The
+recipe keeps one inset top highlight and one soft
 ambient shadow as part of the glass treatment; the shadow belongs to the
 glass, not to a shadow vocabulary. Muted ink holds 7.7:1 over the mix, so the
 contrast floors survive the transparency. The report's analysing list adds
@@ -264,21 +264,7 @@ it was dropped and each surface mounts statically in the shared shell.
 Surface-level motion (`.stagger-in`, `.press`, `.reveal-in`) remains. The
 evaluation bar's fill transitions over the slow
 320ms board transition, and the proof sheet's verdict reveals with the base
-200ms fade and rise. Every non-landing surface carries the same `aria-hidden` ThreeUI background
-(ST-091): a shared 3D particle-field core (`RibbonFieldBackground`) behind the
-authenticated shell and the auth surfaces, ported to the shared `three` and
-restyled to sit on the light cream paper (`neutral-bg`), so the animated
-accents read in the semantic colors against the theme's warm background rather
-than against a dark void. The 3D core uses a perspective camera, so near
-particles are larger and move faster than far ones, and it is interactive: the
-pointer repels particles within a radius and pulls the camera into a subtle
-parallax, so the field visibly responds to the cursor. The landing keeps its
-own WarpField tunnel of warm light streaks and tiles, which carries the same
-pointer parallax. All effects are `aria-hidden` and capped at 2x DPR. They
-pause offscreen and in background tabs, and under `prefers-reduced-motion`
-render one static frame and mark the canvas. Keeping one background across
-the surfaces keeps the pages calm and consistent, so the content stays the
-brightest object.
+200ms fade and rise.
 
 The sticky navigation header is the one glass surface that must hide what
 passes under it (ST-093): `.glass-top` keeps the `.glass` recipe but mixes the
@@ -462,9 +448,7 @@ The report has three states: the ranked list, an honest empty
 statement ("could not identify a defensible weakness"), and a not-ready state
 that separates "still being analyzed" from "no analyzed games."
 The rank-one weakness's `ratingLeak` number, the one thing to
-fix, reveals through Canvas UI's Particle Reveal (a still frame under reduced
-motion, `aria-hidden`) so the headline lands as a moment; the remaining
-weaknesses render as plain mono text.
+fix, renders as plain mono text, the same as the remaining weaknesses.
 
 ### Game review
 
@@ -491,9 +475,8 @@ not as a separate bar.
 
 The route lists the game's mistakes in move order; selecting one shows its
 position, the move played versus the engine's best, the judgement and
-centipawn loss, and the motif where one applies. The game result reveals
-through Canvas UI's Particle Reveal, a decorative effect that renders a still
-frame under `prefers-reduced-motion` and is `aria-hidden`, per ADR-0017.
+centipawn loss, and the motif where one applies. The game result renders as
+plain mono text.
 
 ST-096 adds an analysing state to the review page for games that are queued,
 analysing, or pending with a known colour: a `role="status"` banner with the
@@ -623,9 +606,8 @@ not fifty. `insufficient_evidence` is prose, never a zero or an empty chart:
 what cannot be said yet, and what would change it. A coach instruction is
 shown verbatim as text, marked "Unverified", with the paired focus named and
 its numbers labelled as the paired number rather than a measurement of the
-instruction. The active-focus verdict number reveals through Canvas UI's
-Particle Reveal (a still frame under reduced motion, `aria-hidden`), mirroring
-the game result and the report's rank-one weakness.
+instruction. The active-focus verdict number renders as plain mono text, the
+same as the game result and the report's rank-one weakness.
 
 ST-117 adds the assignment link to the same surface. Creation, list, copy, and
 confirm-then-revoke live in an "Assignment links" section on the focus page in
@@ -651,8 +633,7 @@ password mismatch, and a local guardian-email mismatch. Sign-up collects date
 of birth; when the date makes the person under 13, the guardian email field
 and a plain-words explanation reveal together ("A guardian's email is required
 for players under 13, so a parent or guardian can confirm consent."), driven
-by the same age check the server applies. A `Clouds` ambient renders behind
-the entry cards, named by ADR-0017 as the fourth Canvas UI surface.
+by the same age check the server applies.
 
 The two consent surfaces render outside the authenticated shell, like the
 proof sheet: no wordmark, no navigation, no sign-in hint. The confirm page
@@ -713,14 +694,14 @@ Three sections in all: the hero, a value proposition with the free/paid
 boundary, and a closing call to action. The value proposition states the
 three positioning claims as plain headings, never icon-and-heading cards. The
 board is absent by design as the proof: the ranked diagnosis is the proof, so the raised
-sample card is the brightest object on the screen, and a decorative, `aria-hidden` 3D pawn on a fixed three.js canvas recedes behind the hero. The boundary is fact-only
+sample card is the brightest object on the screen. The boundary is fact-only
 from `pricing.md`: free is the diagnosis, paid is the loop, from ₹799 a month
 on the paid plans. The join call to action routes to `/sign-up`;
 a secondary link routes to `/sign-in`. Copy states only facts, and the sample
 carries a visible "Synthetic example" label so no visitor mistakes it for a
 real diagnosis. One authored reveal eases the sample card in on load through the shared
-`.reveal-in` utility (base 200ms), collapsing to zero under reduced motion;
-the parallax pawn is the one other effect: scroll-driven, and a still frame under reduced motion. The sprint 12 coherence pass confirmed the sample
+`.reveal-in` utility (base 200ms), collapsing to zero under reduced motion.
+The sprint 12 coherence pass confirmed the sample
 ranked list, wordmark, sign-in link, footer, and free/paid boundary already
 matched the surfaces around it, and that no route transition ships, so `/`
 mounts statically like every other surface.

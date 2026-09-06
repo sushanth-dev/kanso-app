@@ -32,8 +32,6 @@ import { Text } from '@astryxdesign/core/Text';
 import { useQuery } from '@tanstack/react-query';
 
 import { Mark } from '../components/mark.tsx';
-import { ParallaxPiece } from '../components/parallax-piece.tsx';
-import { WarpFieldBackground } from '../components/threeui/warp-field.tsx';
 import { meQueryOptions } from '../query-client.ts';
 const SAMPLE_TOURNAMENT = 'A scholastic tournament · K-8 U1200 · 5 rounds';
 
@@ -102,14 +100,6 @@ export function LandingRoute() {
   const signedIn = meQuery.isSuccess;
   return (
     <div className="flex min-h-screen flex-col font-ui text-primary">
-      <ParallaxPiece />
-      <div
-        aria-hidden="true"
-        data-decor-backdrop
-        className="pointer-events-none fixed inset-0 -z-10"
-      >
-        <WarpFieldBackground className="h-full w-full" />
-      </div>
       <div className="relative z-10 flex min-h-screen flex-col">
         <a
           href="#main-content"

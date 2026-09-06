@@ -242,9 +242,6 @@ html[data-contrast='high'] .glass-raised {
   background-color: var(--kanso-color-surface-raised);
   box-shadow: inset 0 0 0 1px var(--kanso-color-border-strong);
 }
-html[data-contrast='high'] [data-decor-backdrop] {
-  display: none;
-}
 /* The elevated specificity (html attribute plus universal focus pseudo) is
    the point: some surfaces - the nav links among them - disable the global
    outline and draw focus as a Tailwind ring instead, and a lower-specificity
