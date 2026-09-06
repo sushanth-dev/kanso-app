@@ -40,7 +40,9 @@ test('lands a new visitor on a coherent, axe-clean front door', async ({ page })
   await expectNoAxeViolations(page);
 });
 
-test('honours reduced motion by collapsing the reveal', async ({ page }) => {
+test('honours reduced motion by rendering the hero at its end state immediately', async ({
+  page,
+}) => {
   await page.goto('/');
 
   const reducedMotion = await page.evaluate(
@@ -48,10 +50,36 @@ test('honours reduced motion by collapsing the reveal', async ({ page }) => {
   );
   expect(reducedMotion).toBe(true);
 
-  // The reveal utility collapses to no animation under reduced motion.
-  const duration = await page.evaluate(() => {
-    const el = document.querySelector('.reveal-in');
-    return el === null ? null : getComputedStyle(el).animationDuration;
-  });
-  expect(duration).toBe('0s');
+  // The hero ships in a lazy-loaded chunk (ST-133), so wait for it to mount
+  // before reading opacities.
+  await page.waitForSelector('[data-hero-reveal]');
+
+  // gsap.matchMedia()'s reduced branch sets every hero element straight to
+  // its end state (opacity 1, no offset) with gsap.set, no tween: the intro
+  // timeline never runs, so the hero is fully visible immediately.
+  const heroOpacities = await page.evaluate(() =>
+    Array.from(document.querySelectorAll('[data-hero-reveal]')).map(
+      (el) => getComputedStyle(el).opacity,
+    ),
+  );
+  expect(heroOpacities.length).toBeGreaterThan(0);
+  expect(heroOpacities.every((opacity) => opacity === '1')).toBe(true);
+
+  await expect(
+    page.getByRole('heading', { name: 'Know the one thing to fix after every tournament.' }),
+  ).toBeVisible();
+});
+
+test('reaches the skip link and the primary call to action by keyboard', async ({ page }) => {
+  await page.goto('/');
+
+  const skipLink = page.getByRole('link', { name: 'Skip to main content' });
+  await skipLink.focus();
+  await expect(skipLink).toBeFocused();
+  await expect(skipLink).toBeVisible();
+
+  const joinCta = page.getByRole('link', { name: 'Get your free diagnosis' }).first();
+  await joinCta.focus();
+  await expect(joinCta).toBeFocused();
+  await expect(joinCta).toBeVisible();
 });

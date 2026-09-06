@@ -272,6 +272,29 @@ page surface token at 88% instead of 40%, so scrolled content no longer reads
 through the bar. Landing sections and the footer keep the lighter `.glass`,
 where nothing scrolls beneath.
 
+**Landing motion (ST-133).** The landing page is the one surface driven by
+GSAP rather than the CSS token utilities above. A single Lenis instance is
+the app's one smooth-scroll engine; it drives from GSAP's own ticker so the
+two never compete over a frame, and `ScrollTrigger` refreshes once fonts
+finish loading. The hero's headline enters as a word stagger, then the
+subhead, parent line, call to action, and sample card follow; the
+value-proposition grid and the free/paid boundary each reveal independently
+through a `useScrollReveal` hook, the `ScrollTrigger` equivalent of
+`.stagger-in` capped at the same six steps. Every move stays on the shared
+`--kanso-motion-duration-slow` (320ms) and decelerate ease, so it reads as
+the same voice as the rest of the app. `gsap.matchMedia()` branches on
+`prefers-reduced-motion` and sets every hero element to its end state with
+`gsap.set()`, no tween, so a visitor who asked for less motion sees the
+complete page immediately rather than a suppressed animation.
+
+**Icons (ST-133).** Icons ship as Solar, via Iconify's `@iconify-json/solar`
+data resolved at build time through `unplugin-icons` into inline SVG
+components; there is no runtime Iconify API call. They compose with the
+existing Astryx `Icon` component's component mode, the same pattern
+`password-input.tsx`'s `EyeIcon` already proved. The landing hero's primary
+call to action carries the first one shipped, an arrow-right glyph after the
+button label.
+
 ## Components
 
 ### Buttons
@@ -699,12 +722,27 @@ from `pricing.md`: free is the diagnosis, paid is the loop, from ₹799 a month
 on the paid plans. The join call to action routes to `/sign-up`;
 a secondary link routes to `/sign-in`. Copy states only facts, and the sample
 carries a visible "Synthetic example" label so no visitor mistakes it for a
-real diagnosis. One authored reveal eases the sample card in on load through the shared
-`.reveal-in` utility (base 200ms), collapsing to zero under reduced motion.
-The sprint 12 coherence pass confirmed the sample
-ranked list, wordmark, sign-in link, footer, and free/paid boundary already
-matched the surfaces around it, and that no route transition ships, so `/`
-mounts statically like every other surface.
+real diagnosis.
+
+**ST-133** rebuilt the hero's composition and motion narrative in place,
+without touching the Study Room color or type system above: this is a new
+sequence on the same palette and typeface, not a new look. The headline
+carries a dual rendering — an unsplit, screen-reader-only accessible name,
+and a decorative, `aria-hidden` word-by-word duplicate the intro timeline
+animates — so the complete headline is present with no JavaScript, and only
+its motion depends on GSAP. On mount, the words stagger in first, then the
+subhead, parent line, call to action, and sample card follow as one group,
+overlapping slightly with the words so the whole hero settles as a single
+gesture rather than two disconnected reveals; see Motion above for the
+Lenis/GSAP wiring and the reduced-motion behaviour, which is identical here
+to the rest of the page: every element snaps to its end state immediately,
+no tween. The value-proposition grid and the free/paid boundary each reveal
+on scroll through the same `useScrollReveal` hook, independently of each
+other and of the hero, and the closing call to action reveals the same way.
+The sprint 12 coherence pass confirmed the sample ranked list, wordmark,
+sign-in link, footer, and free/paid boundary already matched the surfaces
+around it; that still holds. No route transition ships, so `/` mounts
+statically like every other surface.
 
 ### Upgrade
 

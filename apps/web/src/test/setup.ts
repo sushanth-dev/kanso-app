@@ -20,6 +20,19 @@ Object.defineProperty(window, 'matchMedia', {
   }),
 });
 
+// jsdom does not implement ResizeObserver, which Lenis' constructor requires
+// (ST-133's smooth-scroll engine) regardless of the reduced-motion branch,
+// since the mocked matchMedia above always reports no preference.
+class ResizeObserverStub {
+  observe(): void {}
+  unobserve(): void {}
+  disconnect(): void {}
+}
+Object.defineProperty(window, 'ResizeObserver', {
+  writable: true,
+  value: ResizeObserverStub,
+});
+
 Object.defineProperty(window.navigator, 'clipboard', {
   writable: true,
   configurable: true,
