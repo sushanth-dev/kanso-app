@@ -9,7 +9,6 @@ import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { Link } from '@astryxdesign/core/Link';
 import { authClient } from '../auth-client.ts';
-import { RibbonFieldBackground } from '../components/threeui/ribbon-field.tsx';
 import { PasswordInput } from '../components/password-input.tsx';
 import { StatusMessage } from '../components/status-message.tsx';
 import { TextInput } from '../components/text-input.tsx';
@@ -44,14 +43,6 @@ function isMinorDob(dateOfBirth: string): boolean {
   if (!year || !month || !day) return false;
   const thirteenthBirthday = new Date(year + 13, month - 1, day);
   return new Date() < thirteenthBirthday;
-}
-
-export function AuthAmbient() {
-  return (
-    <div aria-hidden="true" data-decor-backdrop className="pointer-events-none fixed inset-0 -z-10">
-      <RibbonFieldBackground className="h-full w-full" />
-    </div>
-  );
 }
 
 export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
@@ -115,7 +106,6 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
 
   return (
     <>
-      <AuthAmbient />
       <Card className="mx-auto w-full max-w-sm">
         <Heading level={1}>{heading}</Heading>
         {errorMessage !== null ? (

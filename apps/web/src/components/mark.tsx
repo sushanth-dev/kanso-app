@@ -1,7 +1,7 @@
 /*
  * The Kanso Chess mark (ST-113): the hero pawn's exact lathe profile
- * (parallax-piece.tsx, pawnProfile()) flattened to two dimensions, with its
- * construction geometry as hairlines - datums in the air, the dome's hidden
+ * flattened to two dimensions, with its construction geometry as
+ * hairlines - datums in the air, the dome's hidden
  * circle scribed on the piece. The layer that makes it ownable is the
  * product's own story: the analysis drawn over the game.
  *
