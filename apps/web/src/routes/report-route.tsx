@@ -19,7 +19,6 @@ import {
   type WeaknessKind,
 } from '../api/diagnosis-api.ts';
 import { StreamToggle } from '../components/stream-toggle.tsx';
-import { ParticleReveal } from '../components/canvas-ui/ParticleReveal.tsx';
 import { gamesQueryOptions, reportQueryOptions, tournamentsQueryOptions } from '../query-client.ts';
 import { ReportShareCardsSection } from '../components/report-share-cards-section.tsx';
 import { TournamentCard } from './tournaments-route.tsx';
@@ -198,19 +197,9 @@ function WeaknessList({ weaknesses, stream, tournamentId }: WeaknessListProps) {
                     </Text>
                     <Text className="font-display text-base">{weakness.label}</Text>
                   </div>
-                  {weakness.rank === 1 ? (
-                    <ParticleReveal background="#f7f2ea" className="max-w-fit">
-                      <Text className="font-mono text-base">
-                        {weakness.saturated
-                          ? `at least ${weakness.ratingLeak}`
-                          : weakness.ratingLeak}
-                      </Text>
-                    </ParticleReveal>
-                  ) : (
-                    <Text className="font-mono text-base">
-                      {weakness.saturated ? `at least ${weakness.ratingLeak}` : weakness.ratingLeak}
-                    </Text>
-                  )}
+                  <Text className="font-mono text-base">
+                    {weakness.saturated ? `at least ${weakness.ratingLeak}` : weakness.ratingLeak}
+                  </Text>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge label={KIND_LABEL[weakness.kind]} variant="neutral" />

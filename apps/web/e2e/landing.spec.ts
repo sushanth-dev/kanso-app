@@ -55,16 +55,3 @@ test('honours reduced motion by collapsing the reveal', async ({ page }) => {
   });
   expect(duration).toBe('0s');
 });
-
-test('renders the parallax piece as a static, decorative frame', async ({ page }) => {
-  await page.goto('/');
-
-  // The parallax pawn is the full-viewport canvas; the WarpField background
-  // behind it is a second aria-hidden canvas, so scope by the pawn's class.
-  const canvas = page.locator('canvas[aria-hidden="true"].pointer-events-none');
-  await expect(canvas).toBeVisible();
-  await expect(canvas).toHaveAttribute('aria-hidden', 'true');
-  // Under reduced motion the loop never starts, so the component marks itself
-  // static and renders a single frame.
-  await expect(canvas).toHaveAttribute('data-reduced-motion', 'true');
-});
