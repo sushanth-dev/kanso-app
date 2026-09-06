@@ -10,7 +10,6 @@ import { Link } from '@astryxdesign/core/Link';
 import { authClient } from '../auth-client.ts';
 import { StatusMessage } from '../components/status-message.tsx';
 import { TextInput } from '../components/text-input.tsx';
-import { AuthAmbient } from './auth-routes.tsx';
 
 const MISMATCH_COPY = 'Passwords do not match.';
 const RATE_LIMIT_COPY = 'Too many attempts. Try again later.';
@@ -58,7 +57,6 @@ export function ResetPasswordRoute() {
   if (invalid) {
     return (
       <>
-        <AuthAmbient />
         <Card className="mx-auto w-full max-w-sm">
           <Heading level={1}>This link is no longer available.</Heading>
           <Text as="p" display="block" type="supporting" className="mt-4">
@@ -75,7 +73,6 @@ export function ResetPasswordRoute() {
   if (done) {
     return (
       <>
-        <AuthAmbient />
         <Card className="mx-auto w-full max-w-sm">
           <Heading level={1}>Password reset</Heading>
           <Text as="p" display="block" type="supporting" className="mt-4">
@@ -91,7 +88,6 @@ export function ResetPasswordRoute() {
 
   return (
     <>
-      <AuthAmbient />
       <Card className="mx-auto w-full max-w-sm">
         <Heading level={1}>Set a new password</Heading>
         {errorMessage !== null ? (

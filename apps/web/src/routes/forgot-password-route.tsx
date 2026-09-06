@@ -9,7 +9,6 @@ import { Text } from '@astryxdesign/core/Text';
 import { authClient } from '../auth-client.ts';
 import { StatusMessage } from '../components/status-message.tsx';
 import { TextInput } from '../components/text-input.tsx';
-import { AuthAmbient } from './auth-routes.tsx';
 
 const RATE_LIMIT_COPY = 'Too many attempts. Try again later.';
 const FAILURE_COPY = 'Something went wrong. Try again.';
@@ -42,7 +41,6 @@ export function ForgotPasswordRoute() {
 
   return (
     <>
-      <AuthAmbient />
       <Card className="mx-auto w-full max-w-sm">
         <Heading level={1}>{sent ? 'Check your email' : 'Reset your password'}</Heading>
         {sent ? (

@@ -14,7 +14,6 @@ import { ApiRequestError } from '../api/account-api.ts';
 import type { CctMove, GameDetail } from '../api/diagnosis-api.ts';
 import { diagnosisApi } from '../api/diagnosis-api.ts';
 import { UpgradePrompt } from '../components/upgrade-prompt.tsx';
-import { ParticleReveal } from '../components/canvas-ui/ParticleReveal.tsx';
 import { Board, describePosition } from '../components/board.tsx';
 import { GameShareLinksSection } from '../components/game-share-links-section.tsx';
 import { MoveCard, Notation, movingColorOf, resultGloss } from '../components/review-pieces.tsx';
@@ -311,13 +310,7 @@ export function GameReviewScreen({
         <Text as="p" display="block" type="supporting">
           {game.whiteName ?? 'Unknown'} vs {game.blackName ?? 'Unknown'}
         </Text>
-        {/* The result reveal is the Canvas UI effect ADR-0017 names. The
-            background is the Study Room page colour, so the shader can tell
-            text apart from empty space; the token's value, since the vendored
-            engine takes a concrete CSS colour. */}
-        <ParticleReveal background="#f7f2ea" className="max-w-fit">
-          <Text className="font-mono text-lg text-primary">{game.result}</Text>
-        </ParticleReveal>
+        <Text className="font-mono text-lg text-primary">{game.result}</Text>
         {gloss !== null ? (
           <Text as="p" display="block">
             You {gloss}.

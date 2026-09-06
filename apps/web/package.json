@@ -22,8 +22,7 @@
     "openapi-fetch": "^0.17.0",
     "posthog-js": "^1.417.4",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "three": "^0.185.1"
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
@@ -37,7 +36,6 @@
     "@types/node": "^26.2.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
-    "@types/three": "^0.185.4",
     "@vitejs/plugin-react": "^6.0.5",
     "jsdom": "^30.0.1",
     "openapi-typescript": "^7.13.0",
