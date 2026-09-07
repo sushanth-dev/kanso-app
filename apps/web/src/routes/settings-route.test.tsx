@@ -430,4 +430,19 @@ describe('SettingsScreen', () => {
     resolve();
     await waitFor(() => expect(signOut).toHaveBeenCalledOnce());
   });
+
+  test('mounts every section card with the reveal-in entrance', () => {
+    renderSettings();
+    for (const id of [
+      'account-details-heading',
+      'appearance-heading',
+      'default-usernames-heading',
+      'security-heading',
+      'danger-heading',
+    ]) {
+      const heading = document.getElementById(id);
+      expect(heading).not.toBeNull();
+      expect(heading?.closest('.reveal-in')).not.toBeNull();
+    }
+  });
 });

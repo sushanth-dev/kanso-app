@@ -372,21 +372,29 @@ entirely: every authenticated route is top-level (`/settings`, `/report`,
 `/focus`, `/proof-sheet`, `/games`, `/import`, `/upgrade`, `/player`), and no
 `/account` URL remains.
 
-ST-092 groups the page into three H2 sections: Account details (email and See
-plans), Default usernames, and Security. Security owns both the change-password
-form and Sign out. The change-password inputs reveal behind a "Change password"
-button (progressive disclosure, not a security control; the rate limiting and
-rejection copy are unchanged). The Default usernames section holds the
-Chess.com and Lichess usernames that prefill the import form, written through
-the same `PATCH /me` the player form uses. Sign-in and sign-up land on the
-report, not settings, and the report's empty state links to import, so a player
-with no games is never stranded.
+ST-092 groups the page into H2 sections; it is five today: Account details
+(email and See plans), Appearance, Default usernames, Security, and the
+Danger zone. Security owns both the change-password form and Sign out. The
+change-password inputs reveal behind a "Change password" button (progressive
+disclosure, not a security control; the rate limiting and rejection copy are
+unchanged). Appearance holds the Contrast choice (standard or high) that
+ST-104 introduced; it is the section's only control. The Default usernames
+section holds the Chess.com and Lichess usernames that prefill the import
+form, written through the same `PATCH /me` the player form uses. Sign-in and
+sign-up land on the report, not settings, and the report's empty state links
+to import, so a player with no games is never stranded.
 
 Each settings section sits on the shared glass Card (Sushanth's ask, 31 August
-2026): Account details, Appearance, Default usernames and Security render as
-Cards from `@astryxdesign/core`, so the page carries the same bordered,
-ground-tinted surfaces every other page uses. The identity block stays bare
-under the H1.
+2026): Account details, Appearance, Default usernames, Security and the Danger
+zone render as Cards from `@astryxdesign/core`, so the page carries the same
+bordered, ground-tinted surfaces every other page uses. ST-135 states the
+decision the redesign asks of this surface: the glass treatment carries
+forward unchanged under the new system, and every Card mounts with
+`.reveal-in`, the same fade-and-rise entrance the entry surfaces carry, so
+the page settles as one gesture instead of appearing inert. The identity
+block and the "Your player" badges stay bare under the H1. Every button on
+the page carries the `min-h-11 press` 44px treatment, so the touch-target
+floor holds by construction.
 
 The username is the player's public handle: what a kid shows to other players
 instead of their real name. It is set in the player form and must be unique
@@ -400,27 +408,29 @@ redirects the `consent_required` answer to the waiting screen.
 
 ### Player
 
-The player form is one `Card` at `/account/players/new` and
-`/account/players/$playerId/edit`, built from `FormLayout`, `Field`, and
-`TextInput`. It renders exactly the `CreatePlayer` and `UpdatePlayer` fields,
-grouped into three labelled sections: Identity (username, birth year),
-Federation (FIDE and USCF ids and ratings), and Platforms (Chess.com and
-Lichess usernames). The owner is the session, never a field. The username is
-the public handle (ST-084): it must be unique across accounts, and a taken
-name answers `409 username_taken` rather than silently overwriting.
+The player form is one `Card` at `/player`, built from `FormLayout`, `Field`,
+and `TextInput`, and it renders exactly the `UpdatePlayer` fields grouped
+into three labelled sections: Identity (username, birth year), Federation
+(FIDE and USCF ids and ratings), and Platforms (Chess.com and Lichess
+usernames). It is an edit form only: sign-up creates the player (ST-072), so
+there is no create screen, and the `/account` prefix the old create and edit
+paths named is gone (ST-088). The owner is the session, never a field. The
+username is the public handle (ST-084): it must be unique across accounts,
+and a taken name answers `409 username_taken` rather than silently
+overwriting.
 
 A muted line under the heading states the consent model: consent is confirmed
 from the guardian email entered at sign-up, and the form records a birth year,
 never a full date of birth. It adds no field and no path.
 
-The create screen opens on the fresh form, every optional field empty and the
-one required field marked, so a first-time parent sees the shape of the profile
-without noise. The edit screen pre-fills from `/me` and answers not-found for a
-player the session does not own. The `/me` load renders the router's pending
-skeleton, submitting disables the primary button, and failures stay honest: a
-400 maps per-field issues back to their fields, a 401 goes to sign-in, a 403
-shows the cannot-be-changed message, and any other failure shows a retryable
-message rather than a silent reset.
+The form pre-fills from `/me` and answers not-found for a player the session
+does not own. The `/me` load renders the router's pending skeleton,
+submitting disables the primary button, and failures stay honest: a 400 maps
+per-field issues back to their fields, a 401 goes to sign-in, a 403 shows
+the cannot-be-changed message, and any other failure shows a retryable
+message rather than a silent reset. ST-135 gives the Card the same
+`.reveal-in` mount entrance as the settings page, and both the Save changes
+and Cancel buttons carry the `min-h-11 press` 44px treatment.
 
 ### Report and ranked lists
 
