@@ -1,8 +1,14 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterEach } from 'vitest';
 
 afterEach(cleanup);
+
+// Routes that lazy-load their content (the landing page, ST-133) resolve a
+// real dynamic import under Suspense before their first heading renders.
+// Testing Library's default 1000ms findBy*/waitFor timeout races that import
+// under load and flakes; 5000ms gives it room without masking a stuck query.
+configure({ asyncUtilTimeout: 5000 });
 
 // jsdom does not implement window.matchMedia, which Astryx's useMediaQuery
 // hook requires when a loading state (e.g. the Button spinner) mounts.
