@@ -35,8 +35,8 @@ export function TechnologySection() {
   useScrollReveal(notesRef);
 
   return (
-    <section className="glass flex min-h-screen flex-col justify-center border-t border-border-subtle">
-      <div className="mx-auto w-full max-w-5xl px-4 py-16">
+    <section className="glass flex flex-col justify-center border-t border-border-subtle">
+      <div className="mx-auto w-full max-w-5xl px-4 py-12 md:py-16">
         <Heading level={2} className="text-2xl tracking-tight">
           The technology behind it
         </Heading>
