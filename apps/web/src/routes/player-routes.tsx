@@ -134,7 +134,7 @@ export function PlayerFormScreen({ me, accountApi, queryClient, navigate }: Play
   }
 
   return (
-    <Card>
+    <Card className="reveal-in">
       <Heading level={1}>{heading}</Heading>
       <Text as="p" display="block" type="supporting" className="mt-2 text-sm">
         Consent is confirmed from the guardian email entered at sign-up. This form records a birth
@@ -297,7 +297,12 @@ export function PlayerFormScreen({ me, accountApi, queryClient, navigate }: Play
               isLoading={submitting}
               className="min-h-11 flex-1 press"
             />
-            <Button label="Cancel" href="/settings" variant="secondary" />
+            <Button
+              label="Cancel"
+              href="/settings"
+              variant="secondary"
+              className="min-h-11 press"
+            />
           </div>
         </FormLayout>
       </form>

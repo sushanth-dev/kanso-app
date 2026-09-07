@@ -132,7 +132,7 @@ export function SettingsScreen({ me, signOut, accountApi, queryClient }: Setting
         </div>
       </section>
 
-      <Card aria-labelledby="account-details-heading" className="mt-8">
+      <Card aria-labelledby="account-details-heading" className="reveal-in mt-8">
         <Heading level={2} id="account-details-heading">
           Account details
         </Heading>
@@ -140,11 +140,16 @@ export function SettingsScreen({ me, signOut, accountApi, queryClient }: Setting
           {me.email}
         </Text>
         <div>
-          <Button label="See plans" href="/upgrade" variant="primary" className="mt-3" />
+          <Button
+            label="See plans"
+            href="/upgrade"
+            variant="primary"
+            className="mt-3 min-h-11 press"
+          />
         </div>
       </Card>
 
-      <Card aria-labelledby="appearance-heading" className="mt-8">
+      <Card aria-labelledby="appearance-heading" className="reveal-in mt-8">
         <Heading level={2} id="appearance-heading">
           Appearance
         </Heading>
@@ -170,7 +175,7 @@ export function SettingsScreen({ me, signOut, accountApi, queryClient }: Setting
         </div>
       </Card>
 
-      <Card aria-labelledby="default-usernames-heading" className="mt-8">
+      <Card aria-labelledby="default-usernames-heading" className="reveal-in mt-8">
         <Heading level={2} id="default-usernames-heading">
           Default usernames
         </Heading>
@@ -226,7 +231,7 @@ export function SettingsScreen({ me, signOut, accountApi, queryClient }: Setting
         </form>
       </Card>
 
-      <Card aria-labelledby="security-heading" className="mt-8">
+      <Card aria-labelledby="security-heading" className="reveal-in mt-8">
         <Heading level={2} id="security-heading">
           Security
         </Heading>
@@ -246,12 +251,12 @@ export function SettingsScreen({ me, signOut, accountApi, queryClient }: Setting
             label="Sign out"
             variant="secondary"
             clickAction={handleSignOut}
-            className="mt-3 press"
+            className="mt-3 min-h-11 press"
           />
         </div>
       </Card>
 
-      <Card aria-labelledby="danger-heading" className="mt-8">
+      <Card aria-labelledby="danger-heading" className="reveal-in mt-8">
         <Heading level={2} id="danger-heading">
           Danger zone
         </Heading>
@@ -311,7 +316,7 @@ export function SettingsScreen({ me, signOut, accountApi, queryClient }: Setting
               setDeleteError(null);
               setDeleteOpen(true);
             }}
-            className="mt-3 press"
+            className="mt-3 min-h-11 press"
           />
         )}
       </Card>
