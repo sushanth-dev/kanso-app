@@ -47,7 +47,6 @@ export function useScrollReveal(containerRef: RefObject<HTMLElement | null>): vo
         const reveal = () => {
           if (revealed) return;
           revealed = true;
-          trigger.kill();
           gsap.to(targets, {
             opacity: 1,
             y: 0,
@@ -72,6 +71,11 @@ export function useScrollReveal(containerRef: RefObject<HTMLElement | null>): vo
             if (ScrollTrigger.maxScroll(window) <= self.start) reveal();
           },
         });
+        // create() runs its first refresh synchronously, so onEnter and
+        // onRefresh above can fire before create() returns (the closing CTA
+        // on a short page hits exactly that path). Honour `once` by killing
+        // the trigger here, never inside reveal().
+        if (revealed) trigger.kill();
         return () => trigger.kill();
       },
     );
