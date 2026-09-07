@@ -713,9 +713,19 @@ labelled "Synthetic example" holding a named tournament and a three-row
 ranked weakness list, rank and `ratingLeak` in IBM Plex Mono, mirroring the
 report's ranked list without a real player behind it.
 
-Three sections in all: the hero, a value proposition with the free/paid
-boundary, and a closing call to action. The value proposition states the
-three positioning claims as plain headings, never icon-and-heading cards. The
+Four sections in all: the hero, a value proposition with the free/paid
+boundary, the technology behind the diagnosis, and a closing call to action.
+Each section fills at least the full viewport height, so a section's
+scroll-triggered reveal settles before the section below it enters view; the
+hero, similarly, no longer sits shorter than the viewport with the next
+section's still-hidden content peeking in above the fold. The value
+proposition states the three positioning claims as plain headings, never
+icon-and-heading cards. The technology section names Stockfish (the
+open-source engine checking every game), GLM-5.3-Flash (the model writing
+each weakness's coaching explanation), and Lichess (the open platform ratings
+and imports reach directly), the same plain-heading treatment, with no
+company marks: Iconify's `Logos` set is not installed, and adding it for a
+name-check is not worth a new dependency. The
 board is absent by design as the proof: the ranked diagnosis is the proof, so the raised
 sample card is the brightest object on the screen. The boundary is fact-only
 from `pricing.md`: free is the diagnosis, paid is the loop, from ₹799 a month
