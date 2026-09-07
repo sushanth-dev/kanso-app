@@ -392,4 +392,10 @@ describe('PlayerFormScreen consent and grouping', () => {
     expect(screen.getByRole('group', { name: 'Federation' })).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'Platforms' })).toBeInTheDocument();
   });
+
+  test('mounts the form card with the reveal-in entrance', () => {
+    renderScreen();
+    const heading = screen.getByRole('heading', { name: 'Edit player' });
+    expect(heading.closest('.reveal-in')).not.toBeNull();
+  });
 });
