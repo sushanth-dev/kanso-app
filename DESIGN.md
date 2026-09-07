@@ -283,6 +283,10 @@ through a `useScrollReveal` hook, the `ScrollTrigger` equivalent of
 `.stagger-in` capped at the same six steps. Every move stays on the shared
 `--kanso-motion-duration-slow` (320ms) and decelerate ease, so it reads as
 the same voice as the rest of the app. `gsap.matchMedia()` branches on
+`prefers-reduced-motion`, and a container whose reveal line cannot be
+reached even at full scroll (the closing CTA on a compact page) reveals
+immediately rather than staying hidden.
+The same `gsap.matchMedia()` also branches on
 `prefers-reduced-motion` and sets every hero element to its end state with
 `gsap.set()`, no tween, so a visitor who asked for less motion sees the
 complete page immediately rather than a suppressed animation.
