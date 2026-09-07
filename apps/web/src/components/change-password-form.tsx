@@ -120,7 +120,7 @@ export function ChangePasswordForm() {
           label="Change password"
           variant="secondary"
           clickAction={() => setOpen(true)}
-          className="mt-3 press"
+          className="mt-3 min-h-11 press"
         />
       )}
     </section>

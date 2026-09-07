@@ -45,6 +45,16 @@ describe('GuardianConfirmRoute', () => {
     ).toBeInTheDocument();
   });
 
+  test('keeps its own main landmark and wraps its content in a reveal-in Card', async () => {
+    confirmGuardian.mockResolvedValue(undefined);
+
+    renderAt('/guardians/confirm/valid');
+    await screen.findByRole('heading', { name: 'Consent recorded' });
+
+    const main = screen.getByRole('main');
+    expect(main.querySelector('.reveal-in')).toBeInTheDocument();
+  });
+
   test('shows the one indistinguishable unavailable page for a tampered or expired link', async () => {
     confirmGuardian.mockRejectedValue(
       new ApiRequestError(404, 'not_found', undefined, 'No such page.'),
