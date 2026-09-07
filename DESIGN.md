@@ -755,11 +755,11 @@ report's ranked list without a real player behind it.
 
 Four sections in all: the hero, a value proposition with the free/paid
 boundary, the technology behind the diagnosis, and a closing call to action.
-Each section fills at least the full viewport height, so a section's
-scroll-triggered reveal settles before the section below it enters view; the
-hero, similarly, no longer sits shorter than the viewport with the next
-section's still-hidden content peeking in above the fold. The value
-proposition states the three positioning claims as plain headings, never
+Each section sizes to its content with a generous `py-12 md:py-16`
+padding, so the page reads as four joined bands rather than four screens
+of white space; the scroll-triggered reveals run on the sections as they
+enter view.
+The value proposition states the three positioning claims as plain headings, never
 icon-and-heading cards. The technology section names Stockfish (the
 open-source engine checking every game), GLM-5.3-Flash (the model writing
 each weakness's coaching explanation), and Lichess (the open platform ratings
