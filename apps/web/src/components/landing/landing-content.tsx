@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { Button } from '@astryxdesign/core/Button';
 import { Heading } from '@astryxdesign/core/Heading';
 import { Hero } from './hero.tsx';
+import { TechnologySection } from './technology-section.tsx';
 import { ValuePropsSection } from './value-props-section.tsx';
 import { useScrollReveal } from '../../hooks/use-scroll-reveal.ts';
 import { useSmoothScroll } from '../../hooks/use-smooth-scroll.ts';
@@ -29,7 +30,9 @@ export function LandingContent({ signedIn }: LandingContentProps) {
 
       <ValuePropsSection />
 
-      <section className="glass border-t border-border-subtle">
+      <TechnologySection />
+
+      <section className="glass flex min-h-screen flex-col justify-center border-t border-border-subtle">
         <div className="mx-auto w-full max-w-5xl px-4 py-16 text-center">
           <Heading level={2} className="text-2xl tracking-tight">
             See what is actually costing you rating

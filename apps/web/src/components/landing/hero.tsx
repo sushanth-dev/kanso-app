@@ -172,7 +172,10 @@ export function Hero({ signedIn }: HeroProps) {
   }, []);
 
   return (
-    <section ref={rootRef} className="mx-auto w-full max-w-5xl px-4 py-16 md:py-24">
+    <section
+      ref={rootRef}
+      className="mx-auto flex min-h-screen w-full max-w-5xl flex-col justify-center px-4 py-16 md:py-24"
+    >
       <div className="grid gap-10 md:grid-cols-2 md:items-center md:gap-12">
         <div>
           <Heading level={1} className="text-3xl leading-tight tracking-tight md:text-4xl">
