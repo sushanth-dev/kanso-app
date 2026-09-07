@@ -174,7 +174,7 @@ export function Hero({ signedIn }: HeroProps) {
   return (
     <section
       ref={rootRef}
-      className="mx-auto flex min-h-screen w-full max-w-5xl flex-col justify-center px-4 py-16 md:py-24"
+      className="mx-auto flex w-full max-w-5xl flex-col justify-center px-4 py-12 md:py-16"
     >
       <div className="grid gap-10 md:grid-cols-2 md:items-center md:gap-12">
         <div>

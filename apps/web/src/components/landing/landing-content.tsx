@@ -32,8 +32,8 @@ export function LandingContent({ signedIn }: LandingContentProps) {
 
       <TechnologySection />
 
-      <section className="glass flex min-h-screen flex-col justify-center border-t border-border-subtle">
-        <div className="mx-auto w-full max-w-5xl px-4 py-16 text-center">
+      <section className="glass flex flex-col justify-center border-t border-border-subtle">
+        <div className="mx-auto w-full max-w-5xl px-4 py-12 md:py-16 text-center">
           <Heading level={2} className="text-2xl tracking-tight">
             See what is actually costing you rating
           </Heading>
