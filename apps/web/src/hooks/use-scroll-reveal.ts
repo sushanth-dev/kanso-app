@@ -43,19 +43,33 @@ export function useScrollReveal(containerRef: RefObject<HTMLElement | null>): vo
         }
 
         gsap.set(targets, { opacity: 0, y: 24 });
+        let revealed = false;
+        const reveal = () => {
+          if (revealed) return;
+          revealed = true;
+          trigger.kill();
+          gsap.to(targets, {
+            opacity: 1,
+            y: 0,
+            duration: MOTION_DURATION.slow,
+            ease: MOTION_EASE.decelerate,
+            stagger: (index: number) =>
+              Math.min(index, STAGGER_STEP_CAP - 1) * STAGGER_STEP_SECONDS,
+          });
+        };
         const trigger = ScrollTrigger.create({
           trigger: container,
           start: 'top 80%',
           once: true,
-          onEnter: () => {
-            gsap.to(targets, {
-              opacity: 1,
-              y: 0,
-              duration: MOTION_DURATION.slow,
-              ease: MOTION_EASE.decelerate,
-              stagger: (index: number) =>
-                Math.min(index, STAGGER_STEP_CAP - 1) * STAGGER_STEP_SECONDS,
-            });
+          onEnter: reveal,
+          // A container near the bottom of a short page can never rise past
+          // the start line: scrolling stops before it gets there (the closing
+          // CTA on the compacted landing missed it by 15px and stayed
+          // invisible). When full scroll still cannot reach the line, reveal
+          // straight away; re-checked on every refresh, so late fonts and
+          // resizes settle it too.
+          onRefresh: (self) => {
+            if (ScrollTrigger.maxScroll(window) <= self.start) reveal();
           },
         });
         return () => trigger.kill();

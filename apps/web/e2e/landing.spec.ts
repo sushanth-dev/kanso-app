@@ -87,3 +87,20 @@ test('reaches the skip link and the primary call to action by keyboard', async (
   await expect(joinCta).toBeFocused();
   await expect(joinCta).toBeVisible();
 });
+
+test('reveals the closing call to action even at the end of a short page', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/');
+  await page.waitForSelector('[data-hero-reveal]');
+
+  // The scroll-reveal hook hides every container's children until the
+  // container's top crosses 80% of the viewport. On the compacted landing
+  // the closing CTA sits so low that full scroll left it 15px short of that
+  // line, and it never appeared. Scrolling as far as the page allows must
+  // still surface it.
+  await page.mouse.wheel(0, 3000);
+  await page.mouse.wheel(0, 3000);
+  const cta = page.getByRole('link', { name: 'Get your free diagnosis' }).last();
+  await expect(cta).toBeVisible();
+  await expect(cta).toHaveCSS('opacity', '1');
+});
