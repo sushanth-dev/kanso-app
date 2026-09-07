@@ -30,6 +30,10 @@ test('lands a new visitor on a coherent, axe-clean front door', async ({ page })
   await expect(page.getByRole('heading', { name: 'Paid for the loop' })).toBeVisible();
   await expect(page.getByText(/From ₹799 a month, uncapped on the Pro plan/)).toBeVisible();
 
+  // The technology section names the tools behind the diagnosis.
+  await expect(page.getByRole('heading', { name: 'The technology behind it' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Stockfish checks every move.' })).toBeVisible();
+
   await expectNoAxeViolations(page);
 
   // The smallest phone does not scroll sideways and stays axe-clean.

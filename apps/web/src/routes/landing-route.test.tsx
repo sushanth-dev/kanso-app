@@ -143,6 +143,23 @@ describe('LandingRoute', () => {
     expect(screen.getByText('12')).toBeInTheDocument();
   });
 
+  test('names the technology behind the diagnosis', async () => {
+    renderLanding();
+
+    expect(
+      await screen.findByRole('heading', { name: 'The technology behind it' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Stockfish checks every move.' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'GLM-5.3-Flash writes the coaching.' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Lichess, the open platform.' }),
+    ).toBeInTheDocument();
+  });
+
   test('keeps the skip link, the footer, and the sign-in call to action reachable', async () => {
     renderLanding();
     expect(await screen.findByRole('link', { name: 'Skip to main content' })).toHaveAttribute(

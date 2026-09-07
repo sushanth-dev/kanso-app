@@ -36,7 +36,7 @@ export function ValuePropsSection() {
   useScrollReveal(boundaryRef);
 
   return (
-    <section className="glass border-t border-border-subtle">
+    <section className="glass flex min-h-screen flex-col justify-center border-t border-border-subtle">
       <div className="mx-auto w-full max-w-5xl px-4 py-16">
         <Heading level={2} className="text-2xl tracking-tight">
           What Kanso does
