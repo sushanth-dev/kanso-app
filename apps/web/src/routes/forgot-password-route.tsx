@@ -41,7 +41,7 @@ export function ForgotPasswordRoute() {
 
   return (
     <>
-      <Card className="mx-auto w-full max-w-sm">
+      <Card className="reveal-in mx-auto w-full max-w-sm">
         <Heading level={1}>{sent ? 'Check your email' : 'Reset your password'}</Heading>
         {sent ? (
           <>

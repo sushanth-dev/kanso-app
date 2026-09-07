@@ -106,7 +106,7 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
 
   return (
     <>
-      <Card className="mx-auto w-full max-w-sm">
+      <Card className="reveal-in mx-auto w-full max-w-sm">
         <Heading level={1}>{heading}</Heading>
         {errorMessage !== null ? (
           <div className="mt-4">

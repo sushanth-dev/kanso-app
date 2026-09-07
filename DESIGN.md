@@ -372,21 +372,29 @@ entirely: every authenticated route is top-level (`/settings`, `/report`,
 `/focus`, `/proof-sheet`, `/games`, `/import`, `/upgrade`, `/player`), and no
 `/account` URL remains.
 
-ST-092 groups the page into three H2 sections: Account details (email and See
-plans), Default usernames, and Security. Security owns both the change-password
-form and Sign out. The change-password inputs reveal behind a "Change password"
-button (progressive disclosure, not a security control; the rate limiting and
-rejection copy are unchanged). The Default usernames section holds the
-Chess.com and Lichess usernames that prefill the import form, written through
-the same `PATCH /me` the player form uses. Sign-in and sign-up land on the
-report, not settings, and the report's empty state links to import, so a player
-with no games is never stranded.
+ST-092 groups the page into H2 sections; it is five today: Account details
+(email and See plans), Appearance, Default usernames, Security, and the
+Danger zone. Security owns both the change-password form and Sign out. The
+change-password inputs reveal behind a "Change password" button (progressive
+disclosure, not a security control; the rate limiting and rejection copy are
+unchanged). Appearance holds the Contrast choice (standard or high) that
+ST-104 introduced; it is the section's only control. The Default usernames
+section holds the Chess.com and Lichess usernames that prefill the import
+form, written through the same `PATCH /me` the player form uses. Sign-in and
+sign-up land on the report, not settings, and the report's empty state links
+to import, so a player with no games is never stranded.
 
 Each settings section sits on the shared glass Card (Sushanth's ask, 31 August
-2026): Account details, Appearance, Default usernames and Security render as
-Cards from `@astryxdesign/core`, so the page carries the same bordered,
-ground-tinted surfaces every other page uses. The identity block stays bare
-under the H1.
+2026): Account details, Appearance, Default usernames, Security and the Danger
+zone render as Cards from `@astryxdesign/core`, so the page carries the same
+bordered, ground-tinted surfaces every other page uses. ST-135 states the
+decision the redesign asks of this surface: the glass treatment carries
+forward unchanged under the new system, and every Card mounts with
+`.reveal-in`, the same fade-and-rise entrance the entry surfaces carry, so
+the page settles as one gesture instead of appearing inert. The identity
+block and the "Your player" badges stay bare under the H1. Every button on
+the page carries the `min-h-11 press` 44px treatment, so the touch-target
+floor holds by construction.
 
 The username is the player's public handle: what a kid shows to other players
 instead of their real name. It is set in the player form and must be unique
@@ -400,27 +408,29 @@ redirects the `consent_required` answer to the waiting screen.
 
 ### Player
 
-The player form is one `Card` at `/account/players/new` and
-`/account/players/$playerId/edit`, built from `FormLayout`, `Field`, and
-`TextInput`. It renders exactly the `CreatePlayer` and `UpdatePlayer` fields,
-grouped into three labelled sections: Identity (username, birth year),
-Federation (FIDE and USCF ids and ratings), and Platforms (Chess.com and
-Lichess usernames). The owner is the session, never a field. The username is
-the public handle (ST-084): it must be unique across accounts, and a taken
-name answers `409 username_taken` rather than silently overwriting.
+The player form is one `Card` at `/player`, built from `FormLayout`, `Field`,
+and `TextInput`, and it renders exactly the `UpdatePlayer` fields grouped
+into three labelled sections: Identity (username, birth year), Federation
+(FIDE and USCF ids and ratings), and Platforms (Chess.com and Lichess
+usernames). It is an edit form only: sign-up creates the player (ST-072), so
+there is no create screen, and the `/account` prefix the old create and edit
+paths named is gone (ST-088). The owner is the session, never a field. The
+username is the public handle (ST-084): it must be unique across accounts,
+and a taken name answers `409 username_taken` rather than silently
+overwriting.
 
 A muted line under the heading states the consent model: consent is confirmed
 from the guardian email entered at sign-up, and the form records a birth year,
 never a full date of birth. It adds no field and no path.
 
-The create screen opens on the fresh form, every optional field empty and the
-one required field marked, so a first-time parent sees the shape of the profile
-without noise. The edit screen pre-fills from `/me` and answers not-found for a
-player the session does not own. The `/me` load renders the router's pending
-skeleton, submitting disables the primary button, and failures stay honest: a
-400 maps per-field issues back to their fields, a 401 goes to sign-in, a 403
-shows the cannot-be-changed message, and any other failure shows a retryable
-message rather than a silent reset.
+The form pre-fills from `/me` and answers not-found for a player the session
+does not own. The `/me` load renders the router's pending skeleton,
+submitting disables the primary button, and failures stay honest: a 400 maps
+per-field issues back to their fields, a 401 goes to sign-in, a 403 shows
+the cannot-be-changed message, and any other failure shows a retryable
+message rather than a silent reset. ST-135 gives the Card the same
+`.reveal-in` mount entrance as the settings page, and both the Save changes
+and Cancel buttons carry the `min-h-11 press` 44px treatment.
 
 ### Report and ranked lists
 
@@ -571,40 +581,48 @@ holds.
 
 ### Import
 
-The import form is one `Card` at `/account/players/$playerId/import` with a
-method `select` of four explicit options: Chess.com username, Lichess
-username, PGN upload, and tournament by name. The fields below switch with the
-method, and the stream is stated per method before any request, never a hidden
-default. A username import states the 12-month online period; a PGN upload
-asks for the file and states the tournament stream; tournament by name states
-"USCF tournaments only for now. Imports the crosstable's results, not the
-moves." The username is validated
-client-side against the provider's charset before any request; a PGN file is
-read as text, never rendered; the tournament player name is prefilled from the
-real name (`me.name`), which is what matches a crosstable (ST-084).
+The import form is one `Card` at `/import` that mounts with `reveal-in`, the
+same entrance as every surface since ST-134: the heading, the supporting line
+naming the player, and the form. The method `select` offers three options -
+Chess.com username, Lichess username, and PGN upload - matching the API
+contract: `StartImport.source` is `chesscom | lichess | pgn_upload`. There is
+no tournament-by-name method; ST-084's name matching serves PGN uploads'
+crosstables server-side. The fields below switch with the method. A username
+import prefills from the player's stored username for the provider the moment
+the method is picked and states "Imports the last 12 months of online
+games."; a PGN upload asks for the file. The stream is fixed per method,
+never chosen: a username import is online, a PGN upload is tournament, and
+the PGN branch submits its stream as a hidden default, with nothing about it
+stated on the surface. The username is validated client-side against the
+provider's charset before any request; a PGN file is read as text, never
+rendered, and a missing file is a field error before any request.
 
-The import has six outcomes, never one generic failure. A username success
-names the count with a rejected-games sentence appended when any game was
-rejected; a PGN success names the count; a tournament success names the count
-and states these games carry results, not moves, so no analysis follows. A
-successful username or PGN import adds the note that analysis runs next and
-arrives asynchronously, pointing to the report rather than promising instant
-results. ST-096 splits that destination by tournament size: a tournament
-upload whose tournament holds six or more games lands on the report, which
-shows the batch-scoped analysing screen while the games run; a tournament
-still under six games cannot produce a report, so it lands on the first
-game's review page with the same loader; an online import has no tournament
-to count and always lands on the report.
-A valid username with no games in the period, and a re-import that
-found only duplicates, are both `info` messages: neutral facts, not errors. An
-unresolved username (422), an unreachable provider (502), an unmatched
-tournament (422), a name mismatch (422, naming the closest surname), a
-malformed upload (400, naming which game failed), and the reserved daily cap
-(429) are each an `error` naming themselves. The waiting state names the method
-and its rough duration ("about a minute" for a season, "a few seconds" for a
-file or crosstable); there is no polling. `StatusMessage` carries an `info`
-tone, backed by the teal informational role with an "i" icon as its second
-channel.
+A successful import, from any method, is one shape: it names the count,
+appends a rejected-games sentence when any game was rejected, and appends the
+side sentence when games could not be tied to the player's colour (ST-095) -
+those games are stored, but analysis will not start on its own, and the
+sentence tells the player to open each under Games and pick the colour they
+played to start it. A valid username with no games in the period, and a
+re-import that found only duplicates, are both `info` messages: neutral
+facts, not errors. An unresolved username, an unreachable provider, a batch
+over the size limit, and the reserved daily cap are each an `error` naming
+themselves; a malformed upload names itself and lists, per game, the path
+and message that failed, in a danger list. A 403 renders "This player cannot
+be imported from this account."; a 401 returns to sign-in; anything else
+falls back to "The import failed. Please try again." The waiting state names
+the method and its rough duration ("about a minute" for a season, "a few
+seconds" for a file"); there is no polling. `StatusMessage` carries an
+`info` tone, backed by the teal informational role with an "i" icon as its
+second channel.
+
+ST-115 redelivers where a successful import lands. A tournament batch that
+imported games never navigates: it ends in the debrief on the same page,
+whose skip carries `gameId` only when the tournament holds fewer than six
+games (or the batch names no tournament), so the skip lands on that game's
+review where the ST-096 landing used to be. Every other import - online
+batches, and a tournament batch whose games were all rejected - lands on the
+report with the batch's ids riding along (ST-093), so the analysing counter
+counts this upload only. ST-096's landing paragraph is superseded.
 
 ### Focus
 
@@ -648,26 +666,38 @@ quietly.
 
 ### Entry and guardian consent
 
-Sign-in and sign-up render as one centered `Card` (`max-w-sm`) inside the
-column, on semantic tokens and Astryx primitives. Each shows a pristine form,
-a submitting state (the primary button is disabled and loading), and distinct
-errors: rejected credentials, a rate-limit retry-later message, a local
-password mismatch, and a local guardian-email mismatch. Sign-up collects date
-of birth; when the date makes the person under 13, the guardian email field
-and a plain-words explanation reveal together ("A guardian's email is required
-for players under 13, so a parent or guardian can confirm consent."), driven
-by the same age check the server applies.
+Sign-in, sign-up, forgot-password, and reset-password each render as one
+centered `Card` (`max-w-sm`) inside the column, on semantic tokens and Astryx
+primitives. Every state of every one of these `Card`s carries `.reveal-in`
+(ST-134), so the surface fades and rises 6px on mount instead of appearing
+inert; the class is on every returned `Card`, not just the first render, so
+switching between a form and its success/error state re-triggers the same
+entrance. Sign-in and sign-up each show a pristine form, a submitting state
+(the primary button is disabled and loading), and distinct errors: rejected
+credentials, a rate-limit retry-later message, a local password mismatch, and
+a local guardian-email mismatch. Sign-up collects date of birth; when the
+date makes the person under 13, the guardian email field and a plain-words
+explanation reveal together ("A guardian's email is required for players
+under 13, so a parent or guardian can confirm consent."), driven by the same
+age check the server applies. Forgot-password and reset-password follow the
+same shape: a pristine form, a rate-limit and generic-failure error, and a
+confirmation state ("Check your email", "Password reset") that links back to
+sign-in; reset-password additionally renders an "invalid link" state for a
+used, expired, or malformed token.
 
 The two consent surfaces render outside the authenticated shell, like the
-proof sheet: no wordmark, no navigation, no sign-in hint. The confirm page
-(`/guardians/confirm/$token`) calls the public confirm endpoint with no
-credentials and renders exactly two outcomes: "Consent recorded." on a 204,
-and the one indistinguishable "This link is no longer available." page for a
-tampered, expired, or unknown link. The waiting state (`/guardians/waiting`)
-is reached when `/me` answers `consent_required`: it states in plain words
-that a guardian has been emailed and must confirm by opening the link, names
-no guardian email, and offers a Sign out action so a gated minor is never
-trapped.
+proof sheet: no wordmark, no navigation, no sign-in hint. Each keeps its own
+`<main>` landmark (the bypass-list precedent shared with the proof sheet and
+the nudge-unsubscribe page) and wraps its content in the same `reveal-in`
+`Card` used across the rest of entry, rather than a bare, unstyled block. The
+confirm page (`/guardians/confirm/$token`) calls the public confirm endpoint
+with no credentials and renders exactly two outcomes: "Consent recorded." on
+a 204, and the one indistinguishable "This link is no longer available." page
+for a tampered, expired, or unknown link. The waiting state
+(`/guardians/waiting`) is reached when `/me` answers `consent_required`: it
+states in plain words that a guardian has been emailed and must confirm by
+opening the link, names no guardian email, and offers a Sign out action so a
+gated minor is never trapped.
 
 ### Proof sheet
 
