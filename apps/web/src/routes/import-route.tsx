@@ -289,7 +289,7 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
       : 'Importing the uploaded games... usually a few seconds.';
 
   return (
-    <Card>
+    <Card className="reveal-in">
       <Heading level={1}>Import games</Heading>
       <Text as="p" display="block" type="supporting" className="mt-1">
         for {player.displayName}
