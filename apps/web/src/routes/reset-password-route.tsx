@@ -57,7 +57,7 @@ export function ResetPasswordRoute() {
   if (invalid) {
     return (
       <>
-        <Card className="mx-auto w-full max-w-sm">
+        <Card className="reveal-in mx-auto w-full max-w-sm">
           <Heading level={1}>This link is no longer available.</Heading>
           <Text as="p" display="block" type="supporting" className="mt-4">
             The link was used already, expired, or does not match a reset request.
@@ -73,7 +73,7 @@ export function ResetPasswordRoute() {
   if (done) {
     return (
       <>
-        <Card className="mx-auto w-full max-w-sm">
+        <Card className="reveal-in mx-auto w-full max-w-sm">
           <Heading level={1}>Password reset</Heading>
           <Text as="p" display="block" type="supporting" className="mt-4">
             Your password was reset. Sign in with it now.
@@ -88,7 +88,7 @@ export function ResetPasswordRoute() {
 
   return (
     <>
-      <Card className="mx-auto w-full max-w-sm">
+      <Card className="reveal-in mx-auto w-full max-w-sm">
         <Heading level={1}>Set a new password</Heading>
         {errorMessage !== null ? (
           <div className="mt-4">
