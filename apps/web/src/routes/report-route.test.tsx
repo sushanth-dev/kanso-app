@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, RouterContextProvider, RouterProvider } from '@tanstack/react-router';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import gsap from 'gsap';
 import { track } from '../analytics.ts';
 
 vi.mock('../analytics.ts', () => ({
@@ -231,12 +232,54 @@ describe('ReportScreen', () => {
   });
 
   test('labels a saturated leak as a floor', () => {
-    renderReport(
-      reportFixture({
-        weaknesses: [{ ...motifWeakness, saturated: true }],
-      }),
-    );
-    expect(screen.getByText('at least 34')).toBeVisible();
+    renderReport(reportFixture({ weaknesses: [{ ...motifWeakness, saturated: true }] }));
+    const [accessible, animated] = screen.getAllByText('at least 34');
+    // ST-137: the visible digits are an animated layer; the accessible value
+    // is a visually hidden sibling.
+    expect(animated).toBeVisible();
+    expect(animated).toHaveAttribute('aria-hidden', 'true');
+    expect(accessible).toHaveClass('sr-only');
+  });
+
+  test('ST-137: reduced motion leaves the rank-one figure settled at its value', async () => {
+    const original = window.matchMedia.bind(window);
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: (query: string) => ({ ...original(query), matches: query.includes('reduce') }),
+    });
+    try {
+      renderReport(reportFixture({ weaknesses: [{ ...motifWeakness, saturated: true }] }));
+      const figures = screen.getAllByText('at least 34');
+      const figure = figures[1];
+      if (figure === undefined) throw new Error('the animated figure did not render');
+      expect(figure.textContent).toBe('at least 34');
+      // A tween would rewrite the digits inside its 0.32s window; none may.
+      const delay = (ms: number) => {
+        const { promise, resolve } = Promise.withResolvers<void>();
+        setTimeout(resolve, ms);
+        return promise;
+      };
+      for (let i = 0; i < 3; i += 1) {
+        await delay(100);
+        expect(figure.textContent).toBe('at least 34');
+      }
+    } finally {
+      Object.defineProperty(window, 'matchMedia', { writable: true, value: original });
+    }
+  });
+
+  test('ST-137: under motion the rank-one figure settles on its exact value', async () => {
+    gsap.globalTimeline.timeScale(20);
+    try {
+      renderReport(reportFixture({ weaknesses: [{ ...motifWeakness, saturated: true }] }));
+      const figures = screen.getAllByText('at least 34');
+      const figure = figures[1];
+      if (figure === undefined) throw new Error('the animated figure did not render');
+      await waitFor(() => expect(figure.textContent).toBe('at least 34'));
+      expect(figure).toBeVisible();
+    } finally {
+      gsap.globalTimeline.timeScale(1);
+    }
   });
 
   test('shows the places and the advice behind a weakness', async () => {
