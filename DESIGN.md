@@ -581,40 +581,48 @@ holds.
 
 ### Import
 
-The import form is one `Card` at `/account/players/$playerId/import` with a
-method `select` of four explicit options: Chess.com username, Lichess
-username, PGN upload, and tournament by name. The fields below switch with the
-method, and the stream is stated per method before any request, never a hidden
-default. A username import states the 12-month online period; a PGN upload
-asks for the file and states the tournament stream; tournament by name states
-"USCF tournaments only for now. Imports the crosstable's results, not the
-moves." The username is validated
-client-side against the provider's charset before any request; a PGN file is
-read as text, never rendered; the tournament player name is prefilled from the
-real name (`me.name`), which is what matches a crosstable (ST-084).
+The import form is one `Card` at `/import` that mounts with `reveal-in`, the
+same entrance as every surface since ST-134: the heading, the supporting line
+naming the player, and the form. The method `select` offers three options -
+Chess.com username, Lichess username, and PGN upload - matching the API
+contract: `StartImport.source` is `chesscom | lichess | pgn_upload`. There is
+no tournament-by-name method; ST-084's name matching serves PGN uploads'
+crosstables server-side. The fields below switch with the method. A username
+import prefills from the player's stored username for the provider the moment
+the method is picked and states "Imports the last 12 months of online
+games."; a PGN upload asks for the file. The stream is fixed per method,
+never chosen: a username import is online, a PGN upload is tournament, and
+the PGN branch submits its stream as a hidden default, with nothing about it
+stated on the surface. The username is validated client-side against the
+provider's charset before any request; a PGN file is read as text, never
+rendered, and a missing file is a field error before any request.
 
-The import has six outcomes, never one generic failure. A username success
-names the count with a rejected-games sentence appended when any game was
-rejected; a PGN success names the count; a tournament success names the count
-and states these games carry results, not moves, so no analysis follows. A
-successful username or PGN import adds the note that analysis runs next and
-arrives asynchronously, pointing to the report rather than promising instant
-results. ST-096 splits that destination by tournament size: a tournament
-upload whose tournament holds six or more games lands on the report, which
-shows the batch-scoped analysing screen while the games run; a tournament
-still under six games cannot produce a report, so it lands on the first
-game's review page with the same loader; an online import has no tournament
-to count and always lands on the report.
-A valid username with no games in the period, and a re-import that
-found only duplicates, are both `info` messages: neutral facts, not errors. An
-unresolved username (422), an unreachable provider (502), an unmatched
-tournament (422), a name mismatch (422, naming the closest surname), a
-malformed upload (400, naming which game failed), and the reserved daily cap
-(429) are each an `error` naming themselves. The waiting state names the method
-and its rough duration ("about a minute" for a season, "a few seconds" for a
-file or crosstable); there is no polling. `StatusMessage` carries an `info`
-tone, backed by the teal informational role with an "i" icon as its second
-channel.
+A successful import, from any method, is one shape: it names the count,
+appends a rejected-games sentence when any game was rejected, and appends the
+side sentence when games could not be tied to the player's colour (ST-095) -
+those games are stored, but analysis will not start on its own, and the
+sentence tells the player to open each under Games and pick the colour they
+played to start it. A valid username with no games in the period, and a
+re-import that found only duplicates, are both `info` messages: neutral
+facts, not errors. An unresolved username, an unreachable provider, a batch
+over the size limit, and the reserved daily cap are each an `error` naming
+themselves; a malformed upload names itself and lists, per game, the path
+and message that failed, in a danger list. A 403 renders "This player cannot
+be imported from this account."; a 401 returns to sign-in; anything else
+falls back to "The import failed. Please try again." The waiting state names
+the method and its rough duration ("about a minute" for a season, "a few
+seconds" for a file"); there is no polling. `StatusMessage` carries an
+`info` tone, backed by the teal informational role with an "i" icon as its
+second channel.
+
+ST-115 redelivers where a successful import lands. A tournament batch that
+imported games never navigates: it ends in the debrief on the same page,
+whose skip carries `gameId` only when the tournament holds fewer than six
+games (or the batch names no tournament), so the skip lands on that game's
+review where the ST-096 landing used to be. Every other import - online
+batches, and a tournament batch whose games were all rejected - lands on the
+report with the batch's ids riding along (ST-093), so the analysing counter
+counts this upload only. ST-096's landing paragraph is superseded.
 
 ### Focus
 

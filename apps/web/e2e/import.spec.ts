@@ -69,6 +69,9 @@ test('imports a season by username against the stubbed provider', async ({ page 
   const externalRequests = await blockExternalRequests(page);
   await signUp(page);
   await openImport(page);
+  // The import Card mounts with the reveal-in entrance (ST-136); the class
+  // stays present under reduced motion, where only the animation collapses.
+  await expect(page.locator('.reveal-in')).toHaveCount(1);
   await expectNoAxeViolations(page);
 
   await page.getByLabel('Username').fill('onlinekid');
