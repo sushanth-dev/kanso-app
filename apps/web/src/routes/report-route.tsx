@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import gsap from 'gsap';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Card } from '@astryxdesign/core/Card';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
@@ -23,6 +24,7 @@ import { gamesQueryOptions, reportQueryOptions, tournamentsQueryOptions } from '
 import { ReportShareCardsSection } from '../components/report-share-cards-section.tsx';
 import { TournamentCard } from './tournaments-route.tsx';
 import { track } from '../analytics.ts';
+import { MOTION_DURATION, MOTION_EASE } from '../motion-tokens.ts';
 
 const STREAM_HEADING: Record<Stream, string> = {
   tournament: 'Tournament report',
@@ -70,7 +72,7 @@ function ReportHeader({
   title?: string;
 }) {
   return (
-    <header className="space-y-4">
+    <header className="reveal-in space-y-4">
       <Heading level={1}>{title ?? STREAM_HEADING[stream]}</Heading>
       <StreamToggle stream={stream} onChange={onStreamChange} ariaLabel="Report stream" />
       {meta !== undefined ? (
@@ -96,17 +98,17 @@ export function ReportScreen({
       <ReportHeader stream={stream} onStreamChange={onStreamChange} meta={meta} title={title} />
       {analyzingGames.length > 0 ? <AnalyzingBanner games={analyzingGames} /> : null}
       {report.timeTroubleFromMove !== null ? (
-        <Text as="p" display="block" className="text-sm">
+        <Text as="p" display="block" className="reveal-in text-sm">
           Time trouble starts around move{' '}
           <span className="font-mono">{report.timeTroubleFromMove}</span>.
         </Text>
       ) : (
-        <Text as="p" display="block" type="supporting" className="text-sm">
+        <Text as="p" display="block" type="supporting" className="reveal-in text-sm">
           {TIME_TROUBLE_UNAVAILABLE[report.timeTroubleReason ?? 'no_clock_data']}
         </Text>
       )}
       {report.narrative !== null ? (
-        <Card className="space-y-1 p-4">
+        <Card className="reveal-in space-y-1 p-4">
           <Text type="supporting" className="font-ui text-xs">
             what to do
           </Text>
@@ -128,6 +130,62 @@ export function ReportScreen({
         <ReportShareCardsSection stream={report.stream} tournamentId={report.tournamentId} />
       ) : null}
     </div>
+  );
+}
+
+/**
+ * ST-137. The rank-one leak is the report's one authored moment: the visible
+ * digits count up through a GSAP tween. The accessible value lives in a
+ * visually hidden span - the animated digits are aria-hidden decoration on
+ * top of it - and `gsap.matchMedia` renders the final figure with no tween
+ * under reduced motion. A poll refetch carrying the same number never
+ * restarts the count.
+ */
+function RankOneLeak({ ratingLeak, saturated }: { ratingLeak: number; saturated: boolean }) {
+  const countRef = useRef<HTMLSpanElement | null>(null);
+  const prefix = saturated ? 'at least ' : '';
+  useLayoutEffect(() => {
+    const el = countRef.current;
+    if (el === null) return undefined;
+    const context = gsap.context(() => {
+      const media = gsap.matchMedia();
+      media.add(
+        {
+          reduce: '(prefers-reduced-motion: reduce)',
+          motion: '(prefers-reduced-motion: no-preference)',
+        },
+        (mediaContext) => {
+          const { reduce } = mediaContext.conditions as { reduce: boolean };
+          if (reduce) {
+            el.textContent = `${prefix}${ratingLeak}`;
+            return undefined;
+          }
+          const counter = { value: 0 };
+          const tween = gsap.to(counter, {
+            value: ratingLeak,
+            duration: MOTION_DURATION.slow,
+            ease: MOTION_EASE.decelerate,
+            onUpdate: () => {
+              el.textContent = `${prefix}${Math.round(counter.value)}`;
+            },
+          });
+          return () => {
+            tween.kill();
+            el.textContent = `${prefix}${ratingLeak}`;
+          };
+        },
+      );
+      return () => media.revert();
+    });
+    return () => context.revert();
+  }, [ratingLeak, prefix]);
+  return (
+    <Text className="font-mono text-base">
+      <span className="sr-only">{prefix + ratingLeak}</span>
+      <span ref={countRef} aria-hidden="true">
+        {prefix + ratingLeak}
+      </span>
+    </Text>
   );
 }
 
@@ -197,9 +255,13 @@ function WeaknessList({ weaknesses, stream, tournamentId }: WeaknessListProps) {
                     </Text>
                     <Text className="font-display text-base">{weakness.label}</Text>
                   </div>
-                  <Text className="font-mono text-base">
-                    {weakness.saturated ? `at least ${weakness.ratingLeak}` : weakness.ratingLeak}
-                  </Text>
+                  {weakness.rank === 1 ? (
+                    <RankOneLeak ratingLeak={weakness.ratingLeak} saturated={weakness.saturated} />
+                  ) : (
+                    <Text className="font-mono text-base">
+                      {weakness.saturated ? `at least ${weakness.ratingLeak}` : weakness.ratingLeak}
+                    </Text>
+                  )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge label={KIND_LABEL[weakness.kind]} variant="neutral" />
@@ -349,6 +411,7 @@ function EvidenceDetail({ weakness }: { weakness: Weakness }) {
 function EmptyReport({ report }: { report: Report }) {
   return (
     <EmptyState
+      className="reveal-in"
       title="Not enough evidence to rank yet"
       description={`We could not identify a defensible weakness from your ${report.gamesCovered} games. More games will make the diagnosis reliable.`}
       headingLevel={2}
@@ -361,7 +424,7 @@ function AnalyzingBanner({ games }: { games: GameSummary[] }) {
     <div
       role="status"
       aria-label="Analyzing games"
-      className="flex items-start gap-3 rounded-surface border border-border-strong bg-raised px-4 py-3"
+      className="reveal-in flex items-start gap-3 rounded-surface border border-border-strong bg-raised px-4 py-3"
     >
       <Spinner size="sm" />
       <div className="space-y-1">
@@ -409,7 +472,7 @@ function Analysing({
       (game.analysisStatus === 'pending' && game.playerColor !== null),
   );
   return (
-    <div className="flex flex-col items-center gap-3 py-8 text-center">
+    <div className="reveal-in flex flex-col items-center gap-3 py-8 text-center">
       <Spinner size="md" />
       <Text as="p" display="block" className="text-primary">
         {analysed} of {total} {total === 1 ? 'game' : 'games'} analysed
@@ -433,6 +496,7 @@ function Analysing({
 function NotReady() {
   return (
     <EmptyState
+      className="reveal-in"
       title="No analyzed games in this stream yet"
       description="Import your games to get a ranked report. Tournament and online games are reported separately."
       headingLevel={2}
@@ -445,6 +509,7 @@ function NotReady() {
 function NeedsSide({ count }: { count: number }) {
   return (
     <EmptyState
+      className="reveal-in"
       title={`${count} ${count === 1 ? 'game needs' : 'games need'} your side before analysis`}
       description="The import could not tell which colour you were in these games. Open each one under Games and pick the side you played; analysis starts as soon as you do."
       headingLevel={2}
@@ -457,6 +522,7 @@ function NeedsSide({ count }: { count: number }) {
 function NotEnoughRatedGames({ message }: { message: string }) {
   return (
     <EmptyState
+      className="reveal-in"
       title="Not enough rated games for a report yet"
       description={message}
       headingLevel={2}
@@ -468,6 +534,7 @@ function NotEnoughRatedGames({ message }: { message: string }) {
 function ReportError() {
   return (
     <EmptyState
+      className="reveal-in"
       title="The report could not be loaded"
       description="Try again, or go back to your account."
       headingLevel={2}
@@ -520,7 +587,7 @@ function TournamentDirectory({ onStreamChange }: { onStreamChange: (stream: Stre
       {tournamentsQuery.isPending ? (
         <ReportSkeleton />
       ) : tournaments.length > 0 ? (
-        <ul className="space-y-3">
+        <ul className="stagger-in space-y-3">
           {tournaments.map((summary) => (
             <li key={summary.id}>
               <TournamentCard
