@@ -481,7 +481,17 @@ The report has three states: the ranked list, an honest empty
 statement ("could not identify a defensible weakness"), and a not-ready state
 that separates "still being analyzed" from "no analyzed games."
 The rank-one weakness's `ratingLeak` number, the one thing to
-fix, renders as plain mono text, the same as the remaining weaknesses.
+fix, is the report's one authored motion moment: the visible digits count up
+through a GSAP tween (0.32s, decelerate, whole numbers) on the figure's first
+render - a poll refetch carrying the same number never restarts it - while a
+visually hidden span carries the value for assistive technology and the
+animated digits are `aria-hidden` on top of it. Under
+`prefers-reduced-motion: reduce` the figure renders its final value
+immediately, with no tween. The remaining weaknesses render as plain mono
+text. The ranked list reveals as a stagger, and the page's entry blocks
+(header, time-trouble note, narrative card, analysing banner, empty and
+not-ready states, the tournament directory's card list) reveal with the
+same `reveal-in` treatment the rest of the system uses.
 
 ### Game review
 
