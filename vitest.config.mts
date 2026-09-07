@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config';
+import Icons from 'unplugin-icons/vite';
 
 // The test policy is in the `project` repository under docs/process/testing.md,
 // and the reasoning behind this setup is in ADR-0019.
@@ -27,6 +28,10 @@ export default defineConfig({
         },
       },
       {
+        // Solar icons resolve through `~icons/*` (unplugin-icons, ST-133), the
+        // same plugin apps/web/vite.config.ts registers for dev and build; the
+        // test project needs its own copy since it does not read that config.
+        plugins: [Icons({ compiler: 'jsx', jsx: 'react' })],
         test: {
           name: 'web',
           include: ['apps/web/src/**/*.test.tsx'],

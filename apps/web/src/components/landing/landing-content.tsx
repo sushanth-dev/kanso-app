@@ -1,0 +1,55 @@
+import { useRef } from 'react';
+import { Button } from '@astryxdesign/core/Button';
+import { Heading } from '@astryxdesign/core/Heading';
+import { Hero } from './hero.tsx';
+import { ValuePropsSection } from './value-props-section.tsx';
+import { useScrollReveal } from '../../hooks/use-scroll-reveal.ts';
+import { useSmoothScroll } from '../../hooks/use-smooth-scroll.ts';
+
+interface LandingContentProps {
+  signedIn: boolean;
+}
+
+/**
+ * Everything below the header that GSAP and Lenis drive (ST-133), split
+ * into its own lazy chunk from `landing-route.tsx`: importing `gsap` alone
+ * starts its ticker (a perpetual `requestAnimationFrame` loop), and every
+ * other route eagerly imports `router.tsx`, so keeping this out of that
+ * module's top-level imports keeps the ticker out of every other route's
+ * bundle and test run too.
+ */
+export function LandingContent({ signedIn }: LandingContentProps) {
+  const ctaRef = useRef<HTMLDivElement | null>(null);
+  useSmoothScroll();
+  useScrollReveal(ctaRef);
+
+  return (
+    <>
+      <Hero signedIn={signedIn} />
+
+      <ValuePropsSection />
+
+      <section className="glass border-t border-border-subtle">
+        <div className="mx-auto w-full max-w-5xl px-4 py-16 text-center">
+          <Heading level={2} className="text-2xl tracking-tight">
+            See what is actually costing you rating
+          </Heading>
+          <div ref={ctaRef} className="mt-8 flex flex-col items-center gap-3">
+            {signedIn ? (
+              <Button label="Go to report" href="/report" variant="primary" />
+            ) : (
+              <>
+                <Button label="Get your free diagnosis" href="/sign-up" variant="primary" />
+                <Button
+                  label="Already have an account? Sign in"
+                  href="/sign-in"
+                  variant="secondary"
+                />
+              </>
+            )}
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}

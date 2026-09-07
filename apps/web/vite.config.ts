@@ -1,13 +1,21 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig, type ProxyOptions } from 'vite';
+import Icons from 'unplugin-icons/vite';
 
 // A navigation is the SPA; a fetch is the API read.
 const htmlBypass: NonNullable<ProxyOptions['bypass']> = (req) => {
   if (req.headers.accept?.includes('text/html')) return '/index.html';
 };
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    // Solar icons via Iconify, resolved from the offline @iconify-json/solar
+    // icon set at build time (`~icons/solar/<name>`) into components matching
+    // Astryx `Icon`'s component mode; no runtime call to Iconify's API (ST-133).
+    Icons({ compiler: 'jsx', jsx: 'react' }),
+  ],
   server: {
     host: '127.0.0.1',
     proxy: {
