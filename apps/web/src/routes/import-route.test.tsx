@@ -99,6 +99,12 @@ describe('ImportScreen', () => {
     expect(screen.getByText('Imports the last 12 months of online games.')).toBeVisible();
   });
 
+  test('mounts the form Card with the reveal-in entrance', () => {
+    renderScreen();
+    const card = screen.getByRole('heading', { name: 'Import games' }).closest('.reveal-in');
+    expect(card).not.toBeNull();
+  });
+
   test('prefills the username from the default when the method is picked', async () => {
     const user = userEvent.setup();
     renderScreen({
