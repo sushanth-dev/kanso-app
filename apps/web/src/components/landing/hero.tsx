@@ -45,7 +45,7 @@
  * skill's own rule; the default the skill and ADR-0043 both state is that it
  * stays absent, and nothing found in writing this hero overrides that.
  */
-import { useLayoutEffect, useRef } from 'react';
+import { Fragment, useLayoutEffect, useRef } from 'react';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
@@ -185,16 +185,20 @@ export function Hero({ signedIn }: HeroProps) {
             <span className="sr-only">{HEADLINE}</span>
             <span aria-hidden="true">
               {HEADLINE_WORDS.map((word, index) => (
-                <span
-                  key={`${word}-${index}`}
-                  ref={(el) => {
-                    if (el) wordRefs.current[index] = el;
-                  }}
-                  className="inline-block"
-                >
-                  {word}
-                  {index < HEADLINE_WORDS.length - 1 ? ' ' : ''}
-                </span>
+                <Fragment key={`${word}-${index}`}>
+                  {/* The space rides outside the inline-block span: CSS
+                      collapses trailing whitespace at an inline-block's box
+                      edge, so a space inside it never renders. */}
+                  <span
+                    ref={(el) => {
+                      if (el) wordRefs.current[index] = el;
+                    }}
+                    className="inline-block"
+                  >
+                    {word}
+                  </span>
+                  {index < HEADLINE_WORDS.length - 1 ? ' ' : null}
+                </Fragment>
               ))}
             </span>
           </Heading>
