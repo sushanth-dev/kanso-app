@@ -72,6 +72,13 @@ describe('GuardianWaitingScreen', () => {
 });
 
 describe('GuardianWaitingRoute', () => {
+  test('keeps its own main landmark and wraps its content in a reveal-in Card', async () => {
+    renderAt();
+
+    const main = await screen.findByRole('main');
+    expect(main.querySelector('.reveal-in')).toBeInTheDocument();
+  });
+
   test('signing out returns the guardian to sign-in', async () => {
     signOut.mockResolvedValue({ data: null, error: null });
     const user = userEvent.setup();

@@ -648,26 +648,38 @@ quietly.
 
 ### Entry and guardian consent
 
-Sign-in and sign-up render as one centered `Card` (`max-w-sm`) inside the
-column, on semantic tokens and Astryx primitives. Each shows a pristine form,
-a submitting state (the primary button is disabled and loading), and distinct
-errors: rejected credentials, a rate-limit retry-later message, a local
-password mismatch, and a local guardian-email mismatch. Sign-up collects date
-of birth; when the date makes the person under 13, the guardian email field
-and a plain-words explanation reveal together ("A guardian's email is required
-for players under 13, so a parent or guardian can confirm consent."), driven
-by the same age check the server applies.
+Sign-in, sign-up, forgot-password, and reset-password each render as one
+centered `Card` (`max-w-sm`) inside the column, on semantic tokens and Astryx
+primitives. Every state of every one of these `Card`s carries `.reveal-in`
+(ST-134), so the surface fades and rises 6px on mount instead of appearing
+inert; the class is on every returned `Card`, not just the first render, so
+switching between a form and its success/error state re-triggers the same
+entrance. Sign-in and sign-up each show a pristine form, a submitting state
+(the primary button is disabled and loading), and distinct errors: rejected
+credentials, a rate-limit retry-later message, a local password mismatch, and
+a local guardian-email mismatch. Sign-up collects date of birth; when the
+date makes the person under 13, the guardian email field and a plain-words
+explanation reveal together ("A guardian's email is required for players
+under 13, so a parent or guardian can confirm consent."), driven by the same
+age check the server applies. Forgot-password and reset-password follow the
+same shape: a pristine form, a rate-limit and generic-failure error, and a
+confirmation state ("Check your email", "Password reset") that links back to
+sign-in; reset-password additionally renders an "invalid link" state for a
+used, expired, or malformed token.
 
 The two consent surfaces render outside the authenticated shell, like the
-proof sheet: no wordmark, no navigation, no sign-in hint. The confirm page
-(`/guardians/confirm/$token`) calls the public confirm endpoint with no
-credentials and renders exactly two outcomes: "Consent recorded." on a 204,
-and the one indistinguishable "This link is no longer available." page for a
-tampered, expired, or unknown link. The waiting state (`/guardians/waiting`)
-is reached when `/me` answers `consent_required`: it states in plain words
-that a guardian has been emailed and must confirm by opening the link, names
-no guardian email, and offers a Sign out action so a gated minor is never
-trapped.
+proof sheet: no wordmark, no navigation, no sign-in hint. Each keeps its own
+`<main>` landmark (the bypass-list precedent shared with the proof sheet and
+the nudge-unsubscribe page) and wraps its content in the same `reveal-in`
+`Card` used across the rest of entry, rather than a bare, unstyled block. The
+confirm page (`/guardians/confirm/$token`) calls the public confirm endpoint
+with no credentials and renders exactly two outcomes: "Consent recorded." on
+a 204, and the one indistinguishable "This link is no longer available." page
+for a tampered, expired, or unknown link. The waiting state
+(`/guardians/waiting`) is reached when `/me` answers `consent_required`: it
+states in plain words that a guardian has been emailed and must confirm by
+opening the link, names no guardian email, and offers a Sign out action so a
+gated minor is never trapped.
 
 ### Proof sheet
 

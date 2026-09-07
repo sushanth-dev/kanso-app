@@ -65,6 +65,10 @@ test('a minor waits for consent and the emailed confirm link records it', async 
   // The gated minor meets the waiting state, never a generic error page.
   await expect(page.getByRole('heading', { name: 'Waiting for guardian consent' })).toBeVisible();
   await expect(page.getByText(/a guardian has been emailed and must confirm/i)).toBeVisible();
+  // ST-134: the waiting state still keeps its own `<main>` landmark (the
+  // route bypasses the authenticated shell) and now wraps its content in the
+  // same `reveal-in` Card the rest of entry uses, rather than a bare block.
+  await expect(page.getByRole('main').locator('.reveal-in')).toBeVisible();
   await expectNoAxeViolations(page);
 
   // The guardian opens the emailed link in a context with no session.
@@ -73,6 +77,7 @@ test('a minor waits for consent and the emailed confirm link records it', async 
   const confirmPath = new URL(lastConsentLink()).pathname;
   await reader.goto(confirmPath);
   await expect(reader.getByRole('heading', { name: 'Consent recorded' })).toBeVisible();
+  await expect(reader.getByRole('main').locator('.reveal-in')).toBeVisible();
   await expectNoAxeViolations(reader);
   await context.close();
 });
@@ -84,6 +89,7 @@ test('a tampered or unknown confirm link reads as no longer available', async ({
   await expect(
     page.getByRole('heading', { name: 'This link is no longer available.' }),
   ).toBeVisible();
+  await expect(page.getByRole('main').locator('.reveal-in')).toBeVisible();
   await expectNoAxeViolations(page);
   await context.close();
 });
