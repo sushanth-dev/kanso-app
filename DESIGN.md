@@ -874,6 +874,25 @@ this reader surface regardless. The surface enters the same way: the header
 first, then the create card and the share-link list, under the same
 reduced-motion collapse.
 
+### Shared cards and the unsubscribe page
+
+Two public surfaces stand alone, outside every reader that inherits an
+authenticated surface's chrome. The shared leak card (`/shared/cards/$token`,
+ST-127) renders the mark, the sentence that names the product, and exactly
+the payload's two fields - the leak number in display-size mono and its
+weakness label - with a phone's share sheet or a desktop's copy. The
+nudge-unsubscribe page (`/nudge/unsubscribe/$token`, ST-126) is one
+sentence and a done state. Both fetch with `credentials: 'omit'`, both
+keep navigation, sign-in hints, and account affordances off the page, and
+both answer a dead, expired, or tampered token with the same one sentence,
+so a link's history never becomes enumerable.
+
+Since ST-147 each state of both pages enters on the system, riding the
+page root's `reveal-in`; a public page's arrival is its only motion. The
+game, proof-sheet, and assignment readers keep inheriting the chrome
+their authenticated surfaces ship (ST-138, ST-140, ST-139), which this
+section confirms still describes them.
+
 ### Landing
 
 The landing page is the public marketing surface at `/`, the first thing a

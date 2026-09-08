@@ -58,6 +58,15 @@ test('creates, shares, reads, and revokes a proof sheet', async ({ page, browser
   await upgradeToPaid(page);
   await setFocus(page);
 
+  // The share surface (ST-067) enters on the system (ST-140). Under this
+  // journey's reduced-motion emulation the header reveal is collapsed to 0s.
+  await page.goto('/proof-sheet');
+  const shareHeader = page.locator('header', {
+    has: page.getByRole('heading', { name: 'Share a proof sheet' }),
+  });
+  await expect(shareHeader).toBeVisible();
+  await expect(shareHeader).toHaveCSS('animation-duration', '0s');
+
   // The share act is an explicit create. It lives on its own surface
   // (ST-067), but this journey drives the API seam so the reader
   // verification stays independent of the create/revoke UI.
@@ -70,10 +79,18 @@ test('creates, shares, reads, and revokes a proof sheet', async ({ page, browser
   // The forwarded link opens in a context with no session and no chrome, at a
   // 320px phone floor, so five games reads as five on the smallest screen.
   const reader = await openWithoutSession(browser, sheet.url, { width: 320, height: 640 });
+  // The reader enters on the system (ST-140); under reduced motion the
+  // verdict sentence's reveal is collapsed to 0s, which this context asserts.
+  await reader.emulateMedia({ reducedMotion: 'reduce' });
+  await reader.reload();
   await expect(reader.getByRole('heading', { name: 'Converting won positions' })).toBeVisible();
   await expect(
     reader.getByText('There is not enough evidence yet to say whether it is helping.'),
   ).toBeVisible();
+  const verdictSentence = reader.locator('main > p', {
+    hasText: 'There is not enough evidence yet',
+  });
+  await expect(verdictSentence).toHaveCSS('animation-duration', '0s');
   const scrollWidth = await reader.evaluate(() => document.documentElement.scrollWidth);
   const clientWidth = await reader.evaluate(() => document.documentElement.clientWidth);
   expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
@@ -89,6 +106,10 @@ test('creates, shares, reads, and revokes a proof sheet', async ({ page, browser
   await expect(
     reader.getByRole('heading', { name: 'This link is no longer available.' }),
   ).toBeVisible();
+  const unavailableHeading = reader.getByRole('heading', {
+    name: 'This link is no longer available.',
+  });
+  await expect(unavailableHeading).toHaveCSS('animation-duration', '0s');
 });
 
 test('shows the unreachable state for a network failure and recovers on retry', async ({
@@ -96,6 +117,7 @@ test('shows the unreachable state for a network failure and recovers on retry', 
 }) => {
   const context = await browser.newContext({ viewport: { width: 320, height: 640 } });
   const page = await context.newPage();
+  await page.emulateMedia({ reducedMotion: 'reduce' });
 
   // A fetch that never reaches the server must not read as a revoked link.
   // Abort only the API fetch; the document navigation still loads the shell.
@@ -109,6 +131,10 @@ test('shows the unreachable state for a network failure and recovers on retry', 
   await expect(
     page.getByRole('heading', { name: 'This page could not be reached.' }),
   ).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'This page could not be reached.' })).toHaveCSS(
+    'animation-duration',
+    '0s',
+  );
   await expect(page.getByText('Check your connection and try again.')).toBeVisible();
   await expect(page.getByText('This link is no longer available.')).not.toBeVisible();
   await expectNoAxeViolations(page);
