@@ -597,6 +597,24 @@ page, and the unreachable page with a retry. The document title carries the
 pairing ("White name vs Black name"), so a browser tab names the game it
 holds.
 
+### Tournaments
+
+The tournament is the first-class object this product is built around
+(ST-011), and its two surfaces say so: a list at `/tournaments`, one card
+per event with its site, dates, analysis badge, and game count in mono;
+and a detail page at `/tournaments/$tournamentId` with the score line,
+the games in round order (round and board in mono, per the Tabular
+Rule), and the round-by-round decay table that gives the event its
+decline signal. The report's tournament cards reuse the list's card, so
+one component keeps both entrances honest.
+
+Since ST-145 both surfaces enter on the system: the list's header and
+every state it can sit in, the detail page's skeleton, error and
+no-games states, header, games card, and decay card, with the two lists
+running `stagger-in`. The per-game Review button holds the 44px floor
+like every other control here.
+
+
 ### Import
 
 The import form is one `Card` at `/import` that mounts with `reveal-in`, the

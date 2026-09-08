@@ -121,6 +121,20 @@ describe('TournamentDetailRoute', () => {
     expect(screen.queryByText(/not counted/)).not.toBeInTheDocument();
   });
 
+  test('ST-145: the detail page enters on the system and the review buttons hold the touch floor', async () => {
+    vi.spyOn(accountApi, 'getMe').mockResolvedValue(meFixture);
+    vi.spyOn(tournamentApi, 'getTournament').mockResolvedValue(detailFixture());
+    vi.spyOn(tournamentApi, 'getRoundDecay').mockResolvedValue(decayFixture());
+
+    renderTournament(`/tournaments/${tournamentId}`);
+
+    const header = await screen.findByRole('heading', { level: 1, name: 'City Open' });
+    expect(header.closest('header')).toHaveClass('reveal-in');
+    expect(screen.getByRole('link', { name: 'Back to tournaments' })).toBeVisible();
+    expect(screen.getAllByRole('link', { name: 'Review' })[0]).toHaveClass('min-h-11');
+    expect(screen.getAllByRole('list').some((el) => el.classList.contains('reveal-in'))).toBe(true);
+  });
+
   test('a multi-day event reads as a range; no dates reads as no range', async () => {
     vi.spyOn(accountApi, 'getMe').mockResolvedValue(meFixture);
     vi.spyOn(tournamentApi, 'getTournament').mockResolvedValue(
