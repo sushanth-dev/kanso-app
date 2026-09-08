@@ -85,6 +85,7 @@ export function AnnouncementBanner() {
           type="button"
           variant="ghost"
           size="sm"
+          className="min-h-11 min-w-11"
           label="Dismiss announcement"
           icon={<Icon icon="close" size="sm" />}
           onClick={dismiss}

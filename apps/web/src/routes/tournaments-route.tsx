@@ -81,9 +81,13 @@ export function TournamentCard({
           {summary.gameCount} {gamesLabel(summary.gameCount)}
         </Text>
         {disabledReason === undefined ? (
-          <Button label={actionLabel} href={actionHref ?? `/tournaments/${summary.id}`} />
+          <Button
+            label={actionLabel}
+            href={actionHref ?? `/tournaments/${summary.id}`}
+            className="min-h-11 press"
+          />
         ) : (
-          <Button label={actionLabel} isDisabled />
+          <Button label={actionLabel} isDisabled className="min-h-11 press" />
         )}
       </div>
       {disabledReason !== undefined ? (

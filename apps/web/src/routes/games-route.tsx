@@ -101,10 +101,20 @@ function GameCard({ game, stream }: { game: GameSummary; stream: Stream }) {
             </Text>
           )}
           {!analysed ? (
-            <Button label="View game" href={`/games/${game.id}`} variant="secondary" />
+            <Button
+              label="View game"
+              href={`/games/${game.id}`}
+              variant="secondary"
+              className="min-h-11 press"
+            />
           ) : null}
         </div>
-        <Button label="Delete" variant="destructive" onClick={() => setIsDeleteOpen(true)} />
+        <Button
+          label="Delete"
+          variant="destructive"
+          onClick={() => setIsDeleteOpen(true)}
+          className="min-h-11 press"
+        />
       </div>
       <AlertDialog
         isOpen={isDeleteOpen}
@@ -156,8 +166,18 @@ export function GamesRoute() {
             situations land, so it carries the paths out of itself: import more
             games, or read the report for this stream. */}
         <div className="flex flex-wrap gap-3">
-          <Button label="Import games" href="/import" variant="secondary" />
-          <Button label="View report" href={`/report?stream=${stream}`} variant="secondary" />
+          <Button
+            label="Import games"
+            href="/import"
+            variant="secondary"
+            className="min-h-11 press"
+          />
+          <Button
+            label="View report"
+            href={`/report?stream=${stream}`}
+            variant="secondary"
+            className="min-h-11 press"
+          />
         </div>
       </header>
 

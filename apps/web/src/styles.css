@@ -135,6 +135,22 @@ a {
 .stagger-in > :nth-child(n + 7) {
   animation-delay: 225ms;
 }
+/* The 44px touch floor (DESIGN.md Buttons and Links). Astryx sizes these two
+   primitives by density and exposes no prop for the floor, so the floor lands
+   here, once, the same place the glass Card treatment lives. */
+.astryx-segmented-control [role='radio'] {
+  min-height: 44px;
+}
+/* Astryx renders the radio's clickable label as bare inline text beside a
+   24px circle; stretching it across the row makes the whole row the target,
+   the way DESIGN.md's Links rule describes the tap area covering the text. */
+.astryx-radio-list-item label {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  min-height: 44px;
+}
+
 /* Animated focus ring for text inputs: a teal glow sweeps around the field so
    the focused input reads as alive, not just outlined. Mirrors the Canvas UI
    input treatment without the html-in-canvas flag. Only runs while focused. */
