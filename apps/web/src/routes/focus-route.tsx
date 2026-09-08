@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
@@ -26,6 +26,7 @@ import { AssignmentLinksSection } from '../components/assignment-links-section.t
 import { track } from '../analytics.ts';
 import { StatusMessage } from '../components/status-message.tsx';
 import { StreamToggle } from '../components/stream-toggle.tsx';
+import { useRevealSequence } from '../use-reveal-sequence.ts';
 import {
   focusQueryOptions,
   focusesQueryOptions,
@@ -84,12 +85,40 @@ function gamesLabel(count: number): string {
   return count === 1 ? 'game' : 'games';
 }
 
+/**
+ * ST-139. The verdict line is the focus surface's one authored motion moment,
+ * the last of the three Canvas-era reveals to get its GSAP replacement. The
+ * mono verdict fades and rises, then the windowGames line follows on the same
+ * ease; the accessible value is an sr-only span with the animated figure
+ * aria-hidden on top of it, the dual-span pattern ST-133 landed on the hero.
+ * The mechanic is the shared useRevealSequence, extracted from the game
+ * result's ResultReveal.
+ */
+function VerdictReveal({ verdict, gamesLine }: { verdict: string; gamesLine: string }) {
+  const figureRef = useRef<HTMLSpanElement | null>(null);
+  const glossRef = useRef<HTMLParagraphElement | null>(null);
+  useRevealSequence(figureRef, glossRef, [verdict, gamesLine]);
+  return (
+    <>
+      <Text as="p" display="block" className="mt-1 font-mono">
+        <span className="sr-only">{verdict}</span>
+        <span ref={figureRef} aria-hidden="true">
+          {verdict}
+        </span>
+      </Text>
+      <Text as="p" display="block" type="supporting" className="mt-1 text-sm" ref={glossRef}>
+        {gamesLine}
+      </Text>
+    </>
+  );
+}
+
 function FocusTrendCard({ measurement }: { measurement: FocusMeasurement }) {
   const games = measurement.windowGames;
   if (measurement.trend === 'insufficient_evidence') {
     const toGo = measurement.gamesToGo;
     return (
-      <Card>
+      <Card className="reveal-in">
         <Heading level={2}>{STREAM_LABEL[measurement.stream]}</Heading>
         {toGo !== null ? (
           <>
@@ -116,7 +145,7 @@ function FocusTrendCard({ measurement }: { measurement: FocusMeasurement }) {
     );
   }
   return (
-    <Card>
+    <Card className="reveal-in">
       <Heading level={2}>{STREAM_LABEL[measurement.stream]}</Heading>
       <Text as="p" display="block" className="mt-2">
         {TREND_LABEL[measurement.trend]}{' '}
@@ -124,13 +153,10 @@ function FocusTrendCard({ measurement }: { measurement: FocusMeasurement }) {
           {TREND_ARROW[measurement.trend]}
         </span>
       </Text>
-      <Text as="p" display="block" className="mt-1 font-mono">
-        {formatValue(measurement.baselineValue)} → {formatValue(measurement.currentValue)}{' '}
-        {measurement.unit}
-      </Text>
-      <Text as="p" display="block" type="supporting" className="mt-1 text-sm">
-        Measured over {games} {gamesLabel(games)}.
-      </Text>
+      <VerdictReveal
+        verdict={`${formatValue(measurement.baselineValue)} → ${formatValue(measurement.currentValue)} ${measurement.unit}`}
+        gamesLine={`Measured over ${games} ${gamesLabel(games)}.`}
+      />
     </Card>
   );
 }
@@ -148,7 +174,7 @@ function CoachInstructionCard({
       : catalogue.find((entry) => entry.id === focus.pairedFocusId);
   return (
     <div className="space-y-4">
-      <Card>
+      <Card className="reveal-in">
         <div className="flex flex-wrap items-center gap-2">
           <Badge label="Unverified" variant="neutral" />
         </div>
@@ -177,7 +203,7 @@ function CoachInstructionCard({
 
 function CatalogueFocusCard({ focus }: { focus: ActiveFocus }) {
   return (
-    <div className="space-y-4">
+    <div className="reveal-in space-y-4">
       {focus.catalogue !== null ? (
         <Text as="p" display="block" type="supporting">
           {focus.catalogue.description}
@@ -205,7 +231,7 @@ function CatalogueFocusCard({ focus }: { focus: ActiveFocus }) {
 function PracticeLine({ practice }: { practice: ActiveFocus['practice'] }) {
   if (practice === null) return null;
   return (
-    <Card>
+    <Card className="reveal-in">
       {practice.total === 0 ? (
         <>
           <Text as="p" display="block" className="mt-2">
@@ -240,7 +266,7 @@ export function ActiveFocusView({
 }) {
   return (
     <div className="space-y-6">
-      <header className="space-y-4">
+      <header className="reveal-in space-y-4">
         <Heading level={1}>
           {focus.unverified ? "Your coach's focus" : (focus.catalogue?.title ?? 'Your focus')}
         </Heading>
@@ -270,7 +296,7 @@ function RankingSection({
 }) {
   const reportQuery = useQuery(reportQueryOptions(stream));
   return (
-    <section aria-labelledby="ranking-heading" className="space-y-3">
+    <section aria-labelledby="ranking-heading" className="reveal-in space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Heading level={2} id="ranking-heading">
           Your ranked weaknesses
@@ -278,7 +304,7 @@ function RankingSection({
         <StreamToggle stream={stream} onChange={onStreamChange} ariaLabel="Ranking stream" />
       </div>
       {reportQuery.isPending ? (
-        <div role="status" aria-busy="true" className="space-y-2">
+        <div role="status" aria-busy="true" className="reveal-in space-y-2">
           <div className="h-4 w-48 rounded-control bg-sunken" />
           <div className="h-4 w-64 rounded-control bg-sunken" />
         </div>
@@ -329,7 +355,7 @@ export function CatalogueList({
   onChoose: (key: string) => void;
 }) {
   return (
-    <section aria-labelledby="catalogue-heading" className="space-y-3">
+    <section aria-labelledby="catalogue-heading" className="reveal-in space-y-3">
       <Heading level={2} id="catalogue-heading">
         Choose a focus
       </Heading>
@@ -392,7 +418,7 @@ export function CoachInstructionForm({
   }
 
   return (
-    <section aria-labelledby="coach-heading" className="space-y-3">
+    <section aria-labelledby="coach-heading" className="reveal-in space-y-3">
       <Heading level={2} id="coach-heading">
         A focus from your coach
       </Heading>
@@ -497,7 +523,7 @@ export function FocusChoiceView({
 }) {
   return (
     <div className="space-y-6">
-      <header className="space-y-4">
+      <header className="reveal-in space-y-4">
         <Heading level={1}>Set your focus</Heading>
         {replacing !== null ? (
           <Text as="p" display="block" type="supporting">
@@ -541,7 +567,7 @@ export function FocusChoiceView({
 
 function FocusSkeleton() {
   return (
-    <div role="status" aria-label="Loading focus" aria-busy="true" className="space-y-4">
+    <div role="status" aria-label="Loading focus" aria-busy="true" className="reveal-in space-y-4">
       <div className="h-8 w-48 rounded-control bg-sunken" />
       <div className="h-4 w-72 rounded-control bg-sunken" />
       <div className="h-32 rounded-surface bg-sunken" />
@@ -552,6 +578,7 @@ function FocusSkeleton() {
 function FocusError() {
   return (
     <EmptyState
+      className="reveal-in"
       title="Your focus could not be loaded"
       description="Try again, or go back to your account."
       headingLevel={2}
@@ -632,7 +659,7 @@ export function FocusRoute() {
   if (focusesQuery.isPending || focusQuery.isPending) {
     return (
       <div className="space-y-6">
-        <header className="space-y-4">
+        <header className="reveal-in space-y-4">
           <Heading level={1}>Your focus</Heading>
         </header>
         <FocusSkeleton />
@@ -647,7 +674,7 @@ export function FocusRoute() {
   ) {
     return (
       <div className="space-y-6">
-        <header className="space-y-4">
+        <header className="reveal-in space-y-4">
           <Heading level={1}>Your focus</Heading>
         </header>
         <UpgradePrompt title="Your focus is part of the paid loop" />
@@ -661,7 +688,7 @@ export function FocusRoute() {
   ) {
     return (
       <div className="space-y-6">
-        <header className="space-y-4">
+        <header className="reveal-in space-y-4">
           <Heading level={1}>Your focus</Heading>
         </header>
         <FocusError />

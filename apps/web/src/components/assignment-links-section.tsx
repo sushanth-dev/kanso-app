@@ -95,7 +95,7 @@ export function AssignmentLinksSection({
   }
 
   return (
-    <section aria-labelledby="assignment-links-heading" className="space-y-4">
+    <section aria-labelledby="assignment-links-heading" className="reveal-in space-y-4">
       <Heading level={2} id="assignment-links-heading">
         Assignment links
       </Heading>
