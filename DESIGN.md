@@ -500,9 +500,8 @@ same `reveal-in` treatment the rest of the system uses.
 ### Game review
 
 The review surface is where a player sees the positions behind their mistakes:
-a games list at `/account/players/$playerId/games` and one game at
-`/account/players/$playerId/games/$gameId`. Both render the existing
-`GameDetail` (plies and mistakes) and game list, never a new endpoint.
+a games list at `/games` and one game at `/games/$gameId`. Both render the
+existing `GameDetail` (plies and mistakes) and game list, never a new endpoint.
 
 The board is an in-house SVG component that renders a FEN position with the
 mistake's from and to squares marked in the last-move treatment (gold fill,
@@ -522,8 +521,15 @@ not as a separate bar.
 
 The route lists the game's mistakes in move order; selecting one shows its
 position, the move played versus the engine's best, the judgement and
-centipawn loss, and the motif where one applies. The game result renders as
-plain mono text.
+centipawn loss, and the motif where one applies. The game result is the
+surface's one authored motion moment (ST-138): the mono figure enters through
+a GSAP timeline, a fade and rise on the slow 320ms decelerate token with the
+result gloss following on the same ease, the accessible values held in
+sr-only spans and the animated figures aria-hidden on top of them, the
+dual-span pattern the landing hero established. `gsap.matchMedia()` renders
+the final state with no tween under reduced motion, and the DOM's natural
+state is that same final state, so the sequence degrades everywhere. The
+shared game reader renders the same component over its own gloss.
 
 ST-096 adds an analysing state to the review page for games that are queued,
 analysing, or pending with a known colour: a `role="status"` banner with the
@@ -555,24 +561,22 @@ show "Analysis in progress."; a `failed` game shows "Analysis failed." with a
 the list. The status text and the Delete button are separate channels, so the
 state never travels by hue alone.
 
-ST-101 adds practice mode to the review page. The flagged mistake card carries
-a **Try it yourself** action — the surface's one accent — that lifts the board
-back to the mistake's stored position, oriented from the player's own colour,
-with the played move not made. The squares become interactive: picking a piece
-of the side to move outlines its square (an ink line over a paper ring) and
-marks its legal destinations with the hint dots the board section specifies,
-and pieces move by click or by drag. The prompt names the judgement and phase
-("Blunder, Opening: find the better move") and never the solution. Three
-attempts render as ink pips beside a text count, so meaning never travels by
-hue alone; a wrong legal move refuses as "Not the best move." and the piece
-returns, because the position never changed. **Show me**, or a third wrong
-attempt, ends the attempt unsolved: the best move plays on the board and a
-static Card states the move actually played, the best move, and the
-evaluation swing in IBM Plex Mono. No animation joins the board or the reveal
-(ADR-0017); the controls are Astryx Buttons whose labels name the action, and
-the board's aria-label keeps describing the live position through
-`describePosition`. **Back to review** returns to the play-through at the
-mistake's ply.
+ST-138 restyles the surface onto the ST-133 system: the games list's header
+and its pending, error, and empty states, and the review page's header,
+analysing banner, no-moves card, and share-links section enter with the same
+`reveal-in` treatment every surface ships, and the card list keeps its
+`stagger-in`. The position section is the deliberate exception: no entrance
+wraps the board, on the owner's page or the shared reader's, so ADR-0017's
+no-animation-on-the-board rule holds and the player's position is static
+from the first frame.
+
+ST-106 replaced the review page's practice replay with Lichess drills: the
+flagged mistake card carries a **Drill this pattern** link into `/practice`,
+which owns the drill loop itself, the dealt puzzle, the setup move, the three
+attempt pips, the wrong-move refusal, and the reveal. None of that runs here.
+What the review page keeps from the replay is the lasting rule behind it,
+ADR-0017's no-animation-on-the-board line, and the board's aria-label keeps
+describing the live position through `describePosition`.
 
 ST-118 gives the review surface its share act. Creation, list, copy, and
 confirm-then-revoke live in a "Share links" section below the position on the

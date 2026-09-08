@@ -147,7 +147,7 @@ export function GamesRoute() {
 
   return (
     <div className="space-y-6">
-      <header className="space-y-4">
+      <header className="reveal-in space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Heading level={1}>Your games</Heading>
           <StreamToggle stream={stream} onChange={onStreamChange} ariaLabel="Games stream" />
@@ -162,18 +162,25 @@ export function GamesRoute() {
       </header>
 
       {gamesQuery.isPending ? (
-        <div role="status" aria-label="Loading games" aria-busy="true" className="space-y-3">
+        <div
+          role="status"
+          aria-label="Loading games"
+          aria-busy="true"
+          className="reveal-in space-y-3"
+        >
           <div className="h-20 rounded-surface bg-sunken" />
           <div className="h-20 rounded-surface bg-sunken" />
         </div>
       ) : gamesQuery.isError ? (
         <EmptyState
+          className="reveal-in"
           title="Your games could not be loaded"
           description="Try again in a moment."
           headingLevel={2}
         />
       ) : gamesQuery.data.games.length === 0 ? (
         <EmptyState
+          className="reveal-in"
           title={`No ${stream} games yet`}
           description="Import games to see them reviewed."
           headingLevel={2}

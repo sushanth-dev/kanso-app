@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
+import gsap from 'gsap';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Card } from '@astryxdesign/core/Card';
 import { Heading } from '@astryxdesign/core/Heading';
@@ -6,6 +7,7 @@ import { Link } from '@astryxdesign/core/Link';
 import { Text } from '@astryxdesign/core/Text';
 import type { MovePly } from '../api/diagnosis-api.ts';
 import type { Mistake } from '../api/diagnosis-api.ts';
+import { MOTION_DURATION, MOTION_EASE } from '../motion-tokens.ts';
 import { evalLabel } from './eval-bar.tsx';
 
 /**
@@ -252,5 +254,78 @@ export function MoveCard({
       ) : null}
       {drillHref !== undefined ? <Link href={drillHref}>Drill this pattern</Link> : null}
     </Card>
+  );
+}
+
+/**
+ * ST-138. The post-game result is the review's one authored motion moment,
+ * the GSAP replacement for the ParticleReveal ST-132 removed. The mono result
+ * figure fades and rises, then the gloss line follows on the same ease. The
+ * accessible values are sr-only spans and the animated figures are aria-hidden
+ * on top of them, the dual-span pattern ST-133 landed on the hero. Under
+ * reduced motion nothing animates and the DOM's natural state, which is also
+ * the state before any JavaScript runs, is the final state.
+ */
+export function ResultReveal({ result, gloss }: { result: string; gloss?: ReactNode }) {
+  const figureRef = useRef<HTMLSpanElement | null>(null);
+  const glossRef = useRef<HTMLParagraphElement | null>(null);
+  useLayoutEffect(() => {
+    const figure = figureRef.current;
+    if (figure === null) return undefined;
+    const context = gsap.context(() => {
+      const media = gsap.matchMedia();
+      media.add(
+        {
+          reduce: '(prefers-reduced-motion: reduce)',
+          motion: '(prefers-reduced-motion: no-preference)',
+        },
+        (mediaContext) => {
+          const { reduce } = mediaContext.conditions as { reduce: boolean };
+          if (reduce) return undefined;
+          const timeline = gsap.timeline();
+          timeline.from(figure, {
+            opacity: 0,
+            y: 6,
+            duration: MOTION_DURATION.slow,
+            ease: MOTION_EASE.decelerate,
+            clearProps: 'opacity,transform',
+          });
+          const gloss = glossRef.current;
+          if (gloss !== null) {
+            timeline.from(
+              gloss,
+              {
+                opacity: 0,
+                y: 6,
+                duration: MOTION_DURATION.base,
+                ease: MOTION_EASE.decelerate,
+                clearProps: 'opacity,transform',
+              },
+              '>0.08',
+            );
+          }
+          return () => {
+            timeline.kill();
+          };
+        },
+      );
+      return () => media.revert();
+    });
+    return () => context.revert();
+  }, [result, gloss]);
+  return (
+    <>
+      <Text className="font-mono text-lg text-primary">
+        <span className="sr-only">{result}</span>
+        <span ref={figureRef} aria-hidden="true">
+          {result}
+        </span>
+      </Text>
+      {gloss !== undefined && gloss !== null ? (
+        <Text as="p" display="block" ref={glossRef}>
+          {gloss}
+        </Text>
+      ) : null}
+    </>
   );
 }

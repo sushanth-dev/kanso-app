@@ -16,7 +16,13 @@ import { diagnosisApi } from '../api/diagnosis-api.ts';
 import { UpgradePrompt } from '../components/upgrade-prompt.tsx';
 import { Board, describePosition } from '../components/board.tsx';
 import { GameShareLinksSection } from '../components/game-share-links-section.tsx';
-import { MoveCard, Notation, movingColorOf, resultGloss } from '../components/review-pieces.tsx';
+import {
+  MoveCard,
+  Notation,
+  ResultReveal,
+  movingColorOf,
+  resultGloss,
+} from '../components/review-pieces.tsx';
 import { ClockCurve } from '../components/clock-curve.tsx';
 import { MOTIF_LABEL } from '../components/review-pieces.tsx';
 import {
@@ -159,7 +165,12 @@ function PlayerColorDot({ playerColor }: { playerColor: GameDetail['playerColor'
 
 function GameSkeleton() {
   return (
-    <div role="status" aria-label="Loading game review" aria-busy="true" className="space-y-4">
+    <div
+      role="status"
+      aria-label="Loading game review"
+      aria-busy="true"
+      className="reveal-in space-y-4"
+    >
       <div className="h-8 w-48 rounded-control bg-sunken" />
       <div className="h-64 rounded-surface bg-sunken" />
       <div className="h-24 rounded-surface bg-sunken" />
@@ -301,7 +312,7 @@ export function GameReviewScreen({
   );
   return (
     <div className="space-y-6">
-      <header className="space-y-4">
+      <header className="reveal-in space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Button label="Back to games" href={`/games?stream=${game.stream}`} variant="secondary" />
           <Button label="Delete game" variant="destructive" onClick={() => setIsDeleteOpen(true)} />
@@ -310,12 +321,7 @@ export function GameReviewScreen({
         <Text as="p" display="block" type="supporting">
           {game.whiteName ?? 'Unknown'} vs {game.blackName ?? 'Unknown'}
         </Text>
-        <Text className="font-mono text-lg text-primary">{game.result}</Text>
-        {gloss !== null ? (
-          <Text as="p" display="block">
-            You {gloss}.
-          </Text>
-        ) : null}
+        <ResultReveal result={game.result} gloss={gloss === null ? undefined : `You ${gloss}.`} />
         {game.playerColor === null ? (
           <div className="space-y-2">
             <Text as="p" display="block" type="supporting">
@@ -364,7 +370,7 @@ export function GameReviewScreen({
 
       {isActiveGame(game) ? <GameAnalysing /> : null}
       {currentPly === undefined ? (
-        <Card className="p-6">
+        <Card className="reveal-in p-6">
           <Text as="p" display="block" type="supporting">
             No recorded moves in this game.
           </Text>
@@ -428,7 +434,7 @@ function GameAnalysing() {
     <div
       role="status"
       aria-label="Analysing game"
-      className="flex items-center gap-3 rounded-surface border border-border-strong bg-raised px-4 py-3"
+      className="reveal-in flex items-center gap-3 rounded-surface border border-border-strong bg-raised px-4 py-3"
     >
       <Spinner size="sm" />
       <Text as="p" display="block" className="text-sm text-primary">
@@ -456,6 +462,7 @@ export function GameReviewRoute() {
   if (gameQuery.isError) {
     return (
       <EmptyState
+        className="reveal-in"
         title="This game could not be loaded"
         description="Go back and try again."
         headingLevel={2}

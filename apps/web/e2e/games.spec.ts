@@ -69,6 +69,11 @@ test('lists an imported game and opens its review to the honest unanalysed state
   await page.goto('/games?stream=tournament');
   await expect(page.getByRole('heading', { name: 'Your games' })).toBeVisible();
   await expect(page.getByText(/Waiting for your side/)).toBeVisible();
+  // ST-138: the page's own header carries the reveal entrance; reduced motion
+  // collapses it to zero, so the list is there immediately.
+  const gamesHeader = page.locator('main header').first();
+  await expect(gamesHeader).toHaveClass(/reveal-in/);
+  await expect(gamesHeader).toHaveCSS('animation-duration', '0s');
   await expectNoAxeViolations(page);
 
   // The review route, reached directly, renders the honest no-moves state for
@@ -78,6 +83,11 @@ test('lists an imported game and opens its review to the honest unanalysed state
   expect(body.games.length).toBeGreaterThan(0);
   await page.goto(`/games/${body.games[0]!.id}`);
   await expect(page.getByRole('heading', { name: 'Game review' })).toBeVisible();
+  const reviewHeader = page.locator('main header').first();
+  await expect(reviewHeader).toHaveClass(/reveal-in/);
+  // ST-138: the result figure is aria-hidden over an sr-only value.
+  await expect(page.getByText('1-0')).toHaveCount(2);
+  await expect(page.locator('main header span[aria-hidden="true"]')).toHaveText('1-0');
   await expect(
     page.getByText('Your side was not recorded for this game. Which colour were you?'),
   ).toBeVisible();
@@ -106,4 +116,16 @@ test('deletes an imported game from the list after confirmation', async ({ page 
     .click();
   await expect(page.getByText(/Waiting for your side/)).not.toBeVisible();
   await expectNoAxeViolations(page);
+});
+
+test('ST-138: the entrances run at the motion token duration under standard motion', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await signUp(page);
+  await importPgn(page);
+  await page.goto('/games?stream=tournament');
+  const gamesHeader = page.locator('main header').first();
+  await expect(gamesHeader).toHaveClass(/reveal-in/);
+  await expect(gamesHeader).toHaveCSS('animation-duration', '0.2s');
 });

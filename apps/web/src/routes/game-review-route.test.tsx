@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, RouterContextProvider, RouterProvider } from '@tanstack/react-router';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import gsap from 'gsap';
 import { accountApi, ApiRequestError, type Me } from '../api/account-api.ts';
 import {
   diagnosisApi,
@@ -342,6 +343,55 @@ describe('GameReviewScreen', () => {
     expect(screen.getByText('You won.')).toBeInTheDocument();
     renderScreen(gameFixture({ playerColor: 'white', result: '0-1' }));
     expect(screen.getByText('You lost.')).toBeInTheDocument();
+  });
+
+  test('ST-138: the animated result figure is aria-hidden over an sr-only value', () => {
+    renderScreen(gameFixture());
+    const [accessible, animated] = screen.getAllByText('0-1');
+    expect(animated).toHaveAttribute('aria-hidden', 'true');
+    expect(accessible).toHaveClass('sr-only');
+  });
+
+  test('ST-138: reduced motion leaves the result figure settled with no tween', () => {
+    const original = window.matchMedia.bind(window);
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: (query: string) => ({ ...original(query), matches: query.includes('reduce') }),
+    });
+    try {
+      renderScreen(gameFixture());
+      const [, animated] = screen.getAllByText('0-1');
+      if (animated === undefined) throw new Error('the animated figure did not render');
+      // No tween may start: the figure holds its natural, final state.
+      expect(animated.style.opacity).toBe('');
+      expect(animated.style.transform).toBe('');
+      expect(animated.textContent).toBe('0-1');
+    } finally {
+      Object.defineProperty(window, 'matchMedia', { writable: true, value: original });
+    }
+  });
+
+  test('ST-138: under motion the result figure enters from hidden and settles clean', async () => {
+    const original = window.matchMedia.bind(window);
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: (query: string) => ({ ...original(query), matches: query.includes('no-preference') }),
+    });
+    gsap.globalTimeline.timeScale(20);
+    try {
+      renderScreen(gameFixture());
+      const [, animated] = screen.getAllByText('0-1');
+      if (animated === undefined) throw new Error('the animated figure did not render');
+      // The from-state applies synchronously on mount: the figure starts hidden.
+      expect(animated.style.opacity).toBe('0');
+      expect(animated.textContent).toBe('0-1');
+      // The timeline ends with clearProps, so nothing inline remains.
+      await waitFor(() => expect(animated.style.opacity).toBe(''));
+      expect(animated).toBeVisible();
+    } finally {
+      gsap.globalTimeline.timeScale(1);
+      Object.defineProperty(window, 'matchMedia', { writable: true, value: original });
+    }
   });
 
   test('reconstructs the position in the board label', () => {
