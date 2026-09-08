@@ -703,6 +703,29 @@ the session first - signed out it offers sign-in, consent-gated it points to
 the waiting page, and a paid boundary names the paid loop rather than failing
 quietly.
 
+### Curriculum
+
+The curriculum at `/curriculum` is where the report's study recommendation
+becomes work: every assigned action item, one card each, split into Pending
+and Completed tabs. The page enters on the system's entrances (ST-142): the
+header, the tablist, and every pending, error, and empty state carry
+`reveal-in`, and the item list runs `stagger-in`, so the assigned work
+arrives in order rather than appearing at once. No GSAP sequence and no
+iconography: the page's one motion moment is data arriving, and the
+staggered list already performs it.
+
+A card is one `Card` carrying the tier and +100 XP badges, the assessment
+state as its own badge (`Assessment passed` in success green, `Overdue` in
+warning - the open/worked distinction this page exists to keep legible),
+the concept's mastery heading, the coach's supporting line, and the
+resource as an outbound link. A pending card closes only through its
+coach-graded assessment: the Take assessment link reveals an inline form
+(`Field` over a labelled textarea) whose pass refetches the list and flips
+the card to its passed state. Every interactive control on the surface
+holds the 44px touch floor, the links through `min-h-11`, the tabs as
+full-height `Button`s with the shared `press` treatment.
+
+
 ### Entry and guardian consent
 
 Sign-in, sign-up, forgot-password, and reset-password each render as one
