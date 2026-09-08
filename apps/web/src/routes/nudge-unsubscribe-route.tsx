@@ -22,7 +22,7 @@ export function NudgeUnsubscribeRoute() {
         role="status"
         aria-label="Loading"
         aria-busy="true"
-        className="mx-auto w-full max-w-2xl px-4 py-16 font-ui"
+        className="reveal-in mx-auto w-full max-w-2xl px-4 py-16 font-ui"
       >
         <div className="h-8 w-48 rounded-control bg-sunken" />
         <div className="mt-3 h-4 w-72 rounded-control bg-sunken" />
@@ -34,14 +34,14 @@ export function NudgeUnsubscribeRoute() {
   // the page says the same thing for all of them rather than naming which case.
   if (query.isError) {
     return (
-      <main className="mx-auto w-full max-w-2xl px-4 py-16 font-ui">
+      <main className="reveal-in mx-auto w-full max-w-2xl px-4 py-16 font-ui">
         <Heading level={1}>This link is no longer available.</Heading>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-4 py-16 font-ui">
+    <main className="reveal-in mx-auto w-full max-w-2xl px-4 py-16 font-ui">
       <Heading level={1}>You are unsubscribed</Heading>
       <Text as="p" display="block" type="supporting" className="mt-4">
         One link stops these emails, and this was it. The nudge will not reach this address again;

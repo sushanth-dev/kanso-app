@@ -163,7 +163,7 @@ describe('SettingsScreen', () => {
 
     expect(screen.queryByLabelText('Current password')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Change password' }));
-    expect(screen.getByLabelText('Current password')).toBeVisible();
+    expect(await screen.findByLabelText('Current password')).toBeVisible();
   });
 
   test('reports a non-401 username save failure and keeps the form', async () => {
