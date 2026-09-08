@@ -751,6 +751,11 @@ focus" or "Since the focus" and carrying its games count beside it, so five
 reads as five. The stream and period are one muted line; a coach instruction
 is shown verbatim as text. `insufficient_evidence` is a sentence, never a blank
 or a zero. The reader's fetch carries no credentials.
+Every block enters with the one `reveal-in` fade: the supporting line and
+heading first, then the verdict, the figures or `insufficient_evidence`
+sentence, the stream and period line, and any coach instruction; the skeleton,
+unavailable, and unreachable pages enter the same way, and under
+`prefers-reduced-motion: reduce` everything renders settled immediately.
 
 The route has four states, all in the same centered column with no chrome: a
 two-line skeleton while loading, the loaded sheet, one indistinguishable
@@ -762,11 +767,13 @@ refetches, never the verdict or a partial sheet, and never the words "no longer
 available".
 
 The share act (an explicit create, copy, and confirm-then-revoke) lives on its
-own player-scoped surface at `/account/players/$playerId/proof-sheet`, reached
-from the player card's "Share proof sheet" link. It lists every live link,
-creates a new one, copies it, and revokes after an inline confirm; a free
-account is refused with the shared paid-boundary prompt, and a player with no
-active focus is sent to set one. It stays out of this reader surface regardless.
+own account surface at `/proof-sheet`, reached from the Progress nav group. It
+lists every live link, creates a new one, copies it, and revokes after an
+inline confirm; a free account is refused with the shared paid-boundary
+prompt, and a player with no active focus is sent to set one. It stays out of
+this reader surface regardless. The surface enters the same way: the header
+first, then the create card and the share-link list, under the same
+reduced-motion collapse.
 
 ### Landing
 
