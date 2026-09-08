@@ -61,17 +61,22 @@ export function PracticeRoute() {
 function DueReviews() {
   const noWeakness = (
     <EmptyState
+      className="reveal-in"
       title="No weakness named"
       description="Open a weakness card in your report and choose its practice link."
       headingLevel={1}
-      actions={<Link href="/report">Back to the report</Link>}
+      actions={
+        <Link href="/report" className="min-h-11 items-center">
+          Back to the report
+        </Link>
+      }
     />
   );
   const query = useQuery(practiceReviewsQueryOptions());
   if (query.isError) return noWeakness;
   if (query.isPending) {
     return (
-      <div className="flex items-center gap-3 py-16">
+      <div role="status" className="reveal-in flex items-center gap-3 py-16">
         <Spinner />
         <Text as="p" display="block" type="supporting">
           Checking what is due for review…
@@ -85,10 +90,15 @@ function DueReviews() {
     if (remaining === 0) {
       return (
         <EmptyState
+          className="reveal-in"
           title="Today's reviews are done"
           description="Ten due reviews is the day's cap, so the ladder cannot grind. Whatever is left comes back tomorrow."
           headingLevel={1}
-          actions={<Link href="/report">Back to the report</Link>}
+          actions={
+            <Link href="/report" className="min-h-11 items-center">
+              Back to the report
+            </Link>
+          }
         />
       );
     }
@@ -104,20 +114,22 @@ function DueReviews() {
   }
   return (
     <div className="space-y-4">
-      <header className="space-y-1">
+      <header className="reveal-in space-y-1">
         <Heading level={1}>Due for review</Heading>
         <Text as="p" display="block" type="supporting" className="text-sm">
           Solved drills come back on the ladder - two, seven, then thirty days.
         </Text>
       </header>
       <Card>
-        <ul>
+        <ul className="stagger-in">
           {[...groups.values()].map(({ kind: reviewKind, group: reviewGroup, count }) => (
             <li
               key={`${reviewKind}:${reviewGroup}`}
               className="flex items-center justify-between gap-3 border-b border-border-subtle py-3 last:border-b-0"
             >
-              <Link href={drillHref(reviewKind, reviewGroup)}>{groupLabel(reviewGroup)}</Link>
+              <Link href={drillHref(reviewKind, reviewGroup)} className="min-h-11 items-center">
+                {groupLabel(reviewGroup)}
+              </Link>
               <Badge label={count === 1 ? 'Due now' : `${count} due`} variant="warning" />
             </li>
           ))}
@@ -142,7 +154,7 @@ export function PracticeScreen({
 
   if (query.isPending) {
     return (
-      <div className="flex items-center gap-3 py-16">
+      <div role="status" className="reveal-in flex items-center gap-3 py-16">
         <Spinner />
         <Text as="p" display="block" type="supporting">
           Dealing 20 puzzles for {label}…
@@ -154,6 +166,7 @@ export function PracticeScreen({
     const status = query.error instanceof ApiRequestError ? query.error.status : null;
     return (
       <EmptyState
+        className="reveal-in"
         title={status === 503 ? 'The puzzle pool is not ready' : 'This weakness has no drill'}
         description={
           status === 503
@@ -161,7 +174,11 @@ export function PracticeScreen({
             : `No puzzle drill is mapped for ${label}.`
         }
         headingLevel={1}
-        actions={<Link href={`/report?stream=${stream}`}>Back to the report</Link>}
+        actions={
+          <Link href={`/report?stream=${stream}`} className="min-h-11 items-center">
+            Back to the report
+          </Link>
+        }
       />
     );
   }
@@ -225,13 +242,18 @@ function DrillSession({
   if (queue.length === 0) {
     return (
       <EmptyState
+        className="reveal-in"
         title="Drill complete"
         description={`${solvedCount} of ${puzzles.length} solved. Solved puzzles come back for review; the ones that fought back are due again today.`}
         headingLevel={1}
         actions={
           <>
-            <Link href="/puzzles">See your puzzle queue</Link>
-            <Link href={`/report?stream=${stream}`}>Back to the report</Link>
+            <Link href="/puzzles" className="min-h-11 items-center">
+              See your puzzle queue
+            </Link>
+            <Link href={`/report?stream=${stream}`} className="min-h-11 items-center">
+              Back to the report
+            </Link>
           </>
         }
       />
@@ -241,7 +263,7 @@ function DrillSession({
   const current = queue[0]!;
   return (
     <div className="space-y-4">
-      <header className="space-y-1">
+      <header className="reveal-in space-y-1">
         <Heading level={1}>{label}</Heading>
         <Text as="p" display="block" type="supporting" className="text-sm">
           {queue.length} puzzle{queue.length === 1 ? '' : 's'} to go, {solvedCount} solved. Theme:{' '}
@@ -422,7 +444,7 @@ function DrillCard({
           label={boardLabel}
         />
       </div>
-      <Card className="space-y-3 p-4">
+      <Card className="reveal-in space-y-3 p-4">
         {status === 'playing' ? (
           <>
             <Heading level={3}>Find the best move.</Heading>
