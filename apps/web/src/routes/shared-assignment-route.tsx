@@ -19,14 +19,16 @@ export function SharedAssignmentScreen({ assignment }: { assignment: SharedAssig
 
   return (
     <>
-      <Text as="p" display="block" type="supporting" className="text-sm">
+      <Text as="p" display="block" type="supporting" className="reveal-in text-sm">
         A focus assignment
       </Text>
-      <Heading level={1}>{assignment.focusTitle}</Heading>
-      <Text as="p" display="block" type="supporting" className="mt-2">
+      <Heading level={1} className="reveal-in">
+        {assignment.focusTitle}
+      </Heading>
+      <Text as="p" display="block" type="supporting" className="reveal-in mt-2">
         {assignment.focusDescription}
       </Text>
-      <section className="mt-8">
+      <section className="reveal-in mt-8">
         <Text as="p" display="block" type="supporting" className="text-sm">
           The coach's instruction
         </Text>
@@ -76,7 +78,7 @@ function ConfirmSection({ token }: { token: string }) {
   if (me.isError) {
     if (me.error instanceof ApiRequestError && me.error.code === 'consent_required') {
       return (
-        <section className="mt-10 space-y-3">
+        <section className="reveal-in mt-10 space-y-3">
           <Text as="p" display="block">
             A guardian must confirm consent before this focus can be accepted.
           </Text>
@@ -86,7 +88,7 @@ function ConfirmSection({ token }: { token: string }) {
     }
     // Signed out: the link pre-fills, signing in sets it.
     return (
-      <section className="mt-10 space-y-3">
+      <section className="reveal-in mt-10 space-y-3">
         <Text as="p" display="block">
           Sign in to accept this focus as your own.
         </Text>
@@ -97,7 +99,7 @@ function ConfirmSection({ token }: { token: string }) {
 
   if (error !== null) {
     return (
-      <section className="mt-10 space-y-3">
+      <section className="reveal-in mt-10 space-y-3">
         <Text as="p" display="block" type="supporting" role="alert">
           {error}
         </Text>
@@ -117,7 +119,7 @@ function ConfirmSection({ token }: { token: string }) {
   }
 
   return (
-    <section className="mt-10">
+    <section className="reveal-in mt-10">
       <Button
         label={confirming ? 'Accepting...' : 'Accept this focus'}
         variant="primary"
@@ -149,7 +151,7 @@ export function SharedAssignmentRoute() {
         role="status"
         aria-label="Loading"
         aria-busy="true"
-        className="mx-auto w-full max-w-2xl px-4 py-16 font-ui"
+        className="reveal-in mx-auto w-full max-w-2xl px-4 py-16 font-ui"
       >
         <div className="h-8 w-48 rounded-control bg-sunken" />
         <div className="mt-3 h-4 w-72 rounded-control bg-sunken" />
@@ -161,7 +163,7 @@ export function SharedAssignmentRoute() {
   // the page says the same thing for all of them rather than naming which case.
   if (query.isError && query.error instanceof ApiRequestError && query.error.status === 404) {
     return (
-      <main className="mx-auto w-full max-w-2xl px-4 py-16 font-ui">
+      <main className="reveal-in mx-auto w-full max-w-2xl px-4 py-16 font-ui">
         <Heading level={1}>This link is no longer available.</Heading>
       </main>
     );
@@ -172,7 +174,7 @@ export function SharedAssignmentRoute() {
   // the page, so offer a retry rather than a dead end.
   if (query.isError) {
     return (
-      <main className="mx-auto w-full max-w-2xl px-4 py-16 font-ui">
+      <main className="reveal-in mx-auto w-full max-w-2xl px-4 py-16 font-ui">
         <Heading level={1}>This page could not be reached.</Heading>
         <Text as="p" display="block" type="supporting" className="mt-4">
           Check your connection and try again.
