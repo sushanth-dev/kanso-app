@@ -293,17 +293,20 @@ export function GameReviewScreen({
         variant="secondary"
         isDisabled={plyIndex === 0}
         onClick={() => stepBy(-1)}
+        className="min-h-11 press"
       />
       <Button
         label="Next move"
         variant="secondary"
         isDisabled={plyIndex === game.plies.length - 1}
         onClick={() => stepBy(1)}
+        className="min-h-11 press"
       />
       <Button
         label="Flip board"
         variant="secondary"
         onClick={() => setFlipped((value) => !value)}
+        className="min-h-11 press"
       />
       <Text type="supporting" className="font-mono text-sm">
         Move {Math.ceil((plyIndex + 1) / 2)} of {Math.ceil(game.plies.length / 2)}
@@ -314,8 +317,18 @@ export function GameReviewScreen({
     <div className="space-y-6">
       <header className="reveal-in space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <Button label="Back to games" href={`/games?stream=${game.stream}`} variant="secondary" />
-          <Button label="Delete game" variant="destructive" onClick={() => setIsDeleteOpen(true)} />
+          <Button
+            label="Back to games"
+            href={`/games?stream=${game.stream}`}
+            variant="secondary"
+            className="min-h-11 press"
+          />
+          <Button
+            label="Delete game"
+            variant="destructive"
+            onClick={() => setIsDeleteOpen(true)}
+            className="min-h-11 press"
+          />
         </div>
         <Heading level={1}>Game review</Heading>
         <Text as="p" display="block" type="supporting">
@@ -333,14 +346,14 @@ export function GameReviewScreen({
                 variant="secondary"
                 onClick={() => onSetColor('white')}
                 isDisabled={setColorMutation.isPending}
-                className="press"
+                className="min-h-11 press"
               />
               <Button
                 label="I was Black"
                 variant="secondary"
                 onClick={() => onSetColor('black')}
                 isDisabled={setColorMutation.isPending}
-                className="press"
+                className="min-h-11 press"
               />
             </div>
             {colorError !== null ? (

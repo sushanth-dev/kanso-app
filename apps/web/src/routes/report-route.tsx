@@ -294,7 +294,11 @@ function WeaknessList({ weaknesses, stream, tournamentId }: WeaknessListProps) {
                     {/* The click materializes the coaching: the model's line
                         for the mistake, or just the resources for an opening. */}
                     {weakness.kind === 'opening' && weakness.actionItems.length === 0 ? (
-                      <Link onClick={() => onToggle(weakness.id)} aria-expanded={expanded}>
+                      <Link
+                        onClick={() => onToggle(weakness.id)}
+                        aria-expanded={expanded}
+                        className="min-h-11 items-center"
+                      >
                         {coachingId === weakness.id ? 'Writing your resources...' : 'Get resources'}
                       </Link>
                     ) : null}
@@ -500,7 +504,11 @@ function NotReady() {
       title="No analyzed games in this stream yet"
       description="Import your games to get a ranked report. Tournament and online games are reported separately."
       headingLevel={2}
-      actions={<Link href="/import">Import games</Link>}
+      actions={
+        <Link href="/import" className="min-h-11 items-center">
+          Import games
+        </Link>
+      }
     />
   );
 }
@@ -513,7 +521,11 @@ function NeedsSide({ count }: { count: number }) {
       title={`${count} ${count === 1 ? 'game needs' : 'games need'} your side before analysis`}
       description="The import could not tell which colour you were in these games. Open each one under Games and pick the side you played; analysis starts as soon as you do."
       headingLevel={2}
-      actions={<Link href="/games">Open Games</Link>}
+      actions={
+        <Link href="/games" className="min-h-11 items-center">
+          Open Games
+        </Link>
+      }
     />
   );
 }
@@ -526,7 +538,11 @@ function NotEnoughRatedGames({ message }: { message: string }) {
       title="Not enough rated games for a report yet"
       description={message}
       headingLevel={2}
-      actions={<Link href="/import">Import games</Link>}
+      actions={
+        <Link href="/import" className="min-h-11 items-center">
+          Import games
+        </Link>
+      }
     />
   );
 }
