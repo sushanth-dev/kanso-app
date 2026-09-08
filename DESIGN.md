@@ -642,6 +642,26 @@ batches, and a tournament batch whose games were all rejected - lands on the
 report with the batch's ids riding along (ST-093), so the analysing counter
 counts this upload only. ST-096's landing paragraph is superseded.
 
+### Debrief
+
+The debrief is where an import ends (ST-115) and the loop's hinge: the
+moment of highest motivation, staged in the loop's own order - what
+happened, your one focus, your first drill. Nothing recomputes. The first
+section is the batch's report itself, embedded live at `/account/debrief`
+with the batch's ids riding along, so the debrief is the report, not a
+second rendering of it; a stream switch leaves for the full report,
+because the debrief debriefs one batch. The skip link lands where the
+import would have ended without the debrief: an under-threshold batch on
+that game's review, everything else on the report.
+
+Since ST-143 the debrief enters on the system's entrances: the empty
+state, the back-and-skip row, both section wrappers, and every focus and
+drill state carry `reveal-in`, while the embedded report and the focus
+catalogue arrive on their own ST-137 and ST-139 entrances. No sequence of
+its own: the page's motion is data arriving, and its sections already
+perform that. The route's four links hold the 44px floor; the
+Practise-the-first-drill button holds it as a `Button`.
+
 ### Focus
 
 The focus surface is one route with two states decided by the active focus:

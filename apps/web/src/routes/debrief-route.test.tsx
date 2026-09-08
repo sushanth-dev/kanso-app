@@ -133,6 +133,44 @@ describe('DebriefRoute', () => {
     expect(screen.getByRole('link', { name: 'Go to import' })).toHaveAttribute('href', '/import');
   });
 
+  test('ST-143: the debrief enters on the system, and its links hold the touch floor', async () => {
+    vi.spyOn(accountApi, 'getMe').mockResolvedValue(meFixture);
+    vi.spyOn(diagnosisApi, 'getReport').mockResolvedValue(reportFixture());
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue(listGamesEmpty);
+    vi.spyOn(focusApi, 'getFocus').mockRejectedValue(
+      new ApiRequestError(404, 'not_found', undefined, 'No focus.'),
+    );
+    vi.spyOn(focusApi, 'listFocuses').mockResolvedValue([convertingWon]);
+
+    renderDebrief(`/debrief?gameIds=${gameId}&tournamentId=${tournamentId}`);
+
+    expect(await screen.findByRole('heading', { name: 'Tournament report' })).toBeVisible();
+    expect(
+      screen.getByRole('link', { name: 'Back to import' }).closest('.reveal-in'),
+    ).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Skip the debrief' })).toHaveClass('min-h-11');
+    for (const name of ['Your one focus', 'Your first drill']) {
+      expect(screen.getByRole('heading', { level: 2, name }).closest('section')).toHaveClass(
+        'reveal-in',
+      );
+    }
+  });
+
+  test('ST-143: the focus and drill states enter through the system with the floor held', async () => {
+    vi.spyOn(accountApi, 'getMe').mockResolvedValue(meFixture);
+    vi.spyOn(diagnosisApi, 'getReport').mockResolvedValue(reportFixture());
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue(listGamesEmpty);
+    vi.spyOn(focusApi, 'getFocus').mockResolvedValue(activeFocusFixture());
+
+    renderDebrief(`/debrief?gameIds=${gameId}&tournamentId=${tournamentId}`);
+
+    expect(await screen.findByText('working on')).toBeVisible();
+    expect(screen.getByText('working on').closest('.reveal-in')).not.toBeNull();
+    expect(screen.getByRole('link', { name: 'Work on it on the focus page' })).toHaveClass(
+      'min-h-11',
+    );
+  });
+
   test('walks the three sections in order and deep-links the first drill', async () => {
     vi.spyOn(accountApi, 'getMe').mockResolvedValue(meFixture);
     vi.spyOn(diagnosisApi, 'getReport').mockResolvedValue(reportFixture());
