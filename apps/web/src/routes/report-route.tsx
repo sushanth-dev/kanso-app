@@ -328,9 +328,18 @@ function WeaknessList({ weaknesses, stream, tournamentId }: WeaknessListProps) {
                   </Text>
                 ) : null}
               </div>
-              {expanded && weakness.kind !== 'opening' ? (
-                <EvidenceDetail weakness={weakness} />
-              ) : null}
+              {/* The fold stays mounted and collapses through grid-template-rows
+                  (styles.css .fold), so showing evidence moves the page instead
+                  of jumping it. Inert while closed: unreachable and unread. */}
+              <div
+                className="fold"
+                data-open={expanded && weakness.kind !== 'opening'}
+                inert={!expanded || weakness.kind === 'opening'}
+              >
+                <div>
+                  {weakness.kind !== 'opening' ? <EvidenceDetail weakness={weakness} /> : null}
+                </div>
+              </div>
             </Card>
           </li>
         );

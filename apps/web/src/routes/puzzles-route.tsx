@@ -67,7 +67,7 @@ function QueueList({
 }) {
   return (
     <Card>
-      <ul className="stagger-in">
+      <ul>
         {items.map((item) => (
           <QueueRow key={item.puzzleId} item={item} end={endFor(item)} />
         ))}
@@ -80,7 +80,7 @@ function PendingTab({ due }: { due: PracticeQueueItem[] }) {
   const first = due[0];
   if (first === undefined) return null;
   return (
-    <div className="reveal-in space-y-4">
+    <div className="space-y-4">
       <Link href={drillHref(first.kind, first.group)} className="min-h-11 items-center">
         Practice now
       </Link>
@@ -132,7 +132,7 @@ export function PuzzlesRoute() {
 
   if (queueQuery.isPending) {
     return (
-      <div role="status" aria-busy="true" className="reveal-in flex justify-center py-16">
+      <div role="status" aria-busy="true" className="flex justify-center py-16">
         <Spinner />
       </div>
     );
@@ -186,7 +186,6 @@ export function PuzzlesRoute() {
           <PendingTab due={due} />
         ) : (
           <EmptyState
-            className="reveal-in"
             title="All caught up!"
             description="No puzzles are waiting on you right now."
             headingLevel={2}
@@ -202,7 +201,6 @@ export function PuzzlesRoute() {
           <UpcomingTab upcoming={upcoming} />
         ) : (
           <EmptyState
-            className="reveal-in"
             title="Nothing scheduled yet"
             description="Solve puzzles to schedule the next reviews."
             headingLevel={2}
@@ -212,7 +210,6 @@ export function PuzzlesRoute() {
         <MasteredTab mastered={mastered} />
       ) : (
         <EmptyState
-          className="reveal-in"
           title="Nothing mastered yet"
           description="Solve the same puzzle across reviews to master it."
           headingLevel={2}

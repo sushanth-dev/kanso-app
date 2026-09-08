@@ -182,12 +182,7 @@ export function GamesRoute() {
       </header>
 
       {gamesQuery.isPending ? (
-        <div
-          role="status"
-          aria-label="Loading games"
-          aria-busy="true"
-          className="reveal-in space-y-3"
-        >
+        <div role="status" aria-label="Loading games" aria-busy="true" className="space-y-3">
           <div className="h-20 rounded-surface bg-sunken" />
           <div className="h-20 rounded-surface bg-sunken" />
         </div>
@@ -200,13 +195,12 @@ export function GamesRoute() {
         />
       ) : gamesQuery.data.games.length === 0 ? (
         <EmptyState
-          className="reveal-in"
           title={`No ${stream} games yet`}
           description="Import games to see them reviewed."
           headingLevel={2}
         />
       ) : (
-        <ul className="stagger-in space-y-3">
+        <ul className="space-y-3">
           {gamesQuery.data.games.map((game) => (
             <li key={game.id}>
               <GameCard game={game} stream={stream} />

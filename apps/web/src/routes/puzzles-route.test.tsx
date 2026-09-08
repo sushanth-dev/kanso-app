@@ -136,8 +136,10 @@ describe('PuzzlesRoute', () => {
     for (const name of [/Pending \(\d+\)/, /Upcoming \(\d+\)/, /Mastered \(\d+\)/]) {
       expect(screen.getByRole('button', { name })).toHaveClass('min-h-11');
     }
+    // Tab panels swap instantly on flip; only the page chrome enters (the
+    // stagger replays belong to page load, not to rapid tab changes).
     expect(screen.getAllByRole('list').some((el) => el.classList.contains('stagger-in'))).toBe(
-      true,
+      false,
     );
     expect(screen.getByRole('link', { name: 'Practice now' })).toHaveClass('min-h-11');
   });
