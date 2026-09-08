@@ -44,6 +44,19 @@ describe('NudgeUnsubscribeRoute', () => {
     ).toBeInTheDocument();
   });
 
+  test('ST-147: the page enters on the system without gaining chrome', async () => {
+    unsubscribe.mockResolvedValue(undefined);
+
+    renderAt('/nudge/unsubscribe/valid');
+
+    const main = (await screen.findByRole('heading', { name: 'You are unsubscribed' })).closest(
+      'main',
+    );
+    expect(main).toHaveClass('reveal-in');
+    expect(main?.querySelector('nav')).toBeNull();
+    expect(main?.querySelector('a')).toBeNull();
+  });
+
   test('shows the one indistinguishable unavailable page for a tampered or expired link', async () => {
     unsubscribe.mockRejectedValue(
       new ApiRequestError(404, 'not_found', undefined, 'No such page.'),

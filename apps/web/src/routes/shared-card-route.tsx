@@ -80,7 +80,7 @@ export function SharedCardRoute() {
         role="status"
         aria-label="Loading"
         aria-busy="true"
-        className="mx-auto w-full max-w-2xl px-4 py-16 font-ui"
+        className="reveal-in mx-auto w-full max-w-2xl px-4 py-16 font-ui"
       >
         <div className="h-8 w-48 rounded-control bg-sunken" />
         <div className="mt-3 h-4 w-72 rounded-control bg-sunken" />
@@ -92,7 +92,7 @@ export function SharedCardRoute() {
   // the page says the same thing for all of them rather than naming which case.
   if (query.isError && query.error instanceof ApiRequestError && query.error.status === 404) {
     return (
-      <main className="mx-auto w-full max-w-2xl px-4 py-16 font-ui">
+      <main className="reveal-in mx-auto w-full max-w-2xl px-4 py-16 font-ui">
         <Heading level={1}>This link is no longer available.</Heading>
       </main>
     );
@@ -103,7 +103,7 @@ export function SharedCardRoute() {
   // the page, so offer a retry rather than a dead end.
   if (query.isError) {
     return (
-      <main className="mx-auto w-full max-w-2xl px-4 py-16 font-ui">
+      <main className="reveal-in mx-auto w-full max-w-2xl px-4 py-16 font-ui">
         <Heading level={1}>This page could not be reached.</Heading>
         <Text as="p" display="block" type="supporting" className="mt-4">
           Check your connection and try again.
@@ -114,14 +114,14 @@ export function SharedCardRoute() {
           clickAction={() => {
             void query.refetch();
           }}
-          className="mt-6 press"
+          className="mt-6 min-h-11 press"
         />
       </main>
     );
   }
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-4 py-16 font-ui">
+    <main className="reveal-in mx-auto w-full max-w-2xl px-4 py-16 font-ui">
       <div aria-hidden="true" className="mb-6">
         <Mark size={28} />
       </div>
