@@ -42,7 +42,7 @@ export function PasswordInput({ className, ...props }: PasswordInputProps) {
         type="button"
         variant="ghost"
         size="sm"
-        className="absolute right-1 top-1/2 -translate-y-1/2"
+        className="absolute right-1 top-1/2 min-h-11 min-w-11 -translate-y-1/2"
         label={revealed ? 'Hide password' : 'Show password'}
         icon={<Icon icon={revealed ? 'eyeSlash' : EyeIcon} size="sm" />}
         onClick={() => setRevealed((value) => !value)}
