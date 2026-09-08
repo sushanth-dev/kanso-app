@@ -23,6 +23,11 @@ async function signUp(page: Page, name: string, email: string, password: string)
 }
 
 test('signs up and persists a player through sign-in', async ({ page }) => {
+  // The display name is the username and updates enforce uniqueness across
+  // accounts (ST-084), while sign-up does not. A fixed name collides with the
+  // previous run's player on the first save against a persistent dev database,
+  // so every run brings its own name.
+  const name = `Mina ${randomUUID().slice(0, 8)}`;
   const email = `account-${randomUUID()}@example.com`;
   const password = `E2e-${randomUUID()}-Aa1!`;
   const consoleErrors: string[] = [];
@@ -72,7 +77,7 @@ test('signs up and persists a player through sign-in', async ({ page }) => {
   // Sign-up lands on the report (ST-092); the settings page is reached through
   // the nav.
   await page.goto('/sign-up');
-  await signUp(page, 'Mina', email, password);
+  await signUp(page, name, email, password);
   await expect(page.getByRole('heading', { name: 'Tournament report', exact: true })).toBeVisible();
   await expectNoAxeViolations(page);
   await openSettingsViaNav(page);
@@ -83,7 +88,7 @@ test('signs up and persists a player through sign-in', async ({ page }) => {
 
   // Sign-up creates the player from the account name (ST-072), so the merged
   // page shows the identity and the standing badges.
-  await expect(page.getByText('Mina')).toBeVisible();
+  await expect(page.getByText(name)).toBeVisible();
   await expect(page.getByText(/\d+-day streak/)).toBeVisible();
   await expect(page.getByText(/Level \d+/)).toBeVisible();
 
@@ -98,7 +103,7 @@ test('signs up and persists a player through sign-in', async ({ page }) => {
   await expectNoAxeViolations(page);
 
   await page.getByLabel('Username', { exact: true }).focus();
-  await expect(page.getByLabel('Username', { exact: true })).toHaveValue('Mina');
+  await expect(page.getByLabel('Username', { exact: true })).toHaveValue(name);
   await page.keyboard.press('Tab');
   await expect(page.getByLabel('Birth year')).toBeFocused();
   await page.keyboard.type('2013');
@@ -118,12 +123,12 @@ test('signs up and persists a player through sign-in', async ({ page }) => {
   await page.keyboard.press('Enter');
 
   await expect(page.getByRole('heading', { name: 'Your account', exact: true })).toBeVisible();
-  await expect(page.getByText('Mina')).toBeVisible();
+  await expect(page.getByText(name)).toBeVisible();
   await page.getByRole('link', { name: 'Edit player' }).click();
   await page.getByLabel('Chess.com username').fill('mina-studies');
   await page.getByRole('button', { name: 'Save changes' }).click();
 
-  await expect(page.getByText('Mina')).toBeVisible();
+  await expect(page.getByText(name)).toBeVisible();
   await page.getByRole('link', { name: 'Edit player' }).click();
   await expect(page.getByLabel('Chess.com username')).toHaveValue('mina-studies');
   await page.getByRole('link', { name: 'Cancel' }).click();
@@ -207,13 +212,24 @@ test('walks report to focus to the verification trend', async ({ page }) => {
   await expect(
     page.getByRole('heading', { level: 3, name: 'Converting won positions' }),
   ).toBeVisible();
+  // ST-139: the page's header carries the reveal entrance; reduced motion
+  // collapses it to zero, so the catalogue is there immediately.
+  const focusHeader = page.locator('main header').first();
+  await expect(focusHeader).toHaveClass(/reveal-in/);
+  await expect(focusHeader).toHaveCSS('animation-duration', '0s');
   await expectNoAxeViolations(page);
 
   // The trend: set a focus and read the honest verdict over zero games.
   await page.getByRole('button', { name: 'Set Converting won positions' }).click();
+  await expect(page.getByText(/We cannot say yet whether this is working/).first()).toBeVisible();
+  await expectNoAxeViolations(page);
+
+  // ST-139: under standard motion the entrance runs at the motion token
+  // duration; the emulation flips without repeating the paid setup.
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.reload();
   await expect(
     page.getByRole('heading', { level: 1, name: 'Converting won positions' }),
   ).toBeVisible();
-  await expect(page.getByText(/We cannot say yet whether this is working/).first()).toBeVisible();
-  await expectNoAxeViolations(page);
+  await expect(focusHeader).toHaveCSS('animation-duration', '0.2s');
 });

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, RouterContextProvider, RouterProvider } from '@tanstack/react-router';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import gsap from 'gsap';
 import { track } from '../analytics.ts';
 import { accountApi, ApiRequestError, type Me } from '../api/account-api.ts';
 import { diagnosisApi, type Report, type Weakness } from '../api/diagnosis-api.ts';
@@ -222,8 +223,59 @@ describe('ActiveFocusView', () => {
     expect(screen.getByRole('heading', { name: 'Tournament' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Online' })).toBeInTheDocument();
     expect(screen.getByText(/Improving/)).toBeInTheDocument();
-    expect(screen.getByText(/0\.6 → 0\.72 share converted/)).toBeInTheDocument();
+    // ST-139: the verdict renders twice - an sr-only value with the animated
+    // figure aria-hidden on top - so the query is plural by design.
+    expect(screen.getAllByText(/0\.6 → 0\.72 share converted/)).toHaveLength(2);
     expect(screen.getByText(/Measured over 10 games\./)).toBeInTheDocument();
+  });
+
+  test('ST-139: the animated verdict figure is aria-hidden over an sr-only value', () => {
+    renderActiveFocus(activeFocusFixture());
+    const [accessible, animated] = screen.getAllByText('0.6 → 0.72 share converted');
+    expect(animated).toHaveAttribute('aria-hidden', 'true');
+    expect(accessible).toHaveClass('sr-only');
+  });
+
+  test('ST-139: reduced motion leaves the verdict figure settled with no tween', () => {
+    const original = window.matchMedia.bind(window);
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: (query: string) => ({ ...original(query), matches: query.includes('reduce') }),
+    });
+    try {
+      renderActiveFocus(activeFocusFixture());
+      const [, animated] = screen.getAllByText('0.6 → 0.72 share converted');
+      if (animated === undefined) throw new Error('the animated verdict figure did not render');
+      // No tween may start: the figure holds its natural, final state.
+      expect(animated.style.opacity).toBe('');
+      expect(animated.style.transform).toBe('');
+      expect(animated.textContent).toBe('0.6 → 0.72 share converted');
+    } finally {
+      Object.defineProperty(window, 'matchMedia', { writable: true, value: original });
+    }
+  });
+
+  test('ST-139: under motion the verdict figure enters from hidden and settles clean', async () => {
+    const original = window.matchMedia.bind(window);
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: (query: string) => ({ ...original(query), matches: query.includes('no-preference') }),
+    });
+    gsap.globalTimeline.timeScale(20);
+    try {
+      renderActiveFocus(activeFocusFixture());
+      const [, animated] = screen.getAllByText('0.6 → 0.72 share converted');
+      if (animated === undefined) throw new Error('the animated verdict figure did not render');
+      // The from-state applies synchronously on mount: the figure starts hidden.
+      expect(animated.style.opacity).toBe('0');
+      expect(animated.textContent).toBe('0.6 → 0.72 share converted');
+      // The timeline ends with clearProps, so nothing inline remains.
+      await waitFor(() => expect(animated.style.opacity).toBe(''));
+      expect(animated).toBeVisible();
+    } finally {
+      gsap.globalTimeline.timeScale(1);
+      Object.defineProperty(window, 'matchMedia', { writable: true, value: original });
+    }
   });
 
   test('ST-116: a reachable floor counts the games between the player and a verdict', () => {
@@ -560,7 +612,7 @@ describe('ActiveFocusView headings and trend words', () => {
     );
     expect(screen.getByText(/Flat/)).toBeInTheDocument();
     expect(screen.getByText('→')).toBeInTheDocument();
-    expect(screen.getByText(/0\.5 → 0\.5 share converted/)).toBeInTheDocument();
+    expect(screen.getAllByText(/0\.5 → 0\.5 share converted/)).toHaveLength(2);
   });
 
   test('reads a declining verdict as declining', () => {

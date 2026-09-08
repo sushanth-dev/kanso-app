@@ -1,5 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
-import gsap from 'gsap';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Card } from '@astryxdesign/core/Card';
 import { Heading } from '@astryxdesign/core/Heading';
@@ -7,7 +6,7 @@ import { Link } from '@astryxdesign/core/Link';
 import { Text } from '@astryxdesign/core/Text';
 import type { MovePly } from '../api/diagnosis-api.ts';
 import type { Mistake } from '../api/diagnosis-api.ts';
-import { MOTION_DURATION, MOTION_EASE } from '../motion-tokens.ts';
+import { useRevealSequence } from '../use-reveal-sequence.ts';
 import { evalLabel } from './eval-bar.tsx';
 
 /**
@@ -269,50 +268,7 @@ export function MoveCard({
 export function ResultReveal({ result, gloss }: { result: string; gloss?: ReactNode }) {
   const figureRef = useRef<HTMLSpanElement | null>(null);
   const glossRef = useRef<HTMLParagraphElement | null>(null);
-  useLayoutEffect(() => {
-    const figure = figureRef.current;
-    if (figure === null) return undefined;
-    const context = gsap.context(() => {
-      const media = gsap.matchMedia();
-      media.add(
-        {
-          reduce: '(prefers-reduced-motion: reduce)',
-          motion: '(prefers-reduced-motion: no-preference)',
-        },
-        (mediaContext) => {
-          const { reduce } = mediaContext.conditions as { reduce: boolean };
-          if (reduce) return undefined;
-          const timeline = gsap.timeline();
-          timeline.from(figure, {
-            opacity: 0,
-            y: 6,
-            duration: MOTION_DURATION.slow,
-            ease: MOTION_EASE.decelerate,
-            clearProps: 'opacity,transform',
-          });
-          const gloss = glossRef.current;
-          if (gloss !== null) {
-            timeline.from(
-              gloss,
-              {
-                opacity: 0,
-                y: 6,
-                duration: MOTION_DURATION.base,
-                ease: MOTION_EASE.decelerate,
-                clearProps: 'opacity,transform',
-              },
-              '>0.08',
-            );
-          }
-          return () => {
-            timeline.kill();
-          };
-        },
-      );
-      return () => media.revert();
-    });
-    return () => context.revert();
-  }, [result, gloss]);
+  useRevealSequence(figureRef, glossRef, [result, gloss]);
   return (
     <>
       <Text className="font-mono text-lg text-primary">

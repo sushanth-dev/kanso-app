@@ -665,8 +665,29 @@ not fifty. `insufficient_evidence` is prose, never a zero or an empty chart:
 what cannot be said yet, and what would change it. A coach instruction is
 shown verbatim as text, marked "Unverified", with the paired focus named and
 its numbers labelled as the paired number rather than a measurement of the
-instruction. The active-focus verdict number renders as plain mono text, the
-same as the game result and the report's rank-one weakness.
+instruction.
+
+The active-focus verdict number is the surface's one authored motion moment
+(ST-139): the mono `baselineValue → currentValue unit` line enters through a
+GSAP timeline, a fade and rise on the slow 320ms decelerate token with the
+`windowGames` line following on the same ease, the accessible value held in
+an sr-only span with the animated figure aria-hidden on top of it, the
+dual-span pattern the landing hero established. `gsap.matchMedia()` renders
+the final state with no tween under reduced motion, and the DOM's natural
+state is that same final state, so the sequence degrades everywhere. The
+mechanic is shared: `use-reveal-sequence.ts` is the one hook behind the
+focus verdict and the game result's reveal, extracted when the verdict
+became its third caller.
+
+ST-139 restyles the surface onto the ST-133 system: the route's loading and
+error states, both states' headers, the ranking section (its pending
+skeleton included), the coach-instruction card and form, the catalogue focus
+card, the practice line, both trend cards, and the assignment-links section
+enter with the same `reveal-in` treatment every surface ships, and the
+catalogue grid keeps its `stagger-in`. The public shared assignment reader
+carries the same entrances on its header lines, its instruction block, and
+each of the confirm section's four states, minus every account affordance,
+exactly as it does today.
 
 ST-117 adds the assignment link to the same surface. Creation, list, copy, and
 confirm-then-revoke live in an "Assignment links" section on the focus page in
