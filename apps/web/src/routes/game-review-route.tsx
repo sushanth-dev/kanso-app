@@ -428,10 +428,13 @@ export function GameReviewScreen({
               }
             />
             {currentMistake !== undefined ? (
-              <>
+              /* Stepping onto a mistake mounts two large cards; keying them to
+                 the mistake rides the base reveal, so the page settles instead
+                 of jumping. */
+              <div key={currentMistake.id} className="reveal-in space-y-4">
                 <ExplanationCard mistakeId={currentMistake.id} />
                 <CctScanCard mistakeId={currentMistake.id} />
-              </>
+              </div>
             ) : null}
           </section>
           <GameShareLinksSection gameId={game.id} />

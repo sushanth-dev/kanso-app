@@ -262,8 +262,8 @@ function DrillSession({
 
   const current = queue[0]!;
   return (
-    <div className="space-y-4">
-      <header className="reveal-in space-y-1">
+    <div className="reveal-in space-y-4">
+      <header className="space-y-1">
         <Heading level={1}>{label}</Heading>
         <Text as="p" display="block" type="supporting" className="text-sm">
           {queue.length} puzzle{queue.length === 1 ? '' : 's'} to go, {solvedCount} solved. Theme:{' '}
@@ -444,7 +444,7 @@ function DrillCard({
           label={boardLabel}
         />
       </div>
-      <Card className="reveal-in space-y-3 p-4">
+      <Card className="space-y-3 p-4">
         {status === 'playing' ? (
           <>
             <Heading level={3}>Find the best move.</Heading>
@@ -476,12 +476,14 @@ function DrillCard({
           </Heading>
         ) : null}
         {status === 'solved' ? (
-          <>
+          /* The rare high-emotion moment: the solve verdict settles in on the
+             delight budget instead of swapping as plain text. */
+          <div className="pop-in space-y-3">
             <Heading level={3}>Solved.</Heading>
             <Text as="p" display="block" type="supporting">
               Dealing the next puzzle…
             </Text>
-          </>
+          </div>
         ) : null}
         {status === 'revealing' || status === 'revealed' ? (
           <>

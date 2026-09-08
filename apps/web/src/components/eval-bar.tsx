@@ -39,8 +39,10 @@ export interface EvalBarProps {
 
 /**
  * The neutral white/black fill bar from DESIGN.md. White's share fills from the
- * top, black's from the bottom, never red-to-green. The fill height transitions
- * over the slow 320ms board transition, collapsing to zero under reduced motion.
+ * top, black's from the bottom, never red-to-green. The black share scales from
+ * the bottom edge on the base 200ms standard ease - transform only, so the
+ * boundary moves without laying the bar out on every engine update - and jumps
+ * instantly under reduced motion.
  */
 export function EvalBar({ evaluation, label }: EvalBarProps) {
   const share = whiteShare(evaluation);
@@ -51,15 +53,11 @@ export function EvalBar({ evaluation, label }: EvalBarProps) {
       className="relative h-40 w-6 shrink-0 overflow-hidden rounded-control border border-border-strong bg-raised"
     >
       <div
-        className="absolute inset-x-0 bottom-0 bg-ink"
-        style={{ height: `${(1 - share) * 100}%` }}
-      />
-      <div
-        className="absolute inset-x-0 top-0 bg-raised"
+        className="absolute inset-0 origin-bottom bg-ink"
         style={{
-          height: `${share * 100}%`,
-          transitionProperty: 'height',
-          transitionDuration: 'var(--kanso-motion-duration-slow)',
+          transform: `scaleY(${1 - share})`,
+          transitionProperty: 'transform',
+          transitionDuration: 'var(--kanso-motion-duration-base)',
           transitionTimingFunction: 'var(--kanso-motion-ease-standard)',
         }}
       />

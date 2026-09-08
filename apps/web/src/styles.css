@@ -95,24 +95,6 @@ a {
 .press:active:not(:disabled) {
   transform: scale(0.98);
 }
-/* A soft light sweep across the control on hover, so the action feels tactile.
-   Mirrors the Canvas UI button treatment without the html-in-canvas flag. */
-.press::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    105deg,
-    transparent 40%,
-    rgba(255, 255, 255, 0.35) 50%,
-    transparent 60%
-  );
-  transform: translateX(-120%);
-  transition: transform var(--kanso-motion-duration-slow) var(--kanso-motion-ease-standard);
-}
-.press:hover:not(:disabled)::after {
-  transform: translateX(120%);
-}
 @keyframes reveal-in {
   from {
     opacity: 0;
@@ -125,6 +107,43 @@ a {
 }
 .reveal-in {
   animation: reveal-in var(--kanso-motion-duration-base) var(--kanso-motion-ease-decelerate) both;
+}
+/* The delight-budget entrance for rare, high-emotion moments - a puzzle
+   solved, a result landed: the block settles in from slightly small instead
+   of rising, the way something set down gently reads. Never for list items
+   or anything seen every session. */
+.pop-in {
+  animation: pop-in var(--kanso-motion-duration-slow) var(--kanso-motion-ease-decelerate) both;
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* The report's evidence accordion: the row collapses through grid-template-rows
+   rather than mounting and unmounting, so the page around it moves instead of
+   jumping. The inner row keeps min-height at zero; the wrapper is inert and
+   its content invisible at 0fr, so a closed fold is unreachable both ways. */
+.fold {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows var(--kanso-motion-duration-base) var(--kanso-motion-ease-standard),
+    opacity var(--kanso-motion-duration-base) var(--kanso-motion-ease-standard);
+}
+.fold[data-open='true'] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+.fold > div {
+  min-height: 0;
+  overflow: hidden;
 }
 .stagger-in > * {
   animation: reveal-in var(--kanso-motion-duration-base) var(--kanso-motion-ease-decelerate) both;
@@ -163,20 +182,20 @@ a {
   min-height: 44px;
 }
 
-/* Animated focus ring for text inputs: a teal glow sweeps around the field so
-   the focused input reads as alive, not just outlined. Mirrors the Canvas UI
-   input treatment without the html-in-canvas flag. Only runs while focused. */
+/* A settled focus ring for text inputs: one short glow that lands on the
+   ring and stays, so the field reads as alive without painting an infinite
+   animation for as long as it holds focus. */
 .input-focus-anim:focus {
   border-color: var(--kanso-color-focus-ring);
-  animation: input-focus-pulse 2.4s ease-in-out infinite;
+  box-shadow: 0 0 0 2px var(--kanso-color-focus-ring);
+  animation: input-focus-settle 180ms var(--kanso-motion-ease-decelerate) 1;
 }
-@keyframes input-focus-pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 2px var(--kanso-color-focus-ring);
+@keyframes input-focus-settle {
+  from {
+    box-shadow: 0 0 0 5px var(--kanso-color-focus-ring);
   }
-  50% {
-    box-shadow: 0 0 0 2px var(--kanso-color-action-primary-default);
+  to {
+    box-shadow: 0 0 0 2px var(--kanso-color-focus-ring);
   }
 }
 
@@ -376,6 +395,17 @@ html[data-contrast='high'] .astryx-badge.info {
     transition-duration: 0ms !important;
     animation-duration: 0ms !important;
     animation-delay: 0ms !important;
+  }
+  /* Reduced motion means gentler, not zero: color, border, and shadow
+     transitions aid comprehension (hover, focus, state changes) and carry no
+     movement, so the control utilities keep their fast duration while every
+     transform-driven transition stays instant. */
+  .transition-control,
+  .press {
+    transition-duration: var(--kanso-motion-duration-fast) !important;
+  }
+  .press {
+    transition-property: color, background-color, border-color, box-shadow;
   }
   /* ST-093: the Spinner's own fallback under this media query slows it to 3s
      rather than freezing it, because a frozen spinner reads as broken. The
