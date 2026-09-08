@@ -64,11 +64,12 @@ export function SharedProofSheetScreen({ sheet }: { sheet: SharedProofSheet }) {
       <div aria-hidden="true" className="mb-6">
         <Mark size={28} />
       </div>
-      <Text as="p" display="block" type="supporting" className="text-sm">
+      <Text as="p" display="block" type="supporting" className="text-sm reveal-in">
         {sheet.playerDisplayName}'s focus
       </Text>
-      <Heading level={1}>{sheet.focusTitle}</Heading>
-
+      <Heading level={1} className="reveal-in">
+        {sheet.focusTitle}
+      </Heading>
       <Text
         as="p"
         display="block"
@@ -83,7 +84,7 @@ export function SharedProofSheetScreen({ sheet }: { sheet: SharedProofSheet }) {
       </Text>
 
       {hasVerdict ? (
-        <dl className="mt-8 space-y-6">
+        <dl className="reveal-in mt-8 space-y-6">
           <div>
             <dt className="text-sm text-muted">Before the focus</dt>
             <dd className="mt-1 font-mono text-lg text-primary">
@@ -104,19 +105,19 @@ export function SharedProofSheetScreen({ sheet }: { sheet: SharedProofSheet }) {
           </div>
         </dl>
       ) : (
-        <Text as="p" display="block" type="supporting" className="mt-4">
+        <Text as="p" display="block" type="supporting" className="mt-4 reveal-in">
           {sheet.gamesBefore} {gamesLabel(sheet.gamesBefore)} before the focus, {sheet.gamesAfter}{' '}
           {gamesLabel(sheet.gamesAfter)} since. More games will make a verdict possible.
         </Text>
       )}
 
-      <Text as="p" display="block" type="supporting" className="mt-8 text-sm">
+      <Text as="p" display="block" type="supporting" className="mt-8 text-sm reveal-in">
         {STREAM_LABEL[sheet.stream]} games · {periodFormatter.format(new Date(sheet.periodStart))}{' '}
         to {periodFormatter.format(new Date(sheet.periodEnd))}
       </Text>
 
       {sheet.coachInstruction ? (
-        <section className="mt-8">
+        <section className="mt-8 reveal-in">
           <Text as="p" display="block" type="supporting" className="text-sm">
             The coach's instruction
           </Text>
@@ -145,8 +146,8 @@ export function SharedProofSheetRoute() {
         aria-busy="true"
         className="print-sheet mx-auto w-full max-w-2xl px-4 py-16 font-ui"
       >
-        <div className="h-8 w-48 rounded-control bg-sunken" />
-        <div className="mt-3 h-4 w-72 rounded-control bg-sunken" />
+        <div className="reveal-in h-8 w-48 rounded-control bg-sunken" />
+        <div className="reveal-in mt-3 h-4 w-72 rounded-control bg-sunken" />
       </main>
     );
   }
@@ -156,7 +157,9 @@ export function SharedProofSheetRoute() {
   if (query.isError && query.error instanceof ApiRequestError && query.error.status === 404) {
     return (
       <main className="print-sheet mx-auto w-full max-w-2xl px-4 py-16 font-ui">
-        <Heading level={1}>This link is no longer available.</Heading>
+        <Heading level={1} className="reveal-in">
+          This link is no longer available.
+        </Heading>
       </main>
     );
   }
@@ -167,8 +170,10 @@ export function SharedProofSheetRoute() {
   if (query.isError) {
     return (
       <main className="print-sheet mx-auto w-full max-w-2xl px-4 py-16 font-ui">
-        <Heading level={1}>This page could not be reached.</Heading>
-        <Text as="p" display="block" type="supporting" className="mt-4">
+        <Heading level={1} className="reveal-in">
+          This page could not be reached.
+        </Heading>
+        <Text as="p" display="block" type="supporting" className="mt-4 reveal-in">
           Check your connection and try again.
         </Text>
         <Button
@@ -177,7 +182,7 @@ export function SharedProofSheetRoute() {
           clickAction={() => {
             void query.refetch();
           }}
-          className="mt-6 press"
+          className="mt-6 reveal-in press"
         />
       </main>
     );
