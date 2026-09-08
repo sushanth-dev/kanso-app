@@ -36,15 +36,19 @@ export function ValuePropsSection() {
   useScrollReveal(boundaryRef);
 
   return (
-    <section className="glass flex flex-col justify-center border-t border-border-subtle">
-      <div className="mx-auto w-full max-w-5xl px-4 py-12 md:py-16">
-        <Heading level={2} className="text-2xl tracking-tight">
+    <section className="flex flex-col justify-center border-t border-border-subtle">
+      <div className="mx-auto w-full max-w-5xl px-4 py-16 md:py-24">
+        <p className="kicker">01 · The idea</p>
+        <Heading level={2} className="mt-3 text-3xl tracking-tight md:text-4xl">
           What Kanso does
         </Heading>
-        <div ref={propsRef} className="mt-8 grid gap-8 md:grid-cols-3">
-          {VALUE_PROPS.map((prop) => (
+        <div ref={propsRef} className="mt-10 grid gap-10 md:grid-cols-3">
+          {VALUE_PROPS.map((prop, index) => (
             <div key={prop.title}>
-              <Heading level={3} className="text-lg leading-snug">
+              <Text as="p" display="block" type="supporting" className="font-mono text-sm">
+                {String(index + 1).padStart(2, '0')}
+              </Text>
+              <Heading level={3} className="mt-2 text-lg leading-snug">
                 {prop.title}
               </Heading>
               <Text as="p" display="block" type="supporting" className="mt-2">
@@ -56,7 +60,7 @@ export function ValuePropsSection() {
 
         <div
           ref={boundaryRef}
-          className="mt-14 grid gap-8 border-t border-border-subtle pt-8 md:grid-cols-2"
+          className="mt-16 grid gap-10 border-t border-border-subtle pt-10 md:grid-cols-2"
         >
           <div>
             <Heading level={3} className="text-lg leading-snug">
