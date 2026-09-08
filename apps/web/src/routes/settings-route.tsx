@@ -128,7 +128,9 @@ export function SettingsScreen({ me, signOut, accountApi, queryClient }: Setting
           <Badge label={`Level ${me.player.level}`} variant="info" />
         </div>
         <div className="mt-3">
-          <Link href="/player">Edit player</Link>
+          <Link href="/player" className="min-h-11 items-center">
+            Edit player
+          </Link>
         </div>
       </section>
 
@@ -169,8 +171,8 @@ export function SettingsScreen({ me, signOut, accountApi, queryClient }: Setting
               setContrast(value);
             }}
           >
-            <RadioListItem label="Standard" value="standard" />
-            <RadioListItem label="High contrast" value="high" />
+            <RadioListItem label="Standard" value="standard" className="min-h-11" />
+            <RadioListItem label="High contrast" value="high" className="min-h-11" />
           </RadioList>
         </div>
       </Card>

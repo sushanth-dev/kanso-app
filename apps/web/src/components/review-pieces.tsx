@@ -108,8 +108,8 @@ function NotationMove({
       title={mistake === undefined ? undefined : JUDGEMENT_LABEL[mistake.judgement]}
       className={
         isCurrent
-          ? 'press rounded-control bg-raised px-2 py-1 text-left font-mono text-sm ring-2 ring-focus'
-          : 'press rounded-control px-2 py-1 text-left font-mono text-sm hover:bg-sunken'
+          ? 'press min-h-11 rounded-control bg-raised px-2 text-left font-mono text-sm ring-2 ring-focus'
+          : 'press min-h-11 rounded-control px-2 text-left font-mono text-sm hover:bg-sunken'
       }
     >
       {ply.san}

@@ -185,7 +185,7 @@ export function ProofSheetScreen() {
                   label={copiedId === sheet.id ? 'Copied' : 'Copy'}
                   variant="secondary"
                   onClick={() => void handleCopy(sheet)}
-                  className="press"
+                  className="min-h-11 press"
                 />
               </div>
               {confirmingId === sheet.id ? (
@@ -198,14 +198,14 @@ export function ProofSheetScreen() {
                       label={revokingId === sheet.id ? 'Revoking...' : 'Confirm revoke'}
                       variant="destructive"
                       onClick={() => void handleRevoke(sheet)}
-                      className="press"
+                      className="min-h-11 press"
                       isDisabled={revokingId === sheet.id}
                     />
                     <Button
                       label="Keep link"
                       variant="secondary"
                       onClick={() => setConfirmingId(null)}
-                      className="press"
+                      className="min-h-11 press"
                       isDisabled={revokingId === sheet.id}
                     />
                   </div>
@@ -215,7 +215,7 @@ export function ProofSheetScreen() {
                   label="Revoke link"
                   variant="secondary"
                   onClick={() => setConfirmingId(sheet.id)}
-                  className="mt-3 press"
+                  className="mt-3 min-h-11 press"
                 />
               )}
             </Card>

@@ -183,7 +183,9 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
             </Field>
             {!isSignUp ? (
               <Text as="p" display="block" className="text-right">
-                <Link href="/forgot-password">Forgot password?</Link>
+                <Link href="/forgot-password" className="min-h-11 items-center">
+                  Forgot password?
+                </Link>
               </Text>
             ) : null}
             {isSignUp ? (
@@ -209,7 +211,9 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
         </form>
         <Text as="p" display="block" type="supporting" className="mt-4 text-center">
           {isSignUp ? 'Already have an account? ' : 'Need an account? '}
-          <Link href={isSignUp ? '/sign-in' : '/sign-up'}>{isSignUp ? 'Sign in' : 'Sign up'}</Link>
+          <Link href={isSignUp ? '/sign-in' : '/sign-up'} className="min-h-11 items-center">
+            {isSignUp ? 'Sign in' : 'Sign up'}
+          </Link>
         </Text>
       </Card>
     </>

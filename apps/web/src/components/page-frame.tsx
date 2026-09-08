@@ -128,7 +128,7 @@ export function PageFrame({ children }: PageFrameProps) {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="ml-auto md:hidden"
+                  className="ml-auto min-h-11 min-w-11 md:hidden"
                   label={mobileOpen ? 'Close menu' : 'Open menu'}
                   icon={<Icon icon={mobileOpen ? 'close' : 'menu'} size="sm" />}
                   aria-expanded={mobileOpen}
