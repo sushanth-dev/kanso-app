@@ -81,6 +81,32 @@ describe('TournamentsRoute', () => {
     );
   });
 
+  test('ST-145: the list enters on the system and its card buttons hold the touch floor', async () => {
+    vi.spyOn(tournamentApi, 'listTournaments').mockResolvedValue({
+      tournaments: [
+        {
+          id: '00000000-0000-4000-8000-0000000000aa',
+          name: 'Delhi Open',
+          site: 'Delhi',
+          startedAt: '2026-08-01T00:00:00.000Z',
+          endedAt: '2026-08-05T00:00:00.000Z',
+          gameCount: 7,
+          analysedCount: 7,
+        },
+      ],
+    });
+
+    renderAt('/tournaments');
+    expect(await screen.findByText('Delhi Open')).toBeVisible();
+    expect(
+      screen.getByRole('heading', { name: 'Your tournaments' }).closest('.reveal-in'),
+    ).not.toBeNull();
+    expect(screen.getAllByRole('list').some((el) => el.classList.contains('stagger-in'))).toBe(
+      true,
+    );
+    expect(screen.getByRole('link', { name: 'Open tournament' })).toBeVisible();
+  });
+
   test('shows an EmptyState when there are no tournaments', async () => {
     vi.spyOn(tournamentApi, 'listTournaments').mockResolvedValue({ tournaments: [] });
 
