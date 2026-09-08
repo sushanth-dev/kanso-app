@@ -102,6 +102,24 @@ describe('TransferGapRoute', () => {
     expect(screen.getByText('-20')).toBeVisible();
   });
 
+  test('ST-146: the surface enters on the system and the refresh holds the touch floor', async () => {
+    vi.spyOn(diagnosisApi, 'getTransferGap').mockResolvedValue({
+      playerId: '00000000-0000-4000-8000-000000000001',
+      overTheBoardRating: 1300,
+      chesscom: { rating: 1500, gap: 200 },
+      lichess: { rating: 1280, gap: -20 },
+    });
+
+    renderAt('/transfer-gap');
+
+    expect(
+      (await screen.findByRole('heading', { name: 'Rating transfer gap' })).closest('header'),
+    ).toHaveClass('reveal-in');
+    expect(await screen.findByText('Online vs over the board')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Refresh ratings' })).toHaveClass('min-h-11');
+    expect(screen.getAllByText(/^The gap across the season/).length).toBeGreaterThan(0);
+  });
+
   test('shows an EmptyState when the gap fails to load', async () => {
     vi.spyOn(diagnosisApi, 'getTransferGap').mockRejectedValue(
       new ApiRequestError(500, 'internal_error', undefined, 'Server error.'),
