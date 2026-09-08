@@ -165,6 +165,7 @@ function CurriculumCard({ item }: { item: ActionItemRow }) {
         </Text>
         <Link
           href={`https://www.google.com/search?q=${encodeURIComponent(stripTierTag(item.resource))}`}
+          className="min-h-11 items-center"
         >
           {stripTierTag(item.resource)}
         </Link>
@@ -184,7 +185,11 @@ function CurriculumCard({ item }: { item: ActionItemRow }) {
         </div>
       ) : (
         <div>
-          <Link onClick={() => setOpen(!open)} aria-expanded={open}>
+          <Link
+            onClick={() => setOpen(!open)}
+            aria-expanded={open}
+            className="min-h-11 items-center"
+          >
             {open ? 'Cancel' : 'Take assessment'}
           </Link>
           {open ? <AssessmentForm item={item} /> : null}
@@ -204,7 +209,7 @@ export function CurriculumRoute() {
   const itemsQuery = useQuery(actionItemsQueryOptions());
 
   const header = (
-    <header className="space-y-4">
+    <header className="reveal-in space-y-4">
       <Heading level={1}>Training curriculum</Heading>
       <Text as="p" display="block" type="supporting">
         Complete assessments on your assigned resources to demonstrate mastery and earn XP.
@@ -216,7 +221,7 @@ export function CurriculumRoute() {
     return (
       <div className="space-y-6">
         {header}
-        <div className="flex justify-center py-16">
+        <div className="reveal-in flex justify-center py-16">
           <Spinner size="md" />
         </div>
       </div>
@@ -228,6 +233,7 @@ export function CurriculumRoute() {
       <div className="space-y-6">
         {header}
         <EmptyState
+          className="reveal-in"
           title="Your curriculum could not be loaded"
           description="Try again in a moment."
           headingLevel={2}
@@ -243,7 +249,7 @@ export function CurriculumRoute() {
   return (
     <div className="space-y-6">
       {header}
-      <div className="flex gap-2" role="tablist" aria-label="Curriculum items">
+      <div className="reveal-in flex gap-2" role="tablist" aria-label="Curriculum items">
         <Button
           type="button"
           label={`Pending (${pending.length})`}
@@ -251,6 +257,7 @@ export function CurriculumRoute() {
           onClick={() => setTab('pending')}
           role="tab"
           aria-selected={tab === 'pending'}
+          className="min-h-11 press"
         />
         <Button
           type="button"
@@ -259,14 +266,20 @@ export function CurriculumRoute() {
           onClick={() => setTab('completed')}
           role="tab"
           aria-selected={tab === 'completed'}
+          className="min-h-11 press"
         />
       </div>
       {shown.length === 0 ? (
         <EmptyState
+          className="reveal-in"
           title="No items yet"
           description="Your coach assigns resources when your report finds a weakness."
           headingLevel={2}
-          actions={<Link href="/report">Get started</Link>}
+          actions={
+            <Link href="/report" className="min-h-11 items-center">
+              Get started
+            </Link>
+          }
         />
       ) : (
         <ul className="stagger-in space-y-3">

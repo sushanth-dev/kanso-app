@@ -52,6 +52,28 @@ describe('CurriculumRoute', () => {
     vi.clearAllMocks();
   });
 
+  test('ST-142: the page chrome enters through the system, and the tabs hold the touch floor', async () => {
+    renderCurriculum([actionItemFixture()]);
+    expect(await screen.findByText('Beginner')).toBeVisible();
+    expect(
+      screen.getByRole('heading', { name: 'Training curriculum' }).closest('.reveal-in'),
+    ).not.toBeNull();
+    expect(
+      screen.getByRole('tablist', { name: 'Curriculum items' }).classList.contains('reveal-in'),
+    ).toBe(true);
+    for (const name of [/^Pending/, /^Completed/]) {
+      expect(screen.getByRole('tab', { name })).toHaveClass('min-h-11');
+    }
+  });
+
+  test('ST-142: the error and empty states enter through the system, and the links hold the floor', async () => {
+    renderCurriculum([]);
+    expect(
+      (await screen.findByRole('heading', { name: 'No items yet' })).closest('.reveal-in'),
+    ).not.toBeNull();
+    expect(screen.getByRole('link', { name: 'Get started' })).toHaveClass('min-h-11');
+  });
+
   test('ST-107: lists a pending action item with its tier, resource, and an assessment link', async () => {
     renderCurriculum([actionItemFixture()]);
     // The tier tag is data for the badge, noise for the resource link.
