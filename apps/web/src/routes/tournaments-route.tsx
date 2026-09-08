@@ -104,7 +104,7 @@ export function TournamentsRoute() {
 
   return (
     <div className="space-y-6">
-      <header className="space-y-4">
+      <header className="reveal-in space-y-4">
         <Heading level={1}>Your tournaments</Heading>
         <Text as="p" display="block" type="supporting">
           One event at a time, with its games in round order.
@@ -112,18 +112,25 @@ export function TournamentsRoute() {
       </header>
 
       {tournamentsQuery.isPending ? (
-        <div role="status" aria-label="Loading tournaments" aria-busy="true" className="space-y-3">
+        <div
+          role="status"
+          aria-label="Loading tournaments"
+          aria-busy="true"
+          className="reveal-in space-y-3"
+        >
           <div className="h-20 rounded-surface bg-sunken" />
           <div className="h-20 rounded-surface bg-sunken" />
         </div>
       ) : tournamentsQuery.isError ? (
         <EmptyState
+          className="reveal-in"
           title="Your tournaments could not be loaded"
           description="Try again in a moment."
           headingLevel={2}
         />
       ) : tournamentsQuery.data.tournaments.length === 0 ? (
         <EmptyState
+          className="reveal-in"
           title="No tournaments yet"
           description="Import tournament games to see each event here."
           headingLevel={2}
