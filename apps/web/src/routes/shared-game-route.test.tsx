@@ -86,7 +86,9 @@ describe('SharedGameScreen', () => {
     render(<SharedGameScreen shared={gameFixture()} />);
 
     expect(screen.getByRole('heading', { name: 'Magness C vs Sushanth Kamabathula' }));
-    expect(screen.getByText('0-1')).toBeInTheDocument();
+    // ST-138: the result renders twice - an sr-only value with the animated
+    // figure aria-hidden on top - so the query is plural by design.
+    expect(screen.getAllByText('0-1')).toHaveLength(2);
     expect(screen.getByText('The player won.')).toBeInTheDocument();
     expect(screen.getByText('-2.3 pawns')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Moves' })).toBeInTheDocument();
