@@ -19,7 +19,12 @@ const createdFormatter = new Intl.DateTimeFormat('en-US', {
 
 function ProofSheetSkeleton() {
   return (
-    <div role="status" aria-label="Loading share links" aria-busy="true" className="space-y-4">
+    <div
+      role="status"
+      aria-label="Loading share links"
+      aria-busy="true"
+      className="reveal-in space-y-4"
+    >
       <div className="h-8 w-48 rounded-control bg-sunken" />
       <div className="h-4 w-72 rounded-control bg-sunken" />
       <div className="h-32 rounded-surface bg-sunken" />
@@ -78,7 +83,7 @@ export function ProofSheetScreen() {
   if (sheetsQuery.isPending) {
     return (
       <div className="space-y-6">
-        <header className="space-y-4">
+        <header className="reveal-in space-y-4">
           <Heading level={1}>Share a proof sheet</Heading>
         </header>
         <ProofSheetSkeleton />
@@ -93,7 +98,7 @@ export function ProofSheetScreen() {
   ) {
     return (
       <div className="space-y-6">
-        <header className="space-y-4">
+        <header className="reveal-in space-y-4">
           <Heading level={1}>Share a proof sheet</Heading>
         </header>
         <UpgradePrompt title="The proof sheet is part of the paid loop" />
@@ -104,10 +109,11 @@ export function ProofSheetScreen() {
   if (sheetsQuery.isError) {
     return (
       <div className="space-y-6">
-        <header className="space-y-4">
+        <header className="reveal-in space-y-4">
           <Heading level={1}>Share a proof sheet</Heading>
         </header>
         <EmptyState
+          className="reveal-in"
           title="Your share links could not be loaded"
           description="Try again in a moment."
           headingLevel={2}
@@ -120,7 +126,7 @@ export function ProofSheetScreen() {
 
   return (
     <div className="space-y-6">
-      <header className="space-y-4">
+      <header className="reveal-in space-y-4">
         <Heading level={1}>Share a proof sheet</Heading>
         <Text as="p" display="block" type="supporting">
           Send a parent a before-and-after page for this focus.
@@ -128,7 +134,7 @@ export function ProofSheetScreen() {
       </header>
 
       {needsFocus ? (
-        <Card>
+        <Card className="reveal-in">
           <Heading level={2}>Set a focus first</Heading>
           <Text as="p" display="block" type="supporting" className="mt-2">
             A proof sheet shows whether a focus is working, so you need one active before you can
@@ -145,7 +151,7 @@ export function ProofSheetScreen() {
 
       {error !== null ? <StatusMessage tone="error">{error}</StatusMessage> : null}
 
-      <Card>
+      <Card className="reveal-in">
         <Heading level={2}>Create a share link</Heading>
         <Text as="p" display="block" type="supporting" className="mt-2">
           The link opens the page a parent reads. It stays live until you revoke it.
@@ -160,11 +166,11 @@ export function ProofSheetScreen() {
       </Card>
 
       {sheets.length === 0 ? (
-        <Text as="p" display="block" type="supporting">
+        <Text as="p" display="block" type="supporting" className="reveal-in">
           No share links yet.
         </Text>
       ) : (
-        <div className="space-y-4">
+        <div className="reveal-in space-y-4">
           <Heading level={2}>Your share links</Heading>
           {sheets.map((sheet) => (
             <Card key={sheet.id}>
