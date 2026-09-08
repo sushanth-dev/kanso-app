@@ -106,6 +106,15 @@ describe('UpgradeRoute', () => {
     expect(screen.getByText('₹1,299')).toBeInTheDocument();
   });
 
+  test('carries the entrance motion classes on the header and the plan-card grid', async () => {
+    renderAt('/upgrade');
+
+    expect(
+      (await screen.findByRole('heading', { name: 'Choose a plan' })).closest('.reveal-in'),
+    ).not.toBeNull();
+    expect(screen.getByRole('heading', { name: 'Beginner' }).closest('.stagger-in')).not.toBeNull();
+  });
+
   test('marks intermediate as most popular', async () => {
     renderAt('/upgrade');
 
@@ -149,6 +158,9 @@ describe('UpgradeRoute', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Pro')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Pay \$/ })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'You are on the Pro plan' }).closest('.reveal-in'),
+    ).not.toBeNull();
   });
 
   test('shows which plan an intermediate account is already on', async () => {
