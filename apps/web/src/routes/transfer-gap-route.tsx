@@ -34,7 +34,7 @@ function ratingCell(label: string, rating: number | null, gap: number | null) {
 
 function TransferGapCard({ gap }: { gap: TransferGap }) {
   return (
-    <Card>
+    <Card className="reveal-in">
       <Heading level={2}>Online vs over the board</Heading>
       <Text as="p" display="block" type="supporting" className="mt-1 text-sm">
         Rapid rating on each platform, against your over-the-board rating.
@@ -72,7 +72,7 @@ export function TransferGapRoute() {
 
   return (
     <div className="space-y-6">
-      <header className="space-y-4">
+      <header className="reveal-in space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Heading level={1}>Rating transfer gap</Heading>
           <Button
@@ -80,6 +80,7 @@ export function TransferGapRoute() {
             variant="secondary"
             onClick={onRefresh}
             isDisabled={refreshing}
+            className="min-h-11"
           />
         </div>
         <Text as="p" display="block" type="supporting">
@@ -88,11 +89,17 @@ export function TransferGapRoute() {
       </header>
 
       {gapQuery.isPending ? (
-        <div role="status" aria-label="Loading rating gap" aria-busy="true" className="space-y-3">
+        <div
+          role="status"
+          aria-label="Loading rating gap"
+          aria-busy="true"
+          className="reveal-in space-y-3"
+        >
           <div className="h-32 rounded-surface bg-sunken" />
         </div>
       ) : gapQuery.isError ? (
         <EmptyState
+          className="reveal-in"
           title="Your rating gap could not be loaded"
           description="Try again in a moment."
           headingLevel={2}
@@ -102,11 +109,17 @@ export function TransferGapRoute() {
       )}
 
       {seriesQuery.isPending ? (
-        <div role="status" aria-label="Loading gap series" aria-busy="true" className="space-y-3">
+        <div
+          role="status"
+          aria-label="Loading gap series"
+          aria-busy="true"
+          className="reveal-in space-y-3"
+        >
           <div className="h-40 rounded-surface bg-sunken" />
         </div>
       ) : seriesQuery.isError ? (
         <EmptyState
+          className="reveal-in"
           title="The gap series could not be loaded"
           description="Try again in a moment."
           headingLevel={2}

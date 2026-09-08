@@ -203,7 +203,7 @@ const THIN_COPY: Record<Exclude<GapSeriesState, 'chart'>, (series: TransferGapSe
 export function GapSeriesCard({ series }: { series: TransferGapSeries }) {
   const state = gapSeriesState(series);
   return (
-    <Card className="space-y-2 p-4">
+    <Card className="reveal-in space-y-2 p-4">
       <Heading level={2}>The gap across the season</Heading>
       <Text as="p" display="block" type="supporting" className="mt-1 text-sm">
         One point per tournament, against your latest online rating.

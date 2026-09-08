@@ -497,6 +497,24 @@ text. The ranked list reveals as a stagger, and the page's entry blocks
 not-ready states, the tournament directory's card list) reveal with the
 same `reveal-in` treatment the rest of the system uses.
 
+### Transfer gap
+
+The transfer gap at `/transfer-gap` answers one question in two figures
+and one chart: how the online rapid ratings run against the
+over-the-board rating, and where the season's tournaments landed against
+that reference (ST-018, ST-120). The question is numeric, so the surface
+stays numeric: every rating, every signed gap, and every chart axis
+label is IBM Plex Mono, the Tabular Rule, and the sign - not hue alone -
+carries the meaning, with danger and success tinting only signed,
+explicit numbers.
+
+Since ST-146 the surface enters on the system: the header (with the
+refresh that truly re-reads the platforms), both skeletons and error
+states, the platform card, and the season-series card with all its
+honest thin states. The chart scales as one SVG block under its card's
+entrance and is never animated on its own.
+
+
 ### Game review
 
 The review surface is where a player sees the positions behind their mistakes:
