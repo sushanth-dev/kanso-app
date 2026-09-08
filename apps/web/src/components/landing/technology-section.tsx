@@ -35,15 +35,19 @@ export function TechnologySection() {
   useScrollReveal(notesRef);
 
   return (
-    <section className="glass flex flex-col justify-center border-t border-border-subtle">
-      <div className="mx-auto w-full max-w-5xl px-4 py-12 md:py-16">
-        <Heading level={2} className="text-2xl tracking-tight">
+    <section className="flex flex-col justify-center border-t border-border-subtle">
+      <div className="mx-auto w-full max-w-5xl px-4 py-16 md:py-24">
+        <p className="kicker">02 · The engine room</p>
+        <Heading level={2} className="mt-3 text-3xl tracking-tight md:text-4xl">
           The technology behind it
         </Heading>
-        <div ref={notesRef} className="mt-8 grid gap-8 md:grid-cols-3">
-          {TECH_NOTES.map((note) => (
+        <div ref={notesRef} className="mt-10 grid gap-10 md:grid-cols-3">
+          {TECH_NOTES.map((note, index) => (
             <div key={note.title}>
-              <Heading level={3} className="text-lg leading-snug">
+              <Text as="p" display="block" type="supporting" className="font-mono text-sm">
+                {String(index + 1).padStart(2, '0')}
+              </Text>
+              <Heading level={3} className="mt-2 text-lg leading-snug">
                 {note.title}
               </Heading>
               <Text as="p" display="block" type="supporting" className="mt-2">

@@ -32,12 +32,17 @@ export function LandingContent({ signedIn }: LandingContentProps) {
 
       <TechnologySection />
 
-      <section className="glass flex flex-col justify-center border-t border-border-subtle">
-        <div className="mx-auto w-full max-w-5xl px-4 py-12 md:py-16 text-center">
-          <Heading level={2} className="text-2xl tracking-tight">
+      <section className="relative flex flex-col justify-center overflow-x-clip border-t border-border-subtle">
+        <div
+          aria-hidden="true"
+          className="lamp pointer-events-none absolute inset-x-0 top-0 mx-auto h-[360px] max-w-3xl"
+        />
+        <div className="relative mx-auto w-full max-w-5xl px-4 py-16 text-center md:py-24">
+          <p className="kicker">03 · Begin</p>
+          <Heading level={2} className="mt-3 text-3xl tracking-tight md:text-4xl">
             See what is actually costing you rating
           </Heading>
-          <div ref={ctaRef} className="mt-8 flex flex-col items-center gap-3">
+          <div ref={ctaRef} className="mt-10 flex flex-col items-center gap-3">
             {signedIn ? (
               <Button label="Go to report" href="/report" variant="primary" />
             ) : (

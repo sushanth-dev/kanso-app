@@ -1,52 +1,57 @@
 {
-  "$description": "Dark theme overrides, merged over color.semantic.json at build time. Palette from direction 1b (Rapid).",
+  "$description": "Dark theme overrides, merged over color.semantic.json at build time. Palette from ST-148 (Nocturne): the Study Room after dark, lit by one lamp. Replaces the unwired Rapid slate/periwinkle draft.",
   "color": {
     "$type": "color",
     "surface": {
       "page": {
-        "$value": "{color.slate.900}"
+        "$value": "{color.nocturne.850}",
+        "$description": "Warm lamplit black. The board stays the brightest object on screen."
       },
       "raised": {
-        "$value": "{color.slate.850}"
+        "$value": "{color.nocturne.800}"
       },
       "sunken": {
-        "$value": "{color.slate.950}"
+        "$value": "{color.nocturne.900}"
       }
     },
     "text": {
       "primary": {
-        "$value": "{color.slate.100}"
+        "$value": "{color.nocturne.50}",
+        "$description": "Bone. 15:1 on the page; survives AAA on all three surfaces."
       },
       "muted": {
-        "$value": "{color.slate.400}"
+        "$value": "{color.nocturne.100}",
+        "$description": "Muted bone at 7:1+, so muted never means illegible."
       },
       "on-accent": {
-        "$value": "{color.periwinkle.950}"
+        "$value": "{color.nocturne.900}",
+        "$description": "Near-black labels on ember fills: dark-on-warm reads printed, not neon."
       },
       "inverse": {
-        "$value": "{color.slate.950}"
+        "$value": "{color.nocturne.950}"
       }
     },
     "action": {
       "primary": {
         "default": {
-          "$value": "{color.periwinkle.300}",
-          "$description": "Dark-mode action accent: light enough to pass 4.5:1 as body text on the page, so one token serves text and fills."
+          "$value": "{color.ember.500}",
+          "$description": "Terracotta lifted to ember. 5:1+ as body text, so one token serves fills and text."
         },
         "hover": {
-          "$value": "{color.periwinkle.200}"
+          "$value": "{color.ember.400}"
         },
         "text": {
-          "$value": "{color.periwinkle.950}"
+          "$value": "{color.nocturne.900}"
         }
       }
     },
     "link": {
-      "$value": "{color.periwinkle.300}"
+      "$value": "{color.ember.300}",
+      "$description": "Link ember at 7:1+; the underline stays the mandatory second channel."
     },
     "info": {
-      "$value": "{color.cyan.300}",
-      "$description": "Data/informational role in dark mode; stays distinct from the periwinkle accent under color-vision simulation."
+      "$value": "{color.gold.400}",
+      "$description": "Candle gold for coach notes and annotations; distinct from the ember accent under colour-vision simulation."
     },
     "success": {
       "$value": "{color.green.300}"
@@ -56,26 +61,27 @@
     },
     "border": {
       "subtle": {
-        "$value": "{color.slate.700}"
+        "$value": "{color.nocturne.700}"
       },
       "strong": {
-        "$value": "{color.slate.500}"
+        "$value": "{color.nocturne.300}"
       }
     },
     "focus": {
       "ring": {
-        "$value": "{color.periwinkle.300}"
+        "$value": "{color.teal.300}",
+        "$description": "Teal lift: 9:1 on the page and never reads as selection."
       }
     },
     "eval": {
       "white-advantage": {
-        "$value": "{color.slate.100}"
+        "$value": "{color.nocturne.50}"
       },
       "black-advantage": {
-        "$value": "{color.slate.950}"
+        "$value": "{color.nocturne.950}"
       },
       "track-border": {
-        "$value": "{color.slate.400}"
+        "$value": "{color.nocturne.100}"
       }
     }
   }

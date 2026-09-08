@@ -129,6 +129,14 @@
       }
     },
     "teal": {
+      "300": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.298, 0.769, 0.769],
+          "hex": "#4cc4c4"
+        },
+        "$description": "Focus ring and informational lift for dark; the accent's opposite under colour-vision simulation."
+      },
       "600": {
         "$value": {
           "colorSpace": "srgb",
@@ -351,6 +359,98 @@
           "components": [0.914, 0.706, 0.298],
           "hex": "#e9b44c"
         }
+      }
+    },
+    "nocturne": {
+      "50": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.937, 0.902, 0.831],
+          "hex": "#efe6d4"
+        },
+        "$description": "Bone. Primary text on the dark study canvas."
+      },
+      "100": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.675, 0.624, 0.537],
+          "hex": "#ac9f89"
+        },
+        "$description": "Muted bone. Held at 7:1+ on the Nocturne page."
+      },
+      "300": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.431, 0.373, 0.298],
+          "hex": "#6e5f4c"
+        },
+        "$description": "Strong hairline on dark; 3:1+ against the page."
+      },
+      "700": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.231, 0.196, 0.153],
+          "hex": "#3b3227"
+        },
+        "$description": "Subtle hairline and divider on dark."
+      },
+      "800": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.114, 0.09, 0.071],
+          "hex": "#1d1712"
+        },
+        "$description": "Raised surface: the study's furniture."
+      },
+      "850": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.078, 0.063, 0.043],
+          "hex": "#14100b"
+        },
+        "$description": "Page ground: warm lamplit black, never slate."
+      },
+      "900": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.051, 0.039, 0.024],
+          "hex": "#0d0a06"
+        },
+        "$description": "Sunken wells and the label ink on ember fills."
+      },
+      "950": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.039, 0.031, 0.02],
+          "hex": "#0a0805"
+        },
+        "$description": "Black's half of the evaluation bar on dark."
+      }
+    },
+    "ember": {
+      "300": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.878, 0.541, 0.369],
+          "hex": "#e08a5e"
+        },
+        "$description": "Link ember; 7:1+ as body text on the dark page."
+      },
+      "400": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.878, 0.494, 0.333],
+          "hex": "#e07e55"
+        },
+        "$description": "Hover and pressed step of the dark action accent."
+      },
+      "500": {
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.831, 0.412, 0.247],
+          "hex": "#d4693f"
+        },
+        "$description": "The action accent after dark: terracotta lifted to ember, 5:1+ on the page."
       }
     }
   }

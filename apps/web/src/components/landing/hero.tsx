@@ -1,49 +1,47 @@
 /*
- * Direction contract (ST-133, replaces seed 4a5813cc).
+ * Direction contract (ST-148, replaces the ST-133 contract).
  *
- * THESIS: the landing page still proves the free thing by showing it, the
- * one thesis sprint 12's coherence pass and this sprint's own audit both
- * confirmed still fits: a rendered ranked diagnosis, not a claim about one.
- * What changes is that the proof is now performed, not dropped in statically
- * - the visitor watches the headline resolve and the diagnosis assemble
- * itself, word by row, the same way a real report arrives.
+ * THESIS: the landing proves the free thing by showing it - and under
+ * Nocturne the proof now stands in the app's own world: the study after
+ * dark, lit by one lamp. The focal asset is the real Board component
+ * (product truth, never a mockup) holding the position before Morphy's
+ * Opera Game queen sacrifice, the most famous attack in the literature;
+ * the synthetic, labelled sample diagnosis card overlaps its edge, promise
+ * and proof composed as one object. Ghost move notation - oversized IBM
+ * Plex Mono at low alpha, aria-hidden - sets the typographic texture.
  *
- * OWN-WORLD: Study Room, kept rather than replaced. A materially new palette
- * or type family for one page would strand every other route on the system
- * ST-071 through ST-104 spent nine stories tuning for contrast and the board
- * floor, and no new palette was briefed for this story. What is materially
- * new is the composition, the motion narrative, and the imagery-free,
- * data-led hero this story earns instead: Source Serif 4 display over Public
- * Sans, IBM Plex Mono for every number, warm paper, one terracotta accent,
- * flat tonal depth - all unchanged, all now choreographed.
+ * OWN-WORLD: Nocturne tokens do the world-building (warm ink canvas, bone
+ * type, ember accent, hairline elevation); this component owns the
+ * composition: kicker, statement-scale Source Serif 4 headline, the lamp
+ * glow (.lamp, the one narrative light source), the tilted board, the
+ * overlapping diagnosis card.
  *
  * MOTION: GSAP drives an intro timeline scoped to this component
- * (`gsap.context`): the headline reveals word by word, then the subhead, the
- * parent line, and the call to action rise in behind it, then the sample
- * diagnosis card settles in last, proof arriving after promise. Durations and
- * eases are the same `--kanso-motion-duration-*`/`--kanso-motion-ease-*`
- * values the rest of the app's CSS motion already uses (see
- * `motion-tokens.ts`), so JS-driven and CSS-driven motion share one rhythm.
- * Lenis (`useSmoothScroll`, mounted once in `LandingRoute`) is the page's one
- * smooth-scroll engine; nothing in this component drives scroll itself.
+ * (`gsap.context`): the headline reveals word by word, then the copy, the
+ * call to action, and the board group rise in behind it. After entrance,
+ * the board group carries two additive motions, both whole-container
+ * transforms - never the pieces (ADR-0017's spirit carried to marketing):
+ * a pointer parallax (fine pointers only, quickTo, ±6°) and a scroll
+ * parallax (ScrollTrigger scrub, 60px total). Lenis stays the page's one
+ * smooth-scroll engine; nothing here scrolls on its own.
  *
  * REDUCED MOTION: `gsap.matchMedia()` keyed to
- * `(prefers-reduced-motion: reduce)` sets every element straight to its end
- * state with `gsap.set`, no tween, matching the rule the scrubbed sequences
- * elsewhere on the page follow.
+ * `(prefers-reduced-motion: reduce)` sets every element straight to its
+ * end state with `gsap.set`, no tween, and builds neither the pointer nor
+ * the scroll parallax.
  *
- * NO-JS: every element's hidden starting state is set by the effect, in JS,
- * never by a static class. With no JavaScript the DOM renders at its natural
- * opacity, in document order: a complete, readable first frame.
+ * NO-JS: every element's hidden starting state is set by the effect, in
+ * JS, never by a static class. With no JavaScript the DOM renders at its
+ * natural opacity, in document order: a complete, readable first frame.
  *
  * ICONS: the one Solar icon on this page rides the call to action
  * (`arrow-right-linear`, via `unplugin-icons` + `@iconify-json/solar`,
  * composed through Astryx `Icon`'s existing component mode). It is
  * decorative next to a labelled button, so it carries no `label` prop.
  *
- * THREE.JS: none. No effect here earns a custom WebGL scene under the
- * skill's own rule; the default the skill and ADR-0043 both state is that it
- * stays absent, and nothing found in writing this hero overrides that.
+ * THREE.JS: none. The product's own board is the depth element; a shader
+ * here would be ornamental under the skill's own purpose rule (and
+ * ADR-0043's default).
  */
 import { Fragment, useLayoutEffect, useRef } from 'react';
 import { Badge } from '@astryxdesign/core/Badge';
@@ -53,13 +51,25 @@ import { Heading } from '@astryxdesign/core/Heading';
 import { Icon } from '@astryxdesign/core/Icon';
 import { Text } from '@astryxdesign/core/Text';
 import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import ArrowRightIcon from '~icons/solar/arrow-right-linear';
 import { MOTION_DURATION, MOTION_EASE, STAGGER_STEP_SECONDS } from '../../motion-tokens.ts';
+import { Board } from '../board.tsx';
+
+gsap.registerPlugin(ScrollTrigger);
 
 const HEADLINE = 'Know the one thing to fix after every tournament.';
 const HEADLINE_WORDS = HEADLINE.split(' ');
 
 const SAMPLE_TOURNAMENT = 'A scholastic tournament · K-8 U1200 · 5 rounds';
+
+// Morphy vs the Duke of Brunswick and Count Isouard, Paris 1858 - the Opera
+// Game - after 15...Nxd7, white to move: the position before 16.Qb8+!! the
+// most famous queen sacrifice in the literature. A real, public-domain
+// position; the board renders it statically, never animated.
+const HERO_FEN = '4k2r/p2n4/4q3/4p1B1/1Q2P3/8/PPP2PPP/2K5 w k - 0 16';
+const HERO_BOARD_LABEL =
+  "Position from Morphy's Opera Game, 1858. White to move, before the queen sacrifice 16 Qb8.";
 
 interface SampleWeakness {
   rank: number;
@@ -78,7 +88,7 @@ const SAMPLE_WEAKNESSES: SampleWeakness[] = [
 
 function SampleDiagnosis() {
   return (
-    <Card className="w-full p-6 shadow-[0_24px_48px_-24px_rgba(61,40,20,0.45)]">
+    <Card className="w-full p-6">
       <Text as="p" display="block" type="supporting">
         Synthetic example
       </Text>
@@ -112,6 +122,7 @@ interface HeroProps {
 
 export function Hero({ signedIn }: HeroProps) {
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const tiltRef = useRef<HTMLDivElement | null>(null);
   const wordRefs = useRef<HTMLSpanElement[]>([]);
   wordRefs.current = [];
 
@@ -121,6 +132,9 @@ export function Hero({ signedIn }: HeroProps) {
 
     const context = gsap.context(() => {
       const media = gsap.matchMedia();
+
+      // Entrance and pointer parallax share one conditioned context; the
+      // scroll parallax runs in its own, so reduce builds neither.
       media.add(
         {
           reduce: '(prefers-reduced-motion: reduce)',
@@ -130,6 +144,7 @@ export function Hero({ signedIn }: HeroProps) {
           const { reduce } = mediaContext.conditions as { reduce: boolean };
           const words = wordRefs.current;
           const rest = root.querySelectorAll<HTMLElement>('[data-hero-reveal]');
+          const tilt = tiltRef.current;
 
           if (reduce) {
             gsap.set(words, { opacity: 1, y: 0 });
@@ -161,9 +176,58 @@ export function Hero({ signedIn }: HeroProps) {
               '-=0.1',
             );
 
+          // Pointer parallax: fine pointers only, additive, whole-container.
+          if (tilt !== null && window.matchMedia('(pointer: fine)').matches) {
+            const toRotationY = gsap.quickTo(tilt, 'rotationY', {
+              duration: MOTION_DURATION.slow,
+              ease: 'power2.out',
+            });
+            const toRotationX = gsap.quickTo(tilt, 'rotationX', {
+              duration: MOTION_DURATION.slow,
+              ease: 'power2.out',
+            });
+            const onMove = (event: PointerEvent) => {
+              const rect = root.getBoundingClientRect();
+              const across = (event.clientX - rect.left) / rect.width - 0.5;
+              const down = (event.clientY - rect.top) / rect.height - 0.5;
+              toRotationY(across * 6);
+              toRotationX(-down * 4);
+            };
+            root.addEventListener('pointermove', onMove);
+            return () => {
+              root.removeEventListener('pointermove', onMove);
+              timeline.kill();
+            };
+          }
+
           return () => timeline.kill();
         },
       );
+
+      // Scroll parallax: the board sinks 60px as the hero leaves, the lamp's
+      // light falling away with it. Scrubbed, so it never plays on its own.
+      media.add('(prefers-reduced-motion: no-preference)', () => {
+        const tilt = tiltRef.current;
+        if (tilt === null) return undefined;
+        const tween = gsap.fromTo(
+          tilt,
+          { y: 30 },
+          {
+            y: -30,
+            ease: 'none',
+            scrollTrigger: {
+              trigger: root,
+              start: 'top top',
+              end: 'bottom top',
+              scrub: true,
+            },
+          },
+        );
+        return () => {
+          tween.scrollTrigger?.kill();
+          tween.kill();
+        };
+      });
 
       return () => media.revert();
     }, root);
@@ -174,11 +238,23 @@ export function Hero({ signedIn }: HeroProps) {
   return (
     <section
       ref={rootRef}
-      className="mx-auto flex w-full max-w-5xl flex-col justify-center px-4 py-12 md:py-16"
+      className="relative mx-auto w-full max-w-5xl overflow-x-clip px-4 pb-16 pt-12 md:pt-20"
     >
-      <div className="grid gap-10 md:grid-cols-2 md:items-center md:gap-12">
+      {/* The one narrative light source: a lamp over the board. Decorative,
+          aria-hidden, and never more than this hero and the closing CTA. */}
+      <div
+        aria-hidden="true"
+        className="lamp pointer-events-none absolute inset-x-0 -top-20 mx-auto h-[480px] max-w-4xl"
+      />
+      <div className="relative grid gap-12 md:grid-cols-2 md:items-center md:gap-10">
         <div>
-          <Heading level={1} className="text-3xl leading-tight tracking-tight md:text-4xl">
+          <p data-hero-reveal className="kicker">
+            Tournament-first chess study
+          </p>
+          <Heading
+            level={1}
+            className="mt-3 text-4xl font-semibold leading-tight tracking-tight md:text-5xl"
+          >
             {/* The accessible name is the unsplit string; the word spans below
                 are a decorative, aria-hidden duplicate the intro timeline
                 animates. Both render identically with no JavaScript. */}
@@ -202,7 +278,7 @@ export function Hero({ signedIn }: HeroProps) {
               ))}
             </span>
           </Heading>
-          <div data-hero-reveal className="mt-4">
+          <div data-hero-reveal className="mt-6">
             <Text as="p" display="block" type="supporting" className="text-lg leading-base">
               Your first diagnosis is free. Import your games and get a ranked list of what is
               costing you rating, starting with the one thing to fix.
@@ -226,8 +302,29 @@ export function Hero({ signedIn }: HeroProps) {
             )}
           </div>
         </div>
-        <div data-hero-reveal>
-          <SampleDiagnosis />
+        <div data-hero-reveal className="relative [perspective:1100px]">
+          <div
+            ref={tiltRef}
+            className="relative [transform-style:preserve-3d] will-change-transform"
+          >
+            {/* Ghost notation: the move played from this position, as typographic
+                texture. Decoration only - aria-hidden, unselectable. */}
+            <div
+              aria-hidden="true"
+              className="ghost-notation pointer-events-none absolute -top-8 right-0 text-[clamp(3rem,8vw,6.5rem)] leading-none"
+            >
+              16.Qb8+!!
+            </div>
+            <div
+              className="relative mx-auto max-w-[420px] [transform:rotateX(7deg)]"
+              style={{ transformStyle: 'preserve-3d' }}
+            >
+              <Board fen={HERO_FEN} theme="wood" label={HERO_BOARD_LABEL} />
+            </div>
+            <div className="relative z-10 mx-auto -mt-14 max-w-[340px] px-2 [transform:translateZ(48px)] md:mt-0 md:px-0 lg:absolute lg:-bottom-12 lg:left-0 lg:max-w-[320px]">
+              <SampleDiagnosis />
+            </div>
+          </div>
         </div>
       </div>
     </section>
