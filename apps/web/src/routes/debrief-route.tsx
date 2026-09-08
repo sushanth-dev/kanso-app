@@ -29,7 +29,12 @@ function DebriefFocus() {
 
   if (focusQuery.isPending || focusesQuery.isPending) {
     return (
-      <div role="status" aria-label="Loading focus" aria-busy="true" className="space-y-4">
+      <div
+        role="status"
+        aria-label="Loading focus"
+        aria-busy="true"
+        className="reveal-in space-y-4"
+      >
         <div className="h-4 w-64 rounded-control bg-sunken" />
         <div className="h-32 rounded-surface bg-sunken" />
       </div>
@@ -50,6 +55,7 @@ function DebriefFocus() {
   ) {
     return (
       <EmptyState
+        className="reveal-in"
         title="Your focus could not be loaded"
         description="Try again, or set it later on the focus page."
         headingLevel={3}
@@ -60,7 +66,7 @@ function DebriefFocus() {
   const activeFocus = focusQuery.data;
   if (activeFocus !== undefined) {
     return (
-      <Card className="space-y-2 p-4">
+      <Card className="reveal-in space-y-2 p-4">
         <Text type="supporting" className="font-ui text-xs">
           working on
         </Text>
@@ -69,7 +75,9 @@ function DebriefFocus() {
             ? activeFocus.catalogue.title
             : "Your coach's instruction"}
         </Text>
-        <Link href="/focus">Work on it on the focus page</Link>
+        <Link href="/focus" className="min-h-11 items-center">
+          Work on it on the focus page
+        </Link>
       </Card>
     );
   }
@@ -118,14 +126,14 @@ function DebriefDrill({ tournamentId }: { tournamentId: string | undefined }) {
       ) ?? null;
     if (first === null) {
       return (
-        <Text as="p" display="block" type="supporting">
+        <Text as="p" display="block" type="supporting" className="reveal-in">
           No weakness in this report has a drill yet.
         </Text>
       );
     }
     const href = `/practice?kind=${first.kind}&group=${encodeURIComponent(first.groupKey)}&label=${encodeURIComponent(first.label)}&stream=tournament`;
     return (
-      <Card className="space-y-3 p-4">
+      <Card className="reveal-in space-y-3 p-4">
         <div className="flex flex-wrap items-baseline gap-x-2">
           <Text type="supporting" className="font-mono text-sm">
             #{first.rank}
@@ -138,7 +146,7 @@ function DebriefDrill({ tournamentId }: { tournamentId: string | undefined }) {
   }
 
   return (
-    <Text as="p" display="block" type="supporting">
+    <Text as="p" display="block" type="supporting" className="reveal-in">
       Your first drill appears when the report lands.
     </Text>
   );
@@ -150,23 +158,28 @@ export function DebriefRoute() {
 
   if (gameIds === undefined || gameIds.length === 0) {
     return (
-      <div className="space-y-6">
+      <div className="reveal-in space-y-6">
         <Heading level={1}>The debrief</Heading>
         <EmptyState
           title="No batch to debrief"
           description="Import a tournament's games, and the debrief meets you here."
           headingLevel={2}
         />
-        <Link href="/import">Go to import</Link>
+        <Link href="/import" className="min-h-11 items-center">
+          Go to import
+        </Link>
       </div>
     );
   }
 
   return (
     <div className="space-y-10">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <Link href="/import">Back to import</Link>
+      <div className="reveal-in flex flex-wrap items-baseline justify-between gap-3">
+        <Link href="/import" className="min-h-11 items-center">
+          Back to import
+        </Link>
         <Link
+          className="min-h-11 items-center"
           onClick={() => {
             // Skip lands where the import ends today: an under-threshold
             // batch on the imported game's review, everything else on the
@@ -201,12 +214,12 @@ export function DebriefRoute() {
         }}
       />
 
-      <section className="space-y-4">
+      <section className="reveal-in space-y-4">
         <Heading level={2}>Your one focus</Heading>
         <DebriefFocus />
       </section>
 
-      <section className="space-y-4">
+      <section className="reveal-in space-y-4">
         <Heading level={2}>Your first drill</Heading>
         <DebriefDrill tournamentId={tournamentId} />
       </section>
