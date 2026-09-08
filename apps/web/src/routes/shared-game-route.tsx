@@ -9,7 +9,13 @@ import { ApiRequestError } from '../api/account-api.ts';
 import { sharedGameApi, type SharedGame } from '../api/game-share-api.ts';
 import { Mark } from '../components/mark.tsx';
 import { Board, describePosition } from '../components/board.tsx';
-import { MoveCard, Notation, movingColorOf, resultGloss } from '../components/review-pieces.tsx';
+import {
+  MoveCard,
+  Notation,
+  ResultReveal,
+  movingColorOf,
+  resultGloss,
+} from '../components/review-pieces.tsx';
 
 /**
  * ST-118. The shared game's read-only composition: the same board, notation
@@ -52,13 +58,13 @@ export function SharedGameScreen({ shared }: { shared: SharedGame }) {
   if (currentPly === undefined) {
     return (
       <>
-        <Text as="p" display="block" type="supporting" className="text-sm">
+        <Text as="p" display="block" type="supporting" className="reveal-in text-sm">
           A shared game review
         </Text>
-        <Heading level={1}>
+        <Heading level={1} className="reveal-in">
           {shared.whiteName ?? 'Unknown'} vs {shared.blackName ?? 'Unknown'}
         </Heading>
-        <Card className="mt-6 p-6">
+        <Card className="reveal-in mt-6 p-6">
           <Text as="p" display="block" type="supporting">
             No recorded moves in this game.
           </Text>
@@ -69,14 +75,16 @@ export function SharedGameScreen({ shared }: { shared: SharedGame }) {
 
   return (
     <>
-      <Text as="p" display="block" type="supporting" className="text-sm">
+      <Text as="p" display="block" type="supporting" className="reveal-in text-sm">
         A shared game review
       </Text>
-      <Heading level={1}>
+      <Heading level={1} className="reveal-in">
         {shared.whiteName ?? 'Unknown'} vs {shared.blackName ?? 'Unknown'}
       </Heading>
-      <Text className="font-mono text-lg text-primary">{shared.result}</Text>
-      {gloss !== null ? <Text as="p" display="block">{`The player ${gloss}.`}</Text> : null}
+      <ResultReveal
+        result={shared.result}
+        gloss={gloss === null ? undefined : `The player ${gloss}.`}
+      />
 
       <section aria-label="Position" className="mt-8 space-y-4">
         <div className="flex flex-wrap items-start gap-6">
