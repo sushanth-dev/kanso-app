@@ -65,7 +65,13 @@ function GameRow({ game }: { game: TournamentGame }) {
           —
         </Text>
       )}
-      <Button label="Review" href={`/games/${game.id}`} variant="secondary" size="sm" />
+      <Button
+        label="Review"
+        href={`/games/${game.id}`}
+        variant="secondary"
+        size="sm"
+        className="min-h-11"
+      />
     </li>
   );
 }
@@ -73,7 +79,7 @@ function GameRow({ game }: { game: TournamentGame }) {
 function RoundDecayCard({ rounds }: { rounds: RoundDecay[] }) {
   if (rounds.length === 0) {
     return (
-      <Card>
+      <Card className="reveal-in">
         <Heading level={2}>Round-by-round decay</Heading>
         <Text as="p" display="block" type="supporting" className="mt-2">
           Not enough analysed games to report a trend yet.
@@ -82,12 +88,12 @@ function RoundDecayCard({ rounds }: { rounds: RoundDecay[] }) {
     );
   }
   return (
-    <Card>
+    <Card className="reveal-in">
       <Heading level={2}>Round-by-round decay</Heading>
       <Text as="p" display="block" type="supporting" className="mt-1 text-sm">
         Average centipawn loss per move, by round. A rising line is the decay signal.
       </Text>
-      <ul className="mt-3 space-y-2">
+      <ul className="reveal-in mt-3 space-y-2">
         {rounds.map((point) => (
           <li key={point.round} className="flex items-baseline justify-between gap-3">
             <Text type="supporting" className="font-mono text-sm">
@@ -108,7 +114,12 @@ function RoundDecayCard({ rounds }: { rounds: RoundDecay[] }) {
 
 function TournamentSkeleton() {
   return (
-    <div role="status" aria-label="Loading tournament" aria-busy="true" className="space-y-4">
+    <div
+      role="status"
+      aria-label="Loading tournament"
+      aria-busy="true"
+      className="reveal-in space-y-4"
+    >
       <div className="h-8 w-48 rounded-control bg-sunken" />
       <div className="h-4 w-64 rounded-control bg-sunken" />
       <div className="h-40 rounded-surface bg-sunken" />
@@ -128,6 +139,7 @@ export function TournamentDetailRoute() {
       tournamentQuery.error instanceof ApiRequestError && tournamentQuery.error.status === 403;
     return (
       <EmptyState
+        className="reveal-in"
         title={forbidden ? 'This tournament is not yours' : 'This tournament could not be loaded'}
         description={
           forbidden ? 'You can only open your own tournaments.' : 'Go back and try again.'
@@ -143,8 +155,13 @@ export function TournamentDetailRoute() {
 
   return (
     <div className="space-y-6">
-      <header className="space-y-4">
-        <Button label="Back to tournaments" href="/tournaments" variant="secondary" />
+      <header className="reveal-in space-y-4">
+        <Button
+          label="Back to tournaments"
+          href="/tournaments"
+          variant="secondary"
+          className="min-h-11"
+        />
         <Heading level={1}>{detail.name}</Heading>
         {detail.site !== null ? (
           <Text as="p" display="block" type="supporting">
@@ -166,12 +183,13 @@ export function TournamentDetailRoute() {
 
       {detail.games.length === 0 ? (
         <EmptyState
+          className="reveal-in"
           title="No games in this tournament"
           description="Import tournament games to see them here."
           headingLevel={2}
         />
       ) : (
-        <Card>
+        <Card className="reveal-in">
           <Heading level={2}>Games</Heading>
           <div className="mt-2 flex gap-3 border-b border-border-subtle pb-1">
             <Text type="supporting" className="w-8 shrink-0 font-mono text-sm">
@@ -188,7 +206,7 @@ export function TournamentDetailRoute() {
             </Text>
             <span className="w-16" />
           </div>
-          <ul className="mt-1">
+          <ul className="reveal-in mt-1">
             {detail.games.map((game) => (
               <GameRow key={game.id} game={game} />
             ))}
