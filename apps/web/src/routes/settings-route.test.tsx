@@ -214,6 +214,7 @@ describe('SettingsScreen', () => {
   // real localStorage key, so these tests reset both after themselves.
   afterEach(() => {
     document.documentElement.removeAttribute('data-contrast');
+    document.documentElement.removeAttribute('data-theme');
     localStorage.clear();
   });
 
@@ -223,6 +224,35 @@ describe('SettingsScreen', () => {
     expect(screen.getByRole('radiogroup', { name: 'Contrast' })).toBeVisible();
     expect(screen.getByRole('radio', { name: 'Standard' })).toBeVisible();
     expect(screen.getByRole('radio', { name: 'High contrast' })).toBeVisible();
+  });
+
+  test('ST-148: renders the theme choice with both options, Nocturne first', () => {
+    renderSettings();
+    expect(screen.getByRole('radiogroup', { name: 'Theme' })).toBeVisible();
+    expect(screen.getByRole('radio', { name: 'Nocturne' })).toBeVisible();
+    expect(screen.getByRole('radio', { name: 'Study Room' })).toBeVisible();
+  });
+
+  test('ST-148: choosing Study Room flips the theme attribute and stores the choice', async () => {
+    const user = userEvent.setup();
+    renderSettings();
+
+    await user.click(screen.getByLabelText('Study Room'));
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+    expect(localStorage.getItem('kanso-theme')).toBe('study-room');
+  });
+
+  test('ST-148: choosing Nocturne flips back and stores the choice', async () => {
+    localStorage.setItem('kanso-theme', 'study-room');
+    document.documentElement.setAttribute('data-theme', 'light');
+    const user = userEvent.setup();
+    renderSettings();
+
+    await user.click(screen.getByLabelText('Nocturne'));
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+    expect(localStorage.getItem('kanso-theme')).toBe('nocturne');
   });
 
   test('choosing High contrast sets the scope attribute and stores the choice', async () => {
@@ -348,7 +378,12 @@ describe('SettingsScreen', () => {
     await user.click(screen.getByRole('button', { name: 'Delete account' }));
     await user.click(await screen.findByRole('button', { name: 'Keep my account' }));
 
-    expect(screen.queryByLabelText('Confirm with your password')).not.toBeInTheDocument();
+    // Under full-suite parallel load the close's state flush can land after
+    // the click resolves; assert the behavior with a waiting query, not a
+    // synchronous one. (Same race ST-147 met in the change-password reveal.)
+    await waitFor(() => {
+      expect(screen.queryByLabelText('Confirm with your password')).not.toBeInTheDocument();
+    });
     expect(screen.getByRole('button', { name: 'Delete account' })).toBeVisible();
     expect(deleteMe).not.toHaveBeenCalled();
   });

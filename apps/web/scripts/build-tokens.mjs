@@ -41,6 +41,34 @@ await dictionary.buildAllPlatforms();
 // :root block that would fight the base for cascade order. The theme file is
 // listed after color.semantic.json so an override wins wherever both define a
 // token; the filter keeps every base token out of the file.
+const darkDictionary = new StyleDictionary({
+  usesDtcg: true,
+  source: [...source, '../../tokens/theme.dark.json'],
+  platforms: {
+    css: {
+      prefix: 'kanso',
+      transformGroup: 'css',
+      buildPath: 'src/generated/',
+      files: [
+        {
+          destination: 'tokens.dark.css',
+          format: 'css/variables',
+          filter: (token) => token.filePath.includes('theme.dark.json'),
+          options: { selector: "html[data-theme='dark']" },
+        },
+      ],
+    },
+  },
+});
+
+await darkDictionary.cleanAllPlatforms();
+await darkDictionary.buildAllPlatforms();
+
+// ST-104: the high-contrast theme builds as a second dictionary so its output
+// stays an override set scoped to html[data-contrast='high'], not a duplicate
+// :root block that would fight the base for cascade order. It is built after
+// the dark dictionary and imported last, so authored AAA always wins over
+// both base and dark wherever it defines a token.
 const highContrastDictionary = new StyleDictionary({
   usesDtcg: true,
   source: [...source, '../../tokens/theme.high-contrast.json'],

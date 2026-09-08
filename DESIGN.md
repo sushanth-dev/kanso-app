@@ -11,9 +11,14 @@ colors:
   ink: "#241d16"
   ink-muted: "#584e42"
   teal: "#0f5e66"
-  success: "#4c7a26"
-  danger: "#b03a52"
   border-strong: "#847867"
+  dark-page: "#14100b"
+  dark-raised: "#1d1712"
+  dark-sunken: "#0d0a06"
+  dark-text: "#efe6d4"
+  dark-muted: "#ac9f89"
+  dark-accent: "#d4693f"
+  dark-on-accent: "#0d0a06"
 typography:
   display:
     fontFamily: "Source Serif 4, Georgia, serif"
@@ -55,19 +60,23 @@ components:
 
 ## Overview
 
-**Creative North Star: "The Study Room"**
+**Creative North Star: "The Study After Dark"**
 
-Kanso Chess looks like serious study, not a game. The light theme is a warm
-study: paper neutrals, printed-book typography, and one terracotta accent,
-credible to a coach and aspirational to a twelve-year-old competitor. The dark
-theme, Rapid, is the same study after dark: cool slate surfaces and a
-periwinkle accent, because serious young players live in dark mode and a
-light-toned board stays the obvious focal point there.
+Kanso Chess looks like serious study, not a game. The default theme,
+Nocturne (ST-148), is the study after dark, lit by one lamp: warm ink-black
+surfaces - never slate, the cool blue-black every other dark mode ships -
+bone-ivory type, the terracotta accent lifted to ember, and the wood board
+glowing as the brightest object on screen. The light theme, Study Room, is
+the same study in daylight: warm paper neutrals, printed-book typography,
+one terracotta accent. It stays one settings radio away. A third
+high-contrast theme reaches WCAG AAA and overrides both.
 
 The interface is calm and uncluttered. One action accent per theme, used
-sparingly. Depth comes from three steps of brightness, never drop shadows. The
-board is always the brightest object on the screen; the interface recedes so
-the position reads at a glance.
+sparingly. Elevation on Nocturne is a hairline boundary and a warm black
+shadow, never translucent glass: translucency survives only in the sticky
+navigation, where scrolling content must dissolve behind a hairline. The
+board is always the brightest object on the screen; the interface recedes
+so the position reads at a glance.
 
 This is the anti-game-portal: no saturated neon, no red-green status pairs.
 Every state carries its meaning in at least two channels, never hue alone.
@@ -80,12 +89,13 @@ to the no-gamified-candy line the rest of the interface is.
 
 **Key Characteristics:**
 
-- Warm paper light theme (Study Room) and cool slate dark theme (Rapid); a
-  third high-contrast theme reaches WCAG AAA.
+- Nocturne dark as the shipped default (ST-148), Study Room light kept
+  selectable, and a high-contrast theme at WCAG AAA overriding both.
 - Print typography: Source Serif 4 display over Public Sans interface, with
-  IBM Plex Mono for anything tabular.
+  IBM Plex Mono for anything tabular - and for move notation as typographic
+  texture on the landing.
 - One action accent per theme, scarce by design.
-- Flat tonal depth: brightness steps, no drop shadows.
+- Hairline-and-shadow elevation on dark; translucency only in the sticky nav.
 - The board is the brightest object on every screen.
 
 ## Colors
@@ -129,15 +139,16 @@ to green, so the pair cannot read as a flag or trip red-green deficiency.
 **The Board Brightest Rule.** Page surfaces stay a step duller than any board
 theme. The board is the brightest object on every screen.
 
-**The No Hue Alone Rule.** Meaning never travels by hue alone. Every state
-carries a second channel: an icon, an outline, a border, or a label.
+### Dark theme (Nocturne, default)
 
-### Dark theme (Rapid)
-
-Page #101418, raised #1a2027, sunken #0b0e11, primary text #edf1f4, muted
-#9aa7b2. The accent becomes **Periwinkle** (#7b9dff, hover #97b1ff), light
-enough to pass 4.5:1 as text. Info becomes **Cyan** (#3ecbd3), success
-#79c578, danger #f08a76, strong border #5a6673.
+Page #14100b, raised #1d1712, sunken #0d0a06, primary text bone #efe6d4
+(15:1 on the page), muted #ac9f89 (7:1+). The accent becomes **Ember**
+(#d4693f, hover #e07e55), terracotta lifted two steps: 4.5:1+ as body text,
+so one token serves fills and text, with near-black labels on fills. Info
+becomes candle gold (#e9b44c), success #79c578, danger #f08a76, strong
+border #6e5f4c, focus ring teal lift #4cc4c4. ST-148 replaced the drafted
+slate-and-periwinkle palette (Rapid) before it ever shipped a page; the
+light values above are untouched.
 
 ### High contrast theme
 
@@ -277,8 +288,13 @@ GSAP rather than the CSS token utilities above. A single Lenis instance is
 the app's one smooth-scroll engine; it drives from GSAP's own ticker so the
 two never compete over a frame, and `ScrollTrigger` refreshes once fonts
 finish loading. The hero's headline enters as a word stagger, then the
-subhead, parent line, call to action, and sample card follow; the
-value-proposition grid and the free/paid boundary each reveal independently
+subhead, parent line, call to action, and the board group follow. After
+entrance the board group carries two additive motions (ST-148), both
+whole-container transforms: a pointer parallax on fine pointers (±6°, via
+`gsap.quickTo`) and a scroll parallax scrubbed across the hero's exit. The
+board's pieces themselves never animate - ADR-0017's rule carried to
+marketing. The value-proposition grid and the free/paid boundary each
+reveal independently
 through a `useScrollReveal` hook, the `ScrollTrigger` equivalent of
 `.stagger-in` capped at the same six steps. Every move stays on the shared
 `--kanso-motion-duration-slow` (320ms) and decelerate ease, so it reads as
@@ -902,10 +918,16 @@ headline over three feature cards: the hero is the free output, not a claim
 about it. The first viewport is two columns. Left: the display headline
 ("Know the one thing to fix after every tournament."), the free-promise
 subhead, the parent line ("For parents, it makes every lesson you already pay
-for work harder."), and the primary call to action. Right: a raised `Card`
-labelled "Synthetic example" holding a named tournament and a three-row
-ranked weakness list, rank and `ratingLeak` in IBM Plex Mono, mirroring the
-report's ranked list without a real player behind it.
+for work harder."), and the primary call to action under a mono kicker.
+Right: the hero focal object - the real `Board` component (product truth,
+never a mockup) holding the position before Morphy's Opera Game queen
+sacrifice, tilted seven degrees under a single lamp glow (`.lamp`, the one
+narrative light source on the page), with the ghost move notation
+"16.Qb8+!!" as typographic texture behind it. Overlapping the board floats
+the raised `Card` labelled "Synthetic example" - the named tournament and
+three-row ranked weakness list, rank and `ratingLeak` in IBM Plex Mono,
+mirroring the report's ranked list without a real player behind it - so
+promise and proof compose as one object.
 
 Four sections in all: the hero, a value proposition with the free/paid
 boundary, the technology behind the diagnosis, and a closing call to action.
@@ -919,9 +941,10 @@ open-source engine checking every game), GLM-5.3-Flash (the model writing
 each weakness's coaching explanation), and Lichess (the open platform ratings
 and imports reach directly), the same plain-heading treatment, with no
 company marks: Iconify's `Logos` set is not installed, and adding it for a
-name-check is not worth a new dependency. The
-board is absent by design as the proof: the ranked diagnosis is the proof, so the raised
-sample card is the brightest object on the screen. The boundary is fact-only
+name-check is not worth a new dependency. The board's pieces never move on
+the landing (ADR-0017's rule carried to marketing); the ranked diagnosis
+remains the proof, and the sample card rides the board as its brightest
+overlay. The boundary is fact-only
 from `pricing.md`: free is the diagnosis, paid is the loop, from ₹799 a month
 on the paid plans. The join call to action routes to `/sign-up`;
 a secondary link routes to `/sign-in`. Copy states only facts, and the sample
@@ -931,22 +954,36 @@ real diagnosis.
 **ST-133** rebuilt the hero's composition and motion narrative in place,
 without touching the Study Room color or type system above: this is a new
 sequence on the same palette and typeface, not a new look. The headline
-carries a dual rendering — an unsplit, screen-reader-only accessible name,
+carries a dual rendering - an unsplit, screen-reader-only accessible name,
 and a decorative, `aria-hidden` word-by-word duplicate the intro timeline
-animates — so the complete headline is present with no JavaScript, and only
+animates - so the complete headline is present with no JavaScript, and only
 its motion depends on GSAP. On mount, the words stagger in first, then the
-subhead, parent line, call to action, and sample card follow as one group,
+subhead, parent line, call to action, and the board group follow as one
+group,
 overlapping slightly with the words so the whole hero settles as a single
-gesture rather than two disconnected reveals; see Motion above for the
-Lenis/GSAP wiring and the reduced-motion behaviour, which is identical here
-to the rest of the page: every element snaps to its end state immediately,
-no tween. The value-proposition grid and the free/paid boundary each reveal
-on scroll through the same `useScrollReveal` hook, independently of each
-other and of the hero, and the closing call to action reveals the same way.
-The sprint 12 coherence pass confirmed the sample ranked list, wordmark,
-sign-in link, footer, and free/paid boundary already matched the surfaces
-around it; that still holds. No route transition ships, so `/` mounts
-statically like every other surface.
+gesture rather than two disconnected reveals. The value-proposition grid
+and the free/paid boundary each reveal on scroll through the same
+`useScrollReveal` hook, independently of each other and of the hero, and
+the closing call to action reveals the same way. The sprint 12 coherence
+pass confirmed the sample ranked list, wordmark, sign-in link, footer, and
+free/paid boundary already matched the surfaces around it; that still
+holds. No route transition ships, so `/` mounts statically like every
+other surface.
+
+**ST-148** gave the page its world: Nocturne as the shipped default theme,
+and a hero whose focal asset is the product's own board under a lamp. The
+section structure above is unchanged - the same four bands, the same pinned
+copy, the same synthetic, labelled sample - on hairline rules instead of
+glass bands, with the sections numbered in mono kickers like a printed game
+bulletin. Section paddings grew to `py-16 md:py-24`; the closing call to
+action sits in the lamp's light. The statement headline steps `text-4xl`
+to `md:text-5xl`, sized to the fold at 1280px rather than to a number.
+Sections stay axe-clean on Nocturne at 320px and 390px; the ghost notation
+is aria-hidden decoration whose contrast axe reports as incomplete rather
+than a violation - pure decoration under WCAG 1.4.3, human-reviewed here.
+The Lenis/GSAP wiring and the reduced-motion behaviour are identical to the
+rest of the page: every element snaps to its end state immediately, no
+tween.
 
 ### Upgrade
 

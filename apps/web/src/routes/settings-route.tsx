@@ -22,6 +22,11 @@ import {
   setContrast as persistContrast,
   type ContrastPreference,
 } from '../contrast.ts';
+import {
+  resolveInitialTheme,
+  setTheme as persistTheme,
+  type ThemePreference,
+} from '../theme-preference.ts';
 
 function readText(data: FormData, key: string): string {
   const value = data.get(key);
@@ -42,6 +47,8 @@ export function SettingsScreen({ me, signOut, accountApi, queryClient }: Setting
   const [usernameSaved, setUsernameSaved] = useState(false);
   // Seeded lazily so the stored choice or the OS hint decides the first paint.
   const [contrast, setContrast] = useState<ContrastPreference>(resolveInitialContrast);
+  // Seeded like contrast: the stored choice or the OS hint decides the paint.
+  const [theme, setThemeState] = useState<ThemePreference>(resolveInitialTheme);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -155,6 +162,26 @@ export function SettingsScreen({ me, signOut, accountApi, queryClient }: Setting
         <Heading level={2} id="appearance-heading">
           Appearance
         </Heading>
+        <Text as="p" display="block" type="supporting" className="mt-1">
+          Nocturne is the study after dark, lit by one lamp. Study Room is the same study in
+          daylight.
+        </Text>
+        <div className="mt-3 max-w-sm">
+          <RadioList
+            label="Theme"
+            value={theme}
+            onChange={(value) => {
+              // The radio group reports strings; only the two theme values
+              // are meaningful, so everything else is ignored.
+              if (value !== 'nocturne' && value !== 'study-room') return;
+              persistTheme(value);
+              setThemeState(value);
+            }}
+          >
+            <RadioListItem label="Nocturne" value="nocturne" className="min-h-11" />
+            <RadioListItem label="Study Room" value="study-room" className="min-h-11" />
+          </RadioList>
+        </div>
         <Text as="p" display="block" type="supporting" className="mt-1">
           High contrast swaps the glass surfaces for solid white with black text, easier to read in
           bright light or with low vision.
