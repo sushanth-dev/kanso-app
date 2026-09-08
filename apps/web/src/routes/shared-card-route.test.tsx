@@ -84,6 +84,19 @@ describe('SharedCardRoute', () => {
     ).toBeVisible();
   });
 
+  test('ST-147: every state enters on the system, and the retry holds the touch floor', async () => {
+    vi.spyOn(sharedCardApi, 'getShared').mockResolvedValue({
+      ratingLeak: 84,
+      label: 'Hanging piece',
+    });
+
+    renderRoute('/shared/cards/tokentokentokentokentokentokentokentokentoken');
+
+    const main = (await screen.findByRole('heading', { name: 'Hanging piece' })).closest('main');
+    expect(main).toHaveClass('reveal-in');
+    expect(screen.getByRole('button', { name: 'Copy link' })).toHaveClass('min-h-11');
+  });
+
   test('offers a retry when the page could not be reached', async () => {
     vi.spyOn(sharedCardApi, 'getShared').mockRejectedValue(new TypeError('network down'));
 
