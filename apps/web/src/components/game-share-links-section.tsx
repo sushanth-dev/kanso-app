@@ -77,7 +77,7 @@ export function GameShareLinksSection({ gameId }: { gameId: string }) {
   }
 
   return (
-    <section aria-labelledby="game-share-heading" className="space-y-4">
+    <section aria-labelledby="game-share-heading" className="reveal-in space-y-4">
       <Heading level={2} id="game-share-heading">
         Share links
       </Heading>
