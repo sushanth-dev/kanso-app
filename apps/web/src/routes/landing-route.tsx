@@ -64,15 +64,14 @@ export function LandingRoute() {
           </Suspense>
         </main>
 
-        <footer className="glass border-t border-border-subtle">
-          <Text
-            as="p"
-            display="block"
-            type="supporting"
-            className="mx-auto w-full max-w-5xl px-4 py-6 text-sm"
-          >
-            Kanso Chess is tournament-first chess improvement for junior players and their coaches.
-          </Text>
+        <footer className="border-t border-border-subtle">
+          <div className="mx-auto w-full max-w-5xl px-4 py-8">
+            <p className="kicker">Kanso Chess</p>
+            <Text as="p" display="block" type="supporting" className="mt-2 text-sm">
+              Kanso Chess is tournament-first chess improvement for junior players and their
+              coaches.
+            </Text>
+          </div>
         </footer>
       </div>
     </div>

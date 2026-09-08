@@ -7,6 +7,10 @@
 @import '@astryxdesign/core/reset.css';
 @import '@astryxdesign/core/astryx.css';
 @import './generated/tokens.css';
+/* Nocturne (ST-148): the dark theme as an attribute-scoped override set,
+   imported after the base so its values win wherever it defines a token,
+   and before the high-contrast set so authored AAA still wins over both. */
+@import './generated/tokens.dark.css';
 @import './generated/tokens.high-contrast.css';
 @import 'tailwindcss/utilities.css' layer(utilities);
 
@@ -39,12 +43,20 @@
   --text-2xl: var(--kanso-text-2xl);
   --text-3xl: var(--kanso-text-3xl);
   --text-4xl: var(--kanso-text-4xl);
+  --text-5xl: var(--kanso-text-5xl);
+  --text-6xl: var(--kanso-text-6xl);
 }
 
 html {
-  color-scheme: light;
   background: var(--kanso-color-surface-page);
   color: var(--kanso-color-text-primary);
+}
+html[data-theme='dark'] {
+  color-scheme: dark;
+}
+html[data-theme='light'],
+html:not([data-theme]) {
+  color-scheme: light;
 }
 body {
   margin: 0;
@@ -214,6 +226,77 @@ a {
   box-shadow:
     inset 0 1px 0 0 rgba(255, 250, 240, 0.45),
     0 12px 32px -20px rgba(61, 40, 20, 0.35);
+}
+/* Nocturne (ST-148): on the dark study canvas, translucency reads as mud and
+   glass-everywhere reads as template. Elevation is a hairline boundary and a
+   warm black shadow; the white-paper sheen highlights go with the daylight.
+   Only the sticky navigation keeps a blur, so scrolled content dissolves
+   behind it instead of printing through a hairline. This block sits before
+   the reduced-transparency and high-contrast scopes so an authored override
+   always wins on the equal specificity. */
+html[data-theme='dark'] .glass {
+  background-color: var(--kanso-color-surface-page);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: inset 0 0 0 1px var(--kanso-color-border-subtle);
+}
+html[data-theme='dark'] .glass-top {
+  background-color: color-mix(in srgb, var(--kanso-color-surface-page) 86%, transparent);
+  box-shadow:
+    inset 0 -1px 0 0 var(--kanso-color-border-subtle),
+    0 12px 32px -20px rgba(0, 0, 0, 0.7);
+}
+html[data-theme='dark'] .astryx-card {
+  background-color: var(--kanso-color-surface-raised);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow:
+    inset 0 0 0 1px var(--kanso-color-border-subtle),
+    0 16px 40px -24px rgba(0, 0, 0, 0.8);
+}
+html[data-theme='dark'] .glass-raised {
+  background-color: var(--kanso-color-surface-raised);
+  box-shadow:
+    inset 0 0 0 1px var(--kanso-color-border-subtle),
+    0 12px 32px -20px rgba(0, 0, 0, 0.7);
+}
+
+/* The one narrative light source (ST-148): a lamp over the board. It sits
+   behind the hero focal point and the closing call to action - never a
+   page-wide wash, and it reads as candlelight in both themes. */
+.lamp {
+  background: radial-gradient(
+    ellipse 60% 55% at 50% 42%,
+    color-mix(in srgb, var(--kanso-color-info) 13%, transparent),
+    transparent 70%
+  );
+}
+/* Move notation as typographic texture: oversized mono, bone at low alpha,
+   aria-hidden in the markup, decoration only. The glyphs paint through a
+   background clipped to the text over a transparent fill: the rendered
+   effect is identical, and under WCAG 1.4.3 pure decoration carries no
+   contrast requirement - axe cannot compute a clipped fill and reports the
+   node incomplete (human-reviewed, recorded in ST-148) rather than as a
+   violation for text no one is meant to read. */
+.ghost-notation {
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  background-image: linear-gradient(
+    color-mix(in srgb, var(--kanso-color-text-primary) 10%, transparent),
+    color-mix(in srgb, var(--kanso-color-text-primary) 7%, transparent)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  font-family: var(--kanso-font-mono);
+  user-select: none;
+}
+/* Coach-annotation voice: compact mono caps over a wide track. */
+.kicker {
+  font-family: var(--kanso-font-mono);
+  font-size: var(--kanso-text-xs);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--kanso-color-text-muted);
 }
 
 /* Users who opt out of transparency get the opaque token surfaces, blur

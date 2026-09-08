@@ -44,6 +44,25 @@ test('lands a new visitor on a coherent, axe-clean front door', async ({ page })
   await expectNoAxeViolations(page);
 });
 
+test('ST-148: paints Nocturne by default and stays axe-clean on it', async ({ page }) => {
+  await page.goto('/');
+  // The landing content is a lazy chunk; wait for the hero before scanning
+  // so axe measures the composed page, not the Suspense fallback.
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+
+  // Nothing stored and no OS preference honoured: the brand default is the
+  // study after dark, and the page ground is the warm lamplit black token -
+  // not slate, the cool blue-black every other dark mode ships.
+  const theme = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
+  expect(theme).toBe('dark');
+  const pageBackground = await page.evaluate(
+    () => getComputedStyle(document.documentElement).backgroundColor,
+  );
+  expect(pageBackground).toBe('rgb(20, 16, 11)');
+
+  await expectNoAxeViolations(page);
+});
+
 test('honours reduced motion by rendering the hero at its end state immediately', async ({
   page,
 }) => {

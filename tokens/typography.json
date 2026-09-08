@@ -64,6 +64,20 @@
         "value": 3,
         "unit": "rem"
       }
+    },
+    "5xl": {
+      "$value": {
+        "value": 4.5,
+        "unit": "rem"
+      },
+      "$description": "Statement scale for the landing hero and section openers."
+    },
+    "6xl": {
+      "$value": {
+        "value": 6.5,
+        "unit": "rem"
+      },
+      "$description": "Bulletin scale: oversized display statements at wide breakpoints."
     }
   },
   "leading": {
