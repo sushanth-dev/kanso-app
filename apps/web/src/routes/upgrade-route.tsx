@@ -165,7 +165,7 @@ function UpgradeSkeleton() {
 
 function AlreadySubscribed({ tier }: { tier: Tier }) {
   return (
-    <header className="space-y-4">
+    <header className="reveal-in space-y-4">
       <Heading level={1}>You are on the {TIER_LABEL[tier]} plan</Heading>
       <Badge label={TIER_LABEL[tier]} variant="neutral" />
       <Text as="p" display="block" type="supporting">
@@ -250,7 +250,7 @@ export function UpgradeRoute() {
 
   return (
     <div className="space-y-8">
-      <header className="space-y-4">
+      <header className="reveal-in space-y-4">
         <Heading level={1}>Choose a plan</Heading>
         <Text as="p" display="block" type="supporting">
           Your first diagnosis is free. The loop after it is paid.
@@ -289,7 +289,7 @@ export function UpgradeRoute() {
             </StatusMessage>
           </div>
         ) : null}
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
+        <div className="stagger-in mt-4 grid gap-4 md:grid-cols-3">
           {PLANS.map((plan) => {
             const payableTier = isPayable(plan.tier) ? plan.tier : null;
             return (

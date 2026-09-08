@@ -1037,6 +1037,15 @@ account renders the already-paid state instead of the pay cards: it names the
 paid tier and never offers to charge a paying account again. The navbar is the
 way back to the loop (ST-088); no back link rides the page.
 
+The page enters on the system's entrances (ST-141): the header carries
+`reveal-in`, on both the free-tier fact sheet and the already-paid state, and
+the plan-card grid runs `stagger-in` so the three cards arrive in sequence
+rather than at once. The skeleton does not carry `reveal-in` - it is a static
+loading placeholder, not a load-completed reveal - and neither do the four
+post-pay `StatusMessage` states, since they are event feedback, not page-load
+content. No GSAP sequence and no new iconography: the page's one motion
+moment is the plans and the paid state arriving.
+
 The pay action on each card routes through the existing Razorpay checkout
 unchanged; no card number is handled by us. The four post-pay states are
 distinct and truthful, each carried by `StatusMessage` tone and text, never hue

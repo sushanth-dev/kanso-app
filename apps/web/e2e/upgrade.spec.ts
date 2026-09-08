@@ -32,6 +32,10 @@ test('states the fact-only boundary and the three plans at the 320px floor', asy
 
   await page.goto('/upgrade');
 
+  // The page's own header, not the shell's sticky nav: the reveal lives there.
+  const header = page.locator('main header').first();
+  await expect(header).toHaveClass(/reveal-in/);
+
   // The boundary is stated as facts, not persuasion.
   await expect(page.getByRole('heading', { name: 'Choose a plan' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Beginner' })).toBeVisible();
@@ -73,6 +77,8 @@ test('shows the already-subscribed state and never offers to charge again', asyn
   await upgradeToPaid(page);
   await page.goto('/upgrade');
 
+  const header = page.locator('main header').first();
+  await expect(header).toHaveClass(/reveal-in/);
   await expect(page.getByRole('heading', { name: 'You are on the Pro plan' })).toBeVisible();
   await expect(page.getByText('Pro', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: /Pay ₹/ })).toHaveCount(0);
