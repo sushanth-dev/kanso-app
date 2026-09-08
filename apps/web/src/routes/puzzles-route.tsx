@@ -67,7 +67,7 @@ function QueueList({
 }) {
   return (
     <Card>
-      <ul>
+      <ul className="stagger-in">
         {items.map((item) => (
           <QueueRow key={item.puzzleId} item={item} end={endFor(item)} />
         ))}
@@ -80,8 +80,10 @@ function PendingTab({ due }: { due: PracticeQueueItem[] }) {
   const first = due[0];
   if (first === undefined) return null;
   return (
-    <div className="space-y-4">
-      <Link href={drillHref(first.kind, first.group)}>Practice now</Link>
+    <div className="reveal-in space-y-4">
+      <Link href={drillHref(first.kind, first.group)} className="min-h-11 items-center">
+        Practice now
+      </Link>
       <QueueList items={due} endFor={() => <Badge label="Due now" variant="warning" />} />
     </div>
   );
@@ -130,16 +132,16 @@ export function PuzzlesRoute() {
 
   if (queueQuery.isPending) {
     return (
-      <div role="status" aria-busy="true" className="flex justify-center py-16">
+      <div role="status" aria-busy="true" className="reveal-in flex justify-center py-16">
         <Spinner />
       </div>
     );
   }
 
   if (queueQuery.isError) {
-    if (unauthorized) return null;
     return (
       <EmptyState
+        className="reveal-in"
         title="This page could not be loaded"
         description="The drill queue could not be reached. Try again, or go back to your report."
         headingLevel={1}
@@ -159,21 +161,20 @@ export function PuzzlesRoute() {
 
   return (
     <div className="space-y-6">
-      <header className="space-y-1">
+      <header className="reveal-in space-y-1">
         <Heading level={1}>Puzzles</Heading>
         <Text as="p" display="block" type="supporting">
           Your drill queue: what is pending now, what comes back for review, and what you have
           mastered.
         </Text>
       </header>
-
-      <nav aria-label="Queue tabs" className="flex flex-wrap gap-2">
+      <nav aria-label="Queue tabs" className="reveal-in flex flex-wrap gap-2">
         {TABS.map(({ key, label }) => (
           <Button
             key={key}
             label={`${label} (${counts[key]})`}
             variant={tab === key ? 'secondary' : 'ghost'}
-            size="sm"
+            className="min-h-11 press"
             aria-pressed={tab === key}
             onClick={() => setTab(key)}
           />
@@ -185,10 +186,15 @@ export function PuzzlesRoute() {
           <PendingTab due={due} />
         ) : (
           <EmptyState
+            className="reveal-in"
             title="All caught up!"
             description="No puzzles are waiting on you right now."
             headingLevel={2}
-            actions={<Link href="/report">Go to your report</Link>}
+            actions={
+              <Link href="/report" className="min-h-11 items-center">
+                Go to your report
+              </Link>
+            }
           />
         )
       ) : tab === 'upcoming' ? (
@@ -196,6 +202,7 @@ export function PuzzlesRoute() {
           <UpcomingTab upcoming={upcoming} />
         ) : (
           <EmptyState
+            className="reveal-in"
             title="Nothing scheduled yet"
             description="Solve puzzles to schedule the next reviews."
             headingLevel={2}
@@ -205,6 +212,7 @@ export function PuzzlesRoute() {
         <MasteredTab mastered={mastered} />
       ) : (
         <EmptyState
+          className="reveal-in"
           title="Nothing mastered yet"
           description="Solve the same puzzle across reviews to master it."
           headingLevel={2}
