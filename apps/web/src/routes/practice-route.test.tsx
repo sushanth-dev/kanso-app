@@ -125,7 +125,8 @@ describe('PracticeRoute', () => {
     );
     renderPath('/practice?kind=motif&group=hanging_piece&label=Hung%20a%20piece&stream=tournament');
     const drillHeader = await screen.findByRole('heading', { name: 'Hung a piece' });
-    expect(drillHeader.closest('header')).toHaveClass('reveal-in');
+    // The drill session enters as one block through its root reveal.
+    expect(drillHeader.closest('.reveal-in')).not.toBeNull();
   });
 
   test('an arrival without a group shows the day due reviews, folded per group', async () => {

@@ -27,3 +27,5 @@ frontend decisions. The format and rules are in
   surfaces](0040-threeui-decorative-effects.md)
 * [0043. Retire Canvas UI and ThreeUI for one art-directed design
   system](0043-retire-canvas-ui-threeui-awwwards-redesign.md)
+* [0044. Animate functional board state on the shared motion
+  tokens](0044-functional-board-motion.md)

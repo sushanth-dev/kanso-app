@@ -271,7 +271,6 @@ export function CurriculumRoute() {
       </div>
       {shown.length === 0 ? (
         <EmptyState
-          className="reveal-in"
           title="No items yet"
           description="Your coach assigns resources when your report finds a weakness."
           headingLevel={2}
@@ -282,7 +281,7 @@ export function CurriculumRoute() {
           }
         />
       ) : (
-        <ul className="stagger-in space-y-3">
+        <ul className="space-y-3">
           {shown.map((item) => (
             <li key={item.id}>
               <CurriculumCard item={item} />

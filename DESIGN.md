@@ -253,29 +253,39 @@ selection.
 ## Motion
 
 Motion is purposeful and subtle, never decorative. The tokens are fast
-(120ms) for control states (hover, press, focus), base (200ms) for reveals and
-state changes, and slow (320ms) for route and board transitions. Control
-transitions run on the standard ease `cubic-bezier(0.2, 0, 0, 1)`, and reveals
-run on the decelerate ease `cubic-bezier(0, 0, 0, 1)`, the cleaner entrance
-curve the `.reveal-in` and `.stagger-in` utilities ship. Control transitions
-move color, border, and box-shadow; reveals fade and rise 6px. Every duration
-collapses to zero under `prefers-reduced-motion`, both in the token theme and
-in a CSS override, so no motion runs when reduced motion is requested. The one
-exception is the Spinner (ST-093): its canvas keeps the library's slow 3s
-rotation under that media query, because a frozen spinner reads as broken
-rather than calm.
+(120ms) for control states (hover, press, focus, the piece snap-back), base
+(200ms) for reveals, state changes, and the evaluation bar, and slow (320ms)
+for entrance reveals and verdict moments. Control transitions run on the
+standard ease `cubic-bezier(0.2, 0, 0, 1)`, and reveals run on the
+decelerate ease `cubic-bezier(0, 0, 0, 1)`, the cleaner entrance curve the
+`.reveal-in` and `.stagger-in` utilities ship. Control transitions move
+color, border, and box-shadow; reveals fade and rise 6px. Under
+`prefers-reduced-motion`, movement collapses to zero - entrance animations
+and every transform-driven change render instant - while the color, border,
+and shadow transitions on controls keep their fast duration, because they
+aid comprehension and carry no movement. The one exception is the Spinner
+(ST-093): its canvas keeps the library's slow 3s rotation under that media
+query, because a frozen spinner reads as broken rather than calm.
 
-The shipped surfaces layer concrete moves over the tokens. A `.press` utility
-scales controls to 0.98 on `:active`, merging the color transition with a
-transform so a button feels tactile. A `.stagger-in` list reveals its items in
-order, capped at six steps of 45ms, and is used for the report's ranked
-weakness list and the focus choice. No route transition ships: the `motion`
-AnimatePresence exit left the entering surface stuck at near-zero opacity, so
-it was dropped and each surface mounts statically in the shared shell.
-Surface-level motion (`.stagger-in`, `.press`, `.reveal-in`) remains. The
-evaluation bar's fill transitions over the slow
-320ms board transition, and the proof sheet's verdict reveals with the base
-200ms fade and rise.
+The shipped surfaces layer concrete moves over the tokens. A `.press`
+utility scales controls to 0.98 on `:active`, merging the color transition
+with a transform so a button feels tactile. A `.stagger-in` list reveals its
+items in order, capped at six steps of 45ms, and is a page-load entrance:
+tab-flipped panels - the games list, the curriculum lists, the puzzle queue
+- swap instantly rather than replaying it. A `.pop-in` utility settles the
+rare, high-emotion verdicts (the drill's Solved.) in from slightly small on
+the slow duration. No route transition ships: the `motion` AnimatePresence
+exit left the entering surface stuck at near-zero opacity, so it was dropped
+and each surface mounts statically in the shared shell. The evaluation
+bar's black share scales from its bottom edge over the base 200ms, and the
+proof sheet's verdict reveals with the base 200ms fade and rise.
+
+The board animates functional state (ADR-0044): a position change slides
+the pieces that changed squares - 200ms on the standard ease, diffed from
+the previous placement, castling included - a landing drag suppresses the
+slide for its own move, an empty drop rides a 120ms snap-back, and the
+dragged piece lifts slightly over a hover ring on the square under the
+pointer. The landing page's board group stays a still life.
 
 The sticky navigation header is the one glass surface that must hide what
 passes under it (ST-093): `.glass-top` keeps the `.glass` recipe but mixes the
@@ -292,8 +302,9 @@ subhead, parent line, call to action, and the board group follow. After
 entrance the board group carries two additive motions (ST-148), both
 whole-container transforms: a pointer parallax on fine pointers (±6°, via
 `gsap.quickTo`) and a scroll parallax scrubbed across the hero's exit. The
-board's pieces themselves never animate - ADR-0017's rule carried to
-marketing. The value-proposition grid and the free/paid boundary each
+board's pieces themselves never animate - the marketing board is a still
+life, while the functional board animates moves per ADR-0044. The
+value-proposition grid and the free/paid boundary each
 reveal independently
 through a `useScrollReveal` hook, the `ScrollTrigger` equivalent of
 `.stagger-in` capped at the same six steps. Every move stays on the shared
@@ -478,6 +489,9 @@ A weakness expands ("Show evidence") into the places behind its own figure:
 one line of advice for that kind of weakness, then up to three instances as a
 list - the move number, the move played, the engine's better move, the
 judgement and centipawn loss - each with a "Review game" link into the game.
+The fold stays mounted and collapses through `grid-template-rows`
+(`.fold`), so showing evidence moves the page instead of jumping it, and the
+content is inert while closed.
 The instances come from the same rows and window the leak was summed over, so
 the places and the number cannot disagree. An opening weakness carries its
 evidence on the row and does not expand, because the games page already lists
@@ -564,6 +578,12 @@ dual-span pattern the landing hero established. `gsap.matchMedia()` renders
 the final state with no tween under reduced motion, and the DOM's natural
 state is that same final state, so the sequence degrades everywhere. The
 shared game reader renders the same component over its own gloss.
+
+Stepping through the game slides the moved piece from its square to its
+destination (ADR-0044) - the slide is the explanation of the ply. Stepping
+onto a mistake keys its explanation and scan cards onto the mistake, so
+they enter on the base reveal instead of mounting with a jump. The game
+result remains the surface's one authored GSAP moment.
 
 ST-096 adds an analysing state to the review page for games that are queued,
 analysing, or pending with a known colour: a `role="status"` banner with the
@@ -810,13 +830,15 @@ miss before the puzzle rotates to the back. Without a named weakness,
 cannot grind (ST-124's guard, pinned by tests this restyle leaves
 untouched).
 
-Since ST-144 every block the routes own enters on the system: the queue's
-header, tabs, lists (`stagger-in`), and every empty and error state; the
-drill's header, its instruction card - keyed per puzzle, so each deal
-arrives - and the session's complete state. The board is the exception
-ADR-0017 makes: it sits outside every styled block and never animates, in
-practice or anywhere else. The tab buttons hold the 44px floor with the
-shared `press` treatment; every link does through `min-h-11`.
+The page chrome enters on the system: the queue's header, tabs, and page
+load lists (`stagger-in`), and every error state; the drill session enters
+as one block through its root reveal, keyed per puzzle, so each deal
+arrives, while the tab panels themselves swap instantly. The board animates
+its moves per ADR-0044 - the setup move, the opponent's reply, and the
+player's committed move all slide - and the solved verdict settles in
+through `.pop-in`, the surface's one delight-budget moment. The tab buttons
+hold the 44px floor with the shared `press` treatment; every link does
+through `min-h-11`.
 
 ### Entry and guardian consent
 

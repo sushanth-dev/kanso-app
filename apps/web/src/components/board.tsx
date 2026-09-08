@@ -1,4 +1,10 @@
-import { useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from 'react';
 
 // The cburnett piece set (the standard used by lichess/chess.com). Each piece
 // is one path; white and black differ only in fill/stroke, so the shape is
@@ -129,6 +135,23 @@ interface DragState {
   x: number;
   y: number;
   pointerId: number;
+  /** The square under the pointer, or null while off the grid. */
+  hover: string | null;
+}
+
+/**
+ * A dragged piece returning to its square after a drop that moved nothing.
+ * The position the drag started from rides along: when the drop committed,
+ * the position has moved on and the ride cancels before it paints.
+ */
+interface SnapbackState {
+  type: string;
+  white: boolean;
+  /** The drop point in viewBox units; the animation starts here. */
+  x: number;
+  y: number;
+  square: string;
+  fen: string;
 }
 
 /** The viewBox centre of a square name like "e2", respecting the flip. */
@@ -138,6 +161,69 @@ function squareCenter(square: string, flipped: boolean): { x: number; y: number 
   const column = flipped ? 7 - file : file;
   const row = flipped ? rank : 7 - rank;
   return { x: 1 + column + 0.5, y: 1 + row + 0.5 };
+}
+
+/** A piece that changed squares between the previous position and this one. */
+interface MovedPiece {
+  type: string;
+  white: boolean;
+  fromSquare: string;
+  toSquare: string;
+}
+
+/**
+ * The squares pieces moved between two placements, derived by diffing them:
+ * the piece of a colour and type that vanished on one square and appeared on
+ * another is one move. Leftover disappearance and arrival of a colour pair in
+ * order whatever their type - that is a promotion, a pawn gone and a queen
+ * new - and a leftover with no partner is a capture, which never animates.
+ * Stepping backwards through a game is just another diff: the piece travels
+ * the other way.
+ */
+function movedPieces(before: PlacedPiece[], after: PlacedPiece[]): MovedPiece[] {
+  const moves: MovedPiece[] = [];
+  for (const white of [true, false]) {
+    const gone: string[] = [];
+    const fresh: Array<{ type: string; square: string }> = [];
+    for (const type of ['P', 'N', 'B', 'R', 'Q', 'K']) {
+      const beforeSquares = before
+        .filter((piece) => piece.white === white && piece.type === type)
+        .map((piece) => squareOf(piece.file, piece.rank));
+      const afterSquares = after
+        .filter((piece) => piece.white === white && piece.type === type)
+        .map((piece) => squareOf(piece.file, piece.rank));
+      const arrived = new Set(afterSquares);
+      const disappeared: string[] = [];
+      for (const square of beforeSquares) {
+        if (arrived.has(square)) arrived.delete(square);
+        else disappeared.push(square);
+      }
+      const departed = new Set(beforeSquares);
+      const appeared: string[] = [];
+      for (const square of afterSquares) {
+        if (departed.has(square)) departed.delete(square);
+        else appeared.push(square);
+      }
+      const paired = Math.min(disappeared.length, appeared.length);
+      for (let i = 0; i < paired; i++) {
+        moves.push({ type, white, fromSquare: disappeared[i]!, toSquare: appeared[i]! });
+      }
+      for (let i = paired; i < disappeared.length; i++) gone.push(disappeared[i]!);
+      for (let i = paired; i < appeared.length; i++) {
+        fresh.push({ type, square: appeared[i]! });
+      }
+    }
+    const promoted = Math.min(gone.length, fresh.length);
+    for (let i = 0; i < promoted; i++) {
+      moves.push({
+        type: fresh[i]!.type,
+        white,
+        fromSquare: gone[i]!,
+        toSquare: fresh[i]!.square,
+      });
+    }
+  }
+  return moves;
 }
 
 /**
@@ -205,6 +291,79 @@ export function Board({
   const mayDrag = (square: string): boolean =>
     draggableSquares !== undefined && draggableSquares.includes(square);
 
+  // Piece movement: the previous position is kept so a fen change can diff
+  // the two placements and slide the pieces that changed squares (200ms, the
+  // base duration on the standard ease). Elements register by square so the
+  // layout effect can reach them after the commit.
+  const pieceElsRef = useRef<Map<string, SVGGElement>>(new Map());
+  const activeAnimsRef = useRef<WeakMap<SVGGElement, Animation>>(new WeakMap());
+  const prevPositionRef = useRef<{ fen: string; pieces: PlacedPiece[] } | null>(null);
+  // A drop that lands commits the move with the drag itself as the travel, so
+  // the slide is suppressed for exactly that from-to pair for one position
+  // change.
+  const skipMoveRef = useRef<string | null>(null);
+  const snapbackRef = useRef<SVGGElement | null>(null);
+  const [snapback, setSnapback] = useState<SnapbackState | null>(null);
+
+  useLayoutEffect(() => {
+    const skip = skipMoveRef.current;
+    skipMoveRef.current = null;
+    const prev = prevPositionRef.current;
+    prevPositionRef.current = { fen, pieces };
+    if (prev === null || prev.fen === fen) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    for (const move of movedPieces(prev.pieces, pieces)) {
+      if (skip !== null && move.fromSquare + move.toSquare === skip) continue;
+      const el = pieceElsRef.current.get(move.toSquare);
+      if (el === undefined) continue;
+      if (typeof el.animate !== 'function') continue; // no WAAPI: positions are already final
+      const origin = squareOrigin(move.fromSquare, flipped);
+      const destination = squareOrigin(move.toSquare, flipped);
+      const active = activeAnimsRef.current.get(el);
+      if (active !== undefined) active.cancel();
+      // CSS px on an SVG child are user units, so the keyframes speak the
+      // same coordinates the transform attribute does.
+      const anim = el.animate(
+        [
+          { transform: `translate(${origin.x}px, ${origin.y}px) scale(0.0222)` },
+          { transform: `translate(${destination.x}px, ${destination.y}px) scale(0.0222)` },
+        ],
+        { duration: 200, easing: 'cubic-bezier(0.2, 0, 0, 1)' },
+      );
+      activeAnimsRef.current.set(el, anim);
+    }
+  });
+
+  // The snapback ghost rides one animation from the drop point back to its
+  // square, then unmounts. When the drop committed, the position has moved
+  // on - the drag itself was the travel - and the ride cancels unpainted.
+  useLayoutEffect(() => {
+    if (snapback === null) return;
+    if (snapback.fen !== fen) {
+      setSnapback(null);
+      return;
+    }
+    const el = snapbackRef.current;
+    if (
+      el === null ||
+      typeof el.animate !== 'function' ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      setSnapback(null);
+      return;
+    }
+    const origin = squareOrigin(snapback.square, flipped);
+    const anim = el.animate(
+      [
+        { transform: `translate(${snapback.x - 0.53}px, ${snapback.y - 0.53}px) scale(0.0235)` },
+        { transform: `translate(${origin.x}px, ${origin.y}px) scale(0.0222)` },
+      ],
+      { duration: 120, easing: 'cubic-bezier(0.2, 0, 0, 1)' },
+    );
+    anim.onfinish = () => setSnapback(null);
+    anim.oncancel = () => setSnapback(null);
+  }, [snapback, fen, flipped]);
+
   const beginDrag = (event: ReactPointerEvent<SVGGElement>, square: string): void => {
     if (!interactive || !mayDrag(square)) return;
     try {
@@ -213,7 +372,7 @@ export function Board({
       // jsdom has no pointer capture; the click path never drags.
     }
     const point = viewBoxPoint(event, svgRef.current);
-    setDrag({ square, x: point.x, y: point.y, pointerId: event.pointerId });
+    setDrag({ square, x: point.x, y: point.y, pointerId: event.pointerId, hover: square });
     // Picking up the already-selected piece keeps its selection; picking up
     // any other piece selects it, exactly as clicking it would.
     if (selectedSquare !== square) onSquareClick(square);
@@ -222,7 +381,7 @@ export function Board({
   const moveDrag = (event: ReactPointerEvent<SVGSVGElement>): void => {
     if (drag === null || event.pointerId !== drag.pointerId) return;
     const point = viewBoxPoint(event, svgRef.current);
-    setDrag({ ...drag, x: point.x, y: point.y });
+    setDrag({ ...drag, x: point.x, y: point.y, hover: squareFromPoint(point.x, point.y, flipped) });
   };
 
   const endDrag = (event: ReactPointerEvent<SVGSVGElement>): void => {
@@ -230,7 +389,26 @@ export function Board({
     const point = viewBoxPoint(event, svgRef.current);
     const drop = squareFromPoint(point.x, point.y, flipped);
     setDrag(null);
-    if (drop !== null && drop !== drag.square) onSquareClick(drop);
+    // Stage the ride home first: whatever the drop does, the piece leaves the
+    // pointer from here. When the move commits, the position has moved on and
+    // the ride cancels unpainted - the drag itself was the travel.
+    const dragged = pieces.find((piece) => squareOf(piece.file, piece.rank) === drag.square);
+    if (dragged !== undefined) {
+      setSnapback({
+        type: dragged.type,
+        white: dragged.white,
+        x: point.x,
+        y: point.y,
+        square: drag.square,
+        fen,
+      });
+    }
+    if (drop !== null && drop !== drag.square) {
+      // The slide for exactly this from-to pair is suppressed: the drag was
+      // the travel. The move effect consumes the skip on the next position.
+      skipMoveRef.current = drag.square + drop;
+      onSquareClick(drop);
+    }
   };
 
   for (let column = 0; column < 8; column++) {
@@ -252,6 +430,7 @@ export function Board({
           stroke={highlighted ? '#241d16' : 'none'}
           strokeWidth={highlighted ? 0.06 : 0}
           onClick={interactive ? () => onSquareClick(squareName) : undefined}
+          style={interactive ? { cursor: 'pointer' } : undefined}
         />,
       );
     }
@@ -261,6 +440,33 @@ export function Board({
     const origin = squareOrigin(selectedSquare, flipped);
     cells.push(
       <g key="selected-square">
+        <rect
+          x={origin.x}
+          y={origin.y}
+          width={1}
+          height={1}
+          fill="none"
+          stroke="#fffdf8"
+          strokeWidth={0.12}
+        />
+        <rect
+          x={origin.x}
+          y={origin.y}
+          width={1}
+          height={1}
+          fill="none"
+          stroke="#241d16"
+          strokeWidth={0.05}
+        />
+      </g>,
+    );
+  }
+  if (drag !== null && drag.hover !== null && drag.hover !== drag.square) {
+    // The square the pointer is over while a piece is in hand: the same ring
+    // the selection wears, so the drop target reads before the release.
+    const origin = squareOrigin(drag.hover, flipped);
+    cells.push(
+      <g key="drag-hover-square">
         <rect
           x={origin.x}
           y={origin.y}
@@ -297,10 +503,20 @@ export function Board({
     cells.push(
       <g
         key={`piece-${piece.file}-${piece.rank}`}
+        ref={(el) => {
+          if (el === null) pieceElsRef.current.delete(squareName);
+          else pieceElsRef.current.set(squareName, el);
+        }}
         transform={`translate(${1 + column}, ${1 + row}) scale(0.0222)`}
         role="img"
         aria-label={`${piece.white ? 'white' : 'black'} ${PIECE_NAMES[piece.type]}`}
-        style={interactive && !mayDrag(squareName) ? { pointerEvents: 'none' } : undefined}
+        style={
+          interactive && !mayDrag(squareName)
+            ? { pointerEvents: 'none' }
+            : interactive
+              ? { cursor: 'grab' }
+              : undefined
+        }
         onPointerDown={interactive ? (event) => beginDrag(event, squareName) : undefined}
       >
         <path d={path} fill={fill} stroke={stroke} strokeWidth={1.5} strokeLinejoin="round" />
@@ -340,9 +556,28 @@ export function Board({
       cells.push(
         <g
           key={`piece-${dragged.file}-${dragged.rank}`}
-          transform={`translate(${drag.x - 0.5}, ${drag.y - 0.5}) scale(0.0222)`}
+          transform={`translate(${drag.x - 0.53}, ${drag.y - 0.53}) scale(0.0235)`}
           role="img"
           aria-label={`${dragged.white ? 'white' : 'black'} ${PIECE_NAMES[dragged.type]}`}
+          style={{ pointerEvents: 'none', cursor: 'grabbing' }}
+        >
+          <path d={path} fill={fill} stroke={stroke} strokeWidth={1.5} strokeLinejoin="round" />
+        </g>,
+      );
+    }
+  }
+  if (snapback !== null) {
+    const path = PIECE_PATHS[snapback.type];
+    if (path !== undefined) {
+      const fill = snapback.white ? '#fffdf8' : '#241d16';
+      const stroke = snapback.white ? '#241d16' : '#fffdf8';
+      cells.push(
+        <g
+          ref={snapbackRef}
+          key="snapback-ghost"
+          transform={`translate(${snapback.x - 0.53}, ${snapback.y - 0.53}) scale(0.0235)`}
+          role="img"
+          aria-label={`${snapback.white ? 'white' : 'black'} ${PIECE_NAMES[snapback.type]}`}
           style={{ pointerEvents: 'none' }}
         >
           <path d={path} fill={fill} stroke={stroke} strokeWidth={1.5} strokeLinejoin="round" />
