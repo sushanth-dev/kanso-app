@@ -120,6 +120,28 @@ describe('PuzzlesRoute', () => {
     expect(screen.getAllByText('Due now')).toHaveLength(2);
   });
 
+  test('ST-144: the queue enters on the system, and its tabs and links hold the touch floor', async () => {
+    vi.spyOn(diagnosisApi, 'getPracticeQueue').mockResolvedValue(
+      queueFixture({
+        due: [queueItem(), queueItem({ puzzleId: 'p2', group: 'hangingPiece', rating: 1350 })],
+      }),
+    );
+
+    renderAt();
+
+    expect(
+      (await screen.findByRole('heading', { name: 'Puzzles' })).closest('.reveal-in'),
+    ).not.toBeNull();
+    expect(screen.getByRole('navigation', { name: 'Queue tabs' })).toHaveClass('reveal-in');
+    for (const name of [/Pending \(\d+\)/, /Upcoming \(\d+\)/, /Mastered \(\d+\)/]) {
+      expect(screen.getByRole('button', { name })).toHaveClass('min-h-11');
+    }
+    expect(screen.getAllByRole('list').some((el) => el.classList.contains('stagger-in'))).toBe(
+      true,
+    );
+    expect(screen.getByRole('link', { name: 'Practice now' })).toHaveClass('min-h-11');
+  });
+
   test('shows the all-caught-up empty state with a link to the report', async () => {
     vi.spyOn(diagnosisApi, 'getPracticeQueue').mockResolvedValue(queueFixture());
 

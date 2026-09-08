@@ -102,6 +102,32 @@ describe('PracticeRoute', () => {
     expect(await screen.findByText('No weakness named')).toBeVisible();
   });
 
+  test('ST-144: the due reviews and the drill enter on the system with the floor held', async () => {
+    vi.spyOn(diagnosisApi, 'getPracticeReviews').mockResolvedValue({
+      reviews: [
+        { puzzleId: 'p1', kind: 'motif', group: 'hanging_piece', reviewLevel: 1 },
+        { puzzleId: 'p2', kind: 'motif', group: 'hanging_piece', reviewLevel: 1 },
+      ],
+      remaining: 8,
+    });
+    renderPath('/practice');
+
+    expect(
+      (await screen.findByRole('heading', { name: 'Due for review' })).closest('.reveal-in'),
+    ).not.toBeNull();
+    expect(screen.getAllByRole('list').some((el) => el.classList.contains('stagger-in'))).toBe(
+      true,
+    );
+    expect(screen.getAllByRole('link', { name: 'Hanging piece' })[0]).toHaveClass('min-h-11');
+
+    vi.spyOn(diagnosisApi, 'getPracticePuzzles').mockResolvedValue(
+      drillFixture([puzzle('p1', 'b8c6', 'g1f3')]),
+    );
+    renderPath('/practice?kind=motif&group=hanging_piece&label=Hung%20a%20piece&stream=tournament');
+    const drillHeader = await screen.findByRole('heading', { name: 'Hung a piece' });
+    expect(drillHeader.closest('header')).toHaveClass('reveal-in');
+  });
+
   test('an arrival without a group shows the day due reviews, folded per group', async () => {
     vi.spyOn(diagnosisApi, 'getPracticeReviews').mockResolvedValue({
       reviews: [

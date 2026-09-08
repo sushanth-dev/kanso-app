@@ -746,6 +746,26 @@ holds the 44px touch floor, the links through `min-h-11`, the tabs as
 full-height `Button`s with the shared `press` treatment.
 
 
+### Practice and puzzles
+
+The drill loop is two surfaces at two points in one lifecycle: `/puzzles`,
+the queue (what is pending now, what comes back on the ladder, what is
+mastered), and `/practice`, the drill itself - twenty puzzles matched to a
+weakness group, dealt one at a time, three attempt circles each, wrong
+moves refused without committing, the solution played out on the third
+miss before the puzzle rotates to the back. Without a named weakness,
+`/practice` becomes the day's due reviews, capped at ten - the ladder
+cannot grind (ST-124's guard, pinned by tests this restyle leaves
+untouched).
+
+Since ST-144 every block the routes own enters on the system: the queue's
+header, tabs, lists (`stagger-in`), and every empty and error state; the
+drill's header, its instruction card - keyed per puzzle, so each deal
+arrives - and the session's complete state. The board is the exception
+ADR-0017 makes: it sits outside every styled block and never animates, in
+practice or anywhere else. The tab buttons hold the 44px floor with the
+shared `press` treatment; every link does through `min-h-11`.
+
 ### Entry and guardian consent
 
 Sign-in, sign-up, forgot-password, and reset-password each render as one
