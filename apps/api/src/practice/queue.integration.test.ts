@@ -71,7 +71,7 @@ function app(userId: string | null) {
   });
 }
 
-const QUERY = '?kind=motif&group=hanging_piece';
+const QUERY = '?kind=motif&group=hanging_piece&stream=tournament';
 
 async function playerId(): Promise<string> {
   const [row] = await harness.db.select({ id: player.id }).from(player).limit(1);

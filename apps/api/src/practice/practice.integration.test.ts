@@ -77,7 +77,8 @@ function app(userId: string | null) {
 }
 
 function getDrill(userId: string | null, query: string) {
-  return app(userId).request(`/practice/puzzles${query}`);
+  // ST-150. The deal is stream-scoped, so every request names its stream.
+  return app(userId).request(`/practice/puzzles${query}&stream=tournament`);
 }
 
 function postDrill(userId: string | null, body: unknown) {
