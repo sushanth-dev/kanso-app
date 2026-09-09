@@ -17,6 +17,7 @@ function leak(
     label: over.key,
     eco: null,
     halfPointsLost: 1,
+    severityWeightedHalfPoints: 1,
     occurrences: 1,
     gamesAffected: 1,
     ratingLeak: 10,

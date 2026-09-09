@@ -897,6 +897,15 @@
               "string",
               "null"
             ]
+          },
+          "opponentElo": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "severity": {
+            "type": "number"
           }
         },
         "required": [
@@ -917,7 +926,9 @@
           "motif",
           "crossedResultBoundary",
           "halfPointsLost",
-          "explanation"
+          "explanation",
+          "opponentElo",
+          "severity"
         ]
       },
       "Color": {
@@ -2895,6 +2906,15 @@
                 },
                 "halfPointsLost": {
                   "type": "number"
+                },
+                "opponentElo": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "severity": {
+                  "type": "number"
                 }
               },
               "required": [
@@ -2914,7 +2934,9 @@
                 "winProbDrop",
                 "motif",
                 "crossedResultBoundary",
-                "halfPointsLost"
+                "halfPointsLost",
+                "opponentElo",
+                "severity"
               ]
             }
           }

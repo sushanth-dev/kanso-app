@@ -255,6 +255,26 @@ describe('GET /report', () => {
     expect(ws).toHaveLength(3);
   });
 
+  test('ST-149: same-magnitude mistakes from two different-strength opponents come back in opponent-strength order', async () => {
+    const playerId = await makePlayer(OWNER);
+    const strong = await seedRatedGame(playerId, { blackElo: 2200 });
+    const mid = await seedRatedGame(playerId, { blackElo: 1500 });
+    const weak = await seedRatedGame(playerId, { blackElo: 800 });
+    for (let i = 0; i < 3; i++) await seedRatedGame(playerId);
+
+    // Identical raw magnitude in every game: only the opponent's strength
+    // should be able to move the evidence order.
+    for (const id of [strong, mid, weak]) {
+      await addMistake(id, { halfPointsLost: 1, motif: 'hanging_piece', cpLoss: 300 });
+    }
+
+    const res = await get(OWNER, 'online');
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as ReportBody;
+    const motif = body.weaknesses.find((w) => w.kind === 'motif')!;
+    expect(motif.evidence.map((e) => e.gameId)).toEqual([strong, mid, weak]);
+  });
+
   test('reuses the stored report when analysis has not moved, regenerates when it has', async () => {
     const playerId = await makePlayer(OWNER);
     const games: string[] = [];

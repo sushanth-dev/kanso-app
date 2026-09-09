@@ -27,6 +27,7 @@ import { readSession } from '../session.ts';
 import { hasPlayerClaim } from '../players/claim.ts';
 import { generateToken } from '../proof-sheet/compose.ts';
 import { toMovePlyResponse, toMistakeResponse } from '../games/get-game.ts';
+import { opponentEloOf } from '../analysis/severity.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
 
@@ -164,6 +165,7 @@ export function mountGameShare(
     ]);
 
     c.header('Cache-Control', 'no-store');
+    const opponentElo = opponentEloOf(row);
     return c.json(
       {
         whiteName: row.whiteName,
@@ -174,7 +176,10 @@ export function mountGameShare(
         mistakes: mistakes.map((row2) => {
           // ST-118. The coach explanation is generated prose on the account's
           // budget; the shared payload never carries it.
-          const { explanation: _coachText, ...publicMistake } = toMistakeResponse(row2);
+          const { explanation: _coachText, ...publicMistake } = toMistakeResponse(
+            row2,
+            opponentElo,
+          );
           return publicMistake;
         }),
       } satisfies z.infer<typeof SharedGame>,

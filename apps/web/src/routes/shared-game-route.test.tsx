@@ -61,6 +61,8 @@ function gameFixture(overrides: Partial<SharedGame> = {}): SharedGame {
         motif: 'hanging_piece',
         crossedResultBoundary: false,
         halfPointsLost: 0.5,
+        opponentElo: null,
+        severity: 230,
       },
     ],
     ...overrides,
