@@ -26,12 +26,14 @@ import {
 } from '../contract/routes.ts';
 import { Report } from '../contract/schemas.ts';
 import * as schema from '../db/schema.ts';
-import { actionItem, game, puzzleAttempt, report, weakness } from '../db/schema.ts';
+import { actionItem, game, patternState, puzzleAttempt, report, weakness } from '../db/schema.ts';
 import { readSession } from '../session.ts';
 import { getOwnPlayerId } from '../players/claim.ts';
 import { leakBaseline, scoreLeaks, weaknessLeakRows } from '../analysis/leak.ts';
 import { MIN_RATED_GAMES, SEASON_WINDOW_MS } from '../analysis/performance-rating.ts';
 import { scoreTimeTrouble, timeTroubleCounts } from '../phases/phases.ts';
+import { FOCUS_WINDOW_GAMES } from '../focus/verify.ts';
+import { windowCount } from '../analysis/retirement.ts';
 import { adviceFor, groupKeyOf, weaknessEvidence, type EvidenceInstance } from './evidence.ts';
 import { lineConsistencyByEco } from '../openings/line-consistency.ts';
 import { composeReport, type ComposedWeakness } from './compose.ts';
@@ -140,6 +142,9 @@ function toResponse(r: ReportRow, ws: WeaknessRow[]): ReportResponse {
       // otherwise - the figure is a tournament figure and never appears on
       // an online card.
       lineConsistency: null,
+      // ST-150. Filled in by `withEvidence` from the pattern_state table; null
+      // when the group never became a retirement candidate.
+      retirementState: null,
     })),
     narrative: r.narrative,
   };
@@ -195,6 +200,19 @@ async function withEvidence(
     .where(eq(puzzleAttempt.playerId, playerId))
     .groupBy(puzzleAttempt.kind, puzzleAttempt.groupKey);
   const drilled = new Map(drilledRows.map((r) => [`${r.kind}:${r.groupKey}`, r.count]));
+  // ST-150. One read for the whole report: the player's pattern_state rows in
+  // this stream, keyed by group so a weakness can look its state up without a
+  // query of its own. A group with no row never became a retirement candidate.
+  const patternRows = await db
+    .select({
+      kind: patternState.kind,
+      groupKey: patternState.groupKey,
+      state: patternState.state,
+      masteredAt: patternState.masteredAt,
+    })
+    .from(patternState)
+    .where(and(eq(patternState.playerId, playerId), eq(patternState.stream, stream)));
+  const patternStateByGroup = new Map(patternRows.map((r) => [`${r.kind}:${r.groupKey}`, r]));
   for (const w of response.weaknesses) {
     const key = groupKeyOf(w.kind, w.label, w.eco);
     w.evidence = evidence.get(`${w.kind}:${key}`) ?? [];
@@ -202,6 +220,20 @@ async function withEvidence(
     // for reports generated without a key and for pre-ST-099 rows.
     w.advice = w.advice ?? adviceFor(w.kind, key ?? '', w.evidence);
     w.drilled = key === null ? 0 : (drilled.get(`${w.kind}:${key}`) ?? 0);
+    // ST-150. A candidate whose window is thinner than the floor reads as
+    // `not_yet_verifiable`, the same derivation `GET /patterns` applies, so
+    // the report and the pattern list never disagree about the window.
+    const pattern = key === null ? undefined : patternStateByGroup.get(`${w.kind}:${key}`);
+    if (pattern === undefined) {
+      w.retirementState = null;
+    } else if (
+      pattern.state === 'candidate' &&
+      (await windowCount(db, playerId, stream, pattern.masteredAt)) < FOCUS_WINDOW_GAMES
+    ) {
+      w.retirementState = 'not_yet_verifiable';
+    } else {
+      w.retirementState = pattern.state;
+    }
   }
   const items = await readItemsByGroup(
     db,

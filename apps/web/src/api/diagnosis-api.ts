@@ -35,13 +35,15 @@ export type PracticeSet = components['schemas']['PracticeSet'];
 export type PracticePuzzle = components['schemas']['PracticePuzzle'];
 export type PracticeReviews = components['schemas']['PracticeReviews'];
 export type PracticeReviewItem = components['schemas']['PracticeReviewItem'];
+export type PatternReport = components['schemas']['PatternReport'];
+export type PatternState = components['schemas']['PatternState'];
 
 export interface DiagnosisApi {
   getReport(stream: Stream, tournamentId?: string): Promise<Report>;
   listGames(stream: Stream, tournamentId?: string): Promise<GameList>;
   getGame(gameId: string): Promise<GameDetail>;
   queueAnalysis(gameId: string): Promise<void>;
-  getPracticePuzzles(kind: WeaknessKind, group: string): Promise<PracticeSet>;
+  getPracticePuzzles(kind: WeaknessKind, group: string, stream: Stream): Promise<PracticeSet>;
   recordPracticePuzzle(input: {
     puzzleId: string;
     kind: WeaknessKind;
@@ -68,6 +70,8 @@ export interface DiagnosisApi {
   getSocraticQuestion(mistakeId: string): Promise<SocraticQuestion>;
   getTransferGap(refresh?: boolean): Promise<TransferGap>;
   getTransferGapSeries(): Promise<TransferGapSeries>;
+  /** ST-150. The player's weakness groups and their verified-retirement state. */
+  getPatterns(stream: Stream): Promise<PatternReport>;
 }
 
 export function createDiagnosisApi(
@@ -115,9 +119,9 @@ export function createDiagnosisApi(
       if (result.response.status === 202) return;
       throw failure(result.response.status, result.error);
     },
-    async getPracticePuzzles(kind, group) {
+    async getPracticePuzzles(kind, group, stream) {
       const result = await client.GET('/practice/puzzles', {
-        params: { query: { kind, group } },
+        params: { query: { kind, group, stream } },
       });
       if (result.data !== undefined) return result.data;
       throw failure(result.response.status, result.error);
@@ -197,6 +201,13 @@ export function createDiagnosisApi(
     },
     async getTransferGapSeries() {
       const result = await client.GET('/transfer-gap/series');
+      if (result.data !== undefined) return result.data;
+      throw failure(result.response.status, result.error);
+    },
+    async getPatterns(stream) {
+      const result = await client.GET('/patterns', {
+        params: { query: { stream } },
+      });
       if (result.data !== undefined) return result.data;
       throw failure(result.response.status, result.error);
     },

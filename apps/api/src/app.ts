@@ -43,6 +43,7 @@ import { mountTransferGap } from './rating/transfer-gap.ts';
 import { mountTransferGapSeries } from './rating/transfer-gap-series.ts';
 import { mountMotifs } from './motifs/motifs.ts';
 import { mountPhases } from './phases/phases.ts';
+import { mountPatterns } from './analysis/patterns.ts';
 import { mountReport } from './report/report.ts';
 import { mountListFocuses } from './focus/list-focuses.ts';
 import { mountGetFocus } from './focus/get-focus.ts';
@@ -344,6 +345,7 @@ export function createApp({
     mountTransferGapSeries(app, { db, getSession: effectiveGetSession });
     mountMotifs(app, { db, getSession: effectiveGetSession });
     mountPhases(app, { db, getSession: effectiveGetSession });
+    mountPatterns(app, { db, getSession: effectiveGetSession });
     mountReport(app, { db, getSession: effectiveGetSession, aiClient });
     mountReportShareCard(app, { db, getSession: effectiveGetSession, aiClient });
     mountListFocuses(app, { db });

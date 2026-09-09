@@ -419,6 +419,7 @@ const rankingWeakness: Weakness = {
   groupKey: null,
   evidence: [],
   lineConsistency: null,
+  retirementState: null,
 };
 
 function onlineReport(overrides: Partial<Report> = {}): Report {

@@ -52,7 +52,11 @@ function puzzle(id: string, setup: string, solution: string): PracticePuzzle {
   };
 }
 
-function drillFixture(puzzles: PracticePuzzle[], opening: string | null = null): PracticeSet {
+function drillFixture(
+  puzzles: PracticePuzzle[],
+  opening: string | null = null,
+  retirementState: PracticeSet['retirementState'] = null,
+): PracticeSet {
   return {
     kind: 'motif',
     group: 'hanging_piece',
@@ -60,6 +64,7 @@ function drillFixture(puzzles: PracticePuzzle[], opening: string | null = null):
     rating: 1500,
     puzzles,
     opening,
+    retirementState,
   };
 }
 
@@ -177,7 +182,7 @@ describe('PracticeRoute', () => {
     expect(await screen.findByText('Watch the setup move…')).toBeVisible();
     await vi.advanceTimersByTimeAsync(600);
     expect(await screen.findByText('Find the best move.')).toBeVisible();
-    expect(getPracticePuzzles).toHaveBeenCalledWith('motif', 'hanging_piece');
+    expect(getPracticePuzzles).toHaveBeenCalledWith('motif', 'hanging_piece', 'tournament');
 
     // The player's correct move solves the puzzle and records a solved drill.
     await user.click(square(container, 'g1'));
@@ -435,5 +440,55 @@ describe('ST-122 opening-matched drills', () => {
     const line = await screen.findByText(/Theme: /);
     expect(line.textContent).toContain('hangingPiece.');
     expect(line.textContent).not.toContain('from your');
+  });
+});
+
+describe('ST-150 practice header retirement state', () => {
+  test('a retired group names the chip in the drill header', async () => {
+    vi.spyOn(diagnosisApi, 'getPracticePuzzles').mockResolvedValue(
+      drillFixture([puzzle('p1', 'b8c6', 'g1f3')], null, 'retired'),
+    );
+    renderPath('/practice?kind=motif&group=hanging_piece&label=Hung%20a%20piece&stream=tournament');
+    await screen.findByRole('heading', { name: 'Hung a piece', level: 1 });
+    expect(screen.getByText('Retired')).toBeVisible();
+  });
+
+  test('a candidate group names the chip in the drill header', async () => {
+    vi.spyOn(diagnosisApi, 'getPracticePuzzles').mockResolvedValue(
+      drillFixture([puzzle('p1', 'b8c6', 'g1f3')], null, 'candidate'),
+    );
+    renderPath('/practice?kind=motif&group=hanging_piece&label=Hung%20a%20piece&stream=tournament');
+    await screen.findByRole('heading', { name: 'Hung a piece', level: 1 });
+    expect(screen.getByText('Retirement candidate')).toBeVisible();
+  });
+
+  test('a came-back group names the chip in the drill header', async () => {
+    vi.spyOn(diagnosisApi, 'getPracticePuzzles').mockResolvedValue(
+      drillFixture([puzzle('p1', 'b8c6', 'g1f3')], null, 'came_back'),
+    );
+    renderPath('/practice?kind=motif&group=hanging_piece&label=Hung%20a%20piece&stream=tournament');
+    await screen.findByRole('heading', { name: 'Hung a piece', level: 1 });
+    expect(screen.getByText('Came back')).toBeVisible();
+  });
+
+  test('a not-yet-verifiable group says so in prose, not a badge', async () => {
+    vi.spyOn(diagnosisApi, 'getPracticePuzzles').mockResolvedValue(
+      drillFixture([puzzle('p1', 'b8c6', 'g1f3')], null, 'not_yet_verifiable'),
+    );
+    renderPath('/practice?kind=motif&group=hanging_piece&label=Hung%20a%20piece&stream=tournament');
+    await screen.findByRole('heading', { name: 'Hung a piece', level: 1 });
+    expect(screen.getByText('Not yet verifiable')).toBeVisible();
+  });
+
+  test('a group that never became a candidate shows no chip', async () => {
+    vi.spyOn(diagnosisApi, 'getPracticePuzzles').mockResolvedValue(
+      drillFixture([puzzle('p1', 'b8c6', 'g1f3')]),
+    );
+    renderPath('/practice?kind=motif&group=hanging_piece&label=Hung%20a%20piece&stream=tournament');
+    await screen.findByRole('heading', { name: 'Hung a piece', level: 1 });
+    expect(screen.queryByText('Retired')).not.toBeInTheDocument();
+    expect(screen.queryByText('Retirement candidate')).not.toBeInTheDocument();
+    expect(screen.queryByText('Came back')).not.toBeInTheDocument();
+    expect(screen.queryByText('Not yet verifiable')).not.toBeInTheDocument();
   });
 });
