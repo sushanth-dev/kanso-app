@@ -47,6 +47,8 @@ function mistakeFixture(overrides: Partial<ReviewMistake> = {}): ReviewMistake {
     motif: 'hanging_piece',
     crossedResultBoundary: false,
     halfPointsLost: 0.5,
+    opponentElo: null,
+    severity: 120,
     ...overrides,
   };
 }

@@ -182,6 +182,68 @@ export function Notation({
 }
 
 /**
+ * ST-149. The mistakes worst-first, weighted by the opponent's strength: the
+ * same blunder against a stronger opponent ranks above one against a weaker
+ * one, even at equal raw cost. `mistakes` stays the chronological prop the
+ * rest of the review already threads through; this sorts a copy rather than
+ * asking the caller for a second, pre-sorted list.
+ */
+export function MistakeList({
+  mistakes,
+  currentPly,
+  onSelect,
+}: {
+  mistakes: ReviewMistake[];
+  currentPly: number;
+  onSelect: (ply: number) => void;
+}) {
+  const worstFirst = mistakes.toSorted((a, b) => b.severity - a.severity);
+  return (
+    <section
+      aria-labelledby="mistake-list-heading"
+      className="flex w-56 shrink-0 flex-col rounded-surface border border-border-strong p-4"
+    >
+      <Heading level={2} id="mistake-list-heading">
+        Mistakes
+      </Heading>
+      {worstFirst.length === 0 ? (
+        <Text as="p" display="block" type="supporting" className="mt-3 text-sm">
+          No mistakes recorded in this game.
+        </Text>
+      ) : (
+        <ol className="mt-3 flex flex-col gap-1">
+          {worstFirst.map((mistake) => (
+            <li key={mistake.id}>
+              <button
+                type="button"
+                onClick={() => onSelect(mistake.ply)}
+                aria-pressed={mistake.ply === currentPly}
+                className={
+                  mistake.ply === currentPly
+                    ? 'press flex min-h-11 w-full flex-col items-start rounded-control bg-raised px-2 py-1 text-left ring-2 ring-focus'
+                    : 'press flex min-h-11 w-full flex-col items-start rounded-control px-2 py-1 text-left hover:bg-sunken'
+                }
+              >
+                <span className="flex items-center gap-1 font-mono text-sm">
+                  {mistake.moveSan}
+                  <Text className="text-danger">{JUDGEMENT_GLYPH[mistake.judgement]}</Text>
+                  <Text type="supporting">-{(mistake.cpLoss / 100).toFixed(1)}</Text>
+                </span>
+                <Text type="supporting" className="text-xs">
+                  {mistake.opponentElo === null
+                    ? 'Opponent rating unknown'
+                    : `Opponent rated ${mistake.opponentElo}`}
+                </Text>
+              </button>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
+  );
+}
+
+/**
  * The card under the board: what was played and what it cost. The mistake
  * variant carries the judgement, the centipawn loss and the motif; the plain
  * variant is the move and the running advantage. `drillHref` is the owner's

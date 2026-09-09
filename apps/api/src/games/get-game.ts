@@ -20,6 +20,7 @@ import * as schema from '../db/schema.ts';
 import { game, mistake, movePly, report } from '../db/schema.ts';
 import { readSession } from '../session.ts';
 import { hasPlayerClaim } from '../players/claim.ts';
+import { opponentEloOf, weightedSeverity } from '../analysis/severity.ts';
 import { toGameSummary } from './game-summary.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
@@ -44,7 +45,7 @@ export function toMovePlyResponse(row: MovePlyRow) {
   };
 }
 
-export function toMistakeResponse(row: MistakeRow) {
+export function toMistakeResponse(row: MistakeRow, opponentElo: number | null) {
   return {
     id: row.id,
     gameId: row.gameId,
@@ -64,6 +65,11 @@ export function toMistakeResponse(row: MistakeRow) {
     crossedResultBoundary: row.crossedResultBoundary,
     halfPointsLost: row.halfPointsLost,
     explanation: row.explanation,
+    // ST-149. A single game has one opponent, so this can't reorder the
+    // chronological list below; it's the frontend's severity-sorted view
+    // (MistakeList) that this figure exists for.
+    opponentElo,
+    severity: weightedSeverity(row.cpLoss, opponentElo),
   };
 }
 
@@ -109,12 +115,13 @@ export function mountGetGame(
         .limit(1),
     ]);
 
+    const opponentElo = opponentEloOf(row);
     return c.json(
       {
         ...toGameSummary(row),
         pgn: row.pgn,
         plies: plies.map(toMovePlyResponse),
-        mistakes: mistakes.map(toMistakeResponse),
+        mistakes: mistakes.map((m) => toMistakeResponse(m, opponentElo)),
         timeTroubleFromMove: storedReports[0]?.timeTroubleFromMove ?? null,
       },
       200,

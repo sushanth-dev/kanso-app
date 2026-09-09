@@ -19,6 +19,7 @@ describe('scoreLeaks', () => {
         label: 'Sicilian, Alapin',
         eco: 'B22',
         halfPointsLost: 2,
+        severityWeightedHalfPoints: 2,
         occurrences: 4,
         gamesAffected: 3,
       },
@@ -28,6 +29,7 @@ describe('scoreLeaks', () => {
         label: 'Hanging piece',
         eco: null,
         halfPointsLost: 1,
+        severityWeightedHalfPoints: 1,
         occurrences: 2,
         gamesAffected: 2,
       },
@@ -39,6 +41,7 @@ describe('scoreLeaks', () => {
         label: 'Sicilian, Alapin',
         eco: 'B22',
         halfPointsLost: 2,
+        severityWeightedHalfPoints: 2,
         occurrences: 4,
         gamesAffected: 3,
         ratingLeak: 70,
@@ -50,6 +53,7 @@ describe('scoreLeaks', () => {
         label: 'Hanging piece',
         eco: null,
         halfPointsLost: 1,
+        severityWeightedHalfPoints: 1,
         occurrences: 2,
         gamesAffected: 2,
         ratingLeak: 35,
@@ -66,6 +70,7 @@ describe('scoreLeaks', () => {
         label: 'Many',
         eco: null,
         halfPointsLost: 0.5,
+        severityWeightedHalfPoints: 0.5,
         occurrences: 100,
         gamesAffected: 50,
       },
@@ -75,6 +80,7 @@ describe('scoreLeaks', () => {
         label: 'One',
         eco: 'one',
         halfPointsLost: 1,
+        severityWeightedHalfPoints: 1,
         occurrences: 1,
         gamesAffected: 1,
       },
@@ -92,6 +98,7 @@ describe('scoreLeaks', () => {
         label: 'Endgame',
         eco: null,
         halfPointsLost: 1,
+        severityWeightedHalfPoints: 1,
         occurrences: 1,
         gamesAffected: 1,
       },
@@ -101,6 +108,7 @@ describe('scoreLeaks', () => {
         label: 'Missed check',
         eco: null,
         halfPointsLost: 1,
+        severityWeightedHalfPoints: 1,
         occurrences: 1,
         gamesAffected: 1,
       },
@@ -110,6 +118,7 @@ describe('scoreLeaks', () => {
         label: 'French',
         eco: 'C10',
         halfPointsLost: 1,
+        severityWeightedHalfPoints: 1,
         occurrences: 1,
         gamesAffected: 1,
       },
@@ -119,6 +128,7 @@ describe('scoreLeaks', () => {
         label: 'Alapin',
         eco: 'B22',
         halfPointsLost: 1,
+        severityWeightedHalfPoints: 1,
         occurrences: 1,
         gamesAffected: 1,
       },
@@ -145,11 +155,41 @@ describe('scoreLeaks', () => {
         label: 'Middlegame',
         eco: null,
         halfPointsLost: 8.5,
+        severityWeightedHalfPoints: 8.5,
         occurrences: 9,
         gamesAffected: 5,
       },
     ]);
     expect(leak!.saturated).toBe(true);
     expect(leak!.ratingLeak).toBe(800);
+  });
+
+  test('ranks by severity-weighted half-points first, ahead of raw half-points', () => {
+    // Equal raw half-points; the group with the stronger opponent (higher
+    // severityWeightedHalfPoints) must rank first even though the tie-break
+    // by raw halfPointsLost/kind/key would otherwise favor "many".
+    const leaks = scoreLeaks(midTable, [
+      {
+        kind: 'motif',
+        key: 'weak-opponent',
+        label: 'Weak opponent',
+        eco: null,
+        halfPointsLost: 1,
+        severityWeightedHalfPoints: 0.5,
+        occurrences: 1,
+        gamesAffected: 1,
+      },
+      {
+        kind: 'motif',
+        key: 'strong-opponent',
+        label: 'Strong opponent',
+        eco: null,
+        halfPointsLost: 1,
+        severityWeightedHalfPoints: 1.5,
+        occurrences: 1,
+        gamesAffected: 1,
+      },
+    ]);
+    expect(leaks.map((l) => l.key)).toEqual(['strong-opponent', 'weak-opponent']);
   });
 });

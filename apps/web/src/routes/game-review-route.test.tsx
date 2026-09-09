@@ -41,6 +41,8 @@ const mistakes: Mistake[] = [
     crossedResultBoundary: true,
     halfPointsLost: 1,
     explanation: null,
+    opponentElo: null,
+    severity: 230,
   },
   {
     id: 'm-2',
@@ -61,6 +63,8 @@ const mistakes: Mistake[] = [
     crossedResultBoundary: true,
     halfPointsLost: 1,
     explanation: null,
+    opponentElo: null,
+    severity: 420,
   },
 ];
 
@@ -249,7 +253,8 @@ describe('GameReviewScreen', () => {
 
   test('lists every move in the notation panel and switches position on selection', async () => {
     const { user } = renderScreen(gameFixture());
-    await user.click(screen.getByRole('button', { name: /Qxf3/ }));
+    const notation = screen.getByRole('region', { name: 'Moves' });
+    await user.click(within(notation).getByRole('button', { name: /Qxf3/ }));
     expect(screen.getByText(/you played/)).toHaveTextContent('Qxf3');
     expect(screen.getByText(/best was/)).toHaveTextContent('d6');
   });
@@ -283,15 +288,17 @@ describe('GameReviewScreen', () => {
 
   test('shows the mistake glyph in the notation panel', () => {
     renderScreen(gameFixture());
-    const blunder = screen.getByRole('button', { name: /Qf6/ });
+    const notation = screen.getByRole('region', { name: 'Moves' });
+    const blunder = within(notation).getByRole('button', { name: /Qf6/ });
     expect(blunder).toHaveTextContent('??');
   });
 
   test('Previous is disabled on the first move, Next on the last', async () => {
     const { user } = renderScreen(gameFixture());
-    await user.click(screen.getByRole('button', { name: /^Nf3$/ }));
+    const notation = screen.getByRole('region', { name: 'Moves' });
+    await user.click(within(notation).getByRole('button', { name: /^Nf3$/ }));
     expect(screen.getByRole('button', { name: 'Previous move' })).toBeDisabled();
-    await user.click(screen.getByRole('button', { name: /Qxf3/ }));
+    await user.click(within(notation).getByRole('button', { name: /Qxf3/ }));
     expect(screen.getByRole('button', { name: 'Next move' })).toBeDisabled();
   });
 

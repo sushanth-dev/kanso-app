@@ -33,3 +33,4 @@ number sequence is shared with the frontend records.
 * [0039. Process payments with Razorpay](0039-process-payments-razorpay.md)
 * [0041. Write the coaching prose with GLM-5.3-Flash from Z.AI](0041-glm-flash-coaching-prose.md)
 * [0042. Send email through Resend](0042-send-email-via-resend.md)
+* [0045. Weight mistake severity by the opponent's Elo expectancy](0045-severity-elo-expectancy.md)

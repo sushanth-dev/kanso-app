@@ -177,6 +177,32 @@ describe('GET /games/{gameId}', () => {
     expect(row!.lastActivityDate).toBeNull();
   });
 
+  test('ST-149: a mistake carries opponentElo and severity, weighted by the opponent\u2019s Elo', async () => {
+    const gameId = await seedReviewedGame(OWNER);
+    // The seeded game has the owner playing black, so white's Elo is the
+    // opponent's; a 2000-rated opponent should weight the mistake above its
+    // raw cpLoss.
+    await harness.db.update(game).set({ whiteElo: 2000 }).where(eq(game.id, gameId));
+
+    const res = await app(OWNER).request(`/games/${gameId}`);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      mistakes: { cpLoss: number; opponentElo: number | null; severity: number }[];
+    };
+    expect(body.mistakes[0]).toMatchObject({ cpLoss: 230, opponentElo: 2000 });
+    expect(body.mistakes[0]!.severity).toBeGreaterThan(body.mistakes[0]!.cpLoss);
+  });
+
+  test('ST-149: opponentElo is null and severity equals cpLoss when the game has no Elo headers', async () => {
+    const gameId = await seedReviewedGame(OWNER);
+    const res = await app(OWNER).request(`/games/${gameId}`);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      mistakes: { cpLoss: number; opponentElo: number | null; severity: number }[];
+    };
+    expect(body.mistakes[0]).toMatchObject({ cpLoss: 230, opponentElo: null, severity: 230 });
+  });
+
   test('ST-121: serves the newest stored stream report\u2019s onset, null without one', async () => {
     const gameId = await seedReviewedGame(OWNER);
     const [row] = await harness.db
