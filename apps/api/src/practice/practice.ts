@@ -58,14 +58,14 @@ export function mountPractice(
   deps: { db: Db; getSession: (c: Context) => unknown },
 ): void {
   app.openapi(getPracticePuzzles, async (c) => {
-    const { kind, group } = c.req.valid('query');
+    const { kind, group, stream } = c.req.valid('query');
 
     const playerId = await ownPlayerId(deps.db, deps.getSession, c);
     if (playerId === null) {
       return c.json({ code: 'no_session', message: 'Sign in to use this endpoint.' }, 401);
     }
 
-    const set = await assembleDrill(deps.db, playerId, kind, group);
+    const set = await assembleDrill(deps.db, playerId, kind, group, stream);
     if (set === 'no_such_group') {
       return c.json(
         { code: 'no_such_group', message: 'That weakness group has no puzzle drill.' },

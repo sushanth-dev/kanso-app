@@ -987,6 +987,9 @@
               "null"
             ],
             "description": "The ECO family the opening rungs preferred, humanized; null when the deal fell through to the theme rungs."
+          },
+          "retirementState": {
+            "$ref": "#/components/schemas/RetirementState"
           }
         },
         "required": [
@@ -995,7 +998,8 @@
           "theme",
           "rating",
           "puzzles",
-          "opening"
+          "opening",
+          "retirementState"
         ]
       },
       "WeaknessKind": {
@@ -1029,6 +1033,21 @@
           "moves",
           "rating"
         ]
+      },
+      "RetirementState": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "enum": [
+          "active",
+          "candidate",
+          "retired",
+          "came_back",
+          "not_yet_verifiable",
+          null
+        ],
+        "description": "ST-150. The group's retirement state in the dealt stream; null when the group never became a candidate."
       },
       "PracticePuzzleTally": {
         "type": "object",
@@ -1428,6 +1447,9 @@
           },
           "lineConsistency": {
             "$ref": "#/components/schemas/LineConsistency"
+          },
+          "retirementState": {
+            "$ref": "#/components/schemas/RetirementState"
           }
         },
         "required": [
@@ -1446,7 +1468,8 @@
           "groupKey",
           "drilled",
           "evidence",
-          "lineConsistency"
+          "lineConsistency",
+          "retirementState"
         ]
       },
       "ActionItem": {
@@ -2231,6 +2254,129 @@
               "reason"
             ]
           }
+        ]
+      },
+      "PatternReport": {
+        "type": "object",
+        "properties": {
+          "playerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "stream": {
+            "$ref": "#/components/schemas/Stream"
+          },
+          "patterns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PatternState"
+            }
+          }
+        },
+        "required": [
+          "playerId",
+          "stream",
+          "patterns"
+        ]
+      },
+      "PatternState": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/WeaknessKind"
+          },
+          "groupKey": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "stream": {
+            "$ref": "#/components/schemas/Stream"
+          },
+          "state": {
+            "$ref": "#/components/schemas/RetirementState"
+          },
+          "masteredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "retiredAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "cameBackAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "lastAlertGame": {
+            "$ref": "#/components/schemas/PatternAlertGame"
+          }
+        },
+        "required": [
+          "kind",
+          "groupKey",
+          "label",
+          "stream",
+          "state",
+          "masteredAt",
+          "retiredAt",
+          "cameBackAt",
+          "lastAlertGame"
+        ],
+        "example": {
+          "kind": "motif",
+          "groupKey": "hanging_piece",
+          "label": "Hanging piece",
+          "stream": "tournament",
+          "state": "retired",
+          "masteredAt": "2026-08-01T10:00:00.000Z",
+          "retiredAt": "2026-08-20T10:00:00.000Z",
+          "cameBackAt": null,
+          "lastAlertGame": null
+        }
+      },
+      "PatternAlertGame": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "gameId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "playedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "whiteName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "blackName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "gameId",
+          "playedAt",
+          "whiteName",
+          "blackName"
         ]
       },
       "Explanation": {
@@ -3818,6 +3964,15 @@
             "required": true,
             "name": "group",
             "in": "query"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/Stream"
+            },
+            "required": true,
+            "description": "Tournament games and online games describe different players and are never aggregated together.",
+            "name": "stream",
+            "in": "query"
           }
         ],
         "responses": {
@@ -4925,6 +5080,78 @@
           },
           "422": {
             "description": "No analysed games in this stream.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/patterns": {
+      "get": {
+        "tags": [
+          "Diagnosis"
+        ],
+        "summary": "A player’s weakness groups and their verified-retirement state",
+        "description": "ST-150. Every weakness group the player has dealt, with where it stands: active, candidate, retired, came back, or not yet verifiable. The stored state carries through; a candidate whose stream window is thinner than the verification floor answers not_yet_verifiable at read time, so the answer can never go stale. A came-back group names the game whose analysis triggered the relapse.",
+        "parameters": [
+          {
+            "schema": {
+              "$ref": "#/components/schemas/Stream"
+            },
+            "required": true,
+            "description": "Tournament games and online games describe different players and are never aggregated together.",
+            "name": "stream",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The groups and their retirement states.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PatternReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The session has no claim on this player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such player.",
             "content": {
               "application/json": {
                 "schema": {

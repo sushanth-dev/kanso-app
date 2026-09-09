@@ -295,6 +295,16 @@ export const PracticePuzzle = z
   .openapi('PracticePuzzle');
 
 /**
+ * ST-150. The five answers a group can give. Four are stored on
+ * `pattern_state`; `not_yet_verifiable` is derived at read time for a
+ * `candidate` whose stream window is thinner than the floor, so it can never
+ * go stale.
+ */
+export const RetirementState = z
+  .enum(['active', 'candidate', 'retired', 'came_back', 'not_yet_verifiable'])
+  .openapi('RetirementState');
+
+/**
  * ST-106. One weakness group's drill: at least 20 pool puzzles matched to the
  * group's theme and the player's rating by the prototype's fallback ladder.
  * ST-122: an opening group's drill prefers its mapped ECO family first, and
@@ -310,6 +320,10 @@ export const PracticeSet = z
     opening: z.string().nullable().openapi({
       description:
         'The ECO family the opening rungs preferred, humanized; null when the deal fell through to the theme rungs.',
+    }),
+    retirementState: RetirementState.nullable().openapi({
+      description:
+        "ST-150. The group's retirement state in the dealt stream; null when the group never became a candidate.",
     }),
   })
   .openapi('PracticeSet');
@@ -658,6 +672,54 @@ export const PhaseReport = z
   })
   .openapi('PhaseReport');
 
+// ─── Patterns (ST-150) ───────────────────────────────────────────────────────
+
+/** ST-150. The game whose analysis triggered a relapse, named for the alert copy. */
+export const PatternAlertGame = z
+  .object({
+    gameId: Uuid,
+    playedAt: z.iso.datetime().nullable(),
+    whiteName: z.string().nullable(),
+    blackName: z.string().nullable(),
+  })
+  .openapi('PatternAlertGame');
+
+/** ST-150. One weakness group's verified-retirement state, for one stream. */
+export const PatternState = z
+  .object({
+    kind: WeaknessKind,
+    groupKey: z.string(),
+    label: z.string(),
+    stream: Stream,
+    state: RetirementState,
+    masteredAt: z.iso.datetime(),
+    retiredAt: z.iso.datetime().nullable(),
+    cameBackAt: z.iso.datetime().nullable(),
+    lastAlertGame: PatternAlertGame.nullable(),
+  })
+  .openapi('PatternState', {
+    example: {
+      kind: 'motif',
+      groupKey: 'hanging_piece',
+      label: 'Hanging piece',
+      stream: 'tournament',
+      state: 'retired',
+      masteredAt: '2026-08-01T10:00:00.000Z',
+      retiredAt: '2026-08-20T10:00:00.000Z',
+      cameBackAt: null,
+      lastAlertGame: null,
+    },
+  });
+
+/** ST-150. The player's weakness groups and where each stands. */
+export const PatternReport = z
+  .object({
+    playerId: Uuid,
+    stream: Stream,
+    patterns: z.array(PatternState),
+  })
+  .openapi('PatternReport');
+
 // ─── Report ──────────────────────────────────────────────────────────────────
 
 /**
@@ -759,6 +821,13 @@ export const Weakness = z
     evidence: z.array(WeaknessEvidence),
     /** ST-123. The line-following share for opening groups; null elsewhere. */
     lineConsistency: LineConsistency.nullable(),
+    /**
+     * ST-150. The weakness group's verified-retirement state, or null when the
+     * group has no `pattern_state` row (it never became a retirement
+     * candidate). `not_yet_verifiable` is derived at read time from the
+     * candidate's window, so it can never go stale.
+     */
+    retirementState: RetirementState.nullable(),
   })
   .openapi('Weakness');
 

@@ -25,10 +25,10 @@ export const reportQueryOptions = (stream: Stream, tournamentId?: string) =>
   });
 
 /** ST-106. One weakness group's drill set; refetch deals a fresh set. */
-export const practiceQueryOptions = (kind: WeaknessKind, group: string) =>
+export const practiceQueryOptions = (kind: WeaknessKind, group: string, stream: Stream) =>
   queryOptions({
-    queryKey: ['practice', kind, group] as const,
-    queryFn: () => diagnosisApi.getPracticePuzzles(kind, group),
+    queryKey: ['practice', kind, group, stream] as const,
+    queryFn: () => diagnosisApi.getPracticePuzzles(kind, group, stream),
     retry: false,
     staleTime: 0,
   });
@@ -39,6 +39,15 @@ export const practiceQueueQueryOptions = () =>
     queryKey: ['practice-queue'] as const,
     queryFn: () => diagnosisApi.getPracticeQueue(),
     retry: false,
+  });
+
+/** ST-150. The player's weakness groups and their verified-retirement state. */
+export const patternsQueryOptions = (stream: Stream) =>
+  queryOptions({
+    queryKey: ['patterns', stream] as const,
+    queryFn: () => diagnosisApi.getPatterns(stream),
+    retry: false,
+    staleTime: 30_000,
   });
 
 /** ST-124. The due-for-review section the practice surface shows. */

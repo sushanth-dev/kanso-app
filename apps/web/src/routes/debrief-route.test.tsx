@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { accountApi, ApiRequestError, type Me } from '../api/account-api.ts';
-import { diagnosisApi, type Report } from '../api/diagnosis-api.ts';
+import { diagnosisApi, type PatternReport, type Report } from '../api/diagnosis-api.ts';
 import { focusApi, type ActiveFocus, type FocusCatalogueEntry } from '../api/focus-api.ts';
 import { createAppRouter } from '../router.tsx';
 
@@ -58,6 +58,7 @@ const motifWeakness = {
   groupKey: 'missed_capture',
   evidence: [],
   lineConsistency: null,
+  retirementState: null,
 };
 
 function reportFixture(overrides: Partial<Report> = {}): Report {
@@ -124,6 +125,34 @@ const listGamesEmpty = {
   page: 1,
   limit: 100,
 };
+
+function patternsFixture(overrides: Partial<PatternReport> = {}): PatternReport {
+  return {
+    playerId,
+    stream: 'tournament',
+    patterns: [],
+    ...overrides,
+  };
+}
+
+function cameBackPattern(gameId: string) {
+  return {
+    kind: 'motif' as const,
+    groupKey: 'missed_capture',
+    label: 'Missed captures',
+    stream: 'tournament' as const,
+    state: 'came_back' as const,
+    masteredAt: '2026-07-01T00:00:00.000Z',
+    retiredAt: '2026-08-20T00:00:00.000Z',
+    cameBackAt: '2026-09-01T00:00:00.000Z',
+    lastAlertGame: {
+      gameId,
+      playedAt: '2026-09-01T00:00:00.000Z',
+      whiteName: 'Mina',
+      blackName: 'Rival',
+    },
+  };
+}
 
 describe('DebriefRoute', () => {
   test('points a direct visit without a batch back at the import', async () => {
@@ -435,5 +464,65 @@ describe('DebriefRoute', () => {
     await user.click(await screen.findByRole('button', { name: 'Set Converting won positions' }));
 
     expect(await screen.findByText('This focus cannot be set for this player.')).toBeVisible();
+  });
+
+  test('ST-150: names the pattern when one of the imported games woke a retired group', async () => {
+    vi.spyOn(accountApi, 'getMe').mockResolvedValue(meFixture);
+    vi.spyOn(diagnosisApi, 'getReport').mockResolvedValue(reportFixture());
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue(listGamesEmpty);
+    vi.spyOn(diagnosisApi, 'getPatterns').mockResolvedValue(
+      patternsFixture({ patterns: [cameBackPattern(gameId)] }),
+    );
+    vi.spyOn(focusApi, 'getFocus').mockRejectedValue(
+      new ApiRequestError(404, 'not_found', undefined, 'No focus.'),
+    );
+    vi.spyOn(focusApi, 'listFocuses').mockResolvedValue([]);
+
+    renderDebrief(`/debrief?gameIds=${gameId}&tournamentId=${tournamentId}`);
+
+    expect(
+      await screen.findByRole('heading', { name: 'A retired weakness came back' }),
+    ).toBeVisible();
+    expect(
+      screen.getByText('Missed captures resurfaced in the game you just imported.'),
+    ).toBeVisible();
+  });
+
+  test('ST-150: ignores a came-back whose game is not in this import', async () => {
+    vi.spyOn(accountApi, 'getMe').mockResolvedValue(meFixture);
+    vi.spyOn(diagnosisApi, 'getReport').mockResolvedValue(reportFixture());
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue(listGamesEmpty);
+    vi.spyOn(diagnosisApi, 'getPatterns').mockResolvedValue(
+      patternsFixture({ patterns: [cameBackPattern('00000000-0000-4000-8000-000000000099')] }),
+    );
+    vi.spyOn(focusApi, 'getFocus').mockRejectedValue(
+      new ApiRequestError(404, 'not_found', undefined, 'No focus.'),
+    );
+    vi.spyOn(focusApi, 'listFocuses').mockResolvedValue([]);
+
+    renderDebrief(`/debrief?gameIds=${gameId}&tournamentId=${tournamentId}`);
+
+    await screen.findByRole('heading', { name: 'Tournament report' });
+    expect(
+      screen.queryByRole('heading', { name: 'A retired weakness came back' }),
+    ).not.toBeInTheDocument();
+  });
+
+  test('ST-150: stays quiet when no retired group came back in the batch', async () => {
+    vi.spyOn(accountApi, 'getMe').mockResolvedValue(meFixture);
+    vi.spyOn(diagnosisApi, 'getReport').mockResolvedValue(reportFixture());
+    vi.spyOn(diagnosisApi, 'listGames').mockResolvedValue(listGamesEmpty);
+    vi.spyOn(diagnosisApi, 'getPatterns').mockResolvedValue(patternsFixture());
+    vi.spyOn(focusApi, 'getFocus').mockRejectedValue(
+      new ApiRequestError(404, 'not_found', undefined, 'No focus.'),
+    );
+    vi.spyOn(focusApi, 'listFocuses').mockResolvedValue([]);
+
+    renderDebrief(`/debrief?gameIds=${gameId}&tournamentId=${tournamentId}`);
+
+    await screen.findByRole('heading', { name: 'Tournament report' });
+    expect(
+      screen.queryByRole('heading', { name: 'A retired weakness came back' }),
+    ).not.toBeInTheDocument();
   });
 });

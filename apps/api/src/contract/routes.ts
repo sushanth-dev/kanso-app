@@ -32,6 +32,7 @@ import {
   MarkActionItemDone,
   Me,
   MotifReport,
+  PatternReport,
   PhaseReport,
   Player,
   PracticePuzzleTally,
@@ -288,6 +289,25 @@ export const getPhases = createRoute({
   },
 });
 
+export const getPatterns = createRoute({
+  method: 'get',
+  path: '/patterns',
+  tags: ['Diagnosis'],
+  summary: 'A player’s weakness groups and their verified-retirement state',
+  description:
+    'ST-150. Every weakness group the player has dealt, with where it stands: active, candidate, retired, came back, or not yet verifiable. The stored state carries through; a candidate whose stream window is thinner than the verification floor answers not_yet_verifiable at read time, so the answer can never go stale. A came-back group names the game whose analysis triggered the relapse.',
+  request: {
+    query: z.object({
+      stream: Stream.openapi({ param: { name: 'stream', in: 'query' } }),
+    }),
+  },
+  responses: {
+    200: json(PatternReport, 'The groups and their retirement states.'),
+    ...authErrors,
+    404: error('No such player.'),
+  },
+});
+
 // ─── Import ──────────────────────────────────────────────────────────────────
 
 export const startImport = createRoute({
@@ -418,6 +438,7 @@ export const getPracticePuzzles = createRoute({
     query: z.object({
       kind: WeaknessKind,
       group: z.string().min(1).max(64),
+      stream: Stream.openapi({ param: { name: 'stream', in: 'query' } }),
     }),
   },
   responses: {
@@ -1173,6 +1194,7 @@ export const routes = [
   getRoundDecay,
   getMotifs,
   getPhases,
+  getPatterns,
   getExplanation,
   getSocraticQuestion,
   getCctScan,

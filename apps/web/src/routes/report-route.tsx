@@ -40,6 +40,39 @@ const KIND_LABEL: Record<WeaknessKind, string> = {
 
 const PRACTICED_THRESHOLD = 20;
 
+/**
+ * ST-150. The retirement state chip on a weakness card. Five renderings, one
+ * per state: `not_yet_verifiable` is prose, never a collapsed boolean, so the
+ * player sees the group is waiting on a thinner verification window rather
+ * than a yes/no.
+ */
+export function RetirementChip({ state }: { state: Weakness['retirementState'] }) {
+  if (state === null) return null;
+  if (state === 'not_yet_verifiable') {
+    return (
+      <Text type="supporting" className="text-sm">
+        Not yet verifiable
+      </Text>
+    );
+  }
+  const variant: Record<
+    'active' | 'candidate' | 'retired' | 'came_back',
+    'success' | 'info' | 'neutral' | 'warning'
+  > = {
+    active: 'success',
+    candidate: 'info',
+    retired: 'neutral',
+    came_back: 'warning',
+  };
+  const label: Record<string, string> = {
+    active: 'Active',
+    candidate: 'Retirement candidate',
+    retired: 'Retired',
+    came_back: 'Came back',
+  };
+  return <Badge label={label[state]} variant={variant[state]} />;
+}
+
 const TIME_TROUBLE_UNAVAILABLE: Record<'no_clock_data' | 'not_enough_evidence', string> = {
   no_clock_data: 'No clock data on these games, so time usage is not measured.',
   not_enough_evidence: 'Too few games with clock data to measure time usage.',
@@ -266,6 +299,7 @@ function WeaknessList({ weaknesses, stream, tournamentId }: WeaknessListProps) {
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge label={KIND_LABEL[weakness.kind]} variant="neutral" />
                   {practiced ? <Badge label="Practiced" variant="neutral" /> : null}
+                  <RetirementChip state={weakness.retirementState} />
                   {weakness.eco !== null ? (
                     <Text type="supporting" className="font-mono text-sm">
                       {weakness.eco}

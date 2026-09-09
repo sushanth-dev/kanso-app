@@ -11,7 +11,16 @@ import type { Context } from 'hono';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { createApp } from '../app.ts';
-import { game, mistake, movePly, player, report, tournament, weakness } from '../db/schema.ts';
+import {
+  game,
+  mistake,
+  movePly,
+  patternState,
+  player,
+  report,
+  tournament,
+  weakness,
+} from '../db/schema.ts';
 import { user } from '../db/auth-schema.ts';
 import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-harness.ts';
 import type { AiClient } from '../coaching/zai.ts';
@@ -186,6 +195,8 @@ interface WeaknessBody {
     | null;
   /** ST-107. The curriculum the read fills; empty when no model is set. */
   actionItems: ActionItemBody[];
+  /** ST-150. The verified-retirement state; null when the group never became a candidate. */
+  retirementState: 'active' | 'candidate' | 'retired' | 'came_back' | 'not_yet_verifiable' | null;
 }
 
 interface ReportBody {
@@ -890,6 +901,69 @@ describe('GET /report model advice (ST-099)', () => {
       const body = (await res.json()) as ReportBody;
       const opening = body.weaknesses.find((w) => w.kind === 'opening')!;
       expect(opening.lineConsistency).toEqual({ status: 'ok', matched: 5, games: 5 });
+    });
+  });
+
+  describe('ST-150. Retirement state on the report', () => {
+    /** Two rated games with a middlegame mistake each, plus four bare games to
+     * meet the report's six-game rated floor: a `phase:Middlegame` group. */
+    async function seedMiddlegameWeakness(playerId: string): Promise<void> {
+      for (let i = 0; i < 2; i++) {
+        const id = await seedRatedGame(playerId);
+        await addMistake(id, { halfPointsLost: 1, phase: 'middlegame' });
+      }
+      for (let i = 0; i < 4; i++) await seedRatedGame(playerId);
+    }
+
+    test('a group with no pattern_state row reads null', async () => {
+      const playerId = await makePlayer(OWNER);
+      await seedMiddlegameWeakness(playerId);
+
+      const res = await get(OWNER, 'online');
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as ReportBody;
+      const weakness = body.weaknesses.find((w) => w.kind === 'phase' && w.label === 'Middlegame')!;
+      expect(weakness.retirementState).toBeNull();
+    });
+
+    test('a stored state rides the group, whatever the window', async () => {
+      const playerId = await makePlayer(OWNER);
+      await seedMiddlegameWeakness(playerId);
+      await harness.db.insert(patternState).values({
+        playerId,
+        kind: 'phase',
+        groupKey: 'middlegame',
+        stream: 'online',
+        label: 'Middlegame',
+        state: 'retired',
+      });
+
+      const res = await get(OWNER, 'online');
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as ReportBody;
+      const weakness = body.weaknesses.find((w) => w.kind === 'phase' && w.label === 'Middlegame')!;
+      expect(weakness.retirementState).toBe('retired');
+    });
+
+    test('a candidate under the window floor reads not_yet_verifiable', async () => {
+      const playerId = await makePlayer(OWNER);
+      await seedMiddlegameWeakness(playerId);
+      // masteredAt defaults to now, after every seeded game's playedAt, so the
+      // candidate's window is empty and the read derives `not_yet_verifiable`.
+      await harness.db.insert(patternState).values({
+        playerId,
+        kind: 'phase',
+        groupKey: 'middlegame',
+        stream: 'online',
+        label: 'Middlegame',
+        state: 'candidate',
+      });
+
+      const res = await get(OWNER, 'online');
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as ReportBody;
+      const weakness = body.weaknesses.find((w) => w.kind === 'phase' && w.label === 'Middlegame')!;
+      expect(weakness.retirementState).toBe('not_yet_verifiable');
     });
   });
 });

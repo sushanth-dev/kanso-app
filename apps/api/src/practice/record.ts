@@ -18,11 +18,11 @@
  * UTC to hold the section to ten puzzles a day. Re-drilling a puzzle early,
  * or re-solving one that failed, is extra practice and stamps nothing.
  */
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
-import type { WeaknessKind } from '../analysis/leak.ts';
+import { HUMAN_LABELS, type WeaknessKind } from '../analysis/leak.ts';
 import * as schema from '../db/schema.ts';
-import { puzzle, puzzleAttempt } from '../db/schema.ts';
+import { patternState, puzzle, puzzleAttempt } from '../db/schema.ts';
 import { recordActivity } from '../players/activity.ts';
 import { themeForGroup } from './themes.ts';
 
@@ -100,6 +100,42 @@ export async function recordDrill(
       })
       .returning();
     if (solved) await recordActivity(tx, playerId);
+
+    // ST-150. The mastered definition is the queue's: every puzzle the group
+    // has dealt reaches reviewLevel 3. When that first happens and no
+    // pattern_state row exists yet, the group becomes a retirement candidate,
+    // written for both streams inside the same transaction so a drill that
+    // masters a group cannot leave the state unseen.
+    if (solved) {
+      const [unmastered] = await tx
+        .select({ n: sql<number>`count(*)::int` })
+        .from(puzzleAttempt)
+        .where(
+          and(
+            eq(puzzleAttempt.playerId, playerId),
+            eq(puzzleAttempt.kind, kind),
+            eq(puzzleAttempt.groupKey, group),
+            sql`${puzzleAttempt.reviewLevel} < 3`,
+          ),
+        );
+      if (unmastered?.n === 0) {
+        const label = HUMAN_LABELS[group] ?? group;
+        await tx
+          .insert(patternState)
+          .values(
+            (['tournament', 'online'] as const).map((stream) => ({
+              playerId,
+              kind,
+              groupKey: group,
+              stream,
+              label,
+              state: 'candidate' as const,
+            })),
+          )
+          .onConflictDoNothing();
+      }
+    }
+
     return {
       attempts: row!.attempts,
       solved: row!.solved,
