@@ -8,11 +8,11 @@
  * advice is static copy: per-instance, the engine's stored best move is the
  * concrete fix, and a model call here would be ADR-0018's job, not a report's.
  */
-import { and, desc, eq, inArray, lte } from 'drizzle-orm';
+import { and, desc, eq, inArray, lte, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import * as schema from '../db/schema.ts';
 import { game, mistake, movePly } from '../db/schema.ts';
-import { leakScope, type WeaknessKind } from '../analysis/leak.ts';
+import { leakScope, severityWeightSql, type WeaknessKind } from '../analysis/leak.ts';
 import { TROUBLE_CLOCK_MS } from '../phases/phases.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
@@ -92,8 +92,15 @@ export function groupKeyOf(kind: WeaknessKind, label: string, eco: string | null
   }
 }
 
-/** Worst first: the half-points the leak counted, then the raw centipawn drop. */
-const worstFirst = [desc(mistake.halfPointsLost), desc(mistake.cpLoss)];
+/**
+ * Worst first: the half-points the leak counted, then the raw centipawn drop,
+ * each opponent-weighted by ST-149's severity so the same evidence order the
+ * leak ranked with is the order shown beneath it.
+ */
+const worstFirst = [
+  desc(sql`${severityWeightSql} * ${mistake.halfPointsLost}`),
+  desc(sql`${severityWeightSql} * ${mistake.cpLoss}`),
+];
 
 function toInstance(r: EvidenceRow): EvidenceInstance {
   return {

@@ -17,6 +17,7 @@ import { UpgradePrompt } from '../components/upgrade-prompt.tsx';
 import { Board, describePosition } from '../components/board.tsx';
 import { GameShareLinksSection } from '../components/game-share-links-section.tsx';
 import {
+  MistakeList,
   MoveCard,
   Notation,
   ResultReveal,
@@ -409,6 +410,12 @@ export function GameReviewScreen({
                 plies={game.plies}
                 mistakes={game.mistakes}
                 currentPly={currentPly}
+                onSelect={selectPly}
+              />
+
+              <MistakeList
+                mistakes={game.mistakes}
+                currentPly={currentPly.ply}
                 onSelect={selectPly}
               />
             </div>

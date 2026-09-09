@@ -23,6 +23,7 @@ import {
   SEASON_WINDOW_MS,
   type SeasonBaseline,
 } from './performance-rating.ts';
+import { SEVERITY_ELO_SCALE, SEVERITY_REFERENCE_ELO } from './severity.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
 type Stream = (typeof schema.streamEnum.enumValues)[number];
@@ -39,6 +40,8 @@ export interface WeaknessLeak {
   /** The ECO code for an opening, null for every other kind. */
   eco: string | null;
   halfPointsLost: number;
+  /** ST-149: `halfPointsLost` weighted by opponent strength. A ranking input, not a reported figure. */
+  severityWeightedHalfPoints: number;
   occurrences: number;
   gamesAffected: number;
   ratingLeak: number;
@@ -50,8 +53,21 @@ export type LeakResult =
   | { kind: 'ok'; baseline: SeasonBaseline; weaknesses: WeaknessLeak[] }
   | { kind: 'not_enough_evidence'; ratedGames: number };
 
-/** The opponent's Elo, read from the player's colour. */
-const opponentElo = sql`case when ${game.playerColor} = 'white' then ${game.blackElo} else ${game.whiteElo} end`;
+/** The opponent's Elo, read from the player's colour. Shared with `evidence.ts`. */
+export const opponentEloExpr = sql`case when ${game.playerColor} = 'white' then ${game.blackElo} else ${game.whiteElo} end`;
+
+/**
+ * ST-149's severity weight, in SQL: twice the standard Elo expected-score
+ * curve against `severity.ts`'s fixed 1500 anchor, or a neutral 1 when the
+ * opponent's Elo is unknown (AC#4). Interpolates the same two constants
+ * `severity.ts` exports so the SQL and TS renderings of the formula cannot
+ * drift apart silently. Shared with `evidence.ts`, so both queries rank by
+ * the identical weight the leak scored with.
+ */
+export const severityWeightSql = sql`case
+  when ${opponentEloExpr} is null then 1
+  else 2.0 / (1 + power(10, (${SEVERITY_REFERENCE_ELO} - ${opponentEloExpr})::float8 / ${SEVERITY_ELO_SCALE}))
+end`;
 
 /** The player's score for one game, from the stored colour and result. */
 const playerScore = sql`case
@@ -66,10 +82,11 @@ const ratedGame = and(
   isNotNull(game.playedAt),
   isNotNull(game.playerColor),
   ne(game.result, '*'),
-  sql`${opponentElo} is not null`,
+  sql`${opponentEloExpr} is not null`,
 );
 
 const sumHalfPoints = sql<number>`coalesce(sum(${mistake.halfPointsLost}), 0)::float8`;
+const severityWeightedHalfPoints = sql<number>`coalesce(sum(${severityWeightSql} * ${mistake.halfPointsLost}), 0)::float8`;
 const countOccurrences = sql<number>`count(${mistake.id})::int`;
 const countGames = sql<number>`count(distinct ${mistake.gameId})::int`;
 
@@ -80,6 +97,8 @@ export interface LeakRow {
   label: string;
   eco: string | null;
   halfPointsLost: number;
+  /** ST-149: `halfPointsLost` weighted by opponent strength. A ranking input, not a reported figure. */
+  severityWeightedHalfPoints: number;
   occurrences: number;
   gamesAffected: number;
 }
@@ -123,7 +142,7 @@ export async function leakBaseline(
     .select({
       games: sql<number>`count(*)::int`,
       score: sql<number>`coalesce(sum(${playerScore}), 0)::float8`,
-      avgOpponentElo: sql<number>`coalesce(avg(${opponentElo}), 0)::float8`,
+      avgOpponentElo: sql<number>`coalesce(avg(${opponentEloExpr}), 0)::float8`,
     })
     .from(game)
     .where(
@@ -194,6 +213,7 @@ export async function weaknessLeakRows(
         string | null
       >`(array_agg(${game.opening} order by ${game.playedAt} desc nulls last))[1]`,
       halfPointsLost: sumHalfPoints,
+      severityWeightedHalfPoints,
       occurrences: countOccurrences,
       gamesAffected: countGames,
     })
@@ -206,6 +226,7 @@ export async function weaknessLeakRows(
     .select({
       key: mistake.motif,
       halfPointsLost: sumHalfPoints,
+      severityWeightedHalfPoints,
       occurrences: countOccurrences,
       gamesAffected: countGames,
     })
@@ -218,6 +239,7 @@ export async function weaknessLeakRows(
     .select({
       key: mistake.phase,
       halfPointsLost: sumHalfPoints,
+      severityWeightedHalfPoints,
       occurrences: countOccurrences,
       gamesAffected: countGames,
     })
@@ -229,6 +251,7 @@ export async function weaknessLeakRows(
   const [trouble] = await db
     .select({
       halfPointsLost: sumHalfPoints,
+      severityWeightedHalfPoints,
       occurrences: countOccurrences,
       gamesAffected: countGames,
     })
@@ -267,7 +290,12 @@ function asRow(
   key: string,
   eco: string | null,
   label: string | null,
-  r: { halfPointsLost: number; occurrences: number; gamesAffected: number },
+  r: {
+    halfPointsLost: number;
+    severityWeightedHalfPoints: number;
+    occurrences: number;
+    gamesAffected: number;
+  },
 ): LeakRow {
   return {
     kind,
@@ -275,6 +303,7 @@ function asRow(
     label: label ?? HUMAN_LABELS[key] ?? key,
     eco,
     halfPointsLost: r.halfPointsLost,
+    severityWeightedHalfPoints: r.severityWeightedHalfPoints,
     occurrences: r.occurrences,
     gamesAffected: r.gamesAffected,
   };
@@ -292,6 +321,7 @@ export function scoreLeaks(baseline: SeasonBaseline, rows: LeakRow[]): WeaknessL
     })
     .sort(
       (a, b) =>
+        b.severityWeightedHalfPoints - a.severityWeightedHalfPoints ||
         b.halfPointsLost - a.halfPointsLost ||
         a.kind.localeCompare(b.kind) ||
         a.key.localeCompare(b.key),

@@ -569,8 +569,20 @@ not as a separate bar.
 
 The route lists the game's mistakes in move order; selecting one shows its
 position, the move played versus the engine's best, the judgement and
-centipawn loss, and the motif where one applies. The game result is the
-surface's one authored motion moment (ST-138): the mono figure enters through
+centipawn loss, and the motif where one applies. The notation panel's own
+order is unaffected by severity.
+
+A second, smaller list beside the notation panel (`MistakeList`, ST-149)
+orders the same mistakes worst-first by severity - the same eval-swing cost
+weighted by twice the opponent's Elo expected-score curve, anchored at 1500
+(ADR-0045), so an identical blunder against a stronger opponent ranks above
+one against a weaker opponent even at equal raw cost. Each row shows the
+judgement glyph, the cost, and the opponent's rating beside it ("Opponent
+rated 2000", or "Opponent rating unknown" when the game's PGN carried no
+Elo header), so the ordering is never unexplained; selecting a row steps the
+board to that mistake through the same `onSelect` callback the notation
+panel already uses. The game result is the surface's one authored motion
+moment (ST-138): the mono figure enters through
 a GSAP timeline, a fade and rise on the slow 320ms decelerate token with the
 result gloss following on the same ease, the accessible values held in
 sr-only spans and the animated figures aria-hidden on top of them, the

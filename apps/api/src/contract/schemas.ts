@@ -432,6 +432,10 @@ export const Mistake = z
     halfPointsLost: z.number(),
     /** ADR-0018. Null until someone opens this mistake and we generate it. */
     explanation: z.string().nullable(),
+    /** ST-149. The opponent's Elo this mistake was weighted against; null when unknown. */
+    opponentElo: z.number().int().nullable(),
+    /** ST-149. `cpLoss` weighted by opponent strength; equals `cpLoss` when `opponentElo` is null. */
+    severity: z.number(),
   })
   .openapi('Mistake');
 
