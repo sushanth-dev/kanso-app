@@ -7,9 +7,10 @@
   "engines": {
     "node": "^24.19.0"
   },
-  "comment:overrides": "drizzle-kit still pulls the deprecated @esbuild-kit/esm-loader, which pins an esbuild below 0.24.3 and trips GHSA-67mh-4wv8-2f99 on every npm audit. The advisory is about esbuild's dev server, which nothing here runs, but a permanently failing audit is a broken gate. Forcing a current esbuild clears it. Drop this once drizzle-kit stops depending on the loader.",
+  "comment:overrides": "drizzle-kit still pulls the deprecated @esbuild-kit/esm-loader, which pins an esbuild below 0.24.3 and trips GHSA-67mh-4wv8-2f99 on every npm audit. The advisory is about esbuild's dev server, which nothing here runs, but a permanently failing audit is a broken gate. Forcing a current esbuild clears it. Drop this once drizzle-kit stops depending on the loader. js-yaml: @redocly/openapi-core (via openapi-typescript) pins 4.3.1 exactly, which trips GHSA-2883-xcg3-v3hh; 4.3.2 is the patched release; pinned exactly because a caret spec was ignored on re-resolution.",
   "overrides": {
-    "esbuild": "^0.25.12"
+    "esbuild": "^0.25.12",
+    "js-yaml": "4.3.2"
   },
   "comment:prepare": "Wires the pre-commit hook by pointing git at .githooks/ instead of .git/hooks/, which keeps the hooks in the repository where they are reviewed and versioned. Runs on npm install, so a fresh clone gets the gates without a separate setup step and without a hook-runner dependency.",
   "scripts": {
@@ -29,13 +30,13 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@vitest/coverage-v8": "^4.1.10",
+    "@vitest/coverage-v8": "^4.1.11",
     "eslint": "^10.8.0",
     "globals": "^17.11.0",
     "prettier": "^3.9.6",
     "sst": "^4.17.1",
     "typescript-eslint": "^8.66.0",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
   },
   "allowScripts": {
     "stockfish@18.0.8": true
