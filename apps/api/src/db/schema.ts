@@ -97,6 +97,19 @@ export const timeTroubleReasonEnum = pgEnum('time_trouble_reason', [
 /** ST-107. The tier tag inside a progressive resource set: one of each per weakness. */
 export const resourceTierEnum = pgEnum('resource_tier', ['beginner', 'intermediate', 'advanced']);
 
+/**
+ * ST-150. Verified retirement. `candidate` means the drill pool reached the
+ * mastered bucket and the window has not closed yet; `came_back` is active
+ * again after a relapse until the group re-masters. `not-yet-verifiable` is
+ * never stored, only derived at read time from a too-thin window.
+ */
+export const patternStateEnum = pgEnum('retirement_state', [
+  'active',
+  'candidate',
+  'retired',
+  'came_back',
+]);
+
 /** ST-107. An action item is open until the model accepts the player's assessment. */
 export const actionItemStatusEnum = pgEnum('action_item_status', ['pending', 'completed']);
 
@@ -994,6 +1007,48 @@ export const puzzleAttempt = pgTable(
   ],
 );
 
+/**
+ * ST-150. The verified-retirement state of one weakness group, per stream.
+ *
+ * Keyed by (player, kind, group key, stream) - the group identity from
+ * `groupKeyOf`, the only one that survives report regeneration - so a
+ * regeneration cannot touch it and a relapse is caught per stream, the
+ * way every verification the product makes is per stream. The state
+ * machine is: mastered pool promotes to `candidate`; the verification
+ * window completing with zero new instances retires it; the first new
+ * instance after that flips to `came_back`, which is active again until
+ * the group re-masters. `not-yet-verifiable` is never stored: a
+ * candidate whose stream window is thinner than the floor answers it at
+ * read time, so the answer cannot go stale.
+ */
+export const patternState = pgTable(
+  'pattern_state',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    playerId: uuid('player_id')
+      .notNull()
+      .references(() => player.id, { onDelete: 'cascade' }),
+    kind: weaknessKindEnum('kind').notNull(),
+    /** The stable identity of the weakness group, from `groupKeyOf`. */
+    groupKey: text('group_key').notNull(),
+    stream: streamEnum('stream').notNull(),
+    /** The group's display label, carried at write time for alert copy. */
+    label: text('label').notNull(),
+    state: patternStateEnum('state').notNull().default('candidate'),
+    masteredAt: timestamp('mastered_at', { withTimezone: true }).notNull().defaultNow(),
+    retiredAt: timestamp('retired_at', { withTimezone: true }),
+    cameBackAt: timestamp('came_back_at', { withTimezone: true }),
+    /** The game whose analysis triggered the relapse; one alert per relapse. */
+    lastAlertGameId: uuid('last_alert_game_id').references(() => game.id, {
+      onDelete: 'set null',
+    }),
+  },
+  (t) => [
+    uniqueIndex('pattern_state_group_unique').on(t.playerId, t.kind, t.groupKey, t.stream),
+    index('pattern_state_player_idx').on(t.playerId, t.state),
+  ],
+);
+
 // ─── Relations ───────────────────────────────────────────────────────────────
 
 export const playerRelations = relations(player, ({ many }) => ({
@@ -1006,6 +1061,14 @@ export const playerRelations = relations(player, ({ many }) => ({
 
 export const puzzleAttemptRelations = relations(puzzleAttempt, ({ one }) => ({
   player: one(player, { fields: [puzzleAttempt.playerId], references: [player.id] }),
+}));
+
+export const patternStateRelations = relations(patternState, ({ one }) => ({
+  player: one(player, { fields: [patternState.playerId], references: [player.id] }),
+  lastAlertGame: one(game, {
+    fields: [patternState.lastAlertGameId],
+    references: [game.id],
+  }),
 }));
 
 export const gameRelations = relations(game, ({ one, many }) => ({

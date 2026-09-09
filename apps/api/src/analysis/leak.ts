@@ -274,7 +274,7 @@ export async function weaknessLeakRows(
 }
 
 /** Human display labels for the kinds whose key is not already a name. */
-const HUMAN_LABELS: Record<string, string> = {
+export const HUMAN_LABELS: Record<string, string> = {
   hanging_piece: 'Hanging piece',
   missed_check: 'Missed check',
   missed_capture: 'Missed capture',

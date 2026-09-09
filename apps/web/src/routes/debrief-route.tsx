@@ -14,8 +14,13 @@ import { Text } from '@astryxdesign/core/Text';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { ApiRequestError } from '../api/account-api.ts';
-import type { Stream, Weakness } from '../api/diagnosis-api.ts';
-import { focusQueryOptions, focusesQueryOptions, reportQueryOptions } from '../query-client.ts';
+import type { PatternState, Stream, Weakness } from '../api/diagnosis-api.ts';
+import {
+  focusQueryOptions,
+  focusesQueryOptions,
+  patternsQueryOptions,
+  reportQueryOptions,
+} from '../query-client.ts';
 import { UpgradePrompt } from '../components/upgrade-prompt.tsx';
 import { StatusMessage } from '../components/status-message.tsx';
 import { CatalogueList, CoachInstructionForm, useSetFocus } from './focus-route.tsx';
@@ -110,6 +115,41 @@ function DebriefFocus() {
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * ST-150. The "this came back" line: shown when one of the batch's games
+ * triggered a relapse in a retired group. The patterns read names the group
+ * and the game that woke it; we only surface the relapses this import caused,
+ * so the alert is scoped to the games just imported.
+ */
+function DebriefCameBack({ gameIds }: { gameIds: string[] }) {
+  const patternsQuery = useQuery(patternsQueryOptions('tournament'));
+
+  if (patternsQuery.isPending || patternsQuery.isError) return null;
+
+  const cameBack = patternsQuery.data.patterns.filter(
+    (
+      pattern,
+    ): pattern is PatternState & { lastAlertGame: NonNullable<PatternState['lastAlertGame']> } =>
+      pattern.state === 'came_back' &&
+      pattern.lastAlertGame !== null &&
+      gameIds.includes(pattern.lastAlertGame.gameId),
+  );
+  if (cameBack.length === 0) return null;
+
+  return (
+    <Card className="reveal-in space-y-2 p-4" variant="yellow">
+      <Heading level={2}>A retired weakness came back</Heading>
+      <Text as="p" display="block">
+        {cameBack.map((pattern) => (
+          <span key={pattern.groupKey}>
+            {pattern.label} resurfaced in the game you just imported.
+          </span>
+        ))}
+      </Text>
+    </Card>
   );
 }
 
@@ -213,6 +253,8 @@ export function DebriefRoute() {
           void navigate({ to: '/report', search: { stream: next } });
         }}
       />
+
+      <DebriefCameBack gameIds={gameIds} />
 
       <section className="reveal-in space-y-4">
         <Heading level={2}>Your one focus</Heading>

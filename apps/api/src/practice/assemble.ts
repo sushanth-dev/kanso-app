@@ -26,13 +26,18 @@
  */
 import { and, asc, eq, gte, lte, notInArray, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
+import { z } from 'zod';
 import type { WeaknessKind } from '../analysis/leak.ts';
+import { windowCount } from '../analysis/retirement.ts';
 import * as schema from '../db/schema.ts';
-import { player, puzzle, puzzleAttempt } from '../db/schema.ts';
+import { patternState, player, puzzle, puzzleAttempt } from '../db/schema.ts';
+import { FOCUS_WINDOW_GAMES } from '../focus/verify.ts';
+import { RetirementState } from '../contract/schemas.ts';
 import { themeForGroup } from './themes.ts';
 import { ECO_OPENINGS } from './eco-openings.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
+type Stream = (typeof schema.streamEnum.enumValues)[number];
 
 /** The size of one drill, the ask's "at least 20". */
 export const DRILL_SIZE = 20;
@@ -62,6 +67,8 @@ export interface DrillSet {
   rating: number;
   puzzles: DrillPuzzle[];
   opening: string | null;
+  /** ST-150. The group's retirement state in the dealt stream; null when the group never became a candidate. */
+  retirementState: z.infer<typeof RetirementState> | null;
 }
 
 async function gather(
@@ -124,6 +131,7 @@ export async function assembleDrill(
   playerId: string,
   kind: WeaknessKind,
   group: string,
+  stream: Stream,
 ): Promise<DrillSet | 'no_such_group' | 'pool_empty'> {
   const theme = themeForGroup(kind, group);
   if (theme === null) return 'no_such_group';
@@ -234,6 +242,35 @@ export async function assembleDrill(
 
   if (picked.size < DRILL_SIZE) return 'pool_empty';
 
+  // ST-150. The group's retirement state in the dealt stream, read the same
+  // way the report reads it: a candidate whose verification window has not
+  // closed reads as not_yet_verifiable, everything else as its stored state.
+  // Null when the group never became a candidate. The group key is known
+  // directly here, so no groupKeyOf derivation is needed.
+  let retirementState: z.infer<typeof RetirementState> | null = null;
+  const [pattern] = await db
+    .select({
+      state: patternState.state,
+      masteredAt: patternState.masteredAt,
+    })
+    .from(patternState)
+    .where(
+      and(
+        eq(patternState.playerId, playerId),
+        eq(patternState.kind, kind),
+        eq(patternState.groupKey, group),
+        eq(patternState.stream, stream),
+      ),
+    )
+    .limit(1);
+  if (pattern !== undefined) {
+    retirementState =
+      pattern.state === 'candidate' &&
+      (await windowCount(db, playerId, stream, pattern.masteredAt)) < FOCUS_WINDOW_GAMES
+        ? 'not_yet_verifiable'
+        : pattern.state;
+  }
+
   // ST-107. Persist the deal the moment it is dealt, not only when drills are
   // recorded: an abandoned session keeps its assignment, so the same puzzles
   // never come back. ponytail: assigned-never-drilled rows shrink the usable
@@ -265,5 +302,6 @@ export async function assembleDrill(
     rating,
     puzzles: [...picked.values()],
     opening: openingMatched,
+    retirementState,
   };
 }

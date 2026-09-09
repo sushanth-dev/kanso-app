@@ -36,6 +36,7 @@ import {
   SWING_WIN_PROB_EPSILON,
 } from './budget.ts';
 import { walkGame, type WalkedPly } from './walk-pgn.ts';
+import { applyRetirement } from './retirement.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
 type MovePlyInsert = typeof movePly.$inferInsert;
@@ -289,7 +290,9 @@ export async function analyseGame(
   options: EngineOptions,
 ): Promise<AnalysisOutcome> {
   try {
-    return await analyse(db, gameId, options);
+    const outcome = await analyse(db, gameId, options);
+    if (outcome.status === 'complete') await applyRetirement(db, gameId);
+    return outcome;
   } catch (error) {
     // The message only, never a stack: this column is shown to people, and a
     // stack in it is our internals leaking into their screen.

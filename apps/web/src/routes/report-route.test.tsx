@@ -92,6 +92,7 @@ const motifWeakness = {
   groupKey: 'missed_capture',
   evidence: [evidenceInstance],
   lineConsistency: null,
+  retirementState: null,
 };
 
 const openingWeakness = {
@@ -111,6 +112,7 @@ const openingWeakness = {
   groupKey: 'B22',
   evidence: [],
   lineConsistency: null,
+  retirementState: null,
 };
 
 function reportFixture(overrides: Partial<Report> = {}): Report {
@@ -446,6 +448,49 @@ describe('ReportScreen', () => {
     expect(screen.queryByText('Practiced')).toBeNull();
     expect(screen.getAllByRole('link', { name: 'Practice puzzles' }).length).toBeGreaterThan(0);
   });
+  test('ST-150: renders the retirement chip for a candidate', () => {
+    renderReport(
+      reportFixture({ weaknesses: [{ ...motifWeakness, retirementState: 'candidate' }] }),
+    );
+    expect(screen.getByText('Retirement candidate')).toBeVisible();
+  });
+
+  test('ST-150: renders the retirement chip for a retired group', () => {
+    renderReport(reportFixture({ weaknesses: [{ ...motifWeakness, retirementState: 'retired' }] }));
+    expect(screen.getByText('Retired')).toBeVisible();
+  });
+
+  test('ST-150: renders the retirement chip for a came-back group', () => {
+    renderReport(
+      reportFixture({ weaknesses: [{ ...motifWeakness, retirementState: 'came_back' }] }),
+    );
+    expect(screen.getByText('Came back')).toBeVisible();
+  });
+
+  test('ST-150: renders the retirement chip for an active group', () => {
+    renderReport(reportFixture({ weaknesses: [{ ...motifWeakness, retirementState: 'active' }] }));
+    expect(screen.getByText('Active')).toBeVisible();
+  });
+
+  test('ST-150: a not-yet-verifiable group is prose, never a collapsed boolean', () => {
+    renderReport(
+      reportFixture({ weaknesses: [{ ...motifWeakness, retirementState: 'not_yet_verifiable' }] }),
+    );
+    expect(screen.getByText('Not yet verifiable')).toBeVisible();
+    // The five states stay distinguishable: no boolean yes/no collapses them.
+    expect(screen.queryByText('Retired')).toBeNull();
+    expect(screen.queryByText('Active')).toBeNull();
+  });
+
+  test('ST-150: a weakness with no retirement state carries no chip', () => {
+    renderReport(reportFixture());
+    expect(screen.queryByText('Retirement candidate')).toBeNull();
+    expect(screen.queryByText('Retired')).toBeNull();
+    expect(screen.queryByText('Came back')).toBeNull();
+    expect(screen.queryByText('Active')).toBeNull();
+    expect(screen.queryByText('Not yet verifiable')).toBeNull();
+  });
+
   test('ST-111: the weakness card links to the curriculum instead of listing items', () => {
     renderReport(reportFixture());
     // The items exist, but the card shows the link, never the list.

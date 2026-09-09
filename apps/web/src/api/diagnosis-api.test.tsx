@@ -215,7 +215,7 @@ describe('diagnosis API transport', () => {
       ),
     );
 
-    const puzzles = failedApi.getPracticePuzzles('nope' as never, 'endgame-rook');
+    const puzzles = failedApi.getPracticePuzzles('nope' as never, 'endgame-rook', 'online');
     await expect(puzzles).rejects.toBeInstanceOf(ApiRequestError);
     await expect(puzzles).rejects.toMatchObject({
       status: 422,
