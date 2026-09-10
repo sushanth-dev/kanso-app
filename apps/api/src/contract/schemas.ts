@@ -305,6 +305,17 @@ export const RetirementState = z
   .openapi('RetirementState');
 
 /**
+ * The same five states where the field may be absent: a weakness or a drill
+ * whose group never became a candidate. Built from the same options rather
+ * than `.nullable()` on the named schema, whose registration the derived
+ * schema would inherit and overwrite with a nullable shape (ST-152).
+ */
+const RetirementStateOrNull = z.enum(RetirementState.options).nullable().openapi({
+  description:
+    "ST-150. The group's retirement state in the dealt stream; null when the group never became a candidate.",
+});
+
+/**
  * ST-106. One weakness group's drill: at least 20 pool puzzles matched to the
  * group's theme and the player's rating by the prototype's fallback ladder.
  * ST-122: an opening group's drill prefers its mapped ECO family first, and
@@ -321,10 +332,7 @@ export const PracticeSet = z
       description:
         'The ECO family the opening rungs preferred, humanized; null when the deal fell through to the theme rungs.',
     }),
-    retirementState: RetirementState.nullable().openapi({
-      description:
-        "ST-150. The group's retirement state in the dealt stream; null when the group never became a candidate.",
-    }),
+    retirementState: RetirementStateOrNull,
   })
   .openapi('PracticeSet');
 
@@ -696,6 +704,14 @@ export const PatternState = z
     retiredAt: z.iso.datetime().nullable(),
     cameBackAt: z.iso.datetime().nullable(),
     lastAlertGame: PatternAlertGame.nullable(),
+    /** ST-152. Analysed window games since `masteredAt`: how wide the verification window is. */
+    windowGames: z.number().int(),
+    /** ST-152. The group's instances inside those window games, defined exactly as the leak's. */
+    windowInstances: z.number().int(),
+    /** ST-152. What those instances cost in half-points. */
+    windowCost: z.number(),
+    /** ST-152. How many times this group has come back; the history a re-mastery preserves. */
+    relapses: z.number().int(),
   })
   .openapi('PatternState', {
     example: {
@@ -708,6 +724,10 @@ export const PatternState = z
       retiredAt: '2026-08-20T10:00:00.000Z',
       cameBackAt: null,
       lastAlertGame: null,
+      windowGames: 10,
+      windowInstances: 0,
+      windowCost: 0,
+      relapses: 0,
     },
   });
 
@@ -716,6 +736,8 @@ export const PatternReport = z
   .object({
     playerId: Uuid,
     stream: Stream,
+    /** ST-152. The verification window's size, so the board can name the window that retired a debt. */
+    verificationFloor: z.number().int(),
     patterns: z.array(PatternState),
   })
   .openapi('PatternReport');
@@ -827,7 +849,7 @@ export const Weakness = z
      * candidate). `not_yet_verifiable` is derived at read time from the
      * candidate's window, so it can never go stale.
      */
-    retirementState: RetirementState.nullable(),
+    retirementState: RetirementStateOrNull,
   })
   .openapi('Weakness');
 

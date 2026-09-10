@@ -26,14 +26,13 @@ import { useSearch } from '@tanstack/react-router';
 import { Chess, type Square } from 'chess.js';
 import { Board, describePosition } from '../components/board.tsx';
 import { ApiRequestError } from '../api/account-api.ts';
+import { diagnosisApi, type PracticePuzzle, type WeaknessKind } from '../api/diagnosis-api.ts';
 import {
-  diagnosisApi,
-  type PracticePuzzle,
-  type PracticeSet,
-  type WeaknessKind,
-} from '../api/diagnosis-api.ts';
-import { practiceQueryOptions, practiceReviewsQueryOptions } from '../query-client.ts';
-import { RetirementChip } from './report-route.tsx';
+  patternsQueryOptions,
+  practiceQueryOptions,
+  practiceReviewsQueryOptions,
+} from '../query-client.ts';
+import { DebtCard } from '../components/debt-board.tsx';
 import { drillHref, groupLabel } from './puzzles-route.tsx';
 
 /** The attempts one puzzle allows before the reveal steps in. */
@@ -145,6 +144,42 @@ function DueReviews() {
   );
 }
 
+/**
+ * ST-152. The drill surface's debt card: the group's own row from the
+ * patterns read, rendered by the board's card so the two surfaces cannot
+ * drift. A group with no row has not started paying; the line says what
+ * starts it. The drill never waits on this read - a pending or broken
+ * board costs the drill nothing.
+ */
+export function PracticeDebtCard({
+  kind,
+  group,
+  stream,
+}: {
+  kind: WeaknessKind;
+  group: string;
+  stream: 'tournament' | 'online';
+}) {
+  const patternsQuery = useQuery(patternsQueryOptions(stream));
+  if (patternsQuery.isPending) return null;
+  if (patternsQuery.isError) {
+    return (
+      <Text as="p" display="block" type="supporting" className="text-sm">
+        The debt board could not load; the drill itself is unaffected.
+      </Text>
+    );
+  }
+  const pattern = patternsQuery.data.patterns.find((p) => p.kind === kind && p.groupKey === group);
+  if (pattern === undefined) {
+    return (
+      <Text as="p" display="block" type="supporting" className="text-sm">
+        Not on the debt board yet: drill the group to mastery and its verification window starts.
+      </Text>
+    );
+  }
+  return <DebtCard pattern={pattern} drilled={null} />;
+}
+
 export function PracticeScreen({
   kind,
   group,
@@ -200,7 +235,6 @@ export function PracticeScreen({
       kind={kind}
       group={group}
       stream={stream}
-      retirementState={set.retirementState}
     />
   );
 }
@@ -221,7 +255,6 @@ function DrillSession({
   kind,
   group,
   stream,
-  retirementState,
 }: {
   puzzles: PracticePuzzle[];
   theme: string;
@@ -231,8 +264,6 @@ function DrillSession({
   kind: WeaknessKind;
   group: string;
   stream: 'tournament' | 'online';
-  /** ST-150. The group's retirement state in this stream; null when it never became a candidate. */
-  retirementState: PracticeSet['retirementState'];
 }) {
   const [queue, setQueue] = useState<PracticePuzzle[]>(puzzles);
   const [solvedCount, setSolvedCount] = useState(0);
@@ -275,7 +306,7 @@ function DrillSession({
     <div className="reveal-in space-y-4">
       <header className="space-y-1">
         <Heading level={1}>{label}</Heading>
-        <RetirementChip state={retirementState} />
+        <PracticeDebtCard kind={kind} group={group} stream={stream} />
         <Text as="p" display="block" type="supporting" className="text-sm">
           {queue.length} puzzle{queue.length === 1 ? '' : 's'} to go, {solvedCount} solved. Theme:{' '}
           <span className="font-mono">{theme}</span>

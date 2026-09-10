@@ -10,7 +10,15 @@ import { and, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 
 import { user } from '../db/auth-schema.ts';
-import { game, mistake, movePly, patternState, puzzle, player } from '../db/schema.ts';
+import {
+  game,
+  mistake,
+  movePly,
+  patternState,
+  puzzle,
+  puzzleAttempt,
+  player,
+} from '../db/schema.ts';
 import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-harness.ts';
 import { applyRetirement } from './retirement.ts';
 import { recordDrill } from '../practice/record.ts';
@@ -104,7 +112,7 @@ async function seedPattern(opts: {
   kind: 'opening' | 'motif' | 'phase' | 'time_trouble';
   groupKey: string;
   stream?: 'tournament' | 'online';
-  state?: 'candidate' | 'retired';
+  state?: 'candidate' | 'retired' | 'came_back';
   masteredDaysAgo?: number;
 }): Promise<string> {
   const { kind, groupKey, stream = 'tournament', state = 'candidate', masteredDaysAgo = 30 } = opts;
@@ -118,7 +126,8 @@ async function seedPattern(opts: {
       label: groupKey,
       state,
       masteredAt: PAST(masteredDaysAgo),
-      retiredAt: state === 'retired' ? PAST(5) : null,
+      retiredAt: state === 'retired' || state === 'came_back' ? PAST(5) : null,
+      cameBackAt: state === 'came_back' ? PAST(3) : null,
     })
     .returning({ id: patternState.id });
   return row!.id;
@@ -132,6 +141,33 @@ async function rowOf(id: string) {
 async function windowGames(count: number, stream: 'tournament' | 'online'): Promise<void> {
   for (let i = 0; i < count; i++) {
     await seedGame({ stream, playedAt: PAST(i + 2) });
+  }
+}
+
+/** ST-152. A pool puzzle with its attempt row at a chosen ladder rung. */
+async function seedLadder(opts: {
+  kind: 'opening' | 'motif' | 'phase' | 'time_trouble';
+  groupKey: string;
+  puzzles: { id: string; reviewLevel: number }[];
+}): Promise<void> {
+  for (const p of opts.puzzles) {
+    await harness.db.insert(puzzle).values({
+      lichessId: p.id,
+      fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+      moves: 'e2e4',
+      rating: 1500,
+      themes: ['hangingPiece'],
+    });
+    await harness.db.insert(puzzleAttempt).values({
+      playerId: pid,
+      puzzleId: p.id,
+      kind: opts.kind,
+      groupKey: opts.groupKey,
+      attempts: 1,
+      solved: p.reviewLevel > 0,
+      reviewLevel: p.reviewLevel,
+      nextReviewAt: new Date(Date.now() + 86_400_000),
+    });
   }
 }
 
@@ -214,31 +250,110 @@ describe('relapse: retired to came_back (ST-150)', () => {
     expect(row.state).toBe('came_back');
     expect(row.cameBackAt).not.toBeNull();
     expect(row.lastAlertGameId).toBe(relapse);
+    expect(row.relapses).toBe(1);
   });
-
   test('a second relapse after re-mastering fires again', async () => {
     const id = await seedPattern({ kind: 'motif', groupKey: 'hanging_piece', state: 'retired' });
     const first = await seedGame({ stream: 'tournament', motif: 'hanging_piece' });
     await applyRetirement(harness.db, first);
     expect((await rowOf(id)).state).toBe('came_back');
     expect((await rowOf(id)).lastAlertGameId).toBe(first);
+    expect((await rowOf(id)).relapses).toBe(1);
 
-    // Re-master: the record side flips the row back to candidate, then the
-    // window completes and it retires again.
-    await harness.db
-      .update(patternState)
-      .set({ state: 'candidate', cameBackAt: null, lastAlertGameId: null })
-      .where(eq(patternState.id, id));
-    await windowGames(10, 'tournament');
-    const clean = await seedGame({ stream: 'tournament' });
-    await applyRetirement(harness.db, clean);
-    expect((await rowOf(id)).state).toBe('retired');
-    expect((await rowOf(id)).lastAlertGameId).toBeNull();
-
-    const second = await seedGame({ stream: 'tournament', motif: 'hanging_piece' });
-    await applyRetirement(harness.db, second);
+    // The relapse dropped the group off the ladder; these level-2 rows stand
+    // for the re-drilling that climbed part of the way back. The record
+    // side flips the row only when the whole pool is back at the top, with
+    // a fresh window, and the relapse stays in the history.
+    await seedLadder({
+      kind: 'motif',
+      groupKey: 'hanging_piece',
+      puzzles: [
+        { id: 'puzzle_a', reviewLevel: 2 },
+        { id: 'puzzle_b', reviewLevel: 2 },
+      ],
+    });
+    await recordDrill(harness.db, pid, 'puzzle_a', 'motif', 'hanging_piece', true);
     expect((await rowOf(id)).state).toBe('came_back');
-    expect((await rowOf(id)).lastAlertGameId).toBe(second);
+    await recordDrill(harness.db, pid, 'puzzle_b', 'motif', 'hanging_piece', true);
+    const remastered = await rowOf(id);
+    expect(remastered.state).toBe('candidate');
+    expect(remastered.masteredAt.getTime()).toBeGreaterThan(Date.now() - 60_000);
+    expect(remastered.cameBackAt).not.toBeNull();
+    expect(remastered.lastAlertGameId).toBe(first);
+    expect(remastered.relapses).toBe(1);
+
+    // The window restarted, so only games played after the re-mastery
+    // count. Ten clean ones retire the group again, and the history
+    // survives the second retirement rather than being erased. The played
+    // dates derive from the row's masteredAt: the database's clock, not the
+    // test host's, is what the window compares against.
+    for (let i = 0; i < 10; i++) {
+      const g = await seedGame({
+        stream: 'tournament',
+        playedAt: new Date(remastered.masteredAt.getTime() + i + 1),
+      });
+      await applyRetirement(harness.db, g);
+    }
+    const retiredAgain = await rowOf(id);
+    expect(retiredAgain.state).toBe('retired');
+    expect(retiredAgain.lastAlertGameId).toBe(first);
+    expect(retiredAgain.relapses).toBe(1);
+
+    const second = await seedGame({
+      stream: 'tournament',
+      motif: 'hanging_piece',
+      playedAt: new Date(remastered.masteredAt.getTime() + 60_000),
+    });
+    await applyRetirement(harness.db, second);
+    const row = await rowOf(id);
+    expect(row.state).toBe('came_back');
+    expect(row.lastAlertGameId).toBe(second);
+    expect(row.relapses).toBe(2);
+  });
+
+  test("a relapse drops the group's puzzles off the ladder", async () => {
+    const id = await seedPattern({ kind: 'motif', groupKey: 'hanging_piece', state: 'retired' });
+    await seedLadder({
+      kind: 'motif',
+      groupKey: 'hanging_piece',
+      puzzles: [
+        { id: 'puzzle_a', reviewLevel: 3 },
+        { id: 'puzzle_b', reviewLevel: 3 },
+      ],
+    });
+    const relapse = await seedGame({ stream: 'tournament', motif: 'hanging_piece' });
+    await applyRetirement(harness.db, relapse);
+    expect((await rowOf(id)).state).toBe('came_back');
+    const rows = await harness.db
+      .select()
+      .from(puzzleAttempt)
+      .where(and(eq(puzzleAttempt.playerId, pid), eq(puzzleAttempt.groupKey, 'hanging_piece')));
+    expect(rows).toHaveLength(2);
+    for (const attempt of rows) {
+      expect(attempt.reviewLevel).toBe(0);
+      expect(attempt.nextReviewAt.getTime()).toBeLessThan(Date.now() + 5_000);
+    }
+  });
+  test('re-mastering flips only the came_back row; the other stream stays retired', async () => {
+    const tournament = await seedPattern({
+      kind: 'motif',
+      groupKey: 'hanging_piece',
+      state: 'came_back',
+    });
+    const online = await seedPattern({
+      kind: 'motif',
+      groupKey: 'hanging_piece',
+      stream: 'online',
+      state: 'retired',
+    });
+    await seedLadder({
+      kind: 'motif',
+      groupKey: 'hanging_piece',
+      puzzles: [{ id: 'puzzle_a', reviewLevel: 2 }],
+    });
+    await recordDrill(harness.db, pid, 'puzzle_a', 'motif', 'hanging_piece', true);
+    expect((await rowOf(tournament)).state).toBe('candidate');
+    expect((await rowOf(online)).state).toBe('retired');
   });
 
   test('an instance in a candidate row keeps it candidate', async () => {

@@ -130,6 +130,7 @@ function patternsFixture(overrides: Partial<PatternReport> = {}): PatternReport 
   return {
     playerId,
     stream: 'tournament',
+    verificationFloor: 10,
     patterns: [],
     ...overrides,
   };
@@ -151,6 +152,10 @@ function cameBackPattern(gameId: string) {
       whiteName: 'Mina',
       blackName: 'Rival',
     },
+    windowGames: 4,
+    windowInstances: 1,
+    windowCost: 2.5,
+    relapses: 1,
   };
 }
 
