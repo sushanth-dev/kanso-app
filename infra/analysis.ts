@@ -36,24 +36,32 @@ export const analysisQueue = new sst.aws.Queue('AnalysisQueue', {
   visibilityTimeout: '10 minutes',
 });
 
-const repository = new aws.ecr.Repository(
-  'AnalysisRepository',
-  {
-    // ECR repository names must be lowercase, and the resource's generated
-    // name (`AnalysisRepository-<hash>`) is not. Set it explicitly so the
-    // deploy guide's `contains(repositoryName, 'analysisrepository')` query
-    // still finds it.
-    name: 'analysisrepository',
-    imageScanningConfiguration: { scanOnPush: true },
-    // Outside production an abandoned stage should be removable without
-    // emptying its registry by hand first.
-    forceDelete: $app.stage !== 'production',
-  },
-  // The repository already exists in AWS, created outside Pulumi's state.
-  // Without this, Pulumi tries to create a second one with the same name and
-  // fails.
-  { import: 'analysisrepository' },
-);
+// One registry for every stage, not one per stage: the image is the same
+// build regardless of who deploys it, and a second repository would just be
+// a second place for it to drift out of sync. Only `production` owns it as a
+// Pulumi resource. A non-production stage that also managed it would delete
+// the shared repository, and every stage's images with it, the moment that
+// stage was torn down - which is what happened before this comment existed.
+const repository =
+  $app.stage === 'production'
+    ? new aws.ecr.Repository(
+        'AnalysisRepository',
+        {
+          // ECR repository names must be lowercase, and the resource's
+          // generated name (`AnalysisRepository-<hash>`) is not. Set it
+          // explicitly so the deploy guide's
+          // `contains(repositoryName, 'analysisrepository')` query still
+          // finds it.
+          name: 'analysisrepository',
+          imageScanningConfiguration: { scanOnPush: true },
+          forceDelete: false,
+        },
+        // The repository already exists in AWS, created outside Pulumi's
+        // state. Without this, Pulumi tries to create a second one with the
+        // same name and fails.
+        { import: 'analysisrepository' },
+      )
+    : aws.ecr.getRepositoryOutput({ name: 'analysisrepository' });
 
 // The commit the image was built from. `latest` deploys, but two deploys of
 // `latest` look identical to Pulumi and the second one changes nothing.
