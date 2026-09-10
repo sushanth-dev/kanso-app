@@ -20,6 +20,7 @@ import {
   type WeaknessKind,
 } from '../api/diagnosis-api.ts';
 import { StreamToggle } from '../components/stream-toggle.tsx';
+import { DebtBoard } from '../components/debt-board.tsx';
 import { gamesQueryOptions, reportQueryOptions, tournamentsQueryOptions } from '../query-client.ts';
 import { ReportShareCardsSection } from '../components/report-share-cards-section.tsx';
 import { TournamentCard } from './tournaments-route.tsx';
@@ -159,6 +160,9 @@ export function ReportScreen({
           tournamentId={report.tournamentId}
         />
       )}
+      {/* ST-152. The board sits beside the weaknesses, not above them: the
+          rank-one leak stays the report's one authored moment. */}
+      <DebtBoard stream={report.stream} weaknesses={report.weaknesses} />
       {!isEmpty ? (
         <ReportShareCardsSection stream={report.stream} tournamentId={report.tournamentId} />
       ) : null}

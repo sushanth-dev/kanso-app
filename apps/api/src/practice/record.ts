@@ -102,10 +102,13 @@ export async function recordDrill(
     if (solved) await recordActivity(tx, playerId);
 
     // ST-150. The mastered definition is the queue's: every puzzle the group
-    // has dealt reaches reviewLevel 3. When that first happens and no
-    // pattern_state row exists yet, the group becomes a retirement candidate,
+    // has dealt reaches reviewLevel 3. When that first happens with no
+    // pattern_state row yet, the group becomes a retirement candidate,
     // written for both streams inside the same transaction so a drill that
-    // masters a group cannot leave the state unseen.
+    // masters a group cannot leave the state unseen. ST-152: a row that came
+    // back re-masters here too - it flips to candidate with a fresh window,
+    // and its relapse history survives the flip; a retired row in the other
+    // stream fails the guarded where and keeps its retirement.
     if (solved) {
       const [unmastered] = await tx
         .select({ n: sql<number>`count(*)::int` })
@@ -132,7 +135,16 @@ export async function recordDrill(
               state: 'candidate' as const,
             })),
           )
-          .onConflictDoNothing();
+          .onConflictDoUpdate({
+            target: [
+              patternState.playerId,
+              patternState.kind,
+              patternState.groupKey,
+              patternState.stream,
+            ],
+            set: { state: 'candidate', masteredAt: sql`now()` },
+            setWhere: eq(patternState.state, 'came_back'),
+          });
       }
     }
 

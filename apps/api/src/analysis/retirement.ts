@@ -36,7 +36,7 @@ import { FOCUS_WINDOW_GAMES } from '../focus/verify.ts';
 import { log } from '../logging.ts';
 import { TROUBLE_CLOCK_MS } from '../phases/phases.ts';
 import * as schema from '../db/schema.ts';
-import { game, mistake, movePly, patternState } from '../db/schema.ts';
+import { game, mistake, movePly, patternState, puzzleAttempt } from '../db/schema.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
 
@@ -71,16 +71,19 @@ async function instanceKeysOf(db: Db, gameId: string, eco: string | null): Promi
 }
 
 /**
- * Analysed games in the stream played since `since`, the same filter
+ * The analysed game ids in the stream played since `since`, the same filter
  * `measureFocusStream` applies: complete analysis, a played date, and - for
- * the online stream - a blitz time control only.
+ * the online stream - a blitz time control only. The retirement machine
+ * counts them for the floor check; ST-152's read model aggregates the
+ * window's instances and cost over them, so one function owns the filter
+ * and the two can never disagree.
  */
-export async function windowCount(
+export async function windowGameIds(
   db: Db,
   playerId: string,
   stream: (typeof schema.streamEnum.enumValues)[number],
   since: Date,
-): Promise<number> {
+): Promise<string[]> {
   const scope = and(
     eq(game.playerId, playerId),
     eq(game.stream, stream),
@@ -88,15 +91,12 @@ export async function windowCount(
     isNotNull(game.playedAt),
     gte(game.playedAt, since),
   );
-  if (stream === 'tournament') {
-    const [row] = await db
-      .select({ n: sql<number>`count(*)::int` })
-      .from(game)
-      .where(scope);
-    return row?.n ?? 0;
-  }
-  const rows = await db.select({ timeControl: game.timeControl }).from(game).where(scope);
-  return rows.filter((r) => classifyTimeControl(r.timeControl) === 'blitz').length;
+  const rows = await db
+    .select({ id: game.id, timeControl: game.timeControl })
+    .from(game)
+    .where(scope);
+  if (stream === 'tournament') return rows.map((r) => r.id);
+  return rows.filter((r) => classifyTimeControl(r.timeControl) === 'blitz').map((r) => r.id);
 }
 
 /**
@@ -143,8 +143,26 @@ export async function applyRetirement(db: Db, gameId: string): Promise<void> {
         if (row.state === 'retired') {
           await db
             .update(patternState)
-            .set({ state: 'came_back', cameBackAt: new Date(), lastAlertGameId: gameId })
+            .set({
+              state: 'came_back',
+              cameBackAt: new Date(),
+              lastAlertGameId: gameId,
+              relapses: sql`${patternState.relapses} + 1`,
+            })
             .where(eq(patternState.id, row.id));
+          // ST-152. A relapse reopens the debt: the group's puzzles drop off
+          // the ladder and come back due, so re-mastery is work the drill
+          // queue can see rather than a formality the row keeps.
+          await db
+            .update(puzzleAttempt)
+            .set({ reviewLevel: 0, nextReviewAt: sql`now()` })
+            .where(
+              and(
+                eq(puzzleAttempt.playerId, g.playerId),
+                eq(puzzleAttempt.kind, row.kind),
+                eq(puzzleAttempt.groupKey, row.groupKey),
+              ),
+            );
           log('info', 'pattern_came_back', {
             gameId,
             kind: row.kind,
@@ -155,7 +173,7 @@ export async function applyRetirement(db: Db, gameId: string): Promise<void> {
         continue;
       }
       if (row.state === 'candidate' && inWindow) {
-        const count = await windowCount(db, g.playerId, g.stream, row.masteredAt);
+        const count = (await windowGameIds(db, g.playerId, g.stream, row.masteredAt)).length;
         if (count >= FOCUS_WINDOW_GAMES) {
           await db
             .update(patternState)

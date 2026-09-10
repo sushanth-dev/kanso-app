@@ -33,7 +33,7 @@ import { leakBaseline, scoreLeaks, weaknessLeakRows } from '../analysis/leak.ts'
 import { MIN_RATED_GAMES, SEASON_WINDOW_MS } from '../analysis/performance-rating.ts';
 import { scoreTimeTrouble, timeTroubleCounts } from '../phases/phases.ts';
 import { FOCUS_WINDOW_GAMES } from '../focus/verify.ts';
-import { windowCount } from '../analysis/retirement.ts';
+import { windowGameIds } from '../analysis/retirement.ts';
 import { adviceFor, groupKeyOf, weaknessEvidence, type EvidenceInstance } from './evidence.ts';
 import { lineConsistencyByEco } from '../openings/line-consistency.ts';
 import { composeReport, type ComposedWeakness } from './compose.ts';
@@ -228,7 +228,7 @@ async function withEvidence(
       w.retirementState = null;
     } else if (
       pattern.state === 'candidate' &&
-      (await windowCount(db, playerId, stream, pattern.masteredAt)) < FOCUS_WINDOW_GAMES
+      (await windowGameIds(db, playerId, stream, pattern.masteredAt)).length < FOCUS_WINDOW_GAMES
     ) {
       w.retirementState = 'not_yet_verifiable';
     } else {

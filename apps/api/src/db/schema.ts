@@ -1042,6 +1042,13 @@ export const patternState = pgTable(
     lastAlertGameId: uuid('last_alert_game_id').references(() => game.id, {
       onDelete: 'set null',
     }),
+    /**
+     * ST-152. How many times this retired group has come back. The latest
+     * relapse lives in `cameBackAt`/`lastAlertGameId`; the count is what
+     * survives re-mastery, so the board's history outlives the fields that
+     * name the most recent relapse.
+     */
+    relapses: integer('relapses').notNull().default(0),
   },
   (t) => [
     uniqueIndex('pattern_state_group_unique').on(t.playerId, t.kind, t.groupKey, t.stream),

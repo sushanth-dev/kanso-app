@@ -989,7 +989,19 @@
             "description": "The ECO family the opening rungs preferred, humanized; null when the deal fell through to the theme rungs."
           },
           "retirementState": {
-            "$ref": "#/components/schemas/RetirementState"
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "active",
+              "candidate",
+              "retired",
+              "came_back",
+              "not_yet_verifiable",
+              null
+            ],
+            "description": "ST-150. The group's retirement state in the dealt stream; null when the group never became a candidate."
           }
         },
         "required": [
@@ -1033,21 +1045,6 @@
           "moves",
           "rating"
         ]
-      },
-      "RetirementState": {
-        "type": [
-          "string",
-          "null"
-        ],
-        "enum": [
-          "active",
-          "candidate",
-          "retired",
-          "came_back",
-          "not_yet_verifiable",
-          null
-        ],
-        "description": "ST-150. The group's retirement state in the dealt stream; null when the group never became a candidate."
       },
       "PracticePuzzleTally": {
         "type": "object",
@@ -1449,7 +1446,19 @@
             "$ref": "#/components/schemas/LineConsistency"
           },
           "retirementState": {
-            "$ref": "#/components/schemas/RetirementState"
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "active",
+              "candidate",
+              "retired",
+              "came_back",
+              "not_yet_verifiable",
+              null
+            ],
+            "description": "ST-150. The group's retirement state in the dealt stream; null when the group never became a candidate."
           }
         },
         "required": [
@@ -2266,6 +2275,9 @@
           "stream": {
             "$ref": "#/components/schemas/Stream"
           },
+          "verificationFloor": {
+            "type": "integer"
+          },
           "patterns": {
             "type": "array",
             "items": {
@@ -2276,6 +2288,7 @@
         "required": [
           "playerId",
           "stream",
+          "verificationFloor",
           "patterns"
         ]
       },
@@ -2317,6 +2330,18 @@
           },
           "lastAlertGame": {
             "$ref": "#/components/schemas/PatternAlertGame"
+          },
+          "windowGames": {
+            "type": "integer"
+          },
+          "windowInstances": {
+            "type": "integer"
+          },
+          "windowCost": {
+            "type": "number"
+          },
+          "relapses": {
+            "type": "integer"
           }
         },
         "required": [
@@ -2328,7 +2353,11 @@
           "masteredAt",
           "retiredAt",
           "cameBackAt",
-          "lastAlertGame"
+          "lastAlertGame",
+          "windowGames",
+          "windowInstances",
+          "windowCost",
+          "relapses"
         ],
         "example": {
           "kind": "motif",
@@ -2339,8 +2368,22 @@
           "masteredAt": "2026-08-01T10:00:00.000Z",
           "retiredAt": "2026-08-20T10:00:00.000Z",
           "cameBackAt": null,
-          "lastAlertGame": null
+          "lastAlertGame": null,
+          "windowGames": 10,
+          "windowInstances": 0,
+          "windowCost": 0,
+          "relapses": 0
         }
+      },
+      "RetirementState": {
+        "type": "string",
+        "enum": [
+          "active",
+          "candidate",
+          "retired",
+          "came_back",
+          "not_yet_verifiable"
+        ]
       },
       "PatternAlertGame": {
         "type": [
