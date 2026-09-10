@@ -21,6 +21,7 @@ import {
 } from '../api/diagnosis-api.ts';
 import { StreamToggle } from '../components/stream-toggle.tsx';
 import { DebtBoard } from '../components/debt-board.tsx';
+import { RetiredHeadline } from '../components/retired-headline.tsx';
 import { gamesQueryOptions, reportQueryOptions, tournamentsQueryOptions } from '../query-client.ts';
 import { ReportShareCardsSection } from '../components/report-share-cards-section.tsx';
 import { TournamentCard } from './tournaments-route.tsx';
@@ -130,6 +131,7 @@ export function ReportScreen({
   return (
     <div className="space-y-6">
       <ReportHeader stream={stream} onStreamChange={onStreamChange} meta={meta} title={title} />
+      <RetiredHeadline streams={['tournament', 'online']} />
       {analyzingGames.length > 0 ? <AnalyzingBanner games={analyzingGames} /> : null}
       {report.timeTroubleFromMove !== null ? (
         <Text as="p" display="block" className="reveal-in text-sm">
