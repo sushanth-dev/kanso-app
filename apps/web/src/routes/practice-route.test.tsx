@@ -2,14 +2,55 @@
  * ST-152. The drill surface's debt card: the group's own row from the
  * patterns read, the honest line for a group that never mastered, and a
  * broken read that costs the drill nothing.
+ *
+ * ST-151. The retired headline mounts above the due-reviews list on the
+ * queue-less practice surface, reading the same patterns endpoint the
+ * report's headline reads.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, test, vi } from 'vitest';
-import { diagnosisApi, type PatternReport } from '../api/diagnosis-api.ts';
+import { accountApi, type Me } from '../api/account-api.ts';
+import { diagnosisApi, type PatternReport, type PracticeReviewItem } from '../api/diagnosis-api.ts';
+import { createAppRouter } from '../router.tsx';
 import { PracticeDebtCard } from './practice-route.tsx';
 
 const playerId = '00000000-0000-4000-8000-000000000001';
+
+const meFixture: Me = {
+  userId: 'user-1',
+  email: 'player@example.com',
+  name: 'Player',
+  tier: 'beginner',
+  player: {
+    id: playerId,
+    displayName: 'Mina',
+    birthYear: 2013,
+    fideId: null,
+    fideRating: null,
+    uscfId: null,
+    uscfRating: null,
+    chesscomUsername: null,
+    lichessUsername: null,
+    chesscomRating: null,
+    lichessRating: null,
+    currentStreak: 0,
+    xp: 0,
+    level: 1,
+    createdAt: '2026-08-14T00:00:00.000Z',
+  },
+};
+
+function reviewFixture(overrides: Partial<PracticeReviewItem> = {}): PracticeReviewItem {
+  return {
+    puzzleId: '00000000-0000-4000-8000-0000000000f1',
+    kind: 'motif',
+    group: 'hanging_piece',
+    reviewLevel: 1,
+    ...overrides,
+  };
+}
 
 function patternsFixture(patterns: PatternReport['patterns']): PatternReport {
   return { playerId, stream: 'tournament', verificationFloor: 10, patterns };
@@ -81,5 +122,67 @@ describe('PracticeDebtCard', () => {
     );
 
     expect(container).toBeEmptyDOMElement();
+  });
+});
+
+function renderPracticeRoute() {
+  const history = createMemoryHistory({ initialEntries: ['/practice'] });
+  const queryClient = new QueryClient();
+  const router = createAppRouter({ history, queryClient });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  );
+}
+
+describe('PracticeRoute', () => {
+  test('ST-151: the retired headline mounts above the due-reviews list', async () => {
+    vi.spyOn(accountApi, 'getMe').mockResolvedValue(meFixture);
+    vi.spyOn(diagnosisApi, 'getPatterns').mockImplementation((stream) =>
+      Promise.resolve(patternsFixture([])).then((report) => ({ ...report, stream })),
+    );
+    vi.spyOn(diagnosisApi, 'getPracticeReviews').mockResolvedValue({
+      reviews: [reviewFixture()],
+      remaining: 5,
+    });
+
+    renderPracticeRoute();
+
+    const headline = await screen.findByRole('heading', { name: 'Mistakes eliminated' });
+    const dueReviews = await screen.findByRole('heading', { name: 'Due for review' });
+    expect(
+      headline.compareDocumentPosition(dueReviews) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test('ST-151: the headline renders while due-reviews is still pending', async () => {
+    vi.spyOn(accountApi, 'getMe').mockResolvedValue(meFixture);
+    vi.spyOn(diagnosisApi, 'getPatterns').mockImplementation((stream) =>
+      Promise.resolve(patternsFixture([])).then((report) => ({ ...report, stream })),
+    );
+    const { promise } = Promise.withResolvers<{
+      reviews: PracticeReviewItem[];
+      remaining: number;
+    }>();
+    vi.spyOn(diagnosisApi, 'getPracticeReviews').mockReturnValue(promise);
+
+    renderPracticeRoute();
+
+    expect(await screen.findByRole('heading', { name: 'Mistakes eliminated' })).toBeVisible();
+    expect(screen.getByText('Checking what is due for review…')).toBeVisible();
+  });
+
+  test('ST-151: the headline renders when due-reviews fails to load', async () => {
+    vi.spyOn(accountApi, 'getMe').mockResolvedValue(meFixture);
+    vi.spyOn(diagnosisApi, 'getPatterns').mockImplementation((stream) =>
+      Promise.resolve(patternsFixture([])).then((report) => ({ ...report, stream })),
+    );
+    vi.spyOn(diagnosisApi, 'getPracticeReviews').mockRejectedValue(new Error('down'));
+
+    renderPracticeRoute();
+
+    expect(await screen.findByRole('heading', { name: 'Mistakes eliminated' })).toBeVisible();
+    expect(await screen.findByText('No weakness named')).toBeVisible();
   });
 });

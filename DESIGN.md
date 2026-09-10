@@ -527,6 +527,18 @@ text. The ranked list reveals as a stagger, and the page's entry blocks
 not-ready states, the tournament directory's card list) reveal with the
 same `reveal-in` treatment the rest of the system uses.
 
+ST-151's `RetiredHeadline` sits above this list, styled after the rank-one
+figure's mono-number treatment but deliberately static: no count-up tween,
+because it is a standing summary, not the report's one authored motion
+moment. It always shows both streams side by side (tournament, online),
+never a toggle, since a retired pattern belongs to the stream that
+verified it. A stream with a retired count links its evidence to
+`/report?stream={stream}#debt-board`, landing on ST-152's debt board; a
+stream at zero shows the honest-zero line naming what starts a pattern
+toward retirement instead of a link. The practice queue mounts the same
+component, unchanged, above `DueReviews`, so a player sees the same
+headline whether they arrive from the report or the practice surface.
+
 ### Transfer gap
 
 The transfer gap at `/transfer-gap` answers one question in two figures
