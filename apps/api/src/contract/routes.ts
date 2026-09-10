@@ -47,6 +47,9 @@ import {
   GameShareLink,
   ReportCardLink,
   SharedReportCard,
+  PrimingToken,
+  PrimingTokenWithSecret,
+  PrimingBrief,
   WeaknessCoaching,
   SetFocus,
   SetGameColor,
@@ -1164,6 +1167,76 @@ export const razorpayWebhook = createRoute({
   },
 });
 
+// ─── Priming ────────────────────────────────────────────────────────────────
+
+export const createPrimingToken = createRoute({
+  method: 'post',
+  path: '/priming/token',
+  tags: ['Priming'],
+  summary: 'Create the priming token for the browser extension',
+  description:
+    'ST-153. The credential the extension presents to the pre-game brief. The raw secret is returned exactly once, here; the stored row keeps only its sha-256. One live token per player: creating a new one revokes the previous, so rotation retires a leaked token.',
+  responses: {
+    201: json(PrimingTokenWithSecret, 'Created. The secret is shown once.'),
+    ...authErrors,
+    404: error('No such player.'),
+  },
+});
+
+export const listPrimingTokens = createRoute({
+  method: 'get',
+  path: '/priming/token',
+  tags: ['Priming'],
+  summary: "The player's live priming token, if one exists",
+  description:
+    'ST-153. The live token named by prefix only - the secret never leaves the create response. At most one live token exists, because create rotates.',
+  responses: {
+    200: json(z.array(PrimingToken), "The player's live priming token, usually empty or one."),
+    ...authErrors,
+    404: error('No such player.'),
+  },
+});
+
+export const revokePrimingToken = createRoute({
+  method: 'delete',
+  path: '/priming/token/{tokenId}',
+  tags: ['Priming'],
+  summary: 'Revoke the priming token',
+  description:
+    'ST-153. Revocation is why the row is marked rather than deleted, the share-act precedent. A revoked token answers the brief with the same 401 as an unknown one.',
+  request: {
+    params: z.object({
+      tokenId: Uuid.openapi({ param: { name: 'tokenId', in: 'path' } }),
+    }),
+  },
+  responses: {
+    204: { description: 'Revoked.' },
+    ...authErrors,
+    403: error('Not your priming token.'),
+    404: error('No such priming token.'),
+  },
+});
+
+export const getPrimingBrief = createRoute({
+  method: 'get',
+  path: '/priming/brief',
+  tags: ['Priming'],
+  summary: 'The pre-game brief, read by the extension with a bearer token',
+  /**
+   * Bearer-token auth, not the session cookie: the extension holds the token,
+   * not a session. Declared public so the session guard does not apply; the
+   * handler answers 401 itself on a missing, unknown, or revoked token.
+   */
+  security: [],
+  description:
+    'ST-153. Serves the top currently active weakness groups by severity plus the active focus line. Labels and counts only: no account identity, no opponent names, no move-level data. Authenticated by the priming token in the Authorization header, never the session cookie. Rate-limited per token.',
+  responses: {
+    200: json(PrimingBrief, 'The brief.'),
+    401: error('Unknown, revoked, or missing token; the three are not distinguished.'),
+    429: error('Too many requests for this token in the current window.'),
+  },
+});
+
 export const routes = [
   getHealth,
   getMe,
@@ -1218,6 +1291,10 @@ export const routes = [
   listReportShareCards,
   revokeReportShareCard,
   getSharedReportCard,
+  createPrimingToken,
+  listPrimingTokens,
+  revokePrimingToken,
+  getPrimingBrief,
   createCheckout,
   razorpayWebhook,
 ] as const;

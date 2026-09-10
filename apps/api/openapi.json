@@ -48,6 +48,10 @@
       "description": "The page a coach sends a parent."
     },
     {
+      "name": "Priming",
+      "description": "The pre-game brief and the token the extension reads it with."
+    },
+    {
       "name": "Billing",
       "description": "Creating orders and confirming payments with Razorpay."
     }
@@ -3201,6 +3205,86 @@
         "required": [
           "ratingLeak",
           "label"
+        ]
+      },
+      "PrimingTokenWithSecret": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PrimingToken"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "token": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "token"
+            ]
+          }
+        ]
+      },
+      "PrimingToken": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tokenPrefix": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "tokenPrefix",
+          "createdAt"
+        ]
+      },
+      "PrimingBrief": {
+        "type": "object",
+        "properties": {
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PrimingBriefGroup"
+            },
+            "maxItems": 3
+          },
+          "focusLabel": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "groups",
+          "focusLabel"
+        ]
+      },
+      "PrimingBriefGroup": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "stream": {
+            "$ref": "#/components/schemas/Stream"
+          },
+          "weekCount": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "label",
+          "stream",
+          "weekCount"
         ]
       },
       "CheckoutResponse": {
@@ -6668,6 +6752,236 @@
           },
           "404": {
             "description": "No such shared card, or it was revoked or has expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/priming/token": {
+      "post": {
+        "tags": [
+          "Priming"
+        ],
+        "summary": "Create the priming token for the browser extension",
+        "description": "ST-153. The credential the extension presents to the pre-game brief. The raw secret is returned exactly once, here; the stored row keeps only its sha-256. One live token per player: creating a new one revokes the previous, so rotation retires a leaked token.",
+        "responses": {
+          "201": {
+            "description": "Created. The secret is shown once.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrimingTokenWithSecret"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The session has no claim on this player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Priming"
+        ],
+        "summary": "The player's live priming token, if one exists",
+        "description": "ST-153. The live token named by prefix only - the secret never leaves the create response. At most one live token exists, because create rotates.",
+        "responses": {
+          "200": {
+            "description": "The player's live priming token, usually empty or one.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PrimingToken"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The session has no claim on this player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such player.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/priming/token/{tokenId}": {
+      "delete": {
+        "tags": [
+          "Priming"
+        ],
+        "summary": "Revoke the priming token",
+        "description": "ST-153. Revocation is why the row is marked rather than deleted, the share-act precedent. A revoked token answers the brief with the same 401 as an unknown one.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "tokenId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Revoked."
+          },
+          "400": {
+            "description": "The request body or query failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not your priming token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such priming token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/priming/brief": {
+      "get": {
+        "tags": [
+          "Priming"
+        ],
+        "summary": "The pre-game brief, read by the extension with a bearer token",
+        "security": [],
+        "description": "ST-153. Serves the top currently active weakness groups by severity plus the active focus line. Labels and counts only: no account identity, no opponent names, no move-level data. Authenticated by the priming token in the Authorization header, never the session cookie. Rate-limited per token.",
+        "responses": {
+          "200": {
+            "description": "The brief.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrimingBrief"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unknown, revoked, or missing token; the three are not distinguished.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests for this token in the current window.",
             "content": {
               "application/json": {
                 "schema": {

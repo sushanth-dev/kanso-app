@@ -1229,3 +1229,56 @@ export const CheckoutResponse = z
     keyId: z.string(),
   })
   .openapi('CheckoutResponse');
+
+// ─── Priming ────────────────────────────────────────────────────────────────
+
+/**
+ * ST-153. A live priming token, as settings sees it. The raw secret appears
+ * only in the create response, exactly once; every later read names a prefix,
+ * the way a key list names its last four characters, so the credential never
+ * sits in a settings response twice.
+ */
+export const PrimingToken = z
+  .object({
+    id: Uuid,
+    tokenPrefix: z.string(),
+    createdAt: z.iso.datetime(),
+  })
+  .openapi('PrimingToken');
+
+/**
+ * ST-153. The create response: the one place the raw secret is ever served.
+ * Every other surface names the prefix; the extension pastes this secret into
+ * its options page once.
+ */
+export const PrimingTokenWithSecret = PrimingToken.extend({
+  token: z.string(),
+}).openapi('PrimingTokenWithSecret');
+
+/**
+ * ST-153. One weakness group on the pre-game brief. The payload is the whole
+ * point of the story's scope record: labels and counts, and nothing else - no
+ * account identity, no opponent names, no move-level data, no eval swings.
+ * The payload-scoping test pins this key set so the brief cannot quietly grow
+ * into a profile.
+ */
+export const PrimingBriefGroup = z
+  .object({
+    label: z.string(),
+    stream: Stream,
+    /** Mistake instances in this group over the trailing seven days. */
+    weekCount: z.number().int(),
+  })
+  .openapi('PrimingBriefGroup');
+
+/**
+ * ST-153. What the extension renders for fifteen seconds before a game. The
+ * top two or three currently active weakness groups plus the active focus
+ * line when one exists, and nothing else on the account.
+ */
+export const PrimingBrief = z
+  .object({
+    groups: z.array(PrimingBriefGroup).max(3),
+    focusLabel: z.string().nullable(),
+  })
+  .openapi('PrimingBrief');

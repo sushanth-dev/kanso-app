@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>KansoChess pre-game primer</title>
+  </head>
+  <body>
+    <h1>KansoChess pre-game primer</h1>
+    <p>
+      Paste the priming token from KansoChess settings. Creating a new token in settings retires the
+      one stored here.
+    </p>
+    <label for="token">Priming token</label>
+    <input id="token" type="password" autocomplete="off" spellcheck="false" />
+    <button id="save" type="button">Save</button>
+    <button id="clear" type="button" hidden>Remove token</button>
+    <p id="status" role="status"></p>
+    <script src="options.js"></script>
+  </body>
+</html>

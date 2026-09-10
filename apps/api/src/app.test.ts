@@ -57,6 +57,10 @@ describe('publicPaths', () => {
       // ST-127. The shared report card is the fourth: two fields the player
       // chose to share, opened with no session.
       '/shared/cards/{token}',
+      // ST-153. The pre-game brief authenticates itself with the priming
+      // bearer token inside the handler, never the session cookie; the
+      // extension holds a token, not a session.
+      '/priming/brief',
       '/payments/webhook',
     ]);
   });

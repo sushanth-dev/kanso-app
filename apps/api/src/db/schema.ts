@@ -912,6 +912,43 @@ export const reportCardLink = pgTable(
   (t) => [index('report_card_link_creator_idx').on(t.createdByPlayerId)],
 );
 
+/**
+ * ST-153. The priming token: the credential the browser extension presents
+ * to the pre-game brief endpoint. Unlike the share tokens, which open one
+ * frozen page, this token keeps serving whatever the brief currently holds,
+ * so it is a long-lived credential and the surface around it treats it as
+ * one: shown in full once at creation, stored hashed, revocable from
+ * settings, and one live token per player (creating a new one revokes the
+ * old, so rotation retires a leaked token). Marked revoked rather than
+ * deleted, the share-act precedent.
+ */
+export const primingToken = pgTable(
+  'priming_token',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    createdByPlayerId: uuid('created_by_player_id')
+      .notNull()
+      .references(() => player.id, { onDelete: 'cascade' }),
+    /** The sha-256 of the bearer secret. The raw secret is never stored. */
+    tokenHash: text('token_hash').notNull().unique(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  },
+  (t) => [index('priming_creator_idx').on(t.createdByPlayerId)],
+);
+
+/**
+ * ST-153. The fixed-window rate-limit bucket for the brief endpoint. Keyed
+ * on the token hash so a leaked token cannot be swept faster than the window
+ * allows, and counted in the database because the API runs more than one
+ * instance; an in-memory map would multiply the limit by the instance count.
+ */
+export const rateLimitBucket = pgTable('rate_limit_bucket', {
+  key: text('key').primaryKey(),
+  windowStart: timestamp('window_start', { withTimezone: true }).notNull(),
+  count: integer('count').notNull().default(0),
+});
+
 // ─── Practice ────────────────────────────────────────────────────────────────
 
 /**
