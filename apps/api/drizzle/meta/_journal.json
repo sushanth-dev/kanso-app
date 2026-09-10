@@ -253,6 +253,13 @@
       "when": 1788930135000,
       "tag": "0035_flawless_stick",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1788951833302,
+      "tag": "0037_abnormal_scorpion",
+      "breakpoints": true
     }
   ]
 }

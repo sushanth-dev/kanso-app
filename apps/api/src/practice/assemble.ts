@@ -28,7 +28,7 @@ import { and, asc, eq, gte, lte, notInArray, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { z } from 'zod';
 import type { WeaknessKind } from '../analysis/leak.ts';
-import { windowCount } from '../analysis/retirement.ts';
+import { windowGameIds } from '../analysis/retirement.ts';
 import * as schema from '../db/schema.ts';
 import { patternState, player, puzzle, puzzleAttempt } from '../db/schema.ts';
 import { FOCUS_WINDOW_GAMES } from '../focus/verify.ts';
@@ -266,7 +266,7 @@ export async function assembleDrill(
   if (pattern !== undefined) {
     retirementState =
       pattern.state === 'candidate' &&
-      (await windowCount(db, playerId, stream, pattern.masteredAt)) < FOCUS_WINDOW_GAMES
+      (await windowGameIds(db, playerId, stream, pattern.masteredAt)).length < FOCUS_WINDOW_GAMES
         ? 'not_yet_verifiable'
         : pattern.state;
   }

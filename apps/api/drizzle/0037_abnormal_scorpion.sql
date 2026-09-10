@@ -1,0 +1,1 @@
+ALTER TABLE "pattern_state" ADD COLUMN "relapses" integer DEFAULT 0 NOT NULL;
