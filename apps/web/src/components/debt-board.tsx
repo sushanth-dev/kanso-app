@@ -168,7 +168,7 @@ export function DebtBoard({
   const { patterns, verificationFloor } = query.data;
   if (patterns.length === 0) {
     return (
-      <section className="reveal-in space-y-3">
+      <section id="debt-board" className="reveal-in space-y-3">
         <Heading level={2}>Debt board</Heading>
         <EmptyState
           title="No debts on the board yet"
@@ -192,7 +192,7 @@ export function DebtBoard({
   );
 
   return (
-    <section className="reveal-in space-y-3">
+    <section id="debt-board" className="reveal-in space-y-3">
       <Heading level={2}>Debt board</Heading>
       <Text as="p" display="block" type="supporting" className="text-sm">
         A balance falls only when your games verify the pattern is gone — {verificationFloor} window
