@@ -33,6 +33,7 @@ import {
   practiceReviewsQueryOptions,
 } from '../query-client.ts';
 import { DebtCard } from '../components/debt-board.tsx';
+import { RetiredHeadline } from '../components/retired-headline.tsx';
 import { drillHref, groupLabel } from './puzzles-route.tsx';
 
 /** The attempts one puzzle allows before the reveal steps in. */
@@ -51,7 +52,12 @@ function uciMove(uci: string): { from: string; to: string; promotion?: string } 
 export function PracticeRoute() {
   const { kind, group, label, stream } = useSearch({ from: '/account/practice' });
   if (kind === null || group === null) {
-    return <DueReviews />;
+    return (
+      <div className="space-y-6">
+        <RetiredHeadline streams={['tournament', 'online']} />
+        <DueReviews />
+      </div>
+    );
   }
   return <PracticeScreen kind={kind} group={group} label={label ?? group} stream={stream} />;
 }

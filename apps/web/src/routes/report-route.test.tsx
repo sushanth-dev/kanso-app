@@ -501,6 +501,22 @@ describe('ReportScreen', () => {
       '/curriculum',
     );
   });
+  test('ST-151: the retired headline mounts above the weakness list', async () => {
+    vi.spyOn(diagnosisApi, 'getPatterns').mockResolvedValue({
+      playerId,
+      stream: 'tournament',
+      verificationFloor: 10,
+      patterns: [],
+    });
+    renderReport(reportFixture());
+
+    const headline = await screen.findByRole('heading', { name: 'Mistakes eliminated' });
+    const weakness = screen.getByText('Missed captures');
+    expect(
+      headline.compareDocumentPosition(weakness) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   test('says honestly when the report carries no weaknesses yet', () => {
     renderReport(reportFixture({ weaknesses: [], gamesCovered: 3 }));
     expect(screen.getByRole('heading', { name: 'Not enough evidence to rank yet' })).toBeVisible();
