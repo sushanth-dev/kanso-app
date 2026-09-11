@@ -33,6 +33,7 @@ import { mountPractice } from './practice/practice.ts';
 import { mountDeleteGame } from './games/delete-game.ts';
 import { mountGameShare } from './game-share/game-share.ts';
 import { mountReportShareCard } from './report/share-card.ts';
+import { mountPriming } from './priming/brief.ts';
 import { mountListTournaments } from './tournaments/list-tournaments.ts';
 import { mountGetTournament } from './tournaments/get-tournament.ts';
 import { mountRoundDecay } from './tournaments/round-decay.ts';
@@ -348,6 +349,7 @@ export function createApp({
     mountPatterns(app, { db, getSession: effectiveGetSession });
     mountReport(app, { db, getSession: effectiveGetSession, aiClient });
     mountReportShareCard(app, { db, getSession: effectiveGetSession, aiClient });
+    mountPriming(app, { db, getSession: effectiveGetSession });
     mountListFocuses(app, { db });
     mountGetFocus(app, { db, getSession: effectiveGetSession });
     mountSetFocus(app, { db, getSession: effectiveGetSession });

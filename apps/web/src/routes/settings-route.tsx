@@ -14,6 +14,7 @@ import type { AccountApi, Me } from '../api/account-api.ts';
 import { ApiRequestError, accountApi } from '../api/account-api.ts';
 import { authClient } from '../auth-client.ts';
 import { ChangePasswordForm } from '../components/change-password-form.tsx';
+import { PrimingLinkSection } from '../components/priming-link-section.tsx';
 import { StatusMessage } from '../components/status-message.tsx';
 import { TextInput } from '../components/text-input.tsx';
 import { ME_QUERY_KEY, meQueryOptions } from '../query-client.ts';
@@ -259,6 +260,8 @@ export function SettingsScreen({ me, signOut, accountApi, queryClient }: Setting
           </FormLayout>
         </form>
       </Card>
+
+      <PrimingLinkSection />
 
       <Card aria-labelledby="security-heading" className="reveal-in mt-8">
         <Heading level={2} id="security-heading">

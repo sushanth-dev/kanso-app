@@ -260,6 +260,13 @@
       "when": 1788951833302,
       "tag": "0037_abnormal_scorpion",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1789057496342,
+      "tag": "0038_brave_nico_minoru",
+      "breakpoints": true
     }
   ]
 }

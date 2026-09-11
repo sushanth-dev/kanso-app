@@ -4,7 +4,9 @@
 
 ## Platform
 
-web
+web, plus a browser extension that primes the player in the seconds before a
+game on the sites where they already play (ST-153). The extension reads only
+the KansoChess API and shows no page content of its own beyond the primer.
 
 ## Users
 

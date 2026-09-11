@@ -405,7 +405,10 @@ entirely: every authenticated route is top-level (`/settings`, `/report`,
 
 ST-092 groups the page into H2 sections; it is five today: Account details
 (email and See plans), Appearance, Default usernames, Security, and the
-Danger zone. Security owns both the change-password form and Sign out. The
+Danger zone. ST-153 adds a sixth, Priming, between Default usernames and
+Security: the token section the browser extension authenticates with,
+described under Priming below. Security owns both the change-password form
+and Sign out. The
 change-password inputs reveal behind a "Change password" button (progressive
 disclosure, not a security control; the rate limiting and rejection copy are
 unchanged). Appearance holds the Contrast choice (standard or high) that
@@ -1089,6 +1092,33 @@ alone:
 None of the four claims a payment that did not start. Prices render in IBM Plex
 Mono (the tabular rule), and the terracotta accent stays on the pay action and
 the recommended card's border only.
+
+### Priming
+
+ST-153 adds two surfaces, one inside the app and one outside it, connected
+by a token.
+
+The settings section (ST-153) is a Card in the `/settings` ladder between
+Default usernames and Security. Its copy states the fact plainly: the
+browser extension shows the player's active mistake patterns seconds
+before a game on Lichess or Chess.com, and reads a brief with this token.
+A "Create priming token" button mints the credential; the full token is
+then shown exactly once, with a copy action and the sentence "Copy it
+now. This is the only time the full token is shown." After that the
+section shows the live token as its display prefix and creation date
+only. Revocation is confirmed in place, and its copy names the
+consequence: the extension stops receiving briefs until a new token is
+created. The secret-once display means the section never becomes a
+credential store.
+
+The extension card is the outside surface: a small aside on the host
+site titled "Before you play", rendered seconds before a new game and
+self-dismissing after fifteen seconds. It lists up to three active
+mistake patterns as label plus count ("Hanging piece - 4 this week") and
+the current focus when one exists. It carries no chrome of the product -
+no navigation, no sign-in hint - matching the shared cards' stand-alone
+discipline. Meaning is never hue alone: the card is one surface with
+plain text labels, and its only control is Dismiss.
 
 ## Do's and Don'ts
 
