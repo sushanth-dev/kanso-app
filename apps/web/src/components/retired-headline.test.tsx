@@ -32,6 +32,7 @@ function patternFixture(overrides: Partial<PatternReport['patterns'][number]> = 
     windowInstances: 3,
     windowCost: 187.5,
     relapses: 0,
+    calibration: null,
     ...overrides,
   };
 }

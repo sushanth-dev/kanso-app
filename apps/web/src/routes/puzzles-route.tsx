@@ -15,7 +15,7 @@ import { Text } from '@astryxdesign/core/Text';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { ApiRequestError } from '../api/account-api.ts';
-import type { PracticeQueueItem } from '../api/diagnosis-api.ts';
+import type { GroupCalibration, PracticeQueueItem } from '../api/diagnosis-api.ts';
 import { ME_QUERY_KEY, practiceQueueQueryOptions } from '../query-client.ts';
 
 const DAY_MS = 86_400_000;
@@ -44,9 +44,43 @@ function dueLabel(nextReviewAt: string): string {
   return days === 1 ? 'Due tomorrow' : `Due in ${days} days`;
 }
 
-function QueueRow({ item, end }: { item: PracticeQueueItem; end: React.ReactNode }) {
+/**
+ * ST-156. The overconfidence signal beside one queue group, second channel
+ * text under the row's name. A group with no answered failed drills is out
+ * of the map; the honest zero says so rather than showing a number.
+ */
+function CalibrationNote({ calibration }: { calibration: GroupCalibration | undefined }) {
+  if (calibration === undefined) {
+    return (
+      <Text type="supporting" className="text-xs">
+        No calibration data yet.
+      </Text>
+    );
+  }
+  const pct = (share: number) => `${Math.round(share * 100)}%`;
   return (
-    <li className="flex items-center justify-between gap-3 border-b border-border-subtle py-3 last:border-b-0">
+    <Text type="supporting" className="text-xs">
+      Rated sure on {pct(calibration.overconfidence)} of {calibration.failedAnswered} failed drill
+      {calibration.failedAnswered === 1 ? '' : 's'}
+      {calibration.weekFailedAnswered > 0
+        ? `, ${pct(calibration.weekOverconfidence)} in the last week`
+        : ''}
+      .
+    </Text>
+  );
+}
+
+function QueueRow({
+  item,
+  end,
+  calibration,
+}: {
+  item: PracticeQueueItem;
+  end: React.ReactNode;
+  calibration: GroupCalibration | undefined;
+}) {
+  return (
+    <li className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle py-3 last:border-b-0">
       <div className="flex items-baseline gap-3">
         <Text className="font-display text-base">{groupLabel(item.group)}</Text>
         <Text type="supporting" className="font-mono text-sm">
@@ -54,6 +88,9 @@ function QueueRow({ item, end }: { item: PracticeQueueItem; end: React.ReactNode
         </Text>
       </div>
       <div className="flex items-center gap-2">{end}</div>
+      <div className="basis-full">
+        <CalibrationNote calibration={calibration} />
+      </div>
     </li>
   );
 }
@@ -61,22 +98,35 @@ function QueueRow({ item, end }: { item: PracticeQueueItem; end: React.ReactNode
 function QueueList({
   items,
   endFor,
+  calibration,
 }: {
   items: PracticeQueueItem[];
   endFor: (item: PracticeQueueItem) => React.ReactNode;
+  calibration: Record<string, GroupCalibration>;
 }) {
   return (
     <Card>
       <ul>
         {items.map((item) => (
-          <QueueRow key={item.puzzleId} item={item} end={endFor(item)} />
+          <QueueRow
+            key={item.puzzleId}
+            item={item}
+            end={endFor(item)}
+            calibration={calibration[`${item.kind}:${item.group}`]}
+          />
         ))}
       </ul>
     </Card>
   );
 }
 
-function PendingTab({ due }: { due: PracticeQueueItem[] }) {
+function PendingTab({
+  due,
+  calibration,
+}: {
+  due: PracticeQueueItem[];
+  calibration: Record<string, GroupCalibration>;
+}) {
   const first = due[0];
   if (first === undefined) return null;
   return (
@@ -84,15 +134,26 @@ function PendingTab({ due }: { due: PracticeQueueItem[] }) {
       <Link href={drillHref(first.kind, first.group)} className="min-h-11 items-center">
         Practice now
       </Link>
-      <QueueList items={due} endFor={() => <Badge label="Due now" variant="warning" />} />
+      <QueueList
+        items={due}
+        calibration={calibration}
+        endFor={() => <Badge label="Due now" variant="warning" />}
+      />
     </div>
   );
 }
 
-function UpcomingTab({ upcoming }: { upcoming: PracticeQueueItem[] }) {
+function UpcomingTab({
+  upcoming,
+  calibration,
+}: {
+  upcoming: PracticeQueueItem[];
+  calibration: Record<string, GroupCalibration>;
+}) {
   return (
     <QueueList
       items={upcoming}
+      calibration={calibration}
       endFor={(item) => (
         <>
           <Text type="supporting" className="text-sm">
@@ -107,8 +168,20 @@ function UpcomingTab({ upcoming }: { upcoming: PracticeQueueItem[] }) {
   );
 }
 
-function MasteredTab({ mastered }: { mastered: PracticeQueueItem[] }) {
-  return <QueueList items={mastered} endFor={() => <Badge label="Mastered" variant="success" />} />;
+function MasteredTab({
+  mastered,
+  calibration,
+}: {
+  mastered: PracticeQueueItem[];
+  calibration: Record<string, GroupCalibration>;
+}) {
+  return (
+    <QueueList
+      items={mastered}
+      calibration={calibration}
+      endFor={() => <Badge label="Mastered" variant="success" />}
+    />
+  );
 }
 
 export function PuzzlesRoute() {
@@ -152,7 +225,7 @@ export function PuzzlesRoute() {
     );
   }
 
-  const { due, upcoming, mastered } = queueQuery.data;
+  const { due, upcoming, mastered, calibration } = queueQuery.data;
   const counts: Record<QueueTab, number> = {
     pending: due.length,
     upcoming: upcoming.length,
@@ -183,7 +256,7 @@ export function PuzzlesRoute() {
 
       {tab === 'pending' ? (
         due.length > 0 ? (
-          <PendingTab due={due} />
+          <PendingTab due={due} calibration={calibration} />
         ) : (
           <EmptyState
             title="All caught up!"
@@ -198,7 +271,7 @@ export function PuzzlesRoute() {
         )
       ) : tab === 'upcoming' ? (
         upcoming.length > 0 ? (
-          <UpcomingTab upcoming={upcoming} />
+          <UpcomingTab upcoming={upcoming} calibration={calibration} />
         ) : (
           <EmptyState
             title="Nothing scheduled yet"
@@ -207,7 +280,7 @@ export function PuzzlesRoute() {
           />
         )
       ) : mastered.length > 0 ? (
-        <MasteredTab mastered={mastered} />
+        <MasteredTab mastered={mastered} calibration={calibration} />
       ) : (
         <EmptyState
           title="Nothing mastered yet"

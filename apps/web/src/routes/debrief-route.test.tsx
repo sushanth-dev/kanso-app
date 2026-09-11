@@ -159,6 +159,7 @@ function cameBackPattern(gameId: string) {
     windowInstances: 1,
     windowCost: 2.5,
     relapses: 1,
+    calibration: null,
   };
 }
 

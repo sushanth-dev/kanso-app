@@ -32,6 +32,7 @@ import * as schema from '../db/schema.ts';
 import { player } from '../db/schema.ts';
 import { readSession } from '../session.ts';
 import { assembleDrill } from './assemble.ts';
+import { readCalibration } from './calibration.ts';
 import { readDueReviews, readQueue } from './queue.ts';
 import { recordDrill } from './record.ts';
 
@@ -90,6 +91,10 @@ export function mountPractice(
       return c.json({ code: 'no_session', message: 'Sign in to use this endpoint.' }, 401);
     }
     const queue = await readQueue(deps.db, playerId);
+    // ST-156. The puzzles page renders the overconfidence signal next to each
+    // group; the map carries only groups with answered failed drills.
+    const calibration = await readCalibration(deps.db, playerId);
+    const calibrationJson = Object.fromEntries(calibration);
     return c.json(
       {
         due: queue.due.map((r) => ({ ...r, nextReviewAt: r.nextReviewAt.toISOString() })),
@@ -101,6 +106,7 @@ export function mountPractice(
           ...r,
           nextReviewAt: r.nextReviewAt.toISOString(),
         })),
+        calibration: calibrationJson,
       },
       200,
     );
@@ -115,14 +121,22 @@ export function mountPractice(
   });
 
   app.openapi(recordPracticePuzzle, async (c) => {
-    const { puzzleId, kind, group, solved } = c.req.valid('json');
+    const { puzzleId, kind, group, solved, confidence } = c.req.valid('json');
 
     const playerId = await ownPlayerId(deps.db, deps.getSession, c);
     if (playerId === null) {
       return c.json({ code: 'no_session', message: 'Sign in to use this endpoint.' }, 401);
     }
 
-    const outcome = await recordDrill(deps.db, playerId, puzzleId, kind, group, solved);
+    const outcome = await recordDrill(
+      deps.db,
+      playerId,
+      puzzleId,
+      kind,
+      group,
+      solved,
+      confidence ?? null,
+    );
     if (outcome === 'no_such_puzzle') {
       return c.json({ code: 'no_such_puzzle', message: 'No such puzzle in the pool.' }, 422);
     }

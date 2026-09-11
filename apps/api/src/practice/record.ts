@@ -28,6 +28,13 @@ import { themeForGroup } from './themes.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
 
+/**
+ * ST-156. The confidence the player rated their answer with, asked before
+ * any reveal. Null means the prompt was skipped: absent from the
+ * overconfidence arithmetic, never read as a guess.
+ */
+export type Confidence = 'sure' | 'not_sure' | 'guessed';
+
 export interface DrillOutcome {
   attempts: number;
   solved: boolean;
@@ -44,6 +51,7 @@ export async function recordDrill(
   kind: WeaknessKind,
   group: string,
   solved: boolean,
+  confidence: Confidence | null = null,
 ): Promise<DrillOutcome | 'no_such_puzzle' | 'no_such_group'> {
   if (themeForGroup(kind, group) === null) return 'no_such_group';
 
@@ -71,6 +79,9 @@ export async function recordDrill(
         reviewLevel: solved ? 1 : 0,
         nextReviewAt: solved ? sql`now() + interval '2 days'` : sql`now()`,
         assignedAt: new Date(),
+        // ST-156. The prompt asked before any reveal; the answer lands with
+        // the outcome. Null is a skipped prompt.
+        confidence,
       })
       .onConflictDoUpdate({
         target: [puzzleAttempt.playerId, puzzleAttempt.puzzleId],
@@ -78,6 +89,9 @@ export async function recordDrill(
           attempts: sql`${puzzleAttempt.attempts} + 1`,
           solved: sql`${puzzleAttempt.solved} or excluded.solved`,
           lastAttemptAt: sql`now()`,
+          // ST-156. The row aggregates drills, so the latest drill's answer
+          // stands: a skipped re-drill overwrites the older answer with null.
+          confidence: sql`excluded.confidence`,
           // A solve climbs one rung (capped at 3, the thirty-day rung);
           // a reveal drops back to 0, due now, and the queue re-deals it.
           reviewLevel: solved ? sql`least(${puzzleAttempt.reviewLevel} + 1, 3)` : sql`0`,

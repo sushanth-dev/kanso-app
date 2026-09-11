@@ -337,10 +337,17 @@ export const PracticeSet = z
   .openapi('PracticeSet');
 
 /**
+ * ST-156. The confidence the player rated their answer with, asked before
+ * any reveal. Absent means the prompt was skipped and stores null.
+ */
+export const DrillConfidence = z.enum(['sure', 'not_sure', 'guessed']).openapi('DrillConfidence');
+
+/**
  * ST-106. One completed drill on a pool puzzle: the client records the
  * outcome once per drill, whether the player solved it or the solution was
  * revealed. A solved drill records the day's activity (ST-103); a reveal
- * never does.
+ * never does. ST-156: `confidence` is the player's pre-reveal rating of
+ * their own answer; absent stores null.
  */
 export const RecordPracticePuzzle = z
   .object({
@@ -348,6 +355,7 @@ export const RecordPracticePuzzle = z
     kind: WeaknessKind,
     group: z.string().min(1).max(64),
     solved: z.boolean(),
+    confidence: DrillConfidence.optional(),
   })
   .openapi('RecordPracticePuzzle');
 
@@ -380,16 +388,43 @@ export const PracticeQueueItem = z
   })
   .openapi('PracticeQueueItem');
 
+/** ST-156. One group's overconfidence figures; the share is 0 with no answered drills yet. */
+export const GroupCalibration = z
+  .object({
+    /** Failed drills that carry a confidence answer. */
+    failedAnswered: z.number().int(),
+    /** The share of those rated sure. */
+    overconfidence: z.number(),
+    /** Failed answered drills in the trailing week. */
+    weekFailedAnswered: z.number().int(),
+    /** The share rated sure across the trailing week. */
+    weekOverconfidence: z.number(),
+  })
+  .openapi('GroupCalibration');
+
+/**
+ * The same figures where the field may be absent: a group with no answered
+ * failed drills. Built from the same shape rather than `.nullable()` on the
+ * named schema, whose registration the derived schema would inherit and
+ * overwrite with a nullable shape (ST-152's RetirementStateOrNull).
+ */
+export const GroupCalibrationOrNull = z.object(GroupCalibration.shape).nullable().openapi({
+  description: 'ST-156. The drill calibration; null with no answered failed drills yet.',
+});
+
 /**
  * ST-107. The three buckets the puzzles page shows: what is pending now
  * (due reviews plus the deal that has not been started), what is coming up
- * for review, and what has been mastered.
+ * for review, and what has been mastered. ST-156: `calibration` maps the
+ * `kind:group` keys with answered failed drills to their overconfidence
+ * figures; groups missing from the map have no calibration data yet.
  */
 export const PracticeQueue = z
   .object({
     due: z.array(PracticeQueueItem),
     upcoming: z.array(PracticeQueueItem),
     mastered: z.array(PracticeQueueItem),
+    calibration: z.record(z.string(), GroupCalibration),
   })
   .openapi('PracticeQueue');
 
@@ -712,6 +747,8 @@ export const PatternState = z
     windowCost: z.number(),
     /** ST-152. How many times this group has come back; the history a re-mastery preserves. */
     relapses: z.number().int(),
+    /** ST-156. The drill calibration behind the group; null when the player has no answered failed drills in it. */
+    calibration: GroupCalibrationOrNull,
   })
   .openapi('PatternState', {
     example: {

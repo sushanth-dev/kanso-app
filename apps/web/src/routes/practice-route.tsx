@@ -339,10 +339,22 @@ function DrillSession({
   const [queue, setQueue] = useState<PracticePuzzle[]>(puzzles);
   const [solvedCount, setSolvedCount] = useState(0);
 
-  const advance = (puzzle: PracticePuzzle, solved: boolean) => {
+  const advance = (
+    puzzle: PracticePuzzle,
+    solved: boolean,
+    confidence: ConfidenceAnswer | null,
+  ) => {
     if (solved) setSolvedCount((count) => count + 1);
+    // ST-156. One record call carries the outcome and the pre-reveal
+    // confidence; null (a skip) is omitted, absent from the arithmetic.
     diagnosisApi
-      .recordPracticePuzzle({ puzzleId: puzzle.id, kind, group, solved })
+      .recordPracticePuzzle({
+        puzzleId: puzzle.id,
+        kind,
+        group,
+        solved,
+        ...(confidence !== null ? { confidence } : {}),
+      })
       .catch((error: unknown) => {
         console.error('Recording the drill failed.', error);
       });
@@ -385,26 +397,38 @@ function DrillSession({
         </Text>
       </header>
       {/* The key gives every deal a fresh board and fresh circles. */}
-      <DrillCard key={current.id} puzzle={current} onDone={(solved) => advance(current, solved)} />
+      <DrillCard
+        key={current.id}
+        puzzle={current}
+        onDone={(solved, confidence) => advance(current, solved, confidence)}
+      />
     </div>
   );
 }
 
-/** One puzzle's status. `revealing` plays the solution; `revealed` explains the rotation. */
-type DrillStatus = 'setup' | 'playing' | 'reply' | 'solved' | 'revealing' | 'revealed';
+/** One puzzle's status. `confidence` is ST-156's prompt at the commit boundary. */
+type DrillStatus =
+  'setup' | 'playing' | 'reply' | 'solved' | 'confidence' | 'revealing' | 'revealed';
+
+/** The three answers the confidence prompt offers, plus a skip. */
+type ConfidenceAnswer = 'sure' | 'not_sure' | 'guessed';
 
 /**
  * One puzzle's lifecycle: the setup move plays itself, the player's correct
  * move advances the solution with the opponent's forced replies auto-played,
  * a wrong move never commits and costs one circle, and the third miss plays
- * the solution move by move before the puzzle rotates back.
+ * the solution move by move before the puzzle rotates back. ST-156: at the
+ * commit boundary - a solve before rotation, a third miss before the reveal
+ * plays - one confidence question asks how sure the player was, and the
+ * answer rides the drill's record call. Skipping is the prompt's third
+ * option and records as absent.
  */
-function DrillCard({
+export function DrillCard({
   puzzle,
   onDone,
 }: {
   puzzle: PracticePuzzle;
-  onDone: (solved: boolean) => void;
+  onDone: (solved: boolean, confidence: ConfidenceAnswer | null) => void;
 }) {
   const moves = useMemo(() => puzzle.moves.split(' '), [puzzle]);
   const setup = moves[0] ?? '';
@@ -418,6 +442,10 @@ function DrillCard({
   const [selected, setSelected] = useState<string | null>(null);
   const solutionIndex = useRef(0);
   const finished = useRef(false);
+  // Whether the drill ended in a solve. The confidence prompt sits before
+  // any reveal (AC2), so `revealing`/`revealed` never offer it and the
+  // answer recorded is whatever was given before the solution showed.
+  const endedSolved = useRef(false);
 
   // The solver is whoever is on the move after the setup move.
   const solverIsWhite = puzzle.fen.split(' ')[1] !== 'w';
@@ -437,17 +465,28 @@ function DrillCard({
     return () => clearTimeout(timer);
   }, []);
 
-  // One completion per puzzle: report it, then let the queue move on.
+  // One completion per puzzle: report it, then let the queue move on. A
+  // solve detours through the confidence prompt first; a reveal reports
+  // immediately with no confidence, the boundary AC2 pins.
   useEffect(() => {
-    if (status !== 'solved' && status !== 'revealed') return;
+    if (status === 'solved') {
+      endedSolved.current = true;
+      const timer = setTimeout(() => setStatus('confidence'), MOVE_PAUSE_MS);
+      return () => clearTimeout(timer);
+    }
+    if (status !== 'revealed') return;
     if (finished.current) return;
     finished.current = true;
-    const timer = setTimeout(
-      () => onDone(status === 'solved'),
-      status === 'solved' ? MOVE_PAUSE_MS : ROTATE_PAUSE_MS,
-    );
+    const timer = setTimeout(() => onDone(false, null), ROTATE_PAUSE_MS);
     return () => clearTimeout(timer);
   }, [status]);
+
+  // The prompt's answer or skip closes the drill: report it and rotate.
+  const answerConfidence = (confidence: ConfidenceAnswer | null) => {
+    if (finished.current) return;
+    finished.current = true;
+    onDone(endedSolved.current, confidence);
+  };
 
   // A forced reply is due: play it, hand the move back to the player.
   useEffect(() => {
@@ -593,9 +632,39 @@ function DrillCard({
              delight budget instead of swapping as plain text. */
           <div className="pop-in space-y-3">
             <Heading level={3}>Solved.</Heading>
-            <Text as="p" display="block" type="supporting">
-              Dealing the next puzzle…
-            </Text>
+          </div>
+        ) : null}
+        {status === 'confidence' ? (
+          /* ST-156. The commit boundary: the outcome is settled, the answer
+             has not shown. One question, three answers, a skip. */
+          <div className="space-y-3">
+            <Heading level={3}>How sure were you?</Heading>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                label="Sure"
+                variant="secondary"
+                className="min-h-11 press"
+                onClick={() => answerConfidence('sure')}
+              />
+              <Button
+                label="Was not sure"
+                variant="secondary"
+                className="min-h-11 press"
+                onClick={() => answerConfidence('not_sure')}
+              />
+              <Button
+                label="Guessed"
+                variant="secondary"
+                className="min-h-11 press"
+                onClick={() => answerConfidence('guessed')}
+              />
+              <Button
+                label="Skip"
+                variant="ghost"
+                className="min-h-11 press"
+                onClick={() => answerConfidence(null)}
+              />
+            </div>
           </div>
         ) : null}
         {status === 'revealing' || status === 'revealed' ? (
