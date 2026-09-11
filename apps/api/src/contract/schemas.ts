@@ -885,6 +885,41 @@ export const MissedPunishment = z
   })
   .openapi('MissedPunishment');
 
+/**
+ * ST-155. One heatmap cell: a phase against its mistake count and its
+ * severity-weighted cost. The cost is null below the three-instance floor,
+ * where the evidence is too thin to rank on; the count stays honest at any
+ * size.
+ */
+export const PhaseHeatmapCell = z
+  .object({
+    // The non-nullable enum inline: a heatmap cell is always one of the three
+    // phases, and the shared `Phase` schema is nullable for slipPhase.
+    phase: z.enum(['opening', 'middlegame', 'endgame']),
+    occurrences: z.number().int().min(0),
+    halfPointsLost: z.number(),
+    /** ST-149 weighted; null when the cell is below the instance floor. */
+    severityWeightedCost: z.number().nullable(),
+  })
+  .openapi('PhaseHeatmapCell');
+
+/**
+ * ST-155. One drill suggestion: a weakness group reordered by recent,
+ * phase-weighted cost. The key and kind are what the practice link carries;
+ * the weighting is named on the surface and an unweighted view is offered.
+ */
+export const DrillSuggestion = z
+  .object({
+    kind: WeaknessKind,
+    groupKey: z.string(),
+    label: z.string(),
+    /** The group's recent severity-weighted cost, the figure the order speaks in. */
+    recentCost: z.number(),
+    /** The phase-weighted score, how the order is chosen; the unweighted view re-sorts by recentCost. */
+    score: z.number(),
+  })
+  .openapi('DrillSuggestion');
+
 export const Report = z
   .object({
     id: Uuid,
@@ -911,6 +946,17 @@ export const Report = z
      * window; the counts are zero when there was nothing to find.
      */
     missedPunishment: MissedPunishment.nullable(),
+    /**
+     * ST-155. Where in the game the costliest mistakes sit: the three phases
+     * against counts and severity-weighted cost, zero-filled in fixed order.
+     * Present whenever the report has a window.
+     */
+    phaseHeatmap: z.array(PhaseHeatmapCell),
+    /**
+     * ST-155. The drill budget: the report's weakness groups reordered by
+     * recent, phase-weighted cost. Empty when no group has recent mistakes.
+     */
+    drillSuggestions: z.array(DrillSuggestion),
     /** ADR-0018. Prose over the numbers above, cached against this aggregation. */
     narrative: z.string().nullable(),
   })

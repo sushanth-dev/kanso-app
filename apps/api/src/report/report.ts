@@ -31,6 +31,8 @@ import { readSession } from '../session.ts';
 import { getOwnPlayerId } from '../players/claim.ts';
 import { leakBaseline, scoreLeaks, weaknessLeakRows } from '../analysis/leak.ts';
 import { missedPunishments } from '../analysis/missed-punishment.ts';
+import { phaseHeatmap } from '../analysis/phase-heatmap.ts';
+import { orderSuggestions, recentMistakes } from '../analysis/drill-suggestion.ts';
 import { MIN_RATED_GAMES, SEASON_WINDOW_MS } from '../analysis/performance-rating.ts';
 import { scoreTimeTrouble, timeTroubleCounts } from '../phases/phases.ts';
 import { FOCUS_WINDOW_GAMES } from '../focus/verify.ts';
@@ -150,6 +152,11 @@ function toResponse(r: ReportRow, ws: WeaknessRow[]): ReportResponse {
     // ST-154. Filled in by `withEvidence`; never stored, always recomputed
     // from the same window the report was computed over.
     missedPunishment: null,
+    // ST-155. Filled in by `withEvidence`, the same never-stored pattern:
+    // the heatmap over the report's own window, the drill budget over its
+    // trailing thirty days.
+    phaseHeatmap: [],
+    drillSuggestions: [],
     narrative: r.narrative,
   };
 }
@@ -283,6 +290,17 @@ async function withEvidence(
     windowStart,
     tournamentId,
   );
+  // ST-155. The phase heatmap over the report's own window, and the drill
+  // budget over its trailing thirty days. Both recompute on each read, the
+  // missed-punishment pattern; neither is stored.
+  response.phaseHeatmap = await phaseHeatmap(db, playerId, stream, windowStart, tournamentId);
+  if (windowStart !== null) {
+    const recent = await recentMistakes(db, playerId, stream, windowStart, tournamentId);
+    const candidates = response.weaknesses.flatMap((w) =>
+      w.groupKey === null ? [] : [{ kind: w.kind, groupKey: w.groupKey, label: w.label }],
+    );
+    response.drillSuggestions = orderSuggestions(candidates, recent);
+  }
   return response;
 }
 

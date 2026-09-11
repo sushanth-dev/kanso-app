@@ -178,6 +178,7 @@ export function ReportScreen({
       {/* ST-152. The board sits beside the weaknesses, not above them: the
           rank-one leak stays the report's one authored moment. */}
       <DebtBoard stream={report.stream} weaknesses={report.weaknesses} />
+      {report.phaseHeatmap.length > 0 ? <PhaseHeatmap cells={report.phaseHeatmap} /> : null}
       {!isEmpty ? (
         <ReportShareCardsSection stream={report.stream} tournamentId={report.tournamentId} />
       ) : null}
@@ -550,6 +551,75 @@ function MissedPunishmentLine({
       )}
     </Card>
   );
+}
+
+/**
+ * ST-155. The phase heatmap: three cells, one per phase, each carrying the
+ * mistake count and the severity-weighted cost. The second channel is the
+ * numbers themselves - hue only reinforces, never carries (AC#2): the cell's
+ * tint scales with cost, but the figure is text beside it and the tint has a
+ * border that reads in the dark theme. Below the three-instance floor the
+ * cost is withheld and the refusal says why; the count stays, honest at any
+ * size. The weighting is named in the caption (AC#4).
+ */
+function PhaseHeatmap({ cells }: { cells: Report['phaseHeatmap'] }) {
+  const maxCost = Math.max(...cells.map((c) => c.severityWeightedCost ?? 0), 0);
+  return (
+    <Card className="reveal-in space-y-3 p-4">
+      <div className="space-y-1">
+        <Text type="supporting" className="font-ui text-xs">
+          where mistakes sit
+        </Text>
+        <Text as="p" display="block" type="supporting" className="text-sm">
+          Ranked by severity-weighted half-points: mistakes against stronger opponents weigh more.
+        </Text>
+      </div>
+      <ul className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        {cells.map((cell) => {
+          const cost = cell.severityWeightedCost;
+          const shade = cost !== null && maxCost > 0 ? cost / maxCost : 0;
+          return (
+            <li
+              key={cell.phase}
+              className="space-y-1 rounded-surface border border-border-subtle p-3"
+              style={
+                cost !== null
+                  ? {
+                      backgroundColor: `color-mix(in srgb, var(--color-bg-raised) ${Math.round(shade * 70)}%, var(--color-text-primary) ${Math.round(shade * 12)}%)`,
+                    }
+                  : undefined
+              }
+            >
+              <Text as="p" display="block" className="text-sm">
+                {PHASE_LABEL[cell.phase]}
+              </Text>
+              <Text as="p" display="block" className="font-mono text-sm">
+                <span className="font-mono">{cell.occurrences}</span> mistakes
+                {cost !== null ? (
+                  <>
+                    {' '}
+                    - <span className="font-mono">{formatCost(cost)}</span> half-points weighted
+                  </>
+                ) : null}
+              </Text>
+              {cost === null ? (
+                <Text as="p" display="block" type="supporting" className="text-xs">
+                  {cell.occurrences < 3
+                    ? `Only ${cell.occurrences} ${cell.occurrences === 1 ? 'instance' : 'instances'} - a cost figure needs at least three.`
+                    : 'No cost to show yet.'}
+                </Text>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
+    </Card>
+  );
+}
+
+/** One decimal, trailing zeros dropped: the figure the order speaks in. */
+function formatCost(cost: number): string {
+  return String(Math.round(cost * 10) / 10);
 }
 
 function AnalyzingBanner({ games }: { games: GameSummary[] }) {
