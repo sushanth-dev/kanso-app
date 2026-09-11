@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "KansoChess pre-game primer",
+  "version": "0.1.0",
+  "description": "Shows your active mistake patterns seconds before a game on Lichess and Chess.com.",
+  "permissions": ["storage"],
+  "host_permissions": ["https://api.kansochess.app/*"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.chess.com/play/online/new*", "https://lichess.org/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "options_page": "options.html"
+}

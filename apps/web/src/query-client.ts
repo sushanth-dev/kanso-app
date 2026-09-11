@@ -5,6 +5,7 @@ import { focusApi } from './api/focus-api.ts';
 import { assignmentApi } from './api/assignment-api.ts';
 import { gameShareApi } from './api/game-share-api.ts';
 import { reportShareApi } from './api/report-share-api.ts';
+import { primingApi } from './api/priming-api.ts';
 import { proofSheetApi } from './api/proof-sheet-api.ts';
 import { tournamentApi } from './api/tournament-api.ts';
 export const ME_QUERY_KEY = ['me'] as const;
@@ -113,6 +114,15 @@ export const reportShareCardsQueryOptions = () =>
   queryOptions({
     queryKey: ['report-share-cards'] as const,
     queryFn: () => reportShareApi.listReportShareCards(),
+    retry: false,
+    staleTime: 30_000,
+  });
+
+/** ST-153. The live priming token, on the settings page. */
+export const primingTokenQueryOptions = () =>
+  queryOptions({
+    queryKey: ['priming-tokens'] as const,
+    queryFn: () => primingApi.listPrimingTokens(),
     retry: false,
     staleTime: 30_000,
   });

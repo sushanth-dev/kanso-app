@@ -7,6 +7,8 @@ build/
 *.tsbuildinfo
 .vite/
 .turbo/
+# The extension's tsc emit lands at the package root beside manifest.json.
+apps/extension/*.js
 
 # SST's local state and generated types. The deploy state itself lives in an
 # S3 bucket SST creates, not here.
