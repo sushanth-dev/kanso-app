@@ -637,3 +637,112 @@ describe('ST-124 the review ladder on record', () => {
     expect(afterReveal!.reviewLevel).toBe(0);
   });
 });
+
+describe('ST-156 confidence calibration', () => {
+  beforeEach(async () => {
+    await seedPool(band(1500, 25));
+  });
+
+  const drill = (puzzleId: string, solved: boolean, confidence?: string) =>
+    postDrill(OWNER, {
+      puzzleId,
+      kind: 'motif',
+      group: 'hanging_piece',
+      solved,
+      ...(confidence !== undefined ? { confidence } : {}),
+    });
+
+  test('the confidence enum accepts each value and a legacy record omits it', async () => {
+    await drill('h1500_0', true); // no confidence field at all
+    await drill('h1500_1', false, 'sure');
+    await drill('h1500_2', false, 'not_sure');
+    await drill('h1500_3', false, 'guessed');
+
+    const rows = await harness.db
+      .select({ puzzleId: puzzleAttempt.puzzleId, confidence: puzzleAttempt.confidence })
+      .from(puzzleAttempt);
+    const byPuzzle = Object.fromEntries(rows.map((r) => [r.puzzleId, r.confidence]));
+    expect(byPuzzle['h1500_0']).toBeNull();
+    expect(byPuzzle['h1500_1']).toBe('sure');
+    expect(byPuzzle['h1500_2']).toBe('not_sure');
+    expect(byPuzzle['h1500_3']).toBe('guessed');
+  });
+
+  test("the latest drill's answer stands on a re-drill", async () => {
+    await drill('h1500_0', false, 'sure');
+    await drill('h1500_0', false, 'not_sure');
+    await drill('h1500_0', false); // a skipped re-drill overwrites with null
+
+    const [row] = await harness.db
+      .select()
+      .from(puzzleAttempt)
+      .where(eq(puzzleAttempt.puzzleId, 'h1500_0'));
+    expect(row!.confidence).toBeNull();
+    expect(row!.attempts).toBe(3);
+  });
+
+  test('the queue carries the overconfidence figures with the honest zero', async () => {
+    // Group with one answered failed drill rated sure, and one skipped.
+    await drill('h1500_0', false, 'sure');
+    await drill('h1500_1', false, 'not_sure');
+    await drill('h1500_2', false); // skip: absent from the arithmetic
+    // A solved drill never enters the signal.
+    await drill('h1500_3', true, 'sure');
+
+    const res = await app(OWNER).request('/practice/queue');
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      calibration: Record<string, { failedAnswered: number; overconfidence: number }>;
+    };
+    expect(body.calibration['motif:hanging_piece']).toEqual({
+      failedAnswered: 2,
+      overconfidence: 0.5,
+      weekFailedAnswered: 2,
+      weekOverconfidence: 0.5,
+    });
+  });
+
+  test('a group with no answered failed drills stays out of the map', async () => {
+    await drill('h1500_0', false); // skipped prompt
+    await drill('h1500_1', true, 'sure'); // solved: not a failed drill
+
+    const res = await app(OWNER).request('/practice/queue');
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { calibration: Record<string, unknown> };
+    expect(body.calibration).toEqual({});
+  });
+
+  test('verdicts, streaks, and tallies never read the confidence column', async () => {
+    // Two identical failed drills differing only in the recorded confidence.
+    const pid = await playerId();
+    await postDrill(OWNER, {
+      puzzleId: 'h1500_0',
+      kind: 'motif',
+      group: 'hanging_piece',
+      solved: false,
+    });
+    await postDrill(OWNER, {
+      puzzleId: 'h1500_1',
+      kind: 'motif',
+      group: 'hanging_piece',
+      solved: false,
+      confidence: 'sure',
+    });
+
+    const rows = await harness.db
+      .select({
+        puzzleId: puzzleAttempt.puzzleId,
+        attempts: puzzleAttempt.attempts,
+        solved: puzzleAttempt.solved,
+      })
+      .from(puzzleAttempt)
+      .orderBy(puzzleAttempt.puzzleId);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]!.attempts).toBe(rows[1]!.attempts);
+    expect(rows[0]!.solved).toBe(rows[1]!.solved);
+
+    const [after] = await harness.db.select().from(player).where(eq(player.id, pid));
+    expect(after!.currentStreak).toBe(0);
+    expect(after!.xp).toBe(0);
+  });
+});

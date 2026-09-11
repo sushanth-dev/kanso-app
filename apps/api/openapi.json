@@ -1094,6 +1094,9 @@
           },
           "solved": {
             "type": "boolean"
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/DrillConfidence"
           }
         },
         "required": [
@@ -1101,6 +1104,14 @@
           "kind",
           "group",
           "solved"
+        ]
+      },
+      "DrillConfidence": {
+        "type": "string",
+        "enum": [
+          "sure",
+          "not_sure",
+          "guessed"
         ]
       },
       "TournamentList": {
@@ -1910,12 +1921,19 @@
             "items": {
               "$ref": "#/components/schemas/PracticeQueueItem"
             }
+          },
+          "calibration": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/GroupCalibration"
+            }
           }
         },
         "required": [
           "due",
           "upcoming",
-          "mastered"
+          "mastered",
+          "calibration"
         ]
       },
       "PracticeQueueItem": {
@@ -1967,6 +1985,29 @@
           "nextReviewAt",
           "solved",
           "attempts"
+        ]
+      },
+      "GroupCalibration": {
+        "type": "object",
+        "properties": {
+          "failedAnswered": {
+            "type": "integer"
+          },
+          "overconfidence": {
+            "type": "number"
+          },
+          "weekFailedAnswered": {
+            "type": "integer"
+          },
+          "weekOverconfidence": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "failedAnswered",
+          "overconfidence",
+          "weekFailedAnswered",
+          "weekOverconfidence"
         ]
       },
       "PracticeReviews": {
@@ -2497,6 +2538,33 @@
           },
           "relapses": {
             "type": "integer"
+          },
+          "calibration": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "failedAnswered": {
+                "type": "integer"
+              },
+              "overconfidence": {
+                "type": "number"
+              },
+              "weekFailedAnswered": {
+                "type": "integer"
+              },
+              "weekOverconfidence": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "failedAnswered",
+              "overconfidence",
+              "weekFailedAnswered",
+              "weekOverconfidence"
+            ],
+            "description": "ST-156. The drill calibration; null with no answered failed drills yet."
           }
         },
         "required": [
@@ -2512,7 +2580,8 @@
           "windowGames",
           "windowInstances",
           "windowCost",
-          "relapses"
+          "relapses",
+          "calibration"
         ],
         "example": {
           "kind": "motif",

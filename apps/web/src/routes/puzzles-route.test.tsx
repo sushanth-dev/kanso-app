@@ -49,7 +49,7 @@ function queueItem(overrides: Partial<PracticeQueueItem> = {}): PracticeQueueIte
 }
 
 function queueFixture(overrides: Partial<PracticeQueue> = {}): PracticeQueue {
-  return { due: [], upcoming: [], mastered: [], ...overrides };
+  return { due: [], upcoming: [], mastered: [], calibration: {}, ...overrides };
 }
 
 function renderAt(path = '/puzzles') {
@@ -118,6 +118,38 @@ describe('PuzzlesRoute', () => {
     expect(screen.getByText('1420')).toBeVisible();
     expect(screen.getByText('1350')).toBeVisible();
     expect(screen.getAllByText('Due now')).toHaveLength(2);
+  });
+
+  test('ST-156 a group with calibration renders its overconfidence note', async () => {
+    vi.spyOn(diagnosisApi, 'getPracticeQueue').mockResolvedValue(
+      queueFixture({
+        due: [queueItem()],
+        calibration: {
+          'motif:missed_capture': {
+            failedAnswered: 3,
+            overconfidence: 0.67,
+            weekFailedAnswered: 1,
+            weekOverconfidence: 1,
+          },
+        },
+      }),
+    );
+
+    renderAt();
+
+    expect(
+      await screen.findByText('Rated sure on 67% of 3 failed drills, 100% in the last week.'),
+    ).toBeVisible();
+  });
+
+  test('ST-156 a group outside the calibration map shows the honest zero', async () => {
+    vi.spyOn(diagnosisApi, 'getPracticeQueue').mockResolvedValue(
+      queueFixture({ due: [queueItem()] }),
+    );
+
+    renderAt();
+
+    expect(await screen.findByText('No calibration data yet.')).toBeVisible();
   });
 
   test('ST-144: the queue enters on the system, and its tabs and links hold the touch floor', async () => {
