@@ -96,6 +96,7 @@ const emptyReport: Report = {
   timeTroubleFromMove: null,
   timeTroubleReason: null,
   weaknesses: [],
+  missedPunishment: null,
   narrative: null,
 };
 

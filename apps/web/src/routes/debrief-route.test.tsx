@@ -74,6 +74,7 @@ function reportFixture(overrides: Partial<Report> = {}): Report {
     timeTroubleFromMove: null,
     timeTroubleReason: null,
     weaknesses: [motifWeakness],
+    missedPunishment: null,
     narrative: null,
     ...overrides,
   };

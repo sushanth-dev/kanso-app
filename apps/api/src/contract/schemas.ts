@@ -853,6 +853,38 @@ export const Weakness = z
   })
   .openapi('Weakness');
 
+/**
+ * ST-154. The times the opponent blundered and the player did not convert.
+ * Counts are per report scope; the instances are the most recent misses, each
+ * pointing at the blunder ply for the deep link and carrying the slip's phase
+ * for the drill route.
+ */
+export const MissedPunishmentInstance = z
+  .object({
+    gameId: Uuid,
+    whiteName: z.string().nullable(),
+    blackName: z.string().nullable(),
+    playedAt: z.iso.datetime().nullable(),
+    /** The opponent's blundering ply, where the deep link lands. */
+    ply: z.number().int(),
+    /** The ply played from the position where the advantage fell below the hold floor. */
+    slipPly: z.number().int(),
+    /** The phase of the slip position, the group the drill routes into. */
+    slipPhase: Phase.nullable(),
+  })
+  .openapi('MissedPunishmentInstance');
+
+export const MissedPunishment = z
+  .object({
+    /** Misses across the report's season window. */
+    seasonCount: z.number().int().min(0),
+    /** Misses in the rolling thirty days ending at the window's end. */
+    thirtyDayCount: z.number().int().min(0),
+    /** The most recent misses, newest first, at most three. */
+    instances: z.array(MissedPunishmentInstance).max(3),
+  })
+  .openapi('MissedPunishment');
+
 export const Report = z
   .object({
     id: Uuid,
@@ -869,10 +901,16 @@ export const Report = z
     windowEnd: z.iso.datetime().nullable(),
     /** F6. Present when the stream has enough clocked games; null otherwise. */
     timeTroubleFromMove: z.number().int().nullable(),
-    /** DEBT-016. Why `timeTroubleFromMove` is null; null when the onset move is present. */
+    /** DEBT-016. Why `timeTroubleFromMove` is null; null when the onset move is set. */
     timeTroubleReason: z.enum(['no_clock_data', 'not_enough_evidence']).nullable(),
     /** S2. Ranked by cost to the player, not by recency. */
     weaknesses: z.array(Weakness),
+    /**
+     * ST-154. The missed-punishment line: how often the opponent's blunders
+     * went unpunished in this scope. Present whenever the report has a
+     * window; the counts are zero when there was nothing to find.
+     */
+    missedPunishment: MissedPunishment.nullable(),
     /** ADR-0018. Prose over the numbers above, cached against this aggregation. */
     narrative: z.string().nullable(),
   })
