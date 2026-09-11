@@ -1354,6 +1354,9 @@
               "$ref": "#/components/schemas/Weakness"
             }
           },
+          "missedPunishment": {
+            "$ref": "#/components/schemas/MissedPunishment"
+          },
           "narrative": {
             "type": [
               "string",
@@ -1373,6 +1376,7 @@
           "timeTroubleFromMove",
           "timeTroubleReason",
           "weaknesses",
+          "missedPunishment",
           "narrative"
         ]
       },
@@ -1664,6 +1668,80 @@
           {
             "type": "null"
           }
+        ]
+      },
+      "MissedPunishment": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "seasonCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "thirtyDayCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "instances": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MissedPunishmentInstance"
+            },
+            "maxItems": 3
+          }
+        },
+        "required": [
+          "seasonCount",
+          "thirtyDayCount",
+          "instances"
+        ]
+      },
+      "MissedPunishmentInstance": {
+        "type": "object",
+        "properties": {
+          "gameId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "whiteName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "blackName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "playedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "ply": {
+            "type": "integer"
+          },
+          "slipPly": {
+            "type": "integer"
+          },
+          "slipPhase": {
+            "$ref": "#/components/schemas/Phase"
+          }
+        },
+        "required": [
+          "gameId",
+          "whiteName",
+          "blackName",
+          "playedAt",
+          "ply",
+          "slipPly",
+          "slipPhase"
         ]
       },
       "WeaknessCoaching": {
