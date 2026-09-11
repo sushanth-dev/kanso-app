@@ -30,6 +30,7 @@ import { actionItem, game, patternState, puzzleAttempt, report, weakness } from 
 import { readSession } from '../session.ts';
 import { getOwnPlayerId } from '../players/claim.ts';
 import { leakBaseline, scoreLeaks, weaknessLeakRows } from '../analysis/leak.ts';
+import { missedPunishments } from '../analysis/missed-punishment.ts';
 import { MIN_RATED_GAMES, SEASON_WINDOW_MS } from '../analysis/performance-rating.ts';
 import { scoreTimeTrouble, timeTroubleCounts } from '../phases/phases.ts';
 import { FOCUS_WINDOW_GAMES } from '../focus/verify.ts';
@@ -146,6 +147,9 @@ function toResponse(r: ReportRow, ws: WeaknessRow[]): ReportResponse {
       // when the group never became a retirement candidate.
       retirementState: null,
     })),
+    // ST-154. Filled in by `withEvidence`; never stored, always recomputed
+    // from the same window the report was computed over.
+    missedPunishment: null,
     narrative: r.narrative,
   };
 }
@@ -269,6 +273,16 @@ async function withEvidence(
       }
     }
   }
+  // ST-154. The missed-punishment line, computed over the same window and
+  // scope the leaks were; never stored, so a stored report's figure is
+  // recomputed from the same rows each read.
+  response.missedPunishment = await missedPunishments(
+    db,
+    playerId,
+    stream,
+    windowStart,
+    tournamentId,
+  );
   return response;
 }
 

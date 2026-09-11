@@ -128,6 +128,7 @@ function reportFixture(overrides: Partial<Report> = {}): Report {
     timeTroubleFromMove: null,
     timeTroubleReason: null,
     weaknesses: [motifWeakness, openingWeakness],
+    missedPunishment: null,
     narrative: null,
     ...overrides,
   };
@@ -417,6 +418,64 @@ describe('ReportScreen', () => {
 
     renderReport(reportFixture({ timeTroubleFromMove: null, timeTroubleReason: 'no_clock_data' }));
     expect(screen.getByText(/No clock data on these games/)).toBeVisible();
+  });
+
+  test('ST-154: renders the missed-punishment line with both counts', () => {
+    renderReport(
+      reportFixture({
+        missedPunishment: {
+          seasonCount: 7,
+          thirtyDayCount: 2,
+          instances: [],
+        },
+      }),
+    );
+    expect(screen.getByText(/did not last/)).toHaveTextContent('7');
+    expect(screen.getByText(/did not last/)).toHaveTextContent('2');
+    expect(screen.getByText(/in the last thirty days/)).toBeVisible();
+  });
+
+  test('ST-154: no thirty-day clause when the rolling count is zero', () => {
+    renderReport(
+      reportFixture({
+        missedPunishment: { seasonCount: 3, thirtyDayCount: 0, instances: [] },
+      }),
+    );
+    expect(screen.getByText(/did not last/)).toHaveTextContent('3');
+    expect(screen.queryByText(/in the last thirty days/)).toBeNull();
+  });
+
+  test('ST-154: nothing renders when the report carries no missed-punishment figure', () => {
+    renderReport(reportFixture({ missedPunishment: null }));
+    expect(screen.queryByText(/missed punishment/)).toBeNull();
+  });
+
+  test('ST-154: instances link to the blunder ply and drill by slip phase', () => {
+    renderReport(
+      reportFixture({
+        missedPunishment: {
+          seasonCount: 1,
+          thirtyDayCount: 1,
+          instances: [
+            {
+              gameId: 'game-1',
+              whiteName: 'Mina',
+              blackName: 'Rival',
+              playedAt: null,
+              ply: 24,
+              slipPly: 27,
+              slipPhase: 'endgame',
+            },
+          ],
+        },
+      }),
+    );
+    const blunderLink = screen.getByRole('link', { name: 'See the blunder' });
+    expect(blunderLink.getAttribute('href')).toBe('/games/game-1?ply=24');
+    const drillLink = screen.getByRole('link', { name: 'Drill endgame' });
+    expect(drillLink.getAttribute('href')).toBe(
+      `/practice?kind=phase&group=endgame&label=${encodeURIComponent('Endgame')}&stream=tournament`,
+    );
   });
 
   test('ST-106: offers the group puzzle drill on a weakness card', () => {
