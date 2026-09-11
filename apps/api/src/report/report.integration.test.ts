@@ -166,6 +166,8 @@ interface WeaknessBody {
   id: string;
   kind: string;
   label: string;
+  /** ST-155. The practice-deal key; null on unnamed groups. */
+  groupKey: string | null;
   eco: string | null;
   ratingLeak: number;
   halfPointsLost: number;
@@ -212,6 +214,20 @@ interface ReportBody {
   timeTroubleFromMove: number | null;
   timeTroubleReason: 'no_clock_data' | 'not_enough_evidence' | null;
   weaknesses: WeaknessBody[];
+  /** ST-155. The phase heatmap and the drill budget, both recomputed per read. */
+  phaseHeatmap: {
+    phase: string;
+    occurrences: number;
+    halfPointsLost: number;
+    severityWeightedCost: number | null;
+  }[];
+  drillSuggestions: {
+    kind: string;
+    groupKey: string;
+    label: string;
+    recentCost: number;
+    score: number;
+  }[];
   narrative: string | null;
 }
 
@@ -964,6 +980,66 @@ describe('GET /report model advice (ST-099)', () => {
       const body = (await res.json()) as ReportBody;
       const weakness = body.weaknesses.find((w) => w.kind === 'phase' && w.label === 'Middlegame')!;
       expect(weakness.retirementState).toBe('not_yet_verifiable');
+    });
+  });
+
+  describe('ST-155. The phase heatmap and the drill budget', () => {
+    test('the heatmap zero-fills three phases and withholds the cost below the floor', async () => {
+      const playerId = await makePlayer(OWNER);
+      // Ten rated games put the report over its refusal floor.
+      for (let i = 0; i < 10; i++) await seedRatedGame(playerId);
+      const thin = await seedRatedGame(playerId);
+      const full = await seedRatedGame(playerId);
+      await addMistake(thin, { ply: 1, halfPointsLost: 1, phase: 'endgame' });
+      await addMistake(thin, { ply: 2, halfPointsLost: 1, phase: 'endgame' });
+      for (let i = 0; i < 3; i++) {
+        await addMistake(full, { ply: i + 1, halfPointsLost: 1, phase: 'opening' });
+      }
+
+      const body = (await (await get(OWNER, 'online')).json()) as ReportBody;
+      expect(body.phaseHeatmap.map((c) => c.phase)).toEqual(['opening', 'middlegame', 'endgame']);
+      const opening = body.phaseHeatmap.find((c) => c.phase === 'opening')!;
+      const middlegame = body.phaseHeatmap.find((c) => c.phase === 'middlegame')!;
+      const endgame = body.phaseHeatmap.find((c) => c.phase === 'endgame')!;
+      expect(opening.occurrences).toBe(3);
+      expect(opening.severityWeightedCost).not.toBeNull();
+      expect(middlegame).toMatchObject({ occurrences: 0, severityWeightedCost: null });
+      expect(endgame).toMatchObject({ occurrences: 2, severityWeightedCost: null });
+    });
+
+    test('the drill budget orders named groups by recent cost and recomputes on read', async () => {
+      const playerId = await makePlayer(OWNER);
+      for (let i = 0; i < 10; i++) await seedRatedGame(playerId);
+      const g1 = await seedRatedGame(playerId, { eco: 'B22' });
+      const g2 = await seedRatedGame(playerId, { eco: 'B20' });
+      await addMistake(g1, { halfPointsLost: 2, motif: 'hanging_piece', phase: 'middlegame' });
+      await addMistake(g2, { halfPointsLost: 1, motif: 'missed_check', phase: 'endgame' });
+
+      const body = (await (await get(OWNER, 'online')).json()) as ReportBody;
+      const suggestions = body.drillSuggestions;
+      expect(suggestions.length).toBeGreaterThan(0);
+      // The top suggestion carries the heavier recent cost.
+      expect(suggestions[0]!.recentCost).toBeGreaterThanOrEqual(
+        suggestions[suggestions.length - 1]!.recentCost,
+      );
+      // Every suggestion is a named weakness the report itself carries.
+      const namedKeys = new Set(
+        body.weaknesses.filter((w) => w.groupKey !== null).map((w) => `${w.kind}:${w.groupKey}`),
+      );
+      expect(namedKeys.size).toBeGreaterThan(0);
+      for (const s of suggestions) {
+        expect(namedKeys.has(`${s.kind}:${s.groupKey}`)).toBe(true);
+      }
+    });
+
+    test('an empty report scope carries an empty heatmap and no suggestions', async () => {
+      const playerId = await makePlayer(OWNER);
+      for (let i = 0; i < 10; i++) await seedRatedGame(playerId);
+
+      const body = (await (await get(OWNER, 'online')).json()) as ReportBody;
+      expect(body.phaseHeatmap).toHaveLength(3);
+      expect(body.phaseHeatmap.every((c) => c.occurrences === 0)).toBe(true);
+      expect(body.drillSuggestions).toEqual([]);
     });
   });
 });
