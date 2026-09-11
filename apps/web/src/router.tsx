@@ -21,6 +21,7 @@ import { meQueryOptions, queryClient } from './query-client.ts';
 import type { WeaknessKind } from './api/diagnosis-api.ts';
 import { SignInRoute, SignUpRoute } from './routes/auth-routes.tsx';
 import { GameReviewRoute } from './routes/game-review-route.tsx';
+import { FinishGameRoute } from './routes/finish-game-route.tsx';
 import { SharedProofSheetRoute } from './routes/shared-proof-sheet-route.tsx';
 import { SharedAssignmentRoute } from './routes/shared-assignment-route.tsx';
 import { SharedGameRoute } from './routes/shared-game-route.tsx';
@@ -265,6 +266,22 @@ const gameReviewRoute = createRoute({
 });
 // ST-106. The puzzle drill a report card or a review mistake sends the player
 // to: one weakness group's deal, labelled by the surface that linked here.
+// ST-158. The finish-your-own-game session: the game review's mistake card
+// links here with the ply; the screen replays the stored continuation and
+// falls back to the engine-reply endpoint once the player leaves the rails.
+const finishGameRoute = createRoute({
+  getParentRoute: () => accountRoute,
+  path: '/games/$gameId/finish',
+  validateSearch: (search: Record<string, unknown>): { ply?: number } => {
+    const ply =
+      typeof search.ply === 'number' && Number.isInteger(search.ply) && search.ply >= 1
+        ? search.ply
+        : undefined;
+    return ply !== undefined ? { ply } : {};
+  },
+  component: FinishGameRoute,
+});
+
 const practiceRoute = createRoute({
   getParentRoute: () => accountRoute,
   path: '/practice',
@@ -426,6 +443,7 @@ const routeTree = rootRoute.addChildren([
     debriefRoute,
     gamesRoute,
     gameReviewRoute,
+    finishGameRoute,
     tournamentsRoute,
     tournamentDetailRoute,
     transferGapRoute,
