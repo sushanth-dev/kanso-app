@@ -14,6 +14,7 @@ import {
   ANALYSIS_HASH_MB,
   ANALYSIS_NODE_CEILING,
   DEEP_PASS_EXTRA_DEPTH,
+  FINISH_DEPTH,
   SWING_WIN_PROB_EPSILON,
 } from './budget.ts';
 
@@ -54,5 +55,12 @@ describe('the analysis budget', () => {
     // ST-047: exactly the plies the classifier would call an inaccuracy or
     // worse are the plies worth a deeper look.
     expect(SWING_WIN_PROB_EPSILON).toBe(0.085);
+  });
+
+  test('the finish-game search stays under the analysis contract', () => {
+    // ST-158: the finish-your-own-game fallback serves an interactive request
+    // on the API function and needs a sensible opponent, not a verdict.
+    expect(FINISH_DEPTH).toBe(14);
+    expect(FINISH_DEPTH).toBeLessThan(ANALYSIS_DEPTH);
   });
 });

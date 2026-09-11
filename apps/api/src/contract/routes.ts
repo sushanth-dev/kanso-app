@@ -22,6 +22,8 @@ import {
   DeleteAccount,
   CheckoutResponse,
   Explanation,
+  EngineReply,
+  EngineReplyRequest,
   FocusCatalogueEntry,
   GameDetail,
   GameList,
@@ -467,6 +469,30 @@ export const recordPracticePuzzle = createRoute({
     400: error('The request body failed validation.'),
     401: error('No session.'),
     422: error('No such puzzle in the pool, or the group has no drill.'),
+  },
+});
+
+export const postEngineReply = createRoute({
+  method: 'post',
+  path: '/games/{gameId}/engine-reply',
+  tags: ['Games'],
+  summary: 'One opponent reply for the finish-your-own-game session',
+  description:
+    "ST-158. When the player leaves the game's actual tree, the opponent needs a move the record does not hold. The server replays the stored plies up to `railPly`, applies `playerMoves`, and answers with the opponent's reply from a depth-capped engine search through the shared evaluation cache - or `game_over` when the position is already finished. The requested position is computed from the game's own plies, so nothing outside the player's games is ever searched. Practice effort only (ST-129): nothing is recorded in the streak, the verdicts, or the retirement verification, and no write touches mistake, weakness, or the pattern state.",
+  request: {
+    params: z.object({
+      gameId: Uuid.openapi({ param: { name: 'gameId', in: 'path' } }),
+    }),
+    body: json(EngineReplyRequest, 'Where the player left the tree, and their moves since.'),
+  },
+  responses: {
+    200: json(EngineReply, "The opponent's reply, or the game already over."),
+    401: error('No session.'),
+    403: error('Not your game.'),
+    404: error('No such game.'),
+    422: error('The rail ply is not in the game, or a move is not legal in the position.'),
+    429: error('Too many engine replies in this window.'),
+    500: error('The engine failed to answer.'),
   },
 });
 
@@ -1249,6 +1275,7 @@ export const routes = [
   listGames,
   getGame,
   setGameColor,
+  postEngineReply,
   getPracticePuzzles,
   recordPracticePuzzle,
   deleteGame,
