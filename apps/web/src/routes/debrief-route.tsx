@@ -153,17 +153,33 @@ function DebriefCameBack({ gameIds }: { gameIds: string[] }) {
   );
 }
 
-/** Section three: the first drill, the same deep link the report card builds. */
+/**
+ * Section three: the first drill. ST-155: the card names the top drill
+ * suggestion, the phase-weighted recent cost, falling back to the report's
+ * rank-one named weakness when no group has recent mistakes. The same deep
+ * link the report card builds.
+ */
 function DebriefDrill({ tournamentId }: { tournamentId: string | undefined }) {
   // The same key the embedded report reads, so this is cache, not a second
   // fetch: the debrief never asks the diagnosis endpoint twice.
   const reportQuery = useQuery(reportQueryOptions('tournament', tournamentId));
 
   if (reportQuery.data !== undefined) {
+    const top = reportQuery.data.drillSuggestions[0];
+    const fallback = reportQuery.data.weaknesses.find(
+      (w): w is Weakness & { groupKey: string } => w.groupKey !== null,
+    );
     const first =
-      reportQuery.data.weaknesses.find(
-        (w): w is Weakness & { groupKey: string } => w.groupKey !== null,
-      ) ?? null;
+      top !== undefined && top.recentCost > 0
+        ? { kind: top.kind, groupKey: top.groupKey, label: top.label, rank: null }
+        : fallback !== undefined
+          ? {
+              kind: fallback.kind,
+              groupKey: fallback.groupKey,
+              label: fallback.label,
+              rank: fallback.rank,
+            }
+          : null;
     if (first === null) {
       return (
         <Text as="p" display="block" type="supporting" className="reveal-in">
@@ -175,9 +191,15 @@ function DebriefDrill({ tournamentId }: { tournamentId: string | undefined }) {
     return (
       <Card className="reveal-in space-y-3 p-4">
         <div className="flex flex-wrap items-baseline gap-x-2">
-          <Text type="supporting" className="font-mono text-sm">
-            #{first.rank}
-          </Text>
+          {first.rank !== null ? (
+            <Text type="supporting" className="font-mono text-sm">
+              #{first.rank}
+            </Text>
+          ) : (
+            <Text type="supporting" className="font-ui text-xs">
+              what to drill next
+            </Text>
+          )}
           <Text className="font-display text-base">{first.label}</Text>
         </div>
         <Button label="Practise the first drill" href={href} variant="primary" />

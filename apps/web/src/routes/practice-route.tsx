@@ -15,6 +15,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { EmptyState } from '@astryxdesign/core/EmptyState';
 import { Heading } from '@astryxdesign/core/Heading';
@@ -31,6 +32,7 @@ import {
   patternsQueryOptions,
   practiceQueryOptions,
   practiceReviewsQueryOptions,
+  reportQueryOptions,
 } from '../query-client.ts';
 import { DebtCard } from '../components/debt-board.tsx';
 import { RetiredHeadline } from '../components/retired-headline.tsx';
@@ -146,7 +148,70 @@ function DueReviews() {
           ))}
         </ul>
       </Card>
+      <DrillSuggestions />
     </div>
+  );
+}
+
+/**
+ * ST-155. The drill budget on the practice surface: the report's weakness
+ * groups reordered by recent, phase-weighted cost. The weighting is named in
+ * the supporting line (AC#4) and the toggle offers the unweighted view, a
+ * client-side re-sort over the same figures. The report read is cache-shared
+ * with the report surface, so this costs no second fetch; the block stays
+ * silent while that cache is cold rather than making the drill wait.
+ */
+function DrillSuggestions() {
+  const [unweighted, setUnweighted] = useState(false);
+  const reportQuery = useQuery({ ...reportQueryOptions('tournament'), staleTime: Infinity });
+  if (reportQuery.isPending || reportQuery.isError) return null;
+  const suggestions = reportQuery.data.drillSuggestions;
+  if (suggestions.length === 0) return null;
+  const ordered = unweighted
+    ? [...suggestions].sort(
+        (a, b) =>
+          b.recentCost - a.recentCost ||
+          a.kind.localeCompare(b.kind) ||
+          a.groupKey.localeCompare(b.groupKey),
+      )
+    : suggestions;
+  return (
+    <section className="reveal-in space-y-2">
+      <header className="flex flex-wrap items-baseline justify-between gap-2">
+        <div className="space-y-1">
+          <Heading level={2}>What to drill next</Heading>
+          <Text as="p" display="block" type="supporting" className="text-sm">
+            {unweighted
+              ? 'Ordered by plain recent cost, no phase weighting.'
+              : 'Ordered by recent mistakes against stronger opponents, in the phase losing you the most.'}
+          </Text>
+        </div>
+        <Button
+          label={unweighted ? 'Weighted view' : 'Unweighted view'}
+          variant="ghost"
+          className="min-h-11 press"
+          aria-pressed={unweighted}
+          onClick={() => setUnweighted((v) => !v)}
+        />
+      </header>
+      <Card>
+        <ul>
+          {ordered.map((s) => (
+            <li
+              key={`${s.kind}:${s.groupKey}`}
+              className="flex items-center justify-between gap-3 border-b border-border-subtle py-3 last:border-b-0"
+            >
+              <Link href={drillHref(s.kind, s.groupKey)} className="min-h-11 items-center">
+                {s.label}
+              </Link>
+              <Text type="supporting" className="font-mono text-sm">
+                {Math.round(s.recentCost * 10) / 10}
+              </Text>
+            </li>
+          ))}
+        </ul>
+      </Card>
+    </section>
   );
 }
 
