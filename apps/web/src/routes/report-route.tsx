@@ -43,6 +43,16 @@ const KIND_LABEL: Record<WeaknessKind, string> = {
 const PRACTICED_THRESHOLD = 20;
 
 /**
+ * ST-154. The labels the leak aggregates humanize phase groups with, so a
+ * drill link's label matches the weakness cards' vocabulary.
+ */
+const PHASE_LABEL: Record<'opening' | 'middlegame' | 'endgame', string> = {
+  opening: 'Opening',
+  middlegame: 'Middlegame',
+  endgame: 'Endgame',
+};
+
+/**
  * ST-150. The retirement state chip on a weakness card. Five renderings, one
  * per state: `not_yet_verifiable` is prose, never a collapsed boolean, so the
  * player sees the group is waiting on a thinner verification window rather
@@ -143,6 +153,9 @@ export function ReportScreen({
           {TIME_TROUBLE_UNAVAILABLE[report.timeTroubleReason ?? 'no_clock_data']}
         </Text>
       )}
+      {report.missedPunishment !== null ? (
+        <MissedPunishmentLine missedPunishment={report.missedPunishment} stream={report.stream} />
+      ) : null}
       {report.narrative !== null ? (
         <Card className="reveal-in space-y-1 p-4">
           <Text type="supporting" className="font-ui text-xs">
@@ -469,6 +482,73 @@ function EmptyReport({ report }: { report: Report }) {
       description={`We could not identify a defensible weakness from your ${report.gamesCovered} games. More games will make the diagnosis reliable.`}
       headingLevel={2}
     />
+  );
+}
+
+/**
+ * ST-154. The missed-punishment line: how often the opponent handed the game
+ * over and the conversion did not follow. The season figure leads, the thirty
+ * day figure beside it keeps the season number from reading as history, and
+ * the most recent misses each link into the game at the blunder ply. The
+ * drill link routes by the slip's phase, the group the practice section
+ * already teaches, so no fifth weakness kind is invented.
+ */
+function MissedPunishmentLine({
+  missedPunishment,
+  stream,
+}: {
+  missedPunishment: NonNullable<Report['missedPunishment']>;
+  stream: Stream;
+}) {
+  const { seasonCount, thirtyDayCount, instances } = missedPunishment;
+  return (
+    <Card className="reveal-in space-y-3 p-4">
+      <div className="space-y-1">
+        <Text type="supporting" className="font-ui text-xs">
+          missed punishment
+        </Text>
+        <Text as="p" display="block" className="text-primary">
+          The opponent blundered and the advantage did not last{' '}
+          <span className="font-mono">{seasonCount}</span> {seasonCount === 1 ? 'time' : 'times'}{' '}
+          this season
+          {thirtyDayCount > 0 ? (
+            <>
+              , <span className="font-mono">{thirtyDayCount}</span> in the last thirty days
+            </>
+          ) : null}
+          .
+        </Text>
+      </div>
+      {instances.length > 0 ? (
+        <ol className="list-decimal space-y-2 pl-5 text-sm">
+          {instances.map((instance) => (
+            <li key={`${instance.gameId}-${instance.ply}`}>
+              <Text as="span">
+                {instance.whiteName ?? 'White'} vs {instance.blackName ?? 'Black'}
+                {instance.playedAt !== null
+                  ? ` - ${generatedAtFormatter.format(new Date(instance.playedAt))}`
+                  : ''}
+              </Text>{' '}
+              <Link href={`/games/${instance.gameId}?ply=${instance.ply}`}>See the blunder</Link>
+              {instance.slipPhase !== null ? (
+                <>
+                  {' '}
+                  <Link
+                    href={`/practice?kind=phase&group=${instance.slipPhase}&label=${encodeURIComponent(PHASE_LABEL[instance.slipPhase])}&stream=${stream}`}
+                  >
+                    Drill {PHASE_LABEL[instance.slipPhase].toLowerCase()}
+                  </Link>
+                </>
+              ) : null}
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <Text as="p" display="block" type="supporting">
+          No individual positions to show yet.
+        </Text>
+      )}
+    </Card>
   );
 }
 
