@@ -316,9 +316,12 @@ export function PracticeScreen({
  * on the puzzles that taught the least. Recording a drill is log-and-continue
  * exactly as ST-102 recorded its drills: the session has already finished on
  * screen, and a broken-looking drill outweighs a missing tally.
+ * ST-157: three failures inside the last five attempted puzzles ease the
+ * rest of the session - the undealt puzzles reorder easiest-rating-first,
+ * once, and the header says so.
  * ponytail: log-and-continue; queue retries if silent loss ever shows up.
  */
-function DrillSession({
+export function DrillSession({
   puzzles,
   theme,
   opening,
@@ -338,6 +341,12 @@ function DrillSession({
 }) {
   const [queue, setQueue] = useState<PracticePuzzle[]>(puzzles);
   const [solvedCount, setSolvedCount] = useState(0);
+  // ST-157. The session's attempt outcomes, oldest first, and the ids the
+  // player has already met. Refs: they feed the easing trigger inside
+  // advance, never the render.
+  const outcomes = useRef<boolean[]>([]);
+  const attempted = useRef<Set<string>>(new Set());
+  const [eased, setEased] = useState(false);
 
   const advance = (
     puzzle: PracticePuzzle,
@@ -345,6 +354,12 @@ function DrillSession({
     confidence: ConfidenceAnswer | null,
   ) => {
     if (solved) setSolvedCount((count) => count + 1);
+    // ST-157. The fatigue watch: three failures inside the last five
+    // attempted puzzles ease the session, once, and never re-harden.
+    outcomes.current.push(solved);
+    attempted.current.add(puzzle.id);
+    const easing = !eased && outcomes.current.slice(-5).filter((o) => !o).length >= 3;
+    if (easing) setEased(true);
     // ST-156. One record call carries the outcome and the pre-reveal
     // confidence; null (a skip) is omitted, absent from the arithmetic.
     diagnosisApi
@@ -358,9 +373,20 @@ function DrillSession({
       .catch((error: unknown) => {
         console.error('Recording the drill failed.', error);
       });
-    setQueue((current) =>
-      solved ? current.filter((p) => p.id !== puzzle.id) : [...current.slice(1), puzzle],
-    );
+    setQueue((current) => {
+      const next = solved
+        ? current.filter((p) => p.id !== puzzle.id)
+        : [...current.slice(1), puzzle];
+      if (!easing) return next;
+      // The puzzles the player has never met run easiest-rating-first; the
+      // met ones keep their rotation behind them. The deal itself never
+      // changes - this reorders the order the player meets, nothing else.
+      const met = next.filter((p) => attempted.current.has(p.id));
+      const fresh = next
+        .filter((p) => !attempted.current.has(p.id))
+        .sort((a, b) => a.rating - b.rating);
+      return [...fresh, ...met];
+    });
   };
 
   if (queue.length === 0) {
@@ -395,6 +421,12 @@ function DrillSession({
           <span className="font-mono">{theme}</span>
           {opening === null ? '.' : `, from your ${opening}.`}
         </Text>
+        {eased && (
+          <Text as="p" display="block" type="supporting" className="text-sm">
+            Difficulty eased: three of the last five missed, so the rest of the set runs easiest
+            rating first.
+          </Text>
+        )}
       </header>
       {/* The key gives every deal a fresh board and fresh circles. */}
       <DrillCard

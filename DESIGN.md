@@ -890,6 +890,19 @@ recent cost never appears. The block renders nothing while the report
 loads or fails, and nothing at all when no group has recent cost, so
 the queue keeps its shape when the report has nothing to say.
 
+ST-157 adds the fatigue taper to the drill. Three failures inside the
+session's last five attempted puzzles ease the set for its remainder:
+the puzzles the player has not yet met reorder easiest rating first,
+while the ones already met keep their rotation at the back. The header
+states it in plain words - "Difficulty eased: three of the last five
+missed, so the rest of the set runs easiest rating first." - so the
+player is never silently served easier puzzles, and the line leaves
+with the set. The easing is one-way: a recovered accuracy never
+re-hardens the order mid-session, which keeps the rule predictable.
+The deal request, the deal size, the attempt circles, the reveal, the
+record call, and every stored row are untouched; the taper reorders
+the meeting order the client already holds and nothing else.
+
 ### Entry and guardian consent
 
 Sign-in, sign-up, forgot-password, and reset-password each render as one
