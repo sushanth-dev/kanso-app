@@ -517,6 +517,18 @@ weakness identities mid-batch.
 The report has three states: the ranked list, an honest empty
 statement ("could not identify a defensible weakness"), and a not-ready state
 that separates "still being analyzed" from "no analyzed games."
+
+ST-155 adds the phase heatmap below the debt board: a three-cell grid
+(opening, middlegame, endgame) in fixed order, zero-filled. Each cell
+states its instance count in mono; a severity-weighted cost figure
+(ST-149's weighting) appears only at three or more instances, with the
+refusal prose in the cell - "Only 2 instances - a cost figure needs at
+least three." - so a thin cell is a sentence, not a blank. The cost
+drives a tint scaled to the heaviest cell through `color-mix` on the
+system tokens, but the numbers are the meaning: count and cost are
+plain text in every cell, so the surface never leans on hue alone. The
+caption names the weighting in one supporting line. A stream with no
+mistakes renders the three quiet cells rather than hiding the block.
 The rank-one weakness's `ratingLeak` number, the one thing to
 fix, is the report's one authored motion moment: the visible digits count up
 through a GSAP tween (0.32s, decelerate, whole numbers) on the figure's first
@@ -866,6 +878,17 @@ player's committed move all slide - and the solved verdict settles in
 through `.pop-in`, the surface's one delight-budget moment. The tab buttons
 hold the 44px floor with the shared `press` treatment; every link does
 through `min-h-11`.
+
+ST-155 adds a suggestion block to the queue. "What to drill next" sits
+above the due reviews and lists the report's weakness groups ordered by
+recent severity-weighted cost in the phase losing the player the most -
+the ordering states its weighting in its supporting line, and a ghost
+toggle (`aria-pressed`) switches to the plain recent-cost order, whose
+own supporting line says it is unweighted. Each row is a practice deep
+link with the group label and its recent cost in mono; a group with no
+recent cost never appears. The block renders nothing while the report
+loads or fails, and nothing at all when no group has recent cost, so
+the queue keeps its shape when the report has nothing to say.
 
 ### Entry and guardian consent
 

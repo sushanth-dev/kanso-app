@@ -1357,6 +1357,18 @@
           "missedPunishment": {
             "$ref": "#/components/schemas/MissedPunishment"
           },
+          "phaseHeatmap": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PhaseHeatmapCell"
+            }
+          },
+          "drillSuggestions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DrillSuggestion"
+            }
+          },
           "narrative": {
             "type": [
               "string",
@@ -1377,6 +1389,8 @@
           "timeTroubleReason",
           "weaknesses",
           "missedPunishment",
+          "phaseHeatmap",
+          "drillSuggestions",
           "narrative"
         ]
       },
@@ -1742,6 +1756,65 @@
           "ply",
           "slipPly",
           "slipPhase"
+        ]
+      },
+      "PhaseHeatmapCell": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string",
+            "enum": [
+              "opening",
+              "middlegame",
+              "endgame"
+            ]
+          },
+          "occurrences": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "halfPointsLost": {
+            "type": "number"
+          },
+          "severityWeightedCost": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "phase",
+          "occurrences",
+          "halfPointsLost",
+          "severityWeightedCost"
+        ]
+      },
+      "DrillSuggestion": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/WeaknessKind"
+          },
+          "groupKey": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "recentCost": {
+            "type": "number"
+          },
+          "score": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "kind",
+          "groupKey",
+          "label",
+          "recentCost",
+          "score"
         ]
       },
       "WeaknessCoaching": {

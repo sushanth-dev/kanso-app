@@ -97,6 +97,8 @@ const emptyReport: Report = {
   timeTroubleReason: null,
   weaknesses: [],
   missedPunishment: null,
+  phaseHeatmap: [],
+  drillSuggestions: [],
   narrative: null,
 };
 
