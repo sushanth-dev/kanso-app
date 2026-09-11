@@ -32,6 +32,7 @@ import { readSession } from '../session.ts';
 import { getOwnPlayerId } from '../players/claim.ts';
 import { FOCUS_WINDOW_GAMES } from '../focus/verify.ts';
 import { TROUBLE_CLOCK_MS } from '../phases/phases.ts';
+import { readCalibration } from '../practice/calibration.ts';
 import type { WeaknessKind } from './leak.ts';
 import { windowGameIds } from './retirement.ts';
 
@@ -115,6 +116,10 @@ export function mountPatterns(
       .leftJoin(game, eq(game.id, patternState.lastAlertGameId))
       .where(and(eq(patternState.playerId, playerId), eq(patternState.stream, stream)));
 
+    // ST-156. One grouped read serves every row; a group with no answered
+    // failed drills stays out of the map and renders null, the honest zero.
+    const calibration = await readCalibration(deps.db, playerId);
+
     const patterns = await Promise.all(
       rows.map(async (row) => {
         const windowIds = await windowGameIds(deps.db, playerId, stream, row.masteredAt);
@@ -145,6 +150,7 @@ export function mountPatterns(
           windowInstances: balance.instances,
           windowCost: balance.cost,
           relapses: row.relapses,
+          calibration: calibration.get(`${row.kind}:${row.groupKey}`) ?? null,
         };
       }),
     );

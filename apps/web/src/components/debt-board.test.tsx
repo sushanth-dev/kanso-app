@@ -33,6 +33,7 @@ function patternFixture(overrides: Partial<PatternReport['patterns'][number]> = 
     windowInstances: 3,
     windowCost: 187.5,
     relapses: 0,
+    calibration: null,
     ...overrides,
   };
 }
@@ -152,6 +153,37 @@ describe('DebtBoard', () => {
 
     expect(await screen.findByText('No debts on the board yet')).toBeVisible();
     expect(screen.getByText(/10 of your games without the pattern retires the debt/)).toBeVisible();
+  });
+
+  test('ST-156 the card names the overconfidence share with the trailing week', async () => {
+    vi.spyOn(diagnosisApi, 'getPatterns').mockResolvedValue(
+      boardFixture([
+        patternFixture({
+          calibration: {
+            failedAnswered: 4,
+            overconfidence: 0.75,
+            weekFailedAnswered: 2,
+            weekOverconfidence: 1,
+          },
+        }),
+      ]),
+    );
+
+    renderBoard([]);
+
+    expect(
+      await screen.findByText('Rated sure on 75% of 4 failed drills, 100% in the last week.'),
+    ).toBeVisible();
+  });
+
+  test('ST-156 a card with no calibration data renders the honest zero', async () => {
+    vi.spyOn(diagnosisApi, 'getPatterns').mockResolvedValue(boardFixture([patternFixture()]));
+
+    renderBoard([]);
+
+    expect(
+      await screen.findByText(/No calibration data yet\. The drill asks how sure you were/),
+    ).toBeVisible();
   });
 
   test('a failed board read shows its own state and a retry', async () => {

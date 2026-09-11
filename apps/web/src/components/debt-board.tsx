@@ -82,7 +82,7 @@ function RelapseHistory({ pattern }: { pattern: PatternState }) {
   );
 }
 
-/** One debt card: pattern, balance, state, relapse history, effort. */
+/** One debt card: pattern, balance, state, relapse history, effort, calibration. */
 export function DebtCard({ pattern, drilled }: { pattern: PatternState; drilled: number | null }) {
   return (
     <Card className="space-y-2 p-4">
@@ -117,7 +117,35 @@ export function DebtCard({ pattern, drilled }: { pattern: PatternState; drilled:
         </dl>
       )}
       <RelapseHistory pattern={pattern} />
+      <CalibrationLine calibration={pattern.calibration} />
     </Card>
+  );
+}
+
+/**
+ * ST-156. The overconfidence line: of the failed drills the player rated,
+ * the share they said they were sure about, overall and across the trailing
+ * week. A group with no answered failed drills renders the honest zero -
+ * the line names the absence rather than showing a number.
+ */
+function CalibrationLine({ calibration }: { calibration: PatternState['calibration'] }) {
+  if (calibration === null) {
+    return (
+      <Text as="p" display="block" type="supporting" className="text-sm">
+        No calibration data yet. The drill asks how sure you were before the answer shows.
+      </Text>
+    );
+  }
+  const pct = (share: number) => `${Math.round(share * 100)}%`;
+  return (
+    <Text as="p" display="block" type="supporting" className="text-sm">
+      Rated sure on {pct(calibration.overconfidence)} of {calibration.failedAnswered} failed drill
+      {calibration.failedAnswered === 1 ? '' : 's'}
+      {calibration.weekFailedAnswered > 0
+        ? `, ${pct(calibration.weekOverconfidence)} in the last week`
+        : ''}
+      .
+    </Text>
   );
 }
 

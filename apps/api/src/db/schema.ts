@@ -72,6 +72,13 @@ export const weaknessKindEnum = pgEnum('weakness_kind', [
 /** F10, F13. Where the active focus came from. */
 export const focusSourceEnum = pgEnum('focus_source', ['recommended', 'coach', 'self']);
 
+/**
+ * ST-156. The player's confidence rating on one drill, asked before any
+ * reveal. Null is the honest-absent state: a skipped prompt, or a row
+ * written by an older build.
+ */
+export const confidenceEnum = pgEnum('confidence', ['sure', 'not_sure', 'guessed']);
+
 /** F12. A verdict of `insufficient_evidence` is a first-class answer, not a null. */
 export const focusTrendEnum = pgEnum('focus_trend', [
   'improving',
@@ -1036,6 +1043,13 @@ export const puzzleAttempt = pgTable(
      * today, the same calendar the streak reads. Null when never reviewed.
      */
     reviewSolvedAt: timestamp('review_solved_at', { withTimezone: true }),
+    /**
+     * ST-156. The latest drill's confidence answer, recorded before any
+     * reveal. The row aggregates drills, so the most recent answer is the one
+     * that stands. Null when the prompt was skipped or the row predates the
+     * feature; nothing in the verdict, streak, or ladder arithmetic reads it.
+     */
+    confidence: confidenceEnum('confidence'),
   },
   (t) => [
     primaryKey({ columns: [t.playerId, t.puzzleId] }),

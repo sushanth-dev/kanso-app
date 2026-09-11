@@ -37,6 +37,7 @@ export type PracticeReviews = components['schemas']['PracticeReviews'];
 export type PracticeReviewItem = components['schemas']['PracticeReviewItem'];
 export type PatternReport = components['schemas']['PatternReport'];
 export type PatternState = components['schemas']['PatternState'];
+export type GroupCalibration = components['schemas']['GroupCalibration'];
 
 export interface DiagnosisApi {
   getReport(stream: Stream, tournamentId?: string): Promise<Report>;

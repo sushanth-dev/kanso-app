@@ -71,6 +71,7 @@ function patternFixture() {
     windowInstances: 3,
     windowCost: 187.5,
     relapses: 0,
+    calibration: null,
   };
 }
 
