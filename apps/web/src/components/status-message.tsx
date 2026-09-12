@@ -88,11 +88,15 @@ function StatusIcon({ tone }: { tone: StatusTone }) {
   );
 }
 
-export function StatusMessage({ tone, children }: StatusMessageProps) {
+export function StatusMessage({
+  tone,
+  className,
+  children,
+}: StatusMessageProps & { className?: string }) {
   return (
     <p
       role={tone === 'error' ? 'alert' : 'status'}
-      className={`flex items-center gap-2 reveal-in ${toneClassName[tone]}`}
+      className={`flex items-center gap-2 ${className ?? 'reveal-in'} ${toneClassName[tone]}`}
     >
       <StatusIcon tone={tone} />
       {children}

@@ -277,14 +277,14 @@ export function UpgradeRoute() {
         ) : null}
         {status === 'confirming' ? (
           <div className="mt-4">
-            <StatusMessage tone="success">
+            <StatusMessage tone="success" className="pop-in">
               Payment received. Confirming your upgrade...
             </StatusMessage>
           </div>
         ) : null}
         {status === 'processing' ? (
           <div className="mt-4">
-            <StatusMessage tone="success">
+            <StatusMessage tone="success" className="pop-in">
               Payment received. Your account has not updated yet. Refresh to see your new plan.
             </StatusMessage>
           </div>
