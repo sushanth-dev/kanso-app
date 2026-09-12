@@ -89,7 +89,7 @@ export function ReportShareCardsSection({
   }
 
   return (
-    <section aria-labelledby="report-share-heading" className="space-y-4">
+    <section aria-labelledby="report-share-heading" className="reveal-in space-y-4">
       <Heading level={2} id="report-share-heading">
         Share cards
       </Heading>
