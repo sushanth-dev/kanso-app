@@ -151,7 +151,7 @@ export function AssignmentLinksSection({
             />
           </Field>
           {formError !== null ? (
-            <Text as="p" display="block" type="supporting" role="alert">
+            <Text as="p" display="block" type="supporting" role="alert" className="reveal-in">
               {formError}
             </Text>
           ) : null}
@@ -203,7 +203,7 @@ export function AssignmentLinksSection({
                 />
               </div>
               {confirmingId === link.id ? (
-                <div className="mt-3 space-y-2">
+                <div className="reveal-in mt-3 space-y-2">
                   <Text as="p" display="block" type="supporting">
                     Anyone holding this link will no longer be able to open the assignment.
                   </Text>
