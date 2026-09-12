@@ -128,7 +128,12 @@ function GameCard({ game, stream }: { game: GameSummary; stream: Stream }) {
         }}
       />
       {deleteError !== null ? (
-        <Text as="p" display="block" type="supporting" className="mt-3 text-sm text-danger">
+        <Text
+          as="p"
+          display="block"
+          type="supporting"
+          className="reveal-in mt-3 text-sm text-danger"
+        >
           {deleteError}
         </Text>
       ) : null}
@@ -200,7 +205,7 @@ export function GamesRoute() {
           headingLevel={2}
         />
       ) : (
-        <ul className="space-y-3">
+        <ul className="stagger-in space-y-3">
           {gamesQuery.data.games.map((game) => (
             <li key={game.id}>
               <GameCard game={game} stream={stream} />

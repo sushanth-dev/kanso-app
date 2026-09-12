@@ -188,7 +188,8 @@ a {
 .input-focus-anim:focus {
   border-color: var(--kanso-color-focus-ring);
   box-shadow: 0 0 0 2px var(--kanso-color-focus-ring);
-  animation: input-focus-settle 180ms var(--kanso-motion-ease-decelerate) 1;
+  animation: input-focus-settle var(--kanso-motion-duration-fast)
+    var(--kanso-motion-ease-decelerate) 1;
 }
 @keyframes input-focus-settle {
   from {
