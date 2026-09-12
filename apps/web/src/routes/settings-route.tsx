@@ -219,7 +219,9 @@ export function SettingsScreen({ me, signOut, accountApi, queryClient }: Setting
         ) : null}
         {usernameSaved ? (
           <div className="mt-3">
-            <StatusMessage tone="success">Default usernames saved.</StatusMessage>
+            <StatusMessage tone="success" className="reveal-in">
+              Default usernames saved.
+            </StatusMessage>
           </div>
         ) : null}
         <form

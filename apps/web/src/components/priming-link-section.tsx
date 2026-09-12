@@ -82,7 +82,7 @@ export function PrimingLinkSection() {
 
       {createError !== null ? (
         <div className="mt-3">
-          <Text as="p" display="block" type="supporting" role="alert">
+          <Text as="p" display="block" type="supporting" role="alert" className="reveal-in">
             {createError}
           </Text>
         </div>
@@ -130,7 +130,7 @@ export function PrimingLinkSection() {
             {`Live token ${live.tokenPrefix}... created on ${createdFormatter.format(new Date(live.createdAt))}.`}
           </Text>
           {confirming ? (
-            <div className="space-y-2">
+            <div className="reveal-in space-y-2">
               <Text as="p" display="block" type="supporting">
                 The extension will stop receiving briefs until you create a new token.
               </Text>

@@ -114,7 +114,12 @@ function renderOutcome(outcome: ImportOutcome): ReactNode {
   const status = outcomeStatus(outcome);
   return (
     <div className="mt-4">
-      <StatusMessage tone={status.tone}>{status.message}</StatusMessage>
+      <StatusMessage
+        tone={status.tone}
+        className={status.tone === 'success' ? 'pop-in' : undefined}
+      >
+        {status.message}
+      </StatusMessage>
       {outcome.kind === 'invalid-pgn' && (
         <ul className="mt-2 list-disc pl-5 text-sm text-danger">
           {outcome.issues.map((issue) => (
