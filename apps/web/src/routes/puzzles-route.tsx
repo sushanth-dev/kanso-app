@@ -254,40 +254,42 @@ export function PuzzlesRoute() {
         ))}
       </nav>
 
-      {tab === 'pending' ? (
-        due.length > 0 ? (
-          <PendingTab due={due} calibration={calibration} />
+      <div key={tab} className="reveal-in">
+        {tab === 'pending' ? (
+          due.length > 0 ? (
+            <PendingTab due={due} calibration={calibration} />
+          ) : (
+            <EmptyState
+              title="All caught up!"
+              description="No puzzles are waiting on you right now."
+              headingLevel={2}
+              actions={
+                <Link href="/report" className="min-h-11 items-center">
+                  Go to your report
+                </Link>
+              }
+            />
+          )
+        ) : tab === 'upcoming' ? (
+          upcoming.length > 0 ? (
+            <UpcomingTab upcoming={upcoming} calibration={calibration} />
+          ) : (
+            <EmptyState
+              title="Nothing scheduled yet"
+              description="Solve puzzles to schedule the next reviews."
+              headingLevel={2}
+            />
+          )
+        ) : mastered.length > 0 ? (
+          <MasteredTab mastered={mastered} calibration={calibration} />
         ) : (
           <EmptyState
-            title="All caught up!"
-            description="No puzzles are waiting on you right now."
-            headingLevel={2}
-            actions={
-              <Link href="/report" className="min-h-11 items-center">
-                Go to your report
-              </Link>
-            }
-          />
-        )
-      ) : tab === 'upcoming' ? (
-        upcoming.length > 0 ? (
-          <UpcomingTab upcoming={upcoming} calibration={calibration} />
-        ) : (
-          <EmptyState
-            title="Nothing scheduled yet"
-            description="Solve puzzles to schedule the next reviews."
+            title="Nothing mastered yet"
+            description="Solve the same puzzle across reviews to master it."
             headingLevel={2}
           />
-        )
-      ) : mastered.length > 0 ? (
-        <MasteredTab mastered={mastered} calibration={calibration} />
-      ) : (
-        <EmptyState
-          title="Nothing mastered yet"
-          description="Solve the same puzzle across reviews to master it."
-          headingLevel={2}
-        />
-      )}
+        )}
+      </div>
     </div>
   );
 }
