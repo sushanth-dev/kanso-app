@@ -89,7 +89,7 @@ function AssessmentForm({ item }: { item: ActionItemRow }) {
 
   if (passed) {
     return (
-      <Text as="p" display="block" className="text-sm text-primary" role="status">
+      <Text as="p" display="block" className="pop-in text-sm text-primary" role="status">
         The coach is satisfied! +100 XP earned.
       </Text>
     );
@@ -269,26 +269,28 @@ export function CurriculumRoute() {
           className="min-h-11 press"
         />
       </div>
-      {shown.length === 0 ? (
-        <EmptyState
-          title="No items yet"
-          description="Your coach assigns resources when your report finds a weakness."
-          headingLevel={2}
-          actions={
-            <Link href="/report" className="min-h-11 items-center">
-              Get started
-            </Link>
-          }
-        />
-      ) : (
-        <ul className="space-y-3">
-          {shown.map((item) => (
-            <li key={item.id}>
-              <CurriculumCard item={item} />
-            </li>
-          ))}
-        </ul>
-      )}
+      <div key={tab} className="reveal-in">
+        {shown.length === 0 ? (
+          <EmptyState
+            title="No items yet"
+            description="Your coach assigns resources when your report finds a weakness."
+            headingLevel={2}
+            actions={
+              <Link href="/report" className="min-h-11 items-center">
+                Get started
+              </Link>
+            }
+          />
+        ) : (
+          <ul className="space-y-3">
+            {shown.map((item) => (
+              <li key={item.id}>
+                <CurriculumCard item={item} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

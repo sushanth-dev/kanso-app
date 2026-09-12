@@ -68,11 +68,11 @@ describe('CurriculumRoute', () => {
 
   test('ST-142: the error and empty states enter through the system, and the links hold the floor', async () => {
     renderCurriculum([]);
-    // The empty state is tab-flipped content: it mounts settled instead of
-    // replaying the entrance on every tab change.
+    // Tab-flipped content sits inside the keyed reveal wrapper, so a tab
+    // change remounts and the panel enters through the system.
     expect(
       (await screen.findByRole('heading', { name: 'No items yet' })).closest('.reveal-in'),
-    ).toBeNull();
+    ).not.toBeNull();
     expect(screen.getByRole('link', { name: 'Get started' })).toHaveClass('min-h-11');
   });
 

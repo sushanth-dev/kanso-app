@@ -169,7 +169,7 @@ export function DebtBoard({
   const query = useQuery(patternsQueryOptions(stream));
   if (query.isPending) {
     return (
-      <div className="reveal-in flex items-center gap-3 py-8">
+      <div className="flex items-center gap-3 py-8">
         <Spinner />
         <Text as="p" display="block" type="supporting">
           Reading the debt board…
