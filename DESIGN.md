@@ -259,26 +259,46 @@ for entrance reveals and verdict moments. Control transitions run on the
 standard ease `cubic-bezier(0.2, 0, 0, 1)`, and reveals run on the
 decelerate ease `cubic-bezier(0, 0, 0, 1)`, the cleaner entrance curve the
 `.reveal-in` and `.stagger-in` utilities ship. Control transitions move
-color, border, and box-shadow; reveals fade and rise 6px. Under
+color, border, and box-shadow; reveals fade and rise 6px; nothing animates
+`width`, `height`, or `left`/`top` - layout is not a motion property (the
+one exception is the evidence accordion's `grid-template-rows` fold, which
+collapses the row without reflowing the page around it). The tokens live in
+`apps/web/src/motion-tokens.ts` for GSAP-driven motion, alongside
+`MOTION_EASE_GSAP` (`power2.out`), the closest GSAP equivalent to the
+decelerate ease for the places a cubic-bezier string is not a valid GSAP
+ease (the hero's `quickTo` parallax). Under
 `prefers-reduced-motion`, movement collapses to zero - entrance animations
 and every transform-driven change render instant - while the color, border,
 and shadow transitions on controls keep their fast duration, because they
 aid comprehension and carry no movement. The one exception is the Spinner
 (ST-093): its canvas keeps the library's slow 3s rotation under that media
-query, because a frozen spinner reads as broken rather than calm.
+query, because a frozen spinner reads as broken rather than calm. Input
+focus runs the `input-focus-settle` keyframe on the fast token duration, so
+the field's focus ring settles at the same rhythm as the rest of the
+control states.
 
 The shipped surfaces layer concrete moves over the tokens. A `.press`
 utility scales controls to 0.98 on `:active`, merging the color transition
 with a transform so a button feels tactile. A `.stagger-in` list reveals its
-items in order, capped at six steps of 45ms, and is a page-load entrance:
-tab-flipped panels - the games list, the curriculum lists, the puzzle queue
-- swap instantly rather than replaying it. A `.pop-in` utility settles the
-rare, high-emotion verdicts (the drill's Solved.) in from slightly small on
-the slow duration. No route transition ships: the `motion` AnimatePresence
-exit left the entering surface stuck at near-zero opacity, so it was dropped
-and each surface mounts statically in the shared shell. The evaluation
-bar's black share scales from its bottom edge over the base 200ms, and the
-proof sheet's verdict reveals with the base 200ms fade and rise.
+items in order, capped at six steps of 45ms; the cap is a hard rule applied
+identically in CSS (`:nth-child(n + 7)` holds the last step) and in the
+GSAP staggers (a clamped index function), because past six steps the tail
+reads as latency rather than choreography. A `.pop-in` utility settles the
+rare, high-emotion verdicts in from slightly small on the slow duration:
+the drill's Solved., a payment confirmation, a finished import. Errors and
+informational status messages stay on `.reveal-in` (or mount instantly
+inline), because an error that animates before it reads wastes the
+attention it is asking for. Tab-flipped panels (curriculum, puzzle queue)
+remount their content inside a keyed wrapper so a tab change enters through
+the base 200ms reveal rather than swapping with no transition; list
+entrances on first page load stagger instead. No route transition ships:
+the `motion` AnimatePresence exit left the entering surface stuck at
+near-zero opacity, so it was dropped and each surface mounts statically in
+the shared shell. The evaluation bar's black share scales from its bottom
+edge over the base 200ms, and the proof sheet's verdict reveals with the
+base 200ms fade and rise. Inline confirmation panels (revoke confirms,
+error messages under a form) fade in with `.reveal-in` rather than
+appearing with no transition, so the eye finds where they came from.
 
 The board animates functional state (ADR-0044): a position change slides
 the pieces that changed squares - 200ms on the standard ease, diffed from
@@ -307,8 +327,11 @@ life, while the functional board animates moves per ADR-0044. The
 value-proposition grid and the free/paid boundary each
 reveal independently
 through a `useScrollReveal` hook, the `ScrollTrigger` equivalent of
-`.stagger-in` capped at the same six steps. Every move stays on the shared
-`--kanso-motion-duration-slow` (320ms) and decelerate ease, so it reads as
+`.stagger-in` capped at the same six steps (a clamped index, the identical
+rule the CSS utility applies). Every move stays on the shared
+`--kanso-motion-duration-slow` (320ms) and decelerate ease - the parallax's
+`quickTo` uses `MOTION_EASE_GSAP`, the token file's GSAP spelling of the
+same curve - so it reads as
 the same voice as the rest of the app. `gsap.matchMedia()` branches on
 `prefers-reduced-motion`, and a container whose reveal line cannot be
 reached even at full scroll (the closing CTA on a compact page) reveals
@@ -1170,6 +1193,9 @@ plain text labels, and its only control is Dismiss.
 - **Do** use IBM Plex Mono for moves, clocks, coordinates, and evaluations.
 - **Do** hold muted text at 7:1 or better; body line-height at 1.55 or better.
 - **Do** target 44px for primary buttons and board squares.
+- **Do** enter surfaces through the token system: `.reveal-in` on mounts
+  and inline confirmations, `.stagger-in` (capped at six steps) on lists,
+  `.pop-in` only on rare, high-emotion successes.
 
 ### Don't:
 
@@ -1181,3 +1207,7 @@ plain text labels, and its only control is Dismiss.
 - **Don't** introduce a fourth font family; display, interface, and mono are
   fixed.
 - **Don't** let the interface outshine the board.
+- **Don't** animate an error message in before it reads; errors mount
+  through `.reveal-in` at most, never `.pop-in`.
+- **Don't** stagger past six steps or replay a list entrance on a tab
+  change; tab panels remount through one keyed reveal instead.
