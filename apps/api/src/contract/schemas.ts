@@ -517,6 +517,36 @@ export const GameList = z
   })
   .openapi('GameList');
 
+/**
+ * ST-158. One request for the finish-your-own-game session's opponent reply.
+ * The client names where it left the game's actual tree (`railPly`, the last
+ * stored ply it followed) and the moves the player played after that; the
+ * server replays the stored plies and computes the position itself, so a
+ * position the player's own game never reached is never searched.
+ */
+export const EngineReplyRequest = z
+  .object({
+    railPly: z.number().int().min(0),
+    playerMoves: z.array(z.string().min(1).max(16)).max(8),
+  })
+  .openapi('EngineReplyRequest');
+
+export const EngineReplyMove = z
+  .object({
+    san: z.string(),
+    uci: z.string(),
+  })
+  .openapi('EngineReplyMove');
+
+export const EngineReply = z
+  .object({
+    status: z.enum(['reply', 'game_over']),
+    move: EngineReplyMove.nullable(),
+    /** White-absolute evaluation of the position after the opponent's reply. */
+    evaluation: Evaluation.nullable(),
+  })
+  .openapi('EngineReply');
+
 // ─── Tournaments ──────────────────────────────────────────────────────────────
 
 /**

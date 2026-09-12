@@ -433,6 +433,7 @@ export function GameReviewScreen({
                   ? undefined
                   : `/practice?kind=${drillEntry.kind}&group=${encodeURIComponent(drillEntry.group)}&label=${encodeURIComponent(drillEntry.label)}&stream=${game.stream}`
               }
+              finishHref={`/games/${game.id}/finish?ply=${currentPly.ply}`}
             />
             {currentMistake !== undefined ? (
               /* Stepping onto a mistake mounts two large cards; keying them to
