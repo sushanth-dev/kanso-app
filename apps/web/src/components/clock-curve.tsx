@@ -169,7 +169,7 @@ export function ClockCurve({ game }: { game: GameDetail }) {
   const readings = clockReadings(game.plies, game.playerColor);
   const state = clockCurveState(readings);
   return (
-    <Card className="space-y-2 p-4">
+    <Card className="reveal-in space-y-2 p-4">
       <Heading level={3}>Clock</Heading>
       {game.playerColor === null ? (
         <Text as="p" display="block" type="supporting" className="text-sm">

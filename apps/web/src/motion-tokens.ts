@@ -16,6 +16,14 @@ export const MOTION_EASE = {
   decelerate: 'cubic-bezier(0, 0, 0, 1)',
 } as const;
 
+/**
+ * GSAP's closest equivalent to MOTION_EASE.decelerate, for the handful of
+ * places (quickTo on pointer parallax) where a cubic-bezier string is not a
+ * valid GSAP ease. Keeps parallax in the same ease family without inventing
+ * a second vocabulary.
+ */
+export const MOTION_EASE_GSAP = 'power2.out' as const;
+
 /** Matches `.stagger-in`'s per-item delay step, capped the same way. */
 export const STAGGER_STEP_SECONDS = 0.045;
 export const STAGGER_STEP_CAP = 6;

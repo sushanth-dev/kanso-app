@@ -53,7 +53,13 @@ import { Text } from '@astryxdesign/core/Text';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import ArrowRightIcon from '~icons/solar/arrow-right-linear';
-import { MOTION_DURATION, MOTION_EASE, STAGGER_STEP_SECONDS } from '../../motion-tokens.ts';
+import {
+  MOTION_DURATION,
+  MOTION_EASE,
+  MOTION_EASE_GSAP,
+  STAGGER_STEP_SECONDS,
+  STAGGER_STEP_CAP,
+} from '../../motion-tokens.ts';
 import { Board } from '../board.tsx';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -162,7 +168,11 @@ export function Hero({ signedIn }: HeroProps) {
               y: 0,
               duration: MOTION_DURATION.slow,
               ease: MOTION_EASE.decelerate,
-              stagger: STAGGER_STEP_SECONDS,
+              // Cap the per-word delay: past six steps the tail reads as
+              // latency, not choreography (Emil's stagger guidance), so
+              // words beyond the cap start with the last capped word.
+              stagger: (index: number) =>
+                Math.min(index, STAGGER_STEP_CAP - 1) * STAGGER_STEP_SECONDS,
             })
             .to(
               rest,
@@ -180,11 +190,11 @@ export function Hero({ signedIn }: HeroProps) {
           if (tilt !== null && window.matchMedia('(pointer: fine)').matches) {
             const toRotationY = gsap.quickTo(tilt, 'rotationY', {
               duration: MOTION_DURATION.slow,
-              ease: 'power2.out',
+              ease: MOTION_EASE_GSAP,
             });
             const toRotationX = gsap.quickTo(tilt, 'rotationX', {
               duration: MOTION_DURATION.slow,
-              ease: 'power2.out',
+              ease: MOTION_EASE_GSAP,
             });
             const onMove = (event: PointerEvent) => {
               const rect = root.getBoundingClientRect();
