@@ -80,6 +80,21 @@ const handler = new sst.aws.Function('ApiHandler', {
   timeout: '30 seconds',
   memory: '512 MB',
   architecture: 'arm64',
+  // The finish session's off-rails reply (ST-158) runs the WASM engine inside
+  // this function: the loader and its single-threaded wasm, at the paths the
+  // bare relative enginePath in engine-reply.ts resolves from the function
+  // root. The multi-threaded builds and the asm fallback stay out; shipping
+  // the whole bin folder would nearly double the bundle for nothing.
+  copyFiles: [
+    {
+      from: 'node_modules/stockfish/bin/stockfish-18-single.js',
+      to: 'stockfish/bin/stockfish-18-single.js',
+    },
+    {
+      from: 'node_modules/stockfish/bin/stockfish-18-single.wasm',
+      to: 'stockfish/bin/stockfish-18-single.wasm',
+    },
+  ],
 });
 
 export const api = new sst.aws.ApiGatewayV2('Api', {
