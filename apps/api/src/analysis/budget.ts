@@ -44,6 +44,16 @@ export const ANALYSIS_ENGINE_VERSION = 'sf_18';
 export const DEEP_PASS_EXTRA_DEPTH = 3;
 
 /**
+ * ST-158. The depth the finish-your-own-game fallback searches at, when the
+ * player has left the game's actual tree and the opponent needs a reply. It
+ * must stay below `ANALYSIS_DEPTH`: this search serves an interactive request
+ * on the API function, not the analysis worker, and its answers only need to
+ * be sensible opponents, not verdicts. The budget golden test pins the
+ * ordering so a silent retune fails CI.
+ */
+export const FINISH_DEPTH = 14;
+
+/**
  * A ply swings when the mover's win probability drops by more than this, on
  * the `winProbDrop` [0, 1] scale. 0.085 is the classifier's inaccuracy
  * threshold, so exactly the plies worth a deeper look are re-searched.

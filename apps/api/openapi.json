@@ -961,6 +961,69 @@
           "playerColor"
         ]
       },
+      "EngineReply": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "reply",
+              "game_over"
+            ]
+          },
+          "move": {
+            "$ref": "#/components/schemas/EngineReplyMove"
+          },
+          "evaluation": {
+            "$ref": "#/components/schemas/Evaluation"
+          }
+        },
+        "required": [
+          "status",
+          "move",
+          "evaluation"
+        ]
+      },
+      "EngineReplyMove": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "san": {
+            "type": "string"
+          },
+          "uci": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "san",
+          "uci"
+        ]
+      },
+      "EngineReplyRequest": {
+        "type": "object",
+        "properties": {
+          "railPly": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "playerMoves": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 16
+            },
+            "maxItems": 8
+          }
+        },
+        "required": [
+          "railPly",
+          "playerMoves"
+        ]
+      },
       "PracticeSet": {
         "type": "object",
         "properties": {
@@ -4275,6 +4338,108 @@
           },
           "404": {
             "description": "No such game.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/games/{gameId}/engine-reply": {
+      "post": {
+        "tags": [
+          "Games"
+        ],
+        "summary": "One opponent reply for the finish-your-own-game session",
+        "description": "ST-158. When the player leaves the game's actual tree, the opponent needs a move the record does not hold. The server replays the stored plies up to `railPly`, applies `playerMoves`, and answers with the opponent's reply from a depth-capped engine search through the shared evaluation cache - or `game_over` when the position is already finished. The requested position is computed from the game's own plies, so nothing outside the player's games is ever searched. Practice effort only (ST-129): nothing is recorded in the streak, the verdicts, or the retirement verification, and no write touches mistake, weakness, or the pattern state.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "gameId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "description": "Where the player left the tree, and their moves since.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EngineReplyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The opponent's reply, or the game already over.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EngineReply"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not your game.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such game.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The rail ply is not in the game, or a move is not legal in the position.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many engine replies in this window.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The engine failed to answer.",
             "content": {
               "application/json": {
                 "schema": {

@@ -254,11 +254,13 @@ export function MoveCard({
   ply,
   mistake,
   drillHref,
+  finishHref,
 }: {
   game: MoveCardGame;
   ply: MovePly;
   mistake?: ReviewMistake;
   drillHref?: string;
+  finishHref?: string;
 }) {
   if (mistake === undefined) {
     return (
@@ -313,7 +315,10 @@ export function MoveCard({
           {MOTIF_LABEL[mistake.motif] ?? mistake.motif}
         </Text>
       ) : null}
-      {drillHref !== undefined ? <Link href={drillHref}>Drill this pattern</Link> : null}
+      <div className="flex flex-wrap gap-4">
+        {drillHref !== undefined ? <Link href={drillHref}>Drill this pattern</Link> : null}
+        {finishHref !== undefined ? <Link href={finishHref}>Finish the game from here</Link> : null}
+      </div>
     </Card>
   );
 }
