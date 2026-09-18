@@ -17,7 +17,7 @@ import { ChangePasswordForm } from '../components/change-password-form.tsx';
 import { PrimingLinkSection } from '../components/priming-link-section.tsx';
 import { StatusMessage } from '../components/status-message.tsx';
 import { TextInput } from '../components/text-input.tsx';
-import { ME_QUERY_KEY, meQueryOptions } from '../query-client.ts';
+import { clearSessionState, ME_QUERY_KEY, meQueryOptions } from '../query-client.ts';
 import {
   resolveInitialContrast,
   setContrast as persistContrast,
@@ -82,7 +82,7 @@ export function SettingsScreen({ me, signOut, accountApi, queryClient }: Setting
         // The session died under us; the guard will send the player to
         // sign-in once /me is fetched again.
         setDeleteOpen(false);
-        queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
+        clearSessionState(queryClient);
       } else if (error instanceof ApiRequestError) {
         setDeleteError(error.message);
       } else {
@@ -110,7 +110,7 @@ export function SettingsScreen({ me, signOut, accountApi, queryClient }: Setting
       await queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY });
     } catch (error) {
       if (error instanceof ApiRequestError && error.status === 401) {
-        queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
+        clearSessionState(queryClient);
       } else {
         setUsernameError('The default usernames could not be saved.');
       }
@@ -370,7 +370,7 @@ export function SettingsRoute() {
     // mounted suspends it and re-fetches with the session already cleared,
     // which surfaces a spurious 401.
     await navigate({ to: '/sign-in' });
-    queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
+    clearSessionState(queryClient);
   };
 
   return (

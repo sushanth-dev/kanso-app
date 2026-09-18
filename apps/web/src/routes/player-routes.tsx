@@ -11,7 +11,7 @@ import type { AccountApi, Me, UpdatePlayer } from '../api/account-api.ts';
 import { ApiRequestError, accountApi } from '../api/account-api.ts';
 import { StatusMessage, useStatusMessage } from '../components/status-message.tsx';
 import { TextInput } from '../components/text-input.tsx';
-import { ME_QUERY_KEY, meQueryOptions } from '../query-client.ts';
+import { clearSessionState, ME_QUERY_KEY, meQueryOptions } from '../query-client.ts';
 import type { NavigateTo } from './auth-routes.tsx';
 
 const textFields = ['fideId', 'uscfId', 'chesscomUsername', 'lichessUsername'] as const;
@@ -105,7 +105,7 @@ export function PlayerFormScreen({ me, accountApi, queryClient, navigate }: Play
       setSubmitting(false);
       if (error instanceof ApiRequestError) {
         if (error.status === 401) {
-          queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
+          clearSessionState(queryClient);
           await navigate({ to: '/sign-in' });
           return;
         }

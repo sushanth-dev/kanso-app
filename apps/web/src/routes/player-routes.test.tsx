@@ -54,6 +54,7 @@ function meFixture(overrides: Partial<Me> = {}): Me {
 
 function accountApi(overrides: Partial<AccountApi> = {}): AccountApi {
   return {
+    getSession: vi.fn(),
     getMe: vi.fn(),
     updateMe: vi.fn(),
     deleteMe: vi.fn(),

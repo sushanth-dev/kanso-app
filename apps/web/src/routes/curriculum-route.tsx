@@ -12,7 +12,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { ApiRequestError } from '../api/account-api.ts';
 import { diagnosisApi, type ActionItemList } from '../api/diagnosis-api.ts';
-import { actionItemsQueryOptions, ME_QUERY_KEY } from '../query-client.ts';
+import { actionItemsQueryOptions, clearSessionState, ME_QUERY_KEY } from '../query-client.ts';
 
 type ActionItemRow = ActionItemList['items'][number];
 
@@ -76,7 +76,7 @@ function AssessmentForm({ item }: { item: ActionItemRow }) {
       })
       .catch((submitError: unknown) => {
         if (submitError instanceof ApiRequestError && submitError.status === 401) {
-          queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
+          clearSessionState(queryClient);
           void navigate({ to: '/sign-in' });
           return;
         }

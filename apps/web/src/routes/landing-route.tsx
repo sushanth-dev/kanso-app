@@ -4,7 +4,7 @@ import { Text } from '@astryxdesign/core/Text';
 import { useQuery } from '@tanstack/react-query';
 
 import { Mark } from '../components/mark.tsx';
-import { meQueryOptions } from '../query-client.ts';
+import { sessionQueryOptions } from '../query-client.ts';
 
 // Lazy: importing `gsap` (via Hero/ValuePropsSection/useSmoothScroll/
 // useScrollReveal) starts its ticker immediately, a perpetual
@@ -32,8 +32,8 @@ function LandingContentFallback() {
 }
 
 export function LandingRoute() {
-  const meQuery = useQuery(meQueryOptions());
-  const signedIn = meQuery.isSuccess;
+  const session = useQuery(sessionQueryOptions());
+  const signedIn = session.data?.signedIn === true;
   return (
     <div className="flex min-h-screen flex-col font-ui text-primary">
       <div className="relative z-10 flex min-h-screen flex-col">
