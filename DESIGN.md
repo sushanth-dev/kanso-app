@@ -365,14 +365,19 @@ button label.
 
 - **Style:** action hue with an underline as the mandatory second channel.
   44px touch target, inline-flex so the tap area covers the text.
-- **Open question (ST-165):** the underline half is unmet app-wide. Every link
-  on the landing page and on the four policy pages computes
-  `text-decoration-line: none`; Astryx `Link` defaults to
-  `hasUnderline={false}`, and the landing header and its sign-in link have
-  never underlined. ST-165 kept the new footer and policy links consistent
-  with what ships rather than underlining one link among four. Which way the
-  rule and the app should meet is an open decision, and it is a global one
-  rather than a policy-page one. The 44px half is met.
+- **Underline:** met app-wide. Astryx `Link` defaults to
+  `hasUnderline={false}`, which underlines on hover only, and a hover state is
+  not a second channel: the distinction has to be visible before the reader
+  interacts. Every text link passes `hasUnderline` (40 call sites, 18 files).
+- **Deliberately not underlined:** the wordmark and the nav leaves, which keep
+  the Navigation treatment of accent hue with a bold active page, because a
+  nav item is recognised by its landmark rather than against prose; skip
+  links, which are `sr-only` until focused and then a filled chip; and
+  `Button` with an `href`, which renders through `Link` but is an action in
+  control styling.
+- **Weight and offset** come from the global `a` rule in `styles.css`, and the
+  decoration takes the link's own colour, so it tracks the accent in both
+  themes.
 
 ### Cards / Containers
 

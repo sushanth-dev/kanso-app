@@ -365,11 +365,14 @@ function WeaknessList({ weaknesses, stream, tournamentId }: WeaknessListProps) {
                         page owns the resources, their assessments, and their
                         state. */}
                     {weakness.actionItems.length > 0 ? (
-                      <Link href="/curriculum">View curriculum</Link>
+                      <Link hasUnderline href="/curriculum">
+                        View curriculum
+                      </Link>
                     ) : null}
                     {/* ST-106. The card's one entry: the group's 20-puzzle deal,
                         renamed once the first batch is done. */}
                     <Link
+                      hasUnderline
                       href={`/practice?kind=${weakness.kind}&group=${encodeURIComponent(weakness.groupKey)}&label=${encodeURIComponent(weakness.label)}&stream=${stream}`}
                     >
                       {practiced ? 'Practice more puzzles' : 'Practice puzzles'}
@@ -462,7 +465,9 @@ function EvidenceDetail({ weakness }: { weakness: Weakness }) {
                 <span className="font-mono">{instance.cpLoss}</span> cp lost)
               </Text>{' '}
               {/* ST-100. The ply lands the board on the flagged position. */}
-              <Link href={`/games/${instance.gameId}?ply=${instance.ply}`}>Review game</Link>
+              <Link hasUnderline href={`/games/${instance.gameId}?ply=${instance.ply}`}>
+                Review game
+              </Link>
             </li>
           ))}
         </ol>
@@ -530,11 +535,14 @@ function MissedPunishmentLine({
                   ? ` - ${generatedAtFormatter.format(new Date(instance.playedAt))}`
                   : ''}
               </Text>{' '}
-              <Link href={`/games/${instance.gameId}?ply=${instance.ply}`}>See the blunder</Link>
+              <Link hasUnderline href={`/games/${instance.gameId}?ply=${instance.ply}`}>
+                See the blunder
+              </Link>
               {instance.slipPhase !== null ? (
                 <>
                   {' '}
                   <Link
+                    hasUnderline
                     href={`/practice?kind=phase&group=${instance.slipPhase}&label=${encodeURIComponent(PHASE_LABEL[instance.slipPhase])}&stream=${stream}`}
                   >
                     Drill {PHASE_LABEL[instance.slipPhase].toLowerCase()}
@@ -704,7 +712,7 @@ function NotReady() {
       description="Import your games to get a ranked report. Tournament and online games are reported separately."
       headingLevel={2}
       actions={
-        <Link href="/import" className="min-h-11 items-center">
+        <Link hasUnderline href="/import" className="min-h-11 items-center">
           Import games
         </Link>
       }
@@ -721,7 +729,7 @@ function NeedsSide({ count }: { count: number }) {
       description="The import could not tell which colour you were in these games. Open each one under Games and pick the side you played; analysis starts as soon as you do."
       headingLevel={2}
       actions={
-        <Link href="/games" className="min-h-11 items-center">
+        <Link hasUnderline href="/games" className="min-h-11 items-center">
           Open Games
         </Link>
       }
@@ -738,7 +746,7 @@ function NotEnoughRatedGames({ message }: { message: string }) {
       description={message}
       headingLevel={2}
       actions={
-        <Link href="/import" className="min-h-11 items-center">
+        <Link hasUnderline href="/import" className="min-h-11 items-center">
           Import games
         </Link>
       }

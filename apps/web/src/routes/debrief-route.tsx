@@ -80,7 +80,7 @@ function DebriefFocus() {
             ? activeFocus.catalogue.title
             : "Your coach's instruction"}
         </Text>
-        <Link href="/focus" className="min-h-11 items-center">
+        <Link hasUnderline href="/focus" className="min-h-11 items-center">
           Work on it on the focus page
         </Link>
       </Card>
@@ -227,7 +227,7 @@ export function DebriefRoute() {
           description="Import a tournament's games, and the debrief meets you here."
           headingLevel={2}
         />
-        <Link href="/import" className="min-h-11 items-center">
+        <Link hasUnderline href="/import" className="min-h-11 items-center">
           Go to import
         </Link>
       </div>
@@ -237,7 +237,7 @@ export function DebriefRoute() {
   return (
     <div className="space-y-10">
       <div className="reveal-in flex flex-wrap items-baseline justify-between gap-3">
-        <Link href="/import" className="min-h-11 items-center">
+        <Link hasUnderline href="/import" className="min-h-11 items-center">
           Back to import
         </Link>
         <Link

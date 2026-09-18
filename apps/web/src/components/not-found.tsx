@@ -27,7 +27,9 @@ export function NotFound() {
               void navigate({ to: '/' });
             }}
           />
-          <Link href="/contact">Contact us</Link>
+          <Link hasUnderline href="/contact">
+            Contact us
+          </Link>
         </>
       }
     />

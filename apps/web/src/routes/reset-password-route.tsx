@@ -63,7 +63,9 @@ export function ResetPasswordRoute() {
             The link was used already, expired, or does not match a reset request.
           </Text>
           <Text as="p" display="block" className="mt-4">
-            <Link href="/forgot-password">Request a new link</Link>
+            <Link hasUnderline href="/forgot-password">
+              Request a new link
+            </Link>
           </Text>
         </Card>
       </>
@@ -79,7 +81,9 @@ export function ResetPasswordRoute() {
             Your password was reset. Sign in with it now.
           </Text>
           <Text as="p" display="block" className="mt-4">
-            <Link href="/sign-in">Sign in</Link>
+            <Link hasUnderline href="/sign-in">
+              Sign in
+            </Link>
           </Text>
         </Card>
       </>

@@ -49,7 +49,7 @@ export function ForgotPasswordRoute() {
               If this email exists in our system, check your email for the reset link.
             </Text>
             <Text as="p" display="block" className="mt-4 text-center">
-              <Link href="/sign-in" className="min-h-11 items-center">
+              <Link hasUnderline href="/sign-in" className="min-h-11 items-center">
                 Back to sign in
               </Link>
             </Text>
@@ -91,7 +91,7 @@ export function ForgotPasswordRoute() {
               </FormLayout>
             </form>
             <Text as="p" display="block" type="supporting" className="mt-4 text-center">
-              <Link href="/sign-in" className="min-h-11 items-center">
+              <Link hasUnderline href="/sign-in" className="min-h-11 items-center">
                 Back to sign in
               </Link>
             </Text>

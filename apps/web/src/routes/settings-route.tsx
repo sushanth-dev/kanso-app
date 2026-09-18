@@ -136,7 +136,7 @@ export function SettingsScreen({ me, signOut, accountApi, queryClient }: Setting
           <Badge label={`Level ${me.player.level}`} variant="info" />
         </div>
         <div className="mt-3">
-          <Link href="/player" className="min-h-11 items-center">
+          <Link hasUnderline href="/player" className="min-h-11 items-center">
             Edit player
           </Link>
         </div>

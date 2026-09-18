@@ -52,9 +52,13 @@ export function LandingRoute() {
               <Text className="font-display text-xl leading-tight tracking-tight">Kanso Chess</Text>
             </span>
             {signedIn ? (
-              <Link href="/report">Go to report</Link>
+              <Link hasUnderline href="/report">
+                Go to report
+              </Link>
             ) : (
-              <Link href="/sign-in">Sign in</Link>
+              <Link hasUnderline href="/sign-in">
+                Sign in
+              </Link>
             )}
           </div>
         </header>

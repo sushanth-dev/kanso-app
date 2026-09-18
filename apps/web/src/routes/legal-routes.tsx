@@ -107,7 +107,11 @@ function LegalScreen({ page }: { page: LegalPage }) {
 
         {page !== CONTACT_PAGE ? (
           <Text as="p" display="block" className="mt-10">
-            Questions about this page go to <Link href="/contact">the contact page</Link>.
+            Questions about this page go to{' '}
+            <Link hasUnderline href="/contact">
+              the contact page
+            </Link>
+            .
           </Text>
         ) : null}
       </main>
