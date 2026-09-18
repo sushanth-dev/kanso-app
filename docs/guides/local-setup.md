@@ -1,8 +1,10 @@
 # Local setup
 
-There is no application to run yet. What there is, and what this guide covers,
-is the toolchain: the runtime, the dependencies, the database the tests need,
-and the gates every change passes before it can be committed.
+This guide covers the toolchain and the services the application needs, and how
+to get them running: the runtime, the dependencies, the database the tests and
+the app both need, the queue endpoint the queue tests use, and the gates every
+change passes before it can be committed. [The README](../../README.md) has the
+commands that start the API and the web app.
 
 ## Prerequisites
 
