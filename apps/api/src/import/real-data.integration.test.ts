@@ -1,12 +1,18 @@
 /**
  * ST-011 real-data verification.
  *
- * These are real games exported from lichess, covering nine files:
- * three multi-game files (test, test2, test3) and six single-game files
+ * These are real games exported from lichess, covering nine files: three
+ * multi-game files (test, test2, test3) and six single-game files
  * (test4..test9). They are the evidence the sprint's question is answered
  * with, not with synthetic fixtures: the grouping the identity rule produces
  * over real tournaments, including the two hard cases a fixture would not
  * have caught.
+ *
+ * Every player name, handle, study URL and chapter id of a living or private
+ * person has been replaced with a placeholder. The move text, results, event
+ * tags, dates and evaluation comments are the originals, which is what makes
+ * the grouping assertions meaningful. The games in test3 and test6 are from
+ * the published 1957-1964 record and are left as-is.
  *
  * The expected groupings were read off the PGN tags before this test was
  * written, not after, so the assertions are the rule being checked rather than
