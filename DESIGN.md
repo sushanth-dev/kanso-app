@@ -365,6 +365,14 @@ button label.
 
 - **Style:** action hue with an underline as the mandatory second channel.
   44px touch target, inline-flex so the tap area covers the text.
+- **Open question (ST-165):** the underline half is unmet app-wide. Every link
+  on the landing page and on the four policy pages computes
+  `text-decoration-line: none`; Astryx `Link` defaults to
+  `hasUnderline={false}`, and the landing header and its sign-in link have
+  never underlined. ST-165 kept the new footer and policy links consistent
+  with what ships rather than underlining one link among four. Which way the
+  rule and the app should meet is an open decision, and it is a global one
+  rather than a policy-page one. The 44px half is met.
 
 ### Cards / Containers
 
@@ -1017,6 +1025,49 @@ game, proof-sheet, and assignment readers keep inheriting the chrome
 their authenticated surfaces ship (ST-138, ST-140, ST-139), which this
 section confirms still describes them.
 
+### Policy pages, the site footer, and the not-found surface
+
+ST-165 built the four public policy pages (`/privacy`, `/terms`, `/about`,
+`/contact`), the one footer that links them, and the designed not-found
+surface. The four pages share a single layout: the landing page's skip link,
+a `glass-top` header whose wordmark links home, a 3xl text measure, and the
+`SiteFooter`. They render outside the authenticated shell by exact-equality
+bypass entries, so a visitor with no account makes no session request at
+all, which is the reader these pages are for.
+
+The copy is data and the layout is one component. Each page is a `LegalPage`
+from `apps/web/src/content/legal/`: a `kicker` reading "Policy", the h1, the
+summary, a version line ("Last updated 18 September 2026. A change to this
+page is announced by that date."), the sections as h2s, and a closing
+cross-link to the contact page on all but the contact page itself. The page
+sets `document.title` and a `meta[name=description]`, both reverted on
+unmount, matching the shared proof sheet's convention. Lists are raw `<ul>`
+with `list-disc pl-5`, because Tailwind v4's preflight strips marker styling
+and the app has no Astryx `List`. Muted text on these pages measures 7.28:1
+against the page ground, past the rule below.
+
+The copy is our own draft, written from what the code does rather than from a
+template, and it is not legal advice. Two facts it states rather than hides:
+nothing renews and nothing expires, because `tierFor` reads only
+`subscription.tier` and nothing reads `currentPeriodEnd`; and there is no
+self-serve consent resend, so an expired guardian link goes through the
+contact address. The children's-data section, the refund position, and the
+governing-law clause are the parts a lawyer should read first.
+
+The `SiteFooter` is the one footer: the `kicker` "Kanso Chess", the sentence
+that names the product, and a labelled "Policy pages" nav carrying the four
+links at a 44px target. It carries no outer margin, so each placement
+supplies its own spacing, and the three surfaces that use it keep the footer
+below their own content.
+
+The `NotFound` surface is the router's `defaultNotFoundComponent`. Unlike the
+public pages it cannot leave the shell, because an unknown path matches no
+bypass entry, so it renders inside `PageFrame` and inherits the wordmark
+header for free; it carries only the `EmptyState` at heading level 1, a
+primary button home, and a link to the contact page. Its description says
+what happened without the words "Not Found", which read as a server default
+rather than as the product.
+
 ### Landing
 
 The landing page is the public marketing surface at `/`, the first thing a
@@ -1092,6 +1143,11 @@ than a violation - pure decoration under WCAG 1.4.3, human-reviewed here.
 The Lenis/GSAP wiring and the reduced-motion behaviour are identical to the
 rest of the page: every element snaps to its end state immediately, no
 tween.
+
+**ST-165** replaced the landing's inline footer with the shared `SiteFooter`,
+adding the policy nav row beneath it. The page's own composition and copy are
+unchanged, including the footer sentence, because ST-167 owns the landing
+definition change and runs later in the stack.
 
 ### Upgrade
 

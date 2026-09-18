@@ -4,6 +4,7 @@ import { Text } from '@astryxdesign/core/Text';
 import { useQuery } from '@tanstack/react-query';
 
 import { Mark } from '../components/mark.tsx';
+import { SiteFooter } from '../components/site-footer.tsx';
 import { sessionQueryOptions } from '../query-client.ts';
 
 // Lazy: importing `gsap` (via Hero/ValuePropsSection/useSmoothScroll/
@@ -64,15 +65,7 @@ export function LandingRoute() {
           </Suspense>
         </main>
 
-        <footer className="border-t border-border-subtle">
-          <div className="mx-auto w-full max-w-5xl px-4 py-8">
-            <p className="kicker">Kanso Chess</p>
-            <Text as="p" display="block" type="supporting" className="mt-2 text-sm">
-              Kanso Chess is tournament-first chess improvement for junior players and their
-              coaches.
-            </Text>
-          </div>
-        </footer>
+        <SiteFooter />
       </div>
     </div>
   );

@@ -10,6 +10,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { Link } from '@astryxdesign/core/Link';
 import { authClient } from '../auth-client.ts';
 import { PasswordInput } from '../components/password-input.tsx';
+import { SiteFooter } from '../components/site-footer.tsx';
 import { StatusMessage } from '../components/status-message.tsx';
 import { TextInput } from '../components/text-input.tsx';
 import { clearSessionState } from '../query-client.ts';
@@ -216,6 +217,9 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
           </Link>
         </Text>
       </Card>
+      <div className="mt-16">
+        <SiteFooter />
+      </div>
     </>
   );
 }

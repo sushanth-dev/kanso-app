@@ -14,6 +14,7 @@ import {
 } from '@tanstack/react-router';
 import { ApiRequestError } from './api/account-api.ts';
 import { AnnouncementBanner } from './components/announcement-banner.tsx';
+import { NotFound } from './components/not-found.tsx';
 import { PageFrame } from './components/page-frame.tsx';
 import { StatusMessageProvider } from './components/status-message.tsx';
 import { RouteError } from './components/route-error.tsx';
@@ -47,6 +48,7 @@ import { PuzzlesRoute } from './routes/puzzles-route.tsx';
 import { CurriculumRoute } from './routes/curriculum-route.tsx';
 import { ForgotPasswordRoute } from './routes/forgot-password-route.tsx';
 import { ResetPasswordRoute } from './routes/reset-password-route.tsx';
+import { AboutRoute, ContactRoute, PrivacyRoute, TermsRoute } from './routes/legal-routes.tsx';
 
 interface RouterContext {
   queryClient: QueryClient;
@@ -62,9 +64,14 @@ function RootComponent() {
   // The landing page and the shared page are public and render outside the
   // authenticated shell. The landing page carries its own header and footer.
   // The nudge unsubscribe link (ST-126) joins them: it is opened from an email
-  // with no session.
+  // with no session. The four policy pages (ST-165) join them too: a parent
+  // reading the privacy page has no session either.
   if (
     pathname === '/' ||
+    pathname === '/privacy' ||
+    pathname === '/terms' ||
+    pathname === '/about' ||
+    pathname === '/contact' ||
     pathname.startsWith('/shared/proof-sheets/') ||
     pathname.startsWith('/shared/assignments/') ||
     pathname.startsWith('/shared/games/') ||
@@ -131,6 +138,32 @@ const signUpRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/sign-up',
   component: SignUpRoute,
+});
+
+// ST-165. The four policy pages are public and render outside the shell, so a
+// visitor with no account can read them, and so the footer can reach them.
+const privacyRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/privacy',
+  component: PrivacyRoute,
+});
+
+const termsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/terms',
+  component: TermsRoute,
+});
+
+const aboutRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/about',
+  component: AboutRoute,
+});
+
+const contactRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/contact',
+  component: ContactRoute,
 });
 
 const accountRoute = createRoute({
@@ -430,6 +463,10 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   signInRoute,
   signUpRoute,
+  privacyRoute,
+  termsRoute,
+  aboutRoute,
+  contactRoute,
   accountRoute.addChildren([
     playerEditRoute,
     settingsRoute,
@@ -475,6 +512,7 @@ export function createAppRouter({
     context: { queryClient: routerQueryClient },
     defaultErrorComponent: DefaultErrorComponent,
     defaultPendingComponent: PendingComponent,
+    defaultNotFoundComponent: NotFound,
   });
 }
 
