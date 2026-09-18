@@ -164,6 +164,7 @@ function CurriculumCard({ item }: { item: ActionItemRow }) {
           The coach assigned this resource to close your gap in this pattern.
         </Text>
         <Link
+          hasUnderline
           href={`https://www.google.com/search?q=${encodeURIComponent(stripTierTag(item.resource))}`}
           className="min-h-11 items-center"
         >
@@ -276,7 +277,7 @@ export function CurriculumRoute() {
             description="Your coach assigns resources when your report finds a weakness."
             headingLevel={2}
             actions={
-              <Link href="/report" className="min-h-11 items-center">
+              <Link hasUnderline href="/report" className="min-h-11 items-center">
                 Get started
               </Link>
             }

@@ -79,7 +79,7 @@ function DueReviews() {
       description="Open a weakness card in your report and choose its practice link."
       headingLevel={1}
       actions={
-        <Link href="/report" className="min-h-11 items-center">
+        <Link hasUnderline href="/report" className="min-h-11 items-center">
           Back to the report
         </Link>
       }
@@ -108,7 +108,7 @@ function DueReviews() {
           description="Ten due reviews is the day's cap, so the ladder cannot grind. Whatever is left comes back tomorrow."
           headingLevel={1}
           actions={
-            <Link href="/report" className="min-h-11 items-center">
+            <Link hasUnderline href="/report" className="min-h-11 items-center">
               Back to the report
             </Link>
           }
@@ -140,7 +140,11 @@ function DueReviews() {
               key={`${reviewKind}:${reviewGroup}`}
               className="flex items-center justify-between gap-3 border-b border-border-subtle py-3 last:border-b-0"
             >
-              <Link href={drillHref(reviewKind, reviewGroup)} className="min-h-11 items-center">
+              <Link
+                hasUnderline
+                href={drillHref(reviewKind, reviewGroup)}
+                className="min-h-11 items-center"
+              >
                 {groupLabel(reviewGroup)}
               </Link>
               <Badge label={count === 1 ? 'Due now' : `${count} due`} variant="warning" />
@@ -201,7 +205,11 @@ function DrillSuggestions() {
               key={`${s.kind}:${s.groupKey}`}
               className="flex items-center justify-between gap-3 border-b border-border-subtle py-3 last:border-b-0"
             >
-              <Link href={drillHref(s.kind, s.groupKey)} className="min-h-11 items-center">
+              <Link
+                hasUnderline
+                href={drillHref(s.kind, s.groupKey)}
+                className="min-h-11 items-center"
+              >
                 {s.label}
               </Link>
               <Text type="supporting" className="font-mono text-sm">
@@ -287,7 +295,7 @@ export function PracticeScreen({
         }
         headingLevel={1}
         actions={
-          <Link href={`/report?stream=${stream}`} className="min-h-11 items-center">
+          <Link hasUnderline href={`/report?stream=${stream}`} className="min-h-11 items-center">
             Back to the report
           </Link>
         }
@@ -398,10 +406,10 @@ export function DrillSession({
         headingLevel={1}
         actions={
           <>
-            <Link href="/puzzles" className="min-h-11 items-center">
+            <Link hasUnderline href="/puzzles" className="min-h-11 items-center">
               See your puzzle queue
             </Link>
-            <Link href={`/report?stream=${stream}`} className="min-h-11 items-center">
+            <Link hasUnderline href={`/report?stream=${stream}`} className="min-h-11 items-center">
               Back to the report
             </Link>
           </>

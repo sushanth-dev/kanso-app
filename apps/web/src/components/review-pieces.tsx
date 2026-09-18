@@ -316,8 +316,16 @@ export function MoveCard({
         </Text>
       ) : null}
       <div className="flex flex-wrap gap-4">
-        {drillHref !== undefined ? <Link href={drillHref}>Drill this pattern</Link> : null}
-        {finishHref !== undefined ? <Link href={finishHref}>Finish the game from here</Link> : null}
+        {drillHref !== undefined ? (
+          <Link hasUnderline href={drillHref}>
+            Drill this pattern
+          </Link>
+        ) : null}
+        {finishHref !== undefined ? (
+          <Link hasUnderline href={finishHref}>
+            Finish the game from here
+          </Link>
+        ) : null}
       </div>
     </Card>
   );

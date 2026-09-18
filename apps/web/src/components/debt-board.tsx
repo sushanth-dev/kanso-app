@@ -74,7 +74,7 @@ function RelapseHistory({ pattern }: { pattern: PatternState }) {
     <Text as="p" display="block" type="supporting" className="text-sm">
       Came back {pattern.relapses === 1 ? 'once' : `${pattern.relapses} times`}
       {when !== null ? `, latest ${when}` : ''} in{' '}
-      <Link href={`/games/${latest.gameId}`}>
+      <Link hasUnderline href={`/games/${latest.gameId}`}>
         {latest.whiteName} vs {latest.blackName}
       </Link>
       .

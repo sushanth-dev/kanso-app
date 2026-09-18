@@ -80,7 +80,11 @@ export function AnnouncementBanner() {
     >
       <div className="mx-auto flex w-full max-w-3xl items-center gap-3 px-4 py-2">
         <Text className="flex-1">{announcement.message}</Text>
-        {announcement.href ? <Link href={announcement.href}>Open</Link> : null}
+        {announcement.href ? (
+          <Link hasUnderline href={announcement.href}>
+            Open
+          </Link>
+        ) : null}
         <IconButton
           type="button"
           variant="ghost"
