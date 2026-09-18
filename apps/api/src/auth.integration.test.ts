@@ -18,6 +18,7 @@ import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { createApp } from './app.ts';
 import { createAuth } from './auth.ts';
+import { user } from './db/auth-schema.ts';
 import { player, tournament } from './db/schema.ts';
 import { setupIntegrationDatabase, type IntegrationDatabase } from './db/test-harness.ts';
 
@@ -161,6 +162,64 @@ describe('a real session', () => {
       headers: { cookie: aliceCookie },
     });
     expect(tournamentOk.status).toBe(200);
+  });
+});
+
+/**
+ * ST-166. The acknowledgement is worth keeping only if the instant is ours. The
+ * client sends a claim, and a claim it controls is a claim it can backdate, so
+ * the `create.before` hook in `auth.ts` throws the sent value away and writes
+ * the server's own clock.
+ *
+ * The forged value below is a string because that is what actually crosses the
+ * wire: JSON has no date type, so a real browser sends the ISO text and
+ * better-auth's adapter coerces it to a `Date` before the hook ever sees it.
+ * Testing with a `Date` would have exercised a path no client can reach.
+ */
+describe('the sign-up acknowledgement', () => {
+  async function signUp(email: string, acknowledged: string | undefined) {
+    const a = app();
+    return a.request('/api/auth/sign-up/email', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        name: email.split('@')[0],
+        email,
+        password: PASSWORD,
+        ...(acknowledged === undefined ? {} : { privacyAcknowledgedAt: acknowledged }),
+      }),
+    });
+  }
+
+  async function acknowledgedAt(email: string): Promise<Date | null> {
+    const [row] = await harness.db
+      .select({ acknowledgedAt: user.privacyAcknowledgedAt })
+      .from(user)
+      .where(eq(user.email, email))
+      .limit(1);
+    expect(row).toBeTruthy();
+    return row!.acknowledgedAt;
+  }
+
+  test('records the server’s own instant, not the one the caller sent', async () => {
+    const forged = '2019-01-01T00:00:00.000Z';
+    const before = Date.now();
+    const res = await signUp(EMAIL_A, forged);
+    const after = Date.now();
+    expect(res.status).toBe(200);
+
+    const recorded = await acknowledgedAt(EMAIL_A);
+    expect(recorded).toBeInstanceOf(Date);
+    expect(recorded!.toISOString()).not.toBe(forged);
+    expect(recorded!.getTime()).toBeGreaterThanOrEqual(before);
+    expect(recorded!.getTime()).toBeLessThanOrEqual(after);
+  });
+
+  test('records null for an account created without one', async () => {
+    const res = await signUp(EMAIL_B, undefined);
+    expect(res.status).toBe(200);
+
+    expect(await acknowledgedAt(EMAIL_B)).toBeNull();
   });
 });
 

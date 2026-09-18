@@ -1,0 +1,1 @@
+ALTER TABLE "user" ADD COLUMN "privacy_acknowledged_at" timestamp with time zone;

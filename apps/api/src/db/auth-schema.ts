@@ -31,6 +31,20 @@ export const user = pgTable('user', {
    * not here.
    */
   guardianEmail: text('guardian_email'),
+  /**
+   * ST-166. The instant the sign-up acknowledgement was recorded, null for
+   * accounts created without one. One tick acknowledges the privacy notice and
+   * the terms together, so there is one column and not two.
+   *
+   * A timestamp rather than a boolean because the record is the point: a
+   * boolean says a control was ticked, this says when, and the when is what a
+   * later question about which notice a person accepted turns on.
+   *
+   * The instant is the server's. The client's claim is only that the box was
+   * ticked, so the value it sends is replaced in the `create.before` hook in
+   * `auth.ts` before the row is written.
+   */
+  privacyAcknowledgedAt: timestamp('privacy_acknowledged_at', { withTimezone: true }),
   // Reconciliation from the better-auth CLI output: the generator emits plain
   // `timestamp`, but every other timestamp in this schema uses
   // `withTimezone: true`. Keeping `user` consistent avoids a no-timezone

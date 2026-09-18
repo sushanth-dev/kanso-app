@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
+import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
 import { Field } from '@astryxdesign/core/Field';
 import { FormLayout } from '@astryxdesign/core/FormLayout';
 import { Heading } from '@astryxdesign/core/Heading';
@@ -33,17 +34,28 @@ const RATE_LIMIT_COPY = 'Too many attempts. Try again later.';
 const MISMATCH_COPY = 'Passwords do not match.';
 const GUARDIAN_MISMATCH_COPY = 'The guardian email must be different from the sign-up email.';
 
+/**
+ * ST-166. The acknowledgement is required, so the notice it names is not
+ * pre-accepted and the account is not created without it. The control arrives
+ * unticked and the submit refuses to proceed until it is ticked.
+ */
+const ACKNOWLEDGEMENT_COPY = 'Accept the privacy notice and the terms to create your account.';
+const ACKNOWLEDGEMENT_LABEL = 'I accept the privacy notice and the terms';
+
 function readText(data: FormData, key: string): string {
   const value = data.get(key);
   return typeof value === 'string' ? value : '';
 }
 
+/** The age a player must reach before sign-up stops asking for a guardian. */
+const JUNIOR_CONSENT_AGE = 13;
+
 /** The client-side mirror of the server's age gate: under 13 (ST-034). */
 function isMinorDob(dateOfBirth: string): boolean {
   const [year, month, day] = dateOfBirth.split('-').map(Number);
   if (!year || !month || !day) return false;
-  const thirteenthBirthday = new Date(year + 13, month - 1, day);
-  return new Date() < thirteenthBirthday;
+  const consentAgeBirthday = new Date(year + JUNIOR_CONSENT_AGE, month - 1, day);
+  return new Date() < consentAgeBirthday;
 }
 
 export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
@@ -51,6 +63,8 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [dateOfBirth, setDateOfBirth] = useState('');
+  const [acknowledged, setAcknowledged] = useState(false);
+  const [acknowledgementError, setAcknowledgementError] = useState<string | null>(null);
   const showGuardianEmail = isSignUp && isMinorDob(dateOfBirth);
 
   const heading = isSignUp ? 'Create your account' : 'Sign in';
@@ -59,6 +73,7 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage(null);
+    setAcknowledgementError(null);
 
     const data = new FormData(event.currentTarget);
     const email = readText(data, 'email').trim();
@@ -79,6 +94,14 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
         setErrorMessage(GUARDIAN_MISMATCH_COPY);
         return;
       }
+
+      // Checked after the field errors because the notice sits after the
+      // fields, and last because it is the last thing the reader meets on the
+      // way to the button.
+      if (!acknowledged) {
+        setAcknowledgementError(ACKNOWLEDGEMENT_COPY);
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -90,6 +113,8 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
             password,
             dateOfBirth: dateOfBirthValue || undefined,
             guardianEmail: guardianEmail || undefined,
+            // The claim only. The account row records the server's own instant.
+            privacyAcknowledgedAt: new Date(),
           })
         : await authClient.signIn.email({ email, password });
       if (error === null) {
@@ -147,8 +172,8 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
             {showGuardianEmail ? (
               <>
                 <Text as="p" display="block" type="supporting" id="guardianEmail-help">
-                  A guardian's email is required for players under 13, so a parent or guardian can
-                  confirm consent.
+                  A guardian's email is required for players under {JUNIOR_CONSENT_AGE}, so a parent
+                  or guardian can confirm consent.
                 </Text>
                 <Field label="Guardian email" inputID="guardianEmail">
                   <TextInput
@@ -199,6 +224,55 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
                   minLength={8}
                 />
               </Field>
+            ) : null}
+            {isSignUp ? (
+              <>
+                <div>
+                  <Text as="p" display="block" type="supporting">
+                    We collect your name, your email address, and your date of birth if you give
+                    one. Your name labels the player on their report, and your email address is how
+                    we reach the account and reset a password. Your date of birth decides whether a
+                    guardian email is needed. For a player under {JUNIOR_CONSENT_AGE} we also
+                    collect a guardian's email, and the account stays closed to use until a guardian
+                    confirms.
+                  </Text>
+                  <nav aria-label="Privacy and terms" className="mt-1">
+                    <ul className="flex flex-wrap gap-x-6">
+                      <li>
+                        <Link
+                          hasUnderline
+                          href="/privacy"
+                          className="inline-flex min-h-11 items-center"
+                        >
+                          Privacy
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          hasUnderline
+                          href="/terms"
+                          className="inline-flex min-h-11 items-center"
+                        >
+                          Terms
+                        </Link>
+                      </li>
+                    </ul>
+                  </nav>
+                </div>
+                <CheckboxInput
+                  label={ACKNOWLEDGEMENT_LABEL}
+                  value={acknowledged}
+                  onChange={(checked) => {
+                    setAcknowledged(checked);
+                    setAcknowledgementError(null);
+                  }}
+                  status={
+                    acknowledgementError === null
+                      ? undefined
+                      : { type: 'error', message: acknowledgementError }
+                  }
+                />
+              </>
             ) : null}
             <Button
               type="submit"

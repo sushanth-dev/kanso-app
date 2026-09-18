@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent, { type UserEvent } from '@testing-library/user-event';
 import { QueryClient } from '@tanstack/react-query';
 import { createMemoryHistory, RouterContextProvider } from '@tanstack/react-router';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
@@ -33,6 +33,14 @@ function renderAuth(mode: 'sign-in' | 'sign-up', navigate = vi.fn()) {
 
 const renderSignIn = (navigate = vi.fn()) => renderAuth('sign-in', navigate);
 const renderSignUp = (navigate = vi.fn()) => renderAuth('sign-up', navigate);
+
+const ACKNOWLEDGEMENT_LABEL = 'I accept the privacy notice and the terms';
+const ACKNOWLEDGEMENT_COPY = 'Accept the privacy notice and the terms to create your account.';
+
+/** A valid sign-up carries the acknowledgement, so every fill of the form sets it. */
+async function acceptNotice(user: UserEvent) {
+  await user.click(screen.getByRole('checkbox', { name: ACKNOWLEDGEMENT_LABEL }));
+}
 
 describe('AuthScreen sign-in', () => {
   beforeEach(() => {
@@ -117,6 +125,13 @@ describe('AuthScreen sign-in', () => {
       'Email or password was not accepted.',
     );
   });
+
+  test('carries no privacy notice or acknowledgement away from sign-up', () => {
+    renderSignIn();
+    expect(screen.queryByText(/We collect your name/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'Privacy and terms' })).not.toBeInTheDocument();
+  });
 });
 
 describe('AuthScreen sign-up', () => {
@@ -156,6 +171,7 @@ describe('AuthScreen sign-up', () => {
     await user.type(screen.getByLabelText('Email'), 'player@example.com');
     await user.type(screen.getByLabelText('Password'), 'a-secure-password');
     await user.type(screen.getByLabelText('Confirm password'), 'a-different-password');
+    await acceptNotice(user);
     await user.click(screen.getByRole('button', { name: 'Sign up' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Passwords do not match.');
@@ -173,6 +189,7 @@ describe('AuthScreen sign-up', () => {
     await user.type(screen.getByLabelText('Email'), 'player@example.com');
     await user.type(screen.getByLabelText('Password'), 'a-secure-password');
     await user.type(screen.getByLabelText('Confirm password'), 'a-secure-password');
+    await acceptNotice(user);
     await user.click(screen.getByRole('button', { name: 'Sign up' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -191,6 +208,7 @@ describe('AuthScreen sign-up', () => {
     await user.type(screen.getByLabelText('Email'), 'player@example.com');
     await user.type(screen.getByLabelText('Password'), 'a-secure-password');
     await user.type(screen.getByLabelText('Confirm password'), 'a-secure-password');
+    await acceptNotice(user);
     await user.click(screen.getByRole('button', { name: 'Sign up' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -208,6 +226,7 @@ describe('AuthScreen sign-up', () => {
     await user.type(screen.getByLabelText('Email'), '  player@example.com  ');
     await user.type(screen.getByLabelText('Password'), 'a-secure-password');
     await user.type(screen.getByLabelText('Confirm password'), 'a-secure-password');
+    await acceptNotice(user);
     await user.click(screen.getByRole('button', { name: 'Sign up' }));
 
     await waitFor(() => {
@@ -239,6 +258,7 @@ describe('AuthScreen sign-up', () => {
     await user.type(screen.getByLabelText('Password'), 'a-secure-password');
     await user.type(screen.getByLabelText('Confirm password'), 'a-secure-password');
     await user.type(screen.getByLabelText('Guardian email'), 'parent@example.com');
+    await acceptNotice(user);
     await user.click(screen.getByRole('button', { name: 'Sign up' }));
 
     await waitFor(() => {
@@ -271,6 +291,7 @@ describe('AuthScreen sign-up', () => {
     await user.type(screen.getByLabelText('Password'), 'a-secure-password');
     await user.type(screen.getByLabelText('Confirm password'), 'a-secure-password');
     await user.type(screen.getByLabelText('Guardian email'), 'player@example.com');
+    await acceptNotice(user);
     await user.click(screen.getByRole('button', { name: 'Sign up' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -291,6 +312,7 @@ describe('AuthScreen sign-up', () => {
     await user.type(screen.getByLabelText('Email'), 'player@example.com');
     await user.type(screen.getByLabelText('Password'), 'a-secure-password');
     await user.type(screen.getByLabelText('Confirm password'), 'a-secure-password');
+    await acceptNotice(user);
     await user.click(screen.getByRole('button', { name: 'Sign up' }));
 
     await waitFor(() => {
@@ -308,6 +330,7 @@ describe('AuthScreen sign-up', () => {
     await user.type(screen.getByLabelText('Email'), 'player@example.com');
     await user.type(screen.getByLabelText('Password'), 'a-secure-password');
     await user.type(screen.getByLabelText('Confirm password'), 'a-secure-password');
+    await acceptNotice(user);
     await user.click(screen.getByRole('button', { name: 'Sign up' }));
 
     await waitFor(() => {
@@ -328,11 +351,78 @@ describe('AuthScreen sign-up', () => {
     await user.type(screen.getByLabelText('Password'), 'a-secure-password');
     await user.type(screen.getByLabelText('Confirm password'), 'a-secure-password');
     await user.type(screen.getByLabelText('Guardian email'), 'player@example.com');
+    await acceptNotice(user);
     await user.click(screen.getByRole('button', { name: 'Sign up' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'The guardian email must be different from the sign-up email.',
     );
     expect(signUpEmail).not.toHaveBeenCalled();
+  });
+
+  test('states what is collected, why, and links both policy documents above the button', () => {
+    renderSignUp();
+
+    expect(screen.getByText(/We collect your name, your email address/)).toBeVisible();
+    expect(screen.getByText(/labels the player on their report/)).toBeVisible();
+    expect(screen.getByText(/guardian email is needed/)).toBeVisible();
+
+    // Scoped to the notice: the footer carries its own links to the same two
+    // documents, which is the placement the notice exists to spare the reader.
+    const noticeLinks = within(screen.getByRole('navigation', { name: 'Privacy and terms' }));
+    expect(noticeLinks.getByRole('link', { name: 'Privacy' })).toHaveAttribute('href', '/privacy');
+    expect(noticeLinks.getByRole('link', { name: 'Terms' })).toHaveAttribute('href', '/terms');
+  });
+
+  test('states the under-13 rule before the guardian field is revealed', () => {
+    renderSignUp();
+
+    // The rule is part of the standing notice, so it is readable before any
+    // date is typed, while the field it describes is still absent.
+    expect(screen.getByText(/stays closed to use until a guardian confirms/)).toBeVisible();
+    expect(screen.queryByLabelText('Guardian email')).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Date of birth'), {
+      target: { value: '2015-06-01' },
+    });
+    expect(screen.getByLabelText('Guardian email')).toBeVisible();
+  });
+
+  test('arrives unticked and refuses to create the account until it is accepted', async () => {
+    const { user } = renderSignUp();
+    const acknowledgement = screen.getByRole('checkbox', { name: ACKNOWLEDGEMENT_LABEL });
+    expect(acknowledgement).not.toBeChecked();
+
+    await user.type(screen.getByLabelText('Name'), 'Player');
+    await user.type(screen.getByLabelText('Email'), 'player@example.com');
+    await user.type(screen.getByLabelText('Password'), 'a-secure-password');
+    await user.type(screen.getByLabelText('Confirm password'), 'a-secure-password');
+    await user.click(screen.getByRole('button', { name: 'Sign up' }));
+
+    expect(await screen.findByText(ACKNOWLEDGEMENT_COPY)).toBeVisible();
+    expect(signUpEmail).not.toHaveBeenCalled();
+
+    // The message is the control's own description, not a banner elsewhere on
+    // the card, so the reader meets the refusal where the control is.
+    const messageId = acknowledgement.getAttribute('aria-describedby');
+    expect(document.getElementById(messageId ?? '')).toHaveTextContent(ACKNOWLEDGEMENT_COPY);
+    expect(acknowledgement).toHaveAttribute('aria-invalid', 'true');
+
+    signUpEmail.mockResolvedValue({ data: { user: {} }, error: null });
+    await acceptNotice(user);
+    expect(acknowledgement).not.toHaveAttribute('aria-describedby');
+    await user.click(screen.getByRole('button', { name: 'Sign up' }));
+
+    await waitFor(() => {
+      expect(signUpEmail).toHaveBeenCalledWith(
+        expect.objectContaining({ email: 'player@example.com' }),
+      );
+    });
+    // The screen sends a claim, and it sends it as an instant rather than as
+    // preformatted text. What the claim is worth, which is nothing, is asserted
+    // where it can be: the server discards this value and writes its own clock,
+    // and `auth.integration.test.ts` proves that end to end.
+    const sent = signUpEmail.mock.calls.at(-1)?.[0];
+    expect(sent?.privacyAcknowledgedAt).toBeInstanceOf(Date);
   });
 });

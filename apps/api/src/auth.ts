@@ -71,12 +71,35 @@ export function createAuth(db: PostgresJsDatabase<typeof schema>, deps: { mailer
       additionalFields: {
         dateOfBirth: { type: 'string', required: false },
         guardianEmail: { type: 'string', required: false },
+        // ST-166. Declared so the sign-up payload may carry it and so the
+        // adapter maps it to `user.privacy_acknowledged_at`. The value is
+        // replaced below; only its presence matters here.
+        privacyAcknowledgedAt: { type: 'date', required: false },
       },
     },
     databaseHooks: {
       user: {
         create: {
-          before: (user) => Promise.resolve(validateMinorSignup(user as unknown as MinorSignup)),
+          before: (user) => {
+            const candidate = user as unknown as MinorSignup & {
+              privacyAcknowledgedAt?: unknown;
+            };
+            validateMinorSignup(candidate);
+            // ST-166. The client asserts that the notice was accepted; the
+            // instant recorded is ours. A client-chosen timestamp would let a
+            // caller backdate the acknowledgement it is the whole point of
+            // keeping. better-auth merges this return value into the create
+            // payload, so nothing else the caller sent is dropped.
+            return Promise.resolve({
+              data: {
+                privacyAcknowledgedAt:
+                  candidate.privacyAcknowledgedAt === undefined ||
+                  candidate.privacyAcknowledgedAt === null
+                    ? null
+                    : new Date(),
+              },
+            });
+          },
           after: async (created) => {
             const newUser = created as unknown as NewUser & { name: string };
             await maybeCreateGuardianConsent(db, deps.mailer, newUser);
