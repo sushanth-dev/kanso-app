@@ -121,6 +121,17 @@
           "message"
         ]
       },
+      "SessionState": {
+        "type": "object",
+        "properties": {
+          "signedIn": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "signedIn"
+        ]
+      },
       "Me": {
         "type": "object",
         "properties": {
@@ -3640,6 +3651,28 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/session": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Is anybody signed in, without failing when nobody is",
+        "description": "ST-164. Public, and it takes no parameters, so no caller can aim it at an account other than its own. It answers 200 for everyone: one fixed body without a session, and the signed-in body with one. `/me` is unchanged and still answers 401 without a session, because the two route guards read that 401 as the redirect signal.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Whether the caller holds a session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionState"
                 }
               }
             }

@@ -12,7 +12,7 @@ import { authClient } from '../auth-client.ts';
 import { PasswordInput } from '../components/password-input.tsx';
 import { StatusMessage } from '../components/status-message.tsx';
 import { TextInput } from '../components/text-input.tsx';
-import { ME_QUERY_KEY } from '../query-client.ts';
+import { clearSessionState } from '../query-client.ts';
 
 export type AuthMode = 'sign-in' | 'sign-up';
 export type NavigateTo = (options: {
@@ -92,7 +92,7 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
           })
         : await authClient.signIn.email({ email, password });
       if (error === null) {
-        queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
+        clearSessionState(queryClient);
         await navigate({ to: '/report' });
         return;
       }

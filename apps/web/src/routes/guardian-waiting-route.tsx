@@ -6,7 +6,7 @@ import { Text } from '@astryxdesign/core/Text';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { authClient } from '../auth-client.ts';
-import { ME_QUERY_KEY } from '../query-client.ts';
+import { clearSessionState } from '../query-client.ts';
 import { StatusMessage } from '../components/status-message.tsx';
 
 export function GuardianWaitingScreen({ signOut }: { signOut: () => Promise<void> }) {
@@ -52,7 +52,7 @@ export function GuardianWaitingRoute() {
   const signOut = async () => {
     const { error } = await authClient.signOut();
     if (error !== null) throw new Error('Sign out failed.');
-    queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
+    clearSessionState(queryClient);
     await navigate({ to: '/sign-in' });
   };
 

@@ -21,6 +21,9 @@ export default defineConfig({
     proxy: {
       '/api': 'http://127.0.0.1:3000',
       '/me': 'http://127.0.0.1:3000',
+      // ST-164: the signed-in probe the shell and landing page read, so a
+      // public page answers "is anybody signed in?" without asking /me.
+      '/session': 'http://127.0.0.1:3000',
       // The SPA routes /report, /focus, /games, /tournaments, and /transfer-gap
       // share their path with an API endpoint now that the /account prefix is
       // gone (ST-088): a browser navigation (Accept: text/html) is the page; a

@@ -53,6 +53,7 @@ import {
   PrimingTokenWithSecret,
   PrimingBrief,
   WeaknessCoaching,
+  SessionState,
   SetFocus,
   SetGameColor,
   SharedProofSheet,
@@ -100,6 +101,25 @@ export const getHealth = createRoute({
 });
 
 // ─── Account ─────────────────────────────────────────────────────────────────
+
+/**
+ * ST-164. What the shell and the landing page can ask before they know whether
+ * anybody is signed in. It answers 200 to everyone, so a first visit to a public
+ * page logs no 401, and its body is the same whether the cookie is absent,
+ * expired, or forged.
+ */
+export const getSession = createRoute({
+  method: 'get',
+  path: '/session',
+  tags: ['Account'],
+  summary: 'Is anybody signed in, without failing when nobody is',
+  description:
+    'ST-164. Public, and it takes no parameters, so no caller can aim it at an account other than its own. It answers 200 for everyone: one fixed body without a session, and the signed-in body with one. `/me` is unchanged and still answers 401 without a session, because the two route guards read that 401 as the redirect signal.',
+  security: [],
+  responses: {
+    200: json(SessionState, 'Whether the caller holds a session.'),
+  },
+});
 
 export const getMe = createRoute({
   method: 'get',
@@ -1265,6 +1285,7 @@ export const getPrimingBrief = createRoute({
 
 export const routes = [
   getHealth,
+  getSession,
   getMe,
   updatePlayer,
   deleteAccount,

@@ -3,9 +3,13 @@
  * are.
  *
  * The sprint's question is answered in `auth.integration.test.ts`; this suite
- * exercises the two Account routes against a real session and a real
- * PostgreSQL, so the isolation the claim rule promises is visible from the
- * account endpoints themselves.
+ * exercises the Account routes against a real session and a real PostgreSQL, so
+ * the isolation the claim rule promises is visible from the account endpoints
+ * themselves.
+ *
+ * ST-164 adds the probe that answers whether anybody is signed in at all. It is
+ * here beside `/me` because the two are deliberately different: every case that
+ * `/me` answers 401, the probe answers 200.
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { eq } from 'drizzle-orm';
@@ -21,6 +25,8 @@ let harness: IntegrationDatabase;
 const PASSWORD = 'correct horse battery staple';
 const EMAIL_A = 'alice@example.com';
 const EMAIL_B = 'bob@example.com';
+/** The session cookie name better-auth issues with the `kanso` prefix. */
+const SESSION_COOKIE = 'kanso.session_token';
 
 beforeAll(async () => {
   harness = await setupIntegrationDatabase();
@@ -274,5 +280,58 @@ describe('DELETE /account', () => {
     expect((await harness.db.select().from(puzzleAttempt)).length).toBe(0);
     // The pool puzzle is shared by every player, so it survives.
     expect((await harness.db.select().from(puzzle)).length).toBe(1);
+  });
+});
+
+describe('the session probe', () => {
+  test('answers 200 with signedIn false when nobody is signed in', async () => {
+    const a = app();
+
+    const res = await a.request('/session');
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ signedIn: false });
+  });
+
+  test('answers 200 with signedIn true when a session cookie is present', async () => {
+    const cookie = await signIn(EMAIL_A);
+    const a = app();
+
+    const res = await a.request('/session', { headers: { cookie } });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ signedIn: true });
+  });
+
+  test('a forged cookie is answered 200, not the 401 /me gives it', async () => {
+    const a = app();
+    const cookie = `${SESSION_COOKIE}=forged-token-that-is-not-a-real-session`;
+
+    const probe = await a.request('/session', { headers: { cookie } });
+    expect(probe.status).toBe(200);
+    expect(await probe.json()).toEqual({ signedIn: false });
+
+    const me = await a.request('/me', { headers: { cookie } });
+    expect(me.status).toBe(401);
+  });
+
+  test('an expired session drops back to signedIn false rather than failing', async () => {
+    const cookie = await signIn(EMAIL_A);
+    const a = app();
+    expect(await (await a.request('/session', { headers: { cookie } })).json()).toEqual({
+      signedIn: true,
+    });
+
+    await harness.db.update(session).set({ expiresAt: new Date(Date.now() - 1000) });
+
+    const res = await a.request('/session', { headers: { cookie } });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ signedIn: false });
+  });
+
+  test('the body carries nothing but signedIn, so it names no account', async () => {
+    const cookie = await signIn(EMAIL_A);
+    const a = app();
+
+    const res = await a.request('/session', { headers: { cookie } });
+    expect(Object.keys((await res.json()) as Record<string, unknown>)).toEqual(['signedIn']);
   });
 });

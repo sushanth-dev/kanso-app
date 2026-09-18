@@ -18,6 +18,7 @@ import { requestId } from 'hono/request-id';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { routes } from './contract/routes.ts';
 import { mountMe } from './account/me.ts';
+import { mountSessionState } from './account/session-state.ts';
 import { mountConfirmGuardian } from './account/confirm-guardian.ts';
 import { mountNudgeUnsubscribe } from './nudge/unsubscribe.ts';
 import { isConsentGated } from './account/consent-request.ts';
@@ -321,6 +322,7 @@ export function createApp({
     const aiClient =
       aiClientOption !== undefined ? aiClientOption : zaiConfig ? httpZaiClient(zaiConfig) : null;
     mountHealth(app, { db });
+    mountSessionState(app, { getSession: effectiveGetSession });
     mountMe(app, { db, getSession: effectiveGetSession });
     mountUpdatePlayer(app, { db, getSession: effectiveGetSession });
     if (auth) {
