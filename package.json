@@ -1,6 +1,7 @@
 {
   "name": "chess-app",
   "private": true,
+  "license": "MIT",
   "workspaces": [
     "apps/*"
   ],
