@@ -131,7 +131,11 @@ function PendingTab({
   if (first === undefined) return null;
   return (
     <div className="space-y-4">
-      <Link href={drillHref(first.kind, first.group)} className="min-h-11 items-center">
+      <Link
+        hasUnderline
+        href={drillHref(first.kind, first.group)}
+        className="min-h-11 items-center"
+      >
         Practice now
       </Link>
       <QueueList
@@ -264,7 +268,7 @@ export function PuzzlesRoute() {
               description="No puzzles are waiting on you right now."
               headingLevel={2}
               actions={
-                <Link href="/report" className="min-h-11 items-center">
+                <Link hasUnderline href="/report" className="min-h-11 items-center">
                   Go to your report
                 </Link>
               }

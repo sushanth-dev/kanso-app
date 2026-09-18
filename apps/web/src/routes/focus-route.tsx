@@ -340,7 +340,9 @@ function RankingSection({
           </ol>
         </>
       )}
-      <Link href={`/report?stream=${stream}`}>View full report</Link>
+      <Link hasUnderline href={`/report?stream=${stream}`}>
+        View full report
+      </Link>
     </section>
   );
 }

@@ -48,7 +48,7 @@ function RetiredStat({ stream }: { stream: Stream }) {
         retired · {STREAM_LABEL[stream]}
       </Text>
       {retired > 0 ? (
-        <Link href={`/report?stream=${stream}#debt-board`} className="text-sm">
+        <Link hasUnderline href={`/report?stream=${stream}#debt-board`} className="text-sm">
           See the evidence
         </Link>
       ) : (
