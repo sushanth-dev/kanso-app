@@ -402,8 +402,10 @@ describe('POST /imports (pgn_upload)', () => {
   test('withholds colourless games from the queue instead of queuing a guaranteed failure', async () => {
     // ST-095: analysis has nobody to diagnose without a colour, so a queued
     // colourless game could only fail. It stays `pending`, and naming a side
-    // on the game review page is what puts it on the queue.
-    const playerId = await seedPlayer('Test Player');
+    // on the game review page is what puts it on the queue. This name matches
+    // neither side of any game in the fixture, which is what leaves them all
+    // colourless.
+    const playerId = await seedPlayer('Nobody Here');
     const parsed = parsePgn(fixture('multi-game.pgn'));
     expect(parsed.ok).toBe(true);
     const games = parsed.ok ? parsed.games.map((g) => ({ ...g, externalId: null })) : [];
@@ -414,7 +416,7 @@ describe('POST /imports (pgn_upload)', () => {
       source: 'pgn_upload',
       username: null,
       stream: 'tournament',
-      matchName: 'Test Player',
+      matchName: 'Nobody Here',
       games,
       gamesRejected: 0,
     });
