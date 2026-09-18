@@ -47,12 +47,15 @@ function readText(data: FormData, key: string): string {
   return typeof value === 'string' ? value : '';
 }
 
+/** The age a player must reach before sign-up stops asking for a guardian. */
+const JUNIOR_CONSENT_AGE = 13;
+
 /** The client-side mirror of the server's age gate: under 13 (ST-034). */
 function isMinorDob(dateOfBirth: string): boolean {
   const [year, month, day] = dateOfBirth.split('-').map(Number);
   if (!year || !month || !day) return false;
-  const thirteenthBirthday = new Date(year + 13, month - 1, day);
-  return new Date() < thirteenthBirthday;
+  const consentAgeBirthday = new Date(year + JUNIOR_CONSENT_AGE, month - 1, day);
+  return new Date() < consentAgeBirthday;
 }
 
 export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
@@ -169,8 +172,8 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
             {showGuardianEmail ? (
               <>
                 <Text as="p" display="block" type="supporting" id="guardianEmail-help">
-                  A guardian's email is required for players under 13, so a parent or guardian can
-                  confirm consent.
+                  A guardian's email is required for players under {JUNIOR_CONSENT_AGE}, so a parent
+                  or guardian can confirm consent.
                 </Text>
                 <Field label="Guardian email" inputID="guardianEmail">
                   <TextInput
@@ -229,8 +232,9 @@ export function AuthScreen({ mode, navigate, queryClient }: AuthScreenProps) {
                     We collect your name, your email address, and your date of birth if you give
                     one. Your name labels the player on their report, and your email address is how
                     we reach the account and reset a password. Your date of birth decides whether a
-                    guardian email is needed. For a player under 13 we also collect a guardian's
-                    email, and the account stays closed to use until a guardian confirms.
+                    guardian email is needed. For a player under {JUNIOR_CONSENT_AGE} we also
+                    collect a guardian's email, and the account stays closed to use until a guardian
+                    confirms.
                   </Text>
                   <nav aria-label="Privacy and terms" className="mt-1">
                     <ul className="flex flex-wrap gap-x-6">
