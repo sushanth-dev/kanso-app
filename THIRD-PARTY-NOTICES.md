@@ -67,13 +67,24 @@ offering the corresponding source, starting with the Stockfish revision pinned
 in the Dockerfile. Building and running the image without distributing it does
 not trigger that.
 
+## Linked into the API
+
 ### chessops
 
 `chessops` 0.15.1 is a production dependency of `apps/api`, running in the API
-and analysis processes. It is not bundled into the web application.
+and analysis processes. It is not bundled into the web application. Unlike
+Stockfish it is not a separate process: `apps/api/src/chess/diagnostic-utils.ts`
+imports it, so the API as distributed is a combined work rather than a program
+that only calls another.
 
 Licence: GNU General Public License version 3 or later,
 https://www.gnu.org/licenses/gpl-3.0.html
+
+What that means in practice: our own files stay MIT, and MIT is compatible with
+the GPL, so publishing them beside `chessops` is permitted. Anyone distributing
+the API must meet GPL-3.0-or-later for the combination, which includes offering
+the corresponding source for `chessops`. Running it for ourselves, and using the
+public repository, trigger nothing.
 
 ## Build-time and test-only
 
