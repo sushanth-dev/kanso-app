@@ -117,6 +117,21 @@ export const DeleteAccount = z
   })
   .openapi('DeleteAccount');
 
+/**
+ * ST-164. Whether the caller holds a valid session, and nothing else.
+ *
+ * It carries no identity, because the only two callers read signed-in-ness and
+ * no more: the shell picks a brand link and the landing page picks its header.
+ * It carries no consent state either, so the pages that have to tell a gated
+ * minor apart from a signed-out visitor still ask `/me`, which is where the
+ * gate belongs.
+ */
+export const SessionState = z
+  .object({
+    signedIn: z.boolean(),
+  })
+  .openapi('SessionState');
+
 export const Me = z
   .object({
     userId: z.string(),

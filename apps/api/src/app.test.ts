@@ -45,6 +45,9 @@ describe('publicPaths', () => {
     // changing the list.
     expect(publicPaths()).toEqual([
       '/health',
+      // ST-164. The session probe exists to answer when nobody is signed in,
+      // so a 401 from it would defeat the route.
+      '/session',
       '/guardians/confirm/{token}',
       // ST-126. The nudge unsubscribe link, like the consent confirm, is
       // opened from an email with no session and answers 404 on a bad token.

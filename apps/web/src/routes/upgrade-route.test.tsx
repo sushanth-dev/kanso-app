@@ -13,7 +13,7 @@ vi.mock('../api/account-api.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof AccountApi>();
   return {
     ...actual,
-    accountApi: { getMe: vi.fn(), updateMe: vi.fn() },
+    accountApi: { getSession: vi.fn(), getMe: vi.fn(), updateMe: vi.fn() },
   };
 });
 

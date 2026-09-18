@@ -3,6 +3,7 @@ import type { components, paths } from '../generated/api.ts';
 import { apiBaseUrl } from './base-url.ts';
 
 export type Me = components['schemas']['Me'];
+export type SessionState = components['schemas']['SessionState'];
 export type Player = components['schemas']['Player'];
 export type UpdatePlayer = components['schemas']['UpdatePlayer'];
 export type ApiError = components['schemas']['ApiError'];
@@ -30,6 +31,7 @@ export function failure(status: number, body: ApiError | undefined): ApiRequestE
 }
 
 export interface AccountApi {
+  getSession(): Promise<SessionState>;
   getMe(): Promise<Me>;
   updateMe(body: UpdatePlayer): Promise<Player>;
   deleteMe(body: { password: string }): Promise<void>;
@@ -42,6 +44,11 @@ export function createAccountApi(fetcher: typeof globalThis.fetch = globalThis.f
     credentials: 'include',
   });
   return {
+    async getSession(): Promise<SessionState> {
+      const result = await client.GET('/session');
+      if (result.data !== undefined) return result.data;
+      throw failure(result.response.status, result.error);
+    },
     async getMe(): Promise<Me> {
       const result = await client.GET('/me');
       if (result.data !== undefined) return result.data;

@@ -18,7 +18,7 @@ import {
 } from '../api/import-api.ts';
 import { StatusMessage, type StatusTone } from '../components/status-message.tsx';
 import { TextInput } from '../components/text-input.tsx';
-import { ME_QUERY_KEY, meQueryOptions } from '../query-client.ts';
+import { clearSessionState, meQueryOptions } from '../query-client.ts';
 import type { NavigateTo } from './auth-routes.tsx';
 import { track } from '../analytics.ts';
 
@@ -250,7 +250,7 @@ export function ImportScreen({ me, importApi, queryClient, navigate }: ImportScr
     } catch (error) {
       if (error instanceof ApiRequestError) {
         if (error.status === 401) {
-          queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
+          clearSessionState(queryClient);
           await navigate({ to: '/sign-in' });
           return;
         }

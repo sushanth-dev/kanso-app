@@ -17,6 +17,39 @@ export const meQueryOptions = () =>
     staleTime: 30_000,
   });
 
+/**
+ * ST-164. Whether anybody is signed in, asked in a way that cannot answer 401.
+ *
+ * The shell and the landing page read only this. Everything that needs the
+ * account itself still asks `meQueryOptions`, which holds the 401 that the two
+ * route guards read as the redirect signal.
+ */
+export const SESSION_QUERY_KEY = ['session'] as const;
+export const sessionQueryOptions = () =>
+  queryOptions({
+    queryKey: SESSION_QUERY_KEY,
+    queryFn: () => accountApi.getSession(),
+    retry: false,
+    staleTime: 30_000,
+  });
+
+/**
+ * Both keys hold session truth, so signing in, signing out, and deleting an
+ * account have to clear both. Ten call sites cleared one of them by hand before
+ * this existed, which is how the two would have drifted apart.
+ *
+ * They are cleared differently because the two reads are not alike. `/me`
+ * answers 401 once the session is gone, so it is removed and left alone until a
+ * route guard asks again. `/session` answers 200 either way, so it is
+ * invalidated instead: a reader that is already mounted, which the shell is
+ * during the sign-out navigation, keeps the result it last rendered when its
+ * query is removed and never re-reads it.
+ */
+export function clearSessionState(queryClient: QueryClient): void {
+  queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
+  void queryClient.invalidateQueries({ queryKey: SESSION_QUERY_KEY });
+}
+
 export const reportQueryOptions = (stream: Stream, tournamentId?: string) =>
   queryOptions({
     queryKey: ['report', stream, tournamentId ?? null] as const,

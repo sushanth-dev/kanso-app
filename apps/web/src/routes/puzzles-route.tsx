@@ -16,7 +16,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { ApiRequestError } from '../api/account-api.ts';
 import type { GroupCalibration, PracticeQueueItem } from '../api/diagnosis-api.ts';
-import { ME_QUERY_KEY, practiceQueueQueryOptions } from '../query-client.ts';
+import { clearSessionState, practiceQueueQueryOptions } from '../query-client.ts';
 
 const DAY_MS = 86_400_000;
 
@@ -199,7 +199,7 @@ export function PuzzlesRoute() {
   // sign-in rebuild it, the same shape every mutation path here uses.
   useEffect(() => {
     if (!unauthorized) return;
-    queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
+    clearSessionState(queryClient);
     void navigate({ to: '/sign-in' });
   }, [unauthorized, queryClient, navigate]);
 

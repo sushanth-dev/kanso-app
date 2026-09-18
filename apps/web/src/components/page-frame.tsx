@@ -7,7 +7,7 @@ import { Link } from '@astryxdesign/core/Link';
 import { Text } from '@astryxdesign/core/Text';
 import { StatusMessage, useStatusMessage } from './status-message.tsx';
 import { Mark } from './mark.tsx';
-import { meQueryOptions } from '../query-client.ts';
+import { sessionQueryOptions } from '../query-client.ts';
 
 export interface PageFrameProps {
   children: ReactNode;
@@ -52,11 +52,12 @@ function navEntryKey(entry: NavEntry): string {
 export function PageFrame({ children }: PageFrameProps) {
   const pathname = useLocation({ select: (location) => location.pathname });
   const { flash, markPresented, clearMessage } = useStatusMessage();
-  const me = useQuery(meQueryOptions());
+  const session = useQuery(sessionQueryOptions());
   // The brand returns to the product's front door: the report for a signed-in
-  // account, the landing page otherwise. Account routes resolve `me` in
-  // beforeLoad, so the signed-in answer is cached before the shell paints.
-  const brandHref = me.isSuccess ? '/report' : '/';
+  // account, the landing page otherwise. This asks the session probe rather
+  // than `/me`, because the shell also wraps the public auth pages, and a
+  // signed-out visitor there must not be logged as a 401.
+  const brandHref = session.data?.signedIn === true ? '/report' : '/';
   const atDestination = flash !== null && pathname === flash.destination;
   const showNav = [
     '/settings',

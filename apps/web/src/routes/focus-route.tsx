@@ -28,9 +28,9 @@ import { StatusMessage } from '../components/status-message.tsx';
 import { StreamToggle } from '../components/stream-toggle.tsx';
 import { useRevealSequence } from '../use-reveal-sequence.ts';
 import {
+  clearSessionState,
   focusQueryOptions,
   focusesQueryOptions,
-  ME_QUERY_KEY,
   reportQueryOptions,
 } from '../query-client.ts';
 
@@ -612,7 +612,7 @@ export function useSetFocus() {
     } catch (error) {
       if (error instanceof ApiRequestError) {
         if (error.status === 401) {
-          queryClient.removeQueries({ queryKey: ME_QUERY_KEY });
+          clearSessionState(queryClient);
           await navigate({ to: '/sign-in' });
           return false;
         }
