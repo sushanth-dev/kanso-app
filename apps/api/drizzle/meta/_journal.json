@@ -274,6 +274,13 @@
       "when": 1789109885965,
       "tag": "0039_numerous_dreaming_celestial",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1789721333536,
+      "tag": "0040_dapper_franklin_richards",
+      "breakpoints": true
     }
   ]
 }

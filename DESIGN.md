@@ -368,7 +368,7 @@ button label.
 - **Underline:** met app-wide. Astryx `Link` defaults to
   `hasUnderline={false}`, which underlines on hover only, and a hover state is
   not a second channel: the distinction has to be visible before the reader
-  interacts. Every text link passes `hasUnderline` (40 call sites, 18 files).
+  interacts. Every text link passes `hasUnderline` (42 call sites, 18 files).
 - **Deliberately not underlined:** the wordmark and the nav leaves, which keep
   the Navigation treatment of accent hue with a bold active page, because a
   nav item is recognised by its landmark rather than against prose; skip
@@ -396,6 +396,16 @@ button label.
 - **Focus:** border and 2px ring both shift to teal; outline suppressed.
 - **Error:** conveyed by the Danger color plus a message and icon, never color
   alone.
+- **Error placement:** a field's error sits at the field, through the control's
+  own `status`, not at the top of the form. Astryx ties the message to the
+  input with `aria-invalid` and `aria-describedby` and announces it through the
+  persistent live region, so the reader meets the message where the mistake is.
+  The card-top `StatusMessage` is for an error with no field to belong to.
+- **Checkbox:** Astryx `CheckboxInput`, the first in the product (ST-166). One
+  tick acknowledges two documents, so it is one control and not two. The touch
+  target is the label plus the control's own 24px box; the component's root is
+  a plain `div`, so a `min-h-11` there would add dead space without enlarging
+  what is clickable.
 
 ### Navigation
 
@@ -959,6 +969,26 @@ same shape: a pristine form, a rate-limit and generic-failure error, and a
 confirmation state ("Check your email", "Password reset") that links back to
 sign-in; reset-password additionally renders an "invalid link" state for a
 used, expired, or malformed token.
+
+Sign-up additionally carries a notice above its submit button, on the sign-up
+branch alone and not on sign-in, forgot-password, or reset-password (ST-166). It
+states in plain words what sign-up collects (the name, the email address, the
+date of birth if one is given, and a guardian's email for a player under 13) and
+what each is for, and it pairs the under-13 guardian rule with the notice rather
+than disclosing it only when the guardian field appears. The sentence about the
+date of birth is written to stay true given that the date has a second use, the
+player's birth year, so the notice does not claim a single purpose it does not
+have. Under the notice, a link row to `/privacy` and `/terms` reuses the
+footer's policy-row treatment (a `nav` with an `aria-label` over a wrapping `ul`
+of 44px `inline-flex` links) rather than inventing a second convention for two
+links. Below the notice sits a required `CheckboxInput`, unticked at load, whose
+label and error carry the whole requirement: the submit refuses until it is
+ticked and reports the refusal at the control.
+
+The acknowledgement is recorded, not merely shown. The screen sends the claim
+that the box was ticked and the server replaces it with its own clock before the
+account is written, so a caller cannot backdate what it accepted. The record is
+written at sign-up and read back on no screen: the point is that it exists.
 
 The two consent surfaces render outside the authenticated shell, like the
 proof sheet: no wordmark, no navigation, no sign-in hint. Each keeps its own

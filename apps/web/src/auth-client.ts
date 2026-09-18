@@ -7,6 +7,11 @@ import { apiBaseUrl } from './api/base-url.ts';
  * types the date of birth and guardian email (ST-034). This is the client-side
  * half of the same declaration in `apps/api/src/auth.ts`; the two must stay in
  * sync the way a client and server contract always must.
+ *
+ * `privacyAcknowledgedAt` (ST-166) crosses the same boundary for the same
+ * reason: the sign-up screen sends the acknowledgement and the account row
+ * records it. The value the client sends is only the claim that the box was
+ * ticked; the server replaces it with its own clock before the row is written.
  */
 export const authClient = createAuthClient({
   baseURL: apiBaseUrl,
@@ -15,6 +20,7 @@ export const authClient = createAuthClient({
       user: {
         dateOfBirth: { type: 'string', required: false },
         guardianEmail: { type: 'string', required: false },
+        privacyAcknowledgedAt: { type: 'date', required: false },
       },
     }),
   ],
