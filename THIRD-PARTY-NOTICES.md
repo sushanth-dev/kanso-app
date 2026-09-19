@@ -24,6 +24,14 @@ The Open Font License requires the copyright notice and the licence text to
 travel with the fonts. Both are in the appendix below, and the same text ships
 inside each package at `node_modules/@fontsource/<family>/LICENSE`.
 
+They travel with the served build too. The web application publishes the
+copyright notices and the licence text at `/licences`, a public page the site
+footer links, so a reader who receives the font files from our origin can read
+the terms that govern them without leaving the site. The same page carries the
+Solar credit and the position on each of the other components above. A test in
+`apps/web/src/routes/legal-routes.test.tsx` reads this file and fails if the
+published copy drifts from it.
+
 | Family | Copyright |
 | --- | --- |
 | Public Sans | Copyright 2015 The Public Sans Project Authors (https://github.com/uswds/public-sans) |

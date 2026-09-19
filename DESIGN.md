@@ -1060,26 +1060,35 @@ game, proof-sheet, and assignment readers keep inheriting the chrome
 their authenticated surfaces ship (ST-138, ST-140, ST-139), which this
 section confirms still describes them.
 
-### Policy pages, the site footer, and the not-found surface
+### The public legal pages, the site footer, and the not-found surface
 
 ST-165 built the four public policy pages (`/privacy`, `/terms`, `/about`,
 `/contact`), the one footer that links them, and the designed not-found
-surface. The four pages share a single layout: the landing page's skip link,
-a `glass-top` header whose wordmark links home, a 3xl text measure, and the
-`SiteFooter`. They render outside the authenticated shell by exact-equality
-bypass entries, so a visitor with no account makes no session request at
-all, which is the reader these pages are for.
+surface. ST-170 added a fifth page on the same layout, `/licences`, which
+carries the font copyright notices and the text of the SIL Open Font License
+to the reader who receives the font files the browser fetches, and records
+the licence position of everything else that ships. The five pages share a
+single layout: the landing page's skip link, a `glass-top` header whose
+wordmark links home, a 3xl text measure, and the `SiteFooter`. They render
+outside the authenticated shell by exact-equality bypass entries, so a
+visitor with no account makes no session request at all, which is the reader
+these pages are for.
 
 The copy is data and the layout is one component. Each page is a `LegalPage`
-from `apps/web/src/content/legal/`: a `kicker` reading "Policy", the h1, the
-summary, a version line ("Last updated 18 September 2026. A change to this
-page is announced by that date."), the sections as h2s, and a closing
-cross-link to the contact page on all but the contact page itself. The page
-sets `document.title` and a `meta[name=description]`, both reverted on
-unmount, matching the shared proof sheet's convention. Lists are raw `<ul>`
-with `list-disc pl-5`, because Tailwind v4's preflight strips marker styling
-and the app has no Astryx `List`. Muted text on these pages measures 7.28:1
-against the page ground, past the rule below.
+from `apps/web/src/content/legal/`: a `kicker`, the h1, the summary, a
+version line ("Last updated 18 September 2026. A change to this page is
+announced by that date."), the sections as h2s, and a closing cross-link to
+the contact page on all but the contact page itself. The kicker and the date
+are the only two things the pages differ on, so both are optional on
+`LegalPage` and the layout falls back to the policy pages' "Policy" and
+`LEGAL_UPDATED`; the notices page reads "Notices" and carries its own date,
+because it changes when something we ship changes licence rather than on the
+policy pages' schedule. The page sets `document.title` and a
+`meta[name=description]`, both reverted on unmount, matching the shared
+proof sheet's convention. Lists are raw `<ul>` with `list-disc pl-5`, because
+Tailwind v4's preflight strips marker styling and the app has no Astryx
+`List`. Muted text on these pages measures 7.28:1 against the page ground,
+past the rule below.
 
 The copy is our own draft, written from what the code does rather than from a
 template, and it is not legal advice. Two facts it states rather than hides:
@@ -1089,8 +1098,22 @@ self-serve consent resend, so an expired guardian link goes through the
 contact address. The children's-data section, the refund position, and the
 governing-law clause are the parts a lawyer should read first.
 
+The notices page is the one exception to "the copy is our own draft". Its
+licence text is quoted rather than written: one template literal, copied from
+the appendix in `THIRD-PARTY-NOTICES.md` and split at its blank lines so the
+page renders one paragraph per paragraph of the licence, with each of the two
+files naming the other. A test reads that file from disk, at a path built with
+`join(import.meta.dirname, '../../../../THIRD-PARTY-NOTICES.md')`, and compares
+it with the text the page renders, paragraph by paragraph, with whitespace
+collapsed, so the copy we serve cannot drift from the copy we recorded. The path is built from the module
+directory rather than from a URL, because under this suite's jsdom environment
+`import.meta.url` resolves a relative path against the dev server origin
+instead of the filesystem. A test reaching outside `apps/web` is unusual and
+deliberate: the alternative is a licence obligation with no control over it at
+all.
+
 The `SiteFooter` is the one footer: the `kicker` "Kanso Chess", the sentence
-that names the product, and a labelled "Policy pages" nav carrying the four
+that names the product, and a labelled "Policy pages" nav carrying the five
 links at a 44px target. It carries no outer margin, so each placement
 supplies its own spacing, and the three surfaces that use it keep the footer
 below their own content.
