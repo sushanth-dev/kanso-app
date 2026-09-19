@@ -1,5 +1,7 @@
 # Findings in history that are not leaks. One line per fingerprint, which is
-# commit:path:rule:line, so an entry stops applying the moment the line moves.
+# commit:path:rule:line, so an entry stops applying the moment the line moves
+# and the moment the history is rewritten, because a rewrite reissues every
+# commit and the hash in the entry is no longer one that exists.
 #
 # This file is not the place to silence a real credential. A secret that
 # reached a commit is disclosed even after the line is deleted, because the
@@ -8,5 +10,6 @@
 
 # A fake connection string in the test that proves the 500 handler does not
 # leak one. The working copy carries a `gitleaks:allow` directive, but the
-# commit below predates it and commits do not change.
-2f83157747086c3bd7d41e17e982e26e506adfc4:apps/api/src/app.test.ts:database-connection-uri:105
+# commit below predates it, and it carries the hash the history rewrite gave
+# that commit rather than the one it had before.
+d9294a473b3ea1e3415e2063436c28fc4bae1002:apps/api/src/app.test.ts:database-connection-uri:105

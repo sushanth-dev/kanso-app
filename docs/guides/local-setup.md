@@ -173,9 +173,11 @@ allows placeholders and anything pointing at localhost.
 Two ways to mark a false positive, and they are not interchangeable. A
 `gitleaks:allow` comment on the offending line works for the working copy, and
 it has to be on that line rather than the one above. A finding already in a
-commit needs its fingerprint in `.gitleaksignore`, because commits do not
-change. Neither is the answer for a real credential: a secret that reached a
-commit is disclosed, and the response is to rotate it first.
+commit needs its fingerprint in `.gitleaksignore`. The fingerprint names the
+commit, so a history rewrite reissues that commit under a new hash and every
+entry for it stops applying; when the rewrite lands, re-run the scan and
+re-fingerprint. Neither is the answer for a real credential: a secret that
+reached a commit is disclosed, and the response is to rotate it first.
 
 ## Still to come
 
