@@ -48,6 +48,8 @@ async function signUpMinor(
   await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByLabel('Confirm password').fill(password);
+  // ST-166: sign-up refuses to submit until the privacy notice is accepted.
+  await page.getByRole('checkbox', { name: 'I accept the privacy notice and the terms' }).check();
   await page.getByRole('button', { name: 'Sign up' }).click();
 }
 
