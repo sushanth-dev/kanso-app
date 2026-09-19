@@ -48,6 +48,8 @@ async function signUp(page: Page): Promise<void> {
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByLabel('Confirm password').fill(password);
+  // ST-166: sign-up refuses to submit until the privacy notice is accepted.
+  await page.getByRole('checkbox', { name: 'I accept the privacy notice and the terms' }).check();
   await page.getByRole('button', { name: 'Sign up' }).click();
   // Sign-up creates the player from the account name (ST-072) and lands on
   // the report (ST-092).
