@@ -146,8 +146,9 @@ in `app/main/tokens/` and documented in `project/main/docs/brand-style.md`:
 - Competitor analysis checked against the live web in August 2026.
 - Analysis cost measured (about 1.1 cents per game, 1.9 cents per
   tournament), per `project/main/docs/analysis-cost.md`.
-- No users, no revenue, no real testimonials or case studies yet. Future
-  work must not fabricate them.
+- Testimonials and case studies are not available yet. Future work must not
+  fabricate them, and must not present personas, projections, or imagined
+  customers as customer evidence.
 - Two rendered token reference pages: `project/main/docs/design/`.
 
 ## Product Principles
