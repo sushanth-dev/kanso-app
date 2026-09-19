@@ -160,20 +160,37 @@ a personal stage nobody deletes is a bill nobody notices.
 
 ## Migrate it
 
+Migrate is a step in the deploy, not a follow-up to it. A deploy that carries a
+migration is not finished until this section has run, and nothing reports that
+it has not: the API starts, `/health` answers `{"status":"ok"}`, and only a
+request that reads the new column fails.
+
 The database is not reachable from a laptop, on purpose. It has no public
 address and its security group only accepts traffic from inside the VPC, so
 `sst shell` cannot run the migrator: the shell runs locally with the stage's
 environment variables, not inside the network.
 
 The way in is the `Migrate` Lambda, which `infra/api.ts` deploys in the same
-VPC as the database. It runs the checked-in migrator and exits:
+VPC as the database. It runs the checked-in migrator and exits. Set `STAGE` to
+the stage just deployed: the function is named `kanso-<stage>-MigrateFunction-*`,
+so a stage name carried over from another stage selects nothing, and the invoke
+then fails on an empty function name rather than migrating anything.
 
 ```sh
-MIGRATE=$(aws lambda list-functions --query \
-  "Functions[?starts_with(FunctionName, 'kanso-dev-Migrate')].FunctionName | [0]" \
+STAGE=production
+MIGRATE=$(aws lambda list-functions --region ap-south-2 --query \
+  "Functions[?starts_with(FunctionName, 'kanso-$STAGE-Migrate')].FunctionName | [0]" \
   --output text)
-aws lambda invoke --function-name "$MIGRATE" --payload '{}' /tmp/migrate.out
+aws lambda invoke --region ap-south-2 --function-name "$MIGRATE" \
+  --payload '{}' /tmp/migrate.out
 cat /tmp/migrate.out
+```
+
+If that comes back empty, ask what exists rather than guessing at the stage:
+
+```sh
+aws lambda list-functions --region ap-south-2 --query \
+  "Functions[?contains(FunctionName, 'Migrate')].FunctionName" --output text
 ```
 
 It runs the same `apps/api/src/db/migrate.ts` the integration tests run, gets
@@ -183,6 +200,17 @@ The proof it worked is the response payload:
 ```
 "Migrations applied."
 ```
+
+The migrator is idempotent: it records each applied migration in
+`drizzle.__drizzle_migrations` and skips what is already there, so re-running
+this after a deploy is safe and costs one invocation.
+
+A skipped run is quiet. On 19 September 2026 a deploy shipped migration 0040
+without this step. `better-auth` selects every column on `user`, so both
+`/api/auth/sign-in/email` and `/api/auth/sign-up/email` answered 500 with
+`PostgresError: column "privacy_acknowledged_at" does not exist` (code 42703)
+while `/health` stayed green. A 500 that names a column is this failure until
+proven otherwise.
 
 The alternative would have been to give the database a public address for the
 length of a migration. That trades a permanent weakness for a temporary
@@ -205,7 +233,9 @@ Expected, and what came back:
 That single response proves more than it looks like: a valid certificate at the
 edge, Cloudflare reaching API Gateway, API Gateway reaching the function, and
 the function reaching the private database, because `/health` answers 200 only
-after a `select 1` returns.
+after a `select 1` returns. What it cannot prove is that the schema matches the
+code: `select 1` touches no table, so a migration that was never applied is
+invisible here.
 
 Two more that are worth running once per stage. The session guard, live on a
 real endpoint, where 401 is the correct answer to a request with no cookie:
