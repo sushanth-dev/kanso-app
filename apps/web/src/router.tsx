@@ -48,7 +48,13 @@ import { PuzzlesRoute } from './routes/puzzles-route.tsx';
 import { CurriculumRoute } from './routes/curriculum-route.tsx';
 import { ForgotPasswordRoute } from './routes/forgot-password-route.tsx';
 import { ResetPasswordRoute } from './routes/reset-password-route.tsx';
-import { AboutRoute, ContactRoute, PrivacyRoute, TermsRoute } from './routes/legal-routes.tsx';
+import {
+  AboutRoute,
+  ContactRoute,
+  LicencesRoute,
+  PrivacyRoute,
+  TermsRoute,
+} from './routes/legal-routes.tsx';
 
 interface RouterContext {
   queryClient: QueryClient;
@@ -64,14 +70,16 @@ function RootComponent() {
   // The landing page and the shared page are public and render outside the
   // authenticated shell. The landing page carries its own header and footer.
   // The nudge unsubscribe link (ST-126) joins them: it is opened from an email
-  // with no session. The four policy pages (ST-165) join them too: a parent
-  // reading the privacy page has no session either.
+  // with no session. The four policy pages (ST-165) and the licence notices
+  // (ST-170) join them too: a parent reading the privacy page has no session
+  // either, and the licence notices have to travel with the fonts we serve.
   if (
     pathname === '/' ||
     pathname === '/privacy' ||
     pathname === '/terms' ||
     pathname === '/about' ||
     pathname === '/contact' ||
+    pathname === '/licences' ||
     pathname.startsWith('/shared/proof-sheets/') ||
     pathname.startsWith('/shared/assignments/') ||
     pathname.startsWith('/shared/games/') ||
@@ -140,8 +148,9 @@ const signUpRoute = createRoute({
   component: SignUpRoute,
 });
 
-// ST-165. The four policy pages are public and render outside the shell, so a
-// visitor with no account can read them, and so the footer can reach them.
+// ST-165 and ST-170. The four policy pages and the licence notices are public
+// and render outside the shell, so a visitor with no account can read them, and
+// so the footer can reach them.
 const privacyRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/privacy',
@@ -164,6 +173,12 @@ const contactRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/contact',
   component: ContactRoute,
+});
+
+const licencesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/licences',
+  component: LicencesRoute,
 });
 
 const accountRoute = createRoute({
@@ -467,6 +482,7 @@ const routeTree = rootRoute.addChildren([
   termsRoute,
   aboutRoute,
   contactRoute,
+  licencesRoute,
   accountRoute.addChildren([
     playerEditRoute,
     settingsRoute,

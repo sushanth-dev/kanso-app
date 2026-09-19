@@ -4,9 +4,9 @@ import { LEGAL_LINKS } from '../content/legal/index.ts';
 
 /**
  * The footer the public surfaces share (ST-165): the landing page, the sign-in
- * and sign-up screens, and the four policy pages. It carries the only visible
- * route to the policy pages, and the sentence the landing page has always
- * ended on.
+ * and sign-up screens, the policy pages, and the licence notices (ST-170). It
+ * carries the only visible route to those pages, and the sentence the landing
+ * page has always ended on.
  *
  * The sentence is unchanged here on purpose. What the landing page says the
  * product is belongs to ST-167, which runs after ST-165 in the sprint stack.
