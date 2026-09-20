@@ -45,6 +45,43 @@ describe('SharedProofSheetScreen', () => {
     expect(screen.getByText(/Tournament games · Jan 1, 2026 to Jun 1, 2026/)).toBeInTheDocument();
   });
 
+  // ST-175, criterion 7. The proof sheet carries no estimate: every figure on
+  // it is counted from games, and the type is stated under those figures.
+  test('labels its figures as observed, beside the games behind each half', () => {
+    render(<SharedProofSheetScreen sheet={sharedFixture()} />);
+
+    expect(
+      screen.getByText(
+        'Observed · every figure on this page is counted from these games, not modelled from engine scores.',
+      ),
+    ).toBeVisible();
+    expect(screen.getByText('over 10 games')).toBeInTheDocument();
+    expect(screen.getByText('over 8 games')).toBeInTheDocument();
+  });
+
+  // Criterion 4 as the label meets it: the refusal keeps its own state, and the
+  // counts it does have still carry the type.
+  test('labels the counts in the refusal state, which stays a refusal', () => {
+    render(
+      <SharedProofSheetScreen
+        sheet={sharedFixture({
+          trend: 'insufficient_evidence',
+          beforeValue: null,
+          afterValue: null,
+        })}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        'Observed · every figure on this page is counted from these games, not modelled from engine scores.',
+      ),
+    ).toBeVisible();
+    expect(
+      screen.getByText('There is not enough evidence yet to say whether it is helping.'),
+    ).toBeInTheDocument();
+  });
+
   test('renders insufficient evidence as a sentence with the games, not a zero or a blank', () => {
     render(
       <SharedProofSheetScreen

@@ -89,6 +89,13 @@ test('creates, shares, reads, and revokes a proof sheet', async ({ page, browser
   await expect(
     reader.getByText('There is not enough evidence yet to say whether it is helping.'),
   ).toBeVisible();
+  // ST-175. In a real browser: the sheet says which kind of numbers it holds,
+  // and that every one of them is counted rather than modelled.
+  await expect(
+    reader.getByText(
+      'Observed · every figure on this page is counted from these games, not modelled from engine scores.',
+    ),
+  ).toBeVisible();
   const verdictSentence = reader.locator('main > p', {
     hasText: 'There is not enough evidence yet',
   });

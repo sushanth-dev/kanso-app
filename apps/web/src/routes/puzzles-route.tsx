@@ -46,8 +46,10 @@ function dueLabel(nextReviewAt: string): string {
 
 /**
  * ST-156. The overconfidence signal beside one queue group, second channel
- * text under the row's name. A group with no answered failed drills is out
- * of the map; the honest zero says so rather than showing a number.
+ * text under the row's name. ST-175. The same wording as the debt card: the
+ * count is the puzzles whose latest drill failed, and the rating is the last
+ * answer each row holds. A group with no answered failed drills is out of the
+ * map; the honest zero says so rather than showing a number.
  */
 function CalibrationNote({ calibration }: { calibration: GroupCalibration | undefined }) {
   if (calibration === undefined) {
@@ -60,8 +62,8 @@ function CalibrationNote({ calibration }: { calibration: GroupCalibration | unde
   const pct = (share: number) => `${Math.round(share * 100)}%`;
   return (
     <Text type="supporting" className="text-xs">
-      Rated sure on {pct(calibration.overconfidence)} of {calibration.failedAnswered} failed drill
-      {calibration.failedAnswered === 1 ? '' : 's'}
+      Rated sure on {pct(calibration.overconfidence)} of {calibration.failedAnswered} puzzle
+      {calibration.failedAnswered === 1 ? '' : 's'} whose latest drill failed
       {calibration.weekFailedAnswered > 0
         ? `, ${pct(calibration.weekOverconfidence)} in the last week`
         : ''}

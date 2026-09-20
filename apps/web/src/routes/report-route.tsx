@@ -20,6 +20,7 @@ import {
   type WeaknessKind,
 } from '../api/diagnosis-api.ts';
 import { StreamToggle } from '../components/stream-toggle.tsx';
+import { FigureTypeNote, FigureTypeTag, leakSourcePhrase } from '../components/figure-type.tsx';
 import { DebtBoard } from '../components/debt-board.tsx';
 import { RetiredHeadline } from '../components/retired-headline.tsx';
 import { gamesQueryOptions, reportQueryOptions, tournamentsQueryOptions } from '../query-client.ts';
@@ -173,6 +174,7 @@ export function ReportScreen({
           weaknesses={report.weaknesses}
           stream={report.stream}
           tournamentId={report.tournamentId}
+          gamesCovered={report.gamesCovered}
         />
       )}
       {/* ST-152. The board sits beside the weaknesses, not above them: the
@@ -247,9 +249,15 @@ interface WeaknessListProps {
   stream: Stream;
   /** The report's scope: the cache patch below writes the same key the query reads. */
   tournamentId?: string | null;
+  /**
+   * ST-175. The leak is the product's only estimate, and this is its input:
+   * the report's coverage is the same season baseline game count the model was
+   * run over, so the note names the model's own input rather than a proxy.
+   */
+  gamesCovered: number;
 }
 
-function WeaknessList({ weaknesses, stream, tournamentId }: WeaknessListProps) {
+function WeaknessList({ weaknesses, stream, tournamentId, gamesCovered }: WeaknessListProps) {
   const queryClient = useQueryClient();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   // The weaknesses whose coaching answer has landed. The endpoint is
@@ -290,118 +298,148 @@ function WeaknessList({ weaknesses, stream, tournamentId }: WeaknessListProps) {
       .finally(() => setCoachingId((current) => (current === id ? null : current)));
   };
   return (
-    <ol className="stagger-in space-y-4">
-      {weaknesses.map((weakness) => {
-        const expanded = expandedId === weakness.id;
-        // ST-106. The group's drill progress replaces the per-instance
-        // practiced ticks the replay practice fed: one full deal of 20
-        // solved drills earns the badge - and names the next deal.
-        const practiced = weakness.drilled >= PRACTICED_THRESHOLD;
-        return (
-          <li key={weakness.id}>
-            <Card>
-              <div className="space-y-2">
-                <div className="flex items-baseline justify-between gap-3">
-                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                    <Text type="supporting" className="font-mono text-sm">
-                      #{weakness.rank}
-                    </Text>
-                    <Text className="font-display text-base">{weakness.label}</Text>
+    <>
+      {/* ST-175. The type sits above the list, where the player meets the
+          numbers, rather than in a footnote below them. The ordering is named
+          too: `rank` comes from the same modelled figure, so the row position
+          is estimate-derived even though the counts inside a row are observed. */}
+      <FigureTypeNote
+        type="estimate"
+        detail={`${leakSourcePhrase(gamesCovered)}. Rows are ordered by it.`}
+      />
+      <ol className="stagger-in space-y-4">
+        {weaknesses.map((weakness) => {
+          const expanded = expandedId === weakness.id;
+          // ST-106. The group's drill progress replaces the per-instance
+          // practiced ticks the replay practice fed: one full deal of 20
+          // solved drills earns the badge - and names the next deal.
+          const practiced = weakness.drilled >= PRACTICED_THRESHOLD;
+          return (
+            <li key={weakness.id}>
+              <Card>
+                <div className="space-y-2">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                      <Text type="supporting" className="font-mono text-sm">
+                        #{weakness.rank}
+                      </Text>
+                      <Text className="font-display text-base">{weakness.label}</Text>
+                    </div>
+                    {/* ST-175. The word travels with the number: the leak is
+                      modelled, and a reader who meets one row without the
+                      list's note still learns which kind of number it is. */}
+                    <div className="flex items-baseline gap-2">
+                      {weakness.rank === 1 ? (
+                        <RankOneLeak
+                          ratingLeak={weakness.ratingLeak}
+                          saturated={weakness.saturated}
+                        />
+                      ) : (
+                        <Text className="font-mono text-base">
+                          {weakness.saturated
+                            ? `at least ${weakness.ratingLeak}`
+                            : weakness.ratingLeak}
+                        </Text>
+                      )}
+                      <FigureTypeTag type="estimate" />
+                    </div>
                   </div>
-                  {weakness.rank === 1 ? (
-                    <RankOneLeak ratingLeak={weakness.ratingLeak} saturated={weakness.saturated} />
-                  ) : (
-                    <Text className="font-mono text-base">
-                      {weakness.saturated ? `at least ${weakness.ratingLeak}` : weakness.ratingLeak}
-                    </Text>
-                  )}
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge label={KIND_LABEL[weakness.kind]} variant="neutral" />
-                  {practiced ? <Badge label="Practiced" variant="neutral" /> : null}
-                  <RetirementChip state={weakness.retirementState} />
-                  {weakness.eco !== null ? (
-                    <Text type="supporting" className="font-mono text-sm">
-                      {weakness.eco}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge label={KIND_LABEL[weakness.kind]} variant="neutral" />
+                    {practiced ? <Badge label="Practiced" variant="neutral" /> : null}
+                    <RetirementChip state={weakness.retirementState} />
+                    {weakness.eco !== null ? (
+                      <Text type="supporting" className="font-mono text-sm">
+                        {weakness.eco}
+                      </Text>
+                    ) : null}
+                  </div>
+                  {/* ST-175. Everything counted from the games, and the
+                    retirement state, which is read from the player's drills
+                    against those same games. Neither is modelled. */}
+                  <FigureTypeNote
+                    type="observed"
+                    detail="counted from these games; the retirement state is read from your drills against them."
+                  />
+                  <dl className="flex flex-wrap gap-x-6 gap-y-2">
+                    <div>
+                      <dt className="font-ui text-xs text-muted">games</dt>
+                      <dd className="font-mono">{weakness.gamesAffected}</dd>
+                    </div>
+                    <div>
+                      <dt className="font-ui text-xs text-muted">occurrences</dt>
+                      <dd className="font-mono">{weakness.occurrences}</dd>
+                    </div>
+                    <div>
+                      <dt className="font-ui text-xs text-muted">half-points lost</dt>
+                      <dd className="font-mono">{weakness.halfPointsLost}</dd>
+                    </div>
+                  </dl>
+                  {weakness.lineConsistency !== null ? (
+                    <LineConsistencyNote lineConsistency={weakness.lineConsistency} />
+                  ) : null}
+                  {weakness.groupKey !== null ? (
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                      {/* The click materializes the coaching: the model's line
+                        for the mistake, or just the resources for an opening. */}
+                      {weakness.kind === 'opening' && weakness.actionItems.length === 0 ? (
+                        <Link
+                          onClick={() => onToggle(weakness.id)}
+                          aria-expanded={expanded}
+                          className="min-h-11 items-center"
+                        >
+                          {coachingId === weakness.id
+                            ? 'Writing your resources...'
+                            : 'Get resources'}
+                        </Link>
+                      ) : null}
+                      {weakness.kind !== 'opening' ? (
+                        <Link onClick={() => onToggle(weakness.id)} aria-expanded={expanded}>
+                          {expanded ? 'Hide evidence' : 'Show evidence'}
+                        </Link>
+                      ) : null}
+                      {/* ST-111. The report names the weakness; the curriculum
+                        page owns the resources, their assessments, and their
+                        state. */}
+                      {weakness.actionItems.length > 0 ? (
+                        <Link hasUnderline href="/curriculum">
+                          View curriculum
+                        </Link>
+                      ) : null}
+                      {/* ST-106. The card's one entry: the group's 20-puzzle deal,
+                        renamed once the first batch is done. */}
+                      <Link
+                        hasUnderline
+                        href={`/practice?kind=${weakness.kind}&group=${encodeURIComponent(weakness.groupKey)}&label=${encodeURIComponent(weakness.label)}&stream=${stream}`}
+                      >
+                        {practiced ? 'Practice more puzzles' : 'Practice puzzles'}
+                      </Link>
+                    </div>
+                  ) : null}
+                  {coachingId === weakness.id && weakness.kind !== 'opening' ? (
+                    <Text type="supporting" className="font-ui text-xs">
+                      The coach is writing your note...
                     </Text>
                   ) : null}
                 </div>
-                <dl className="flex flex-wrap gap-x-6 gap-y-2">
-                  <div>
-                    <dt className="font-ui text-xs text-muted">games</dt>
-                    <dd className="font-mono">{weakness.gamesAffected}</dd>
-                  </div>
-                  <div>
-                    <dt className="font-ui text-xs text-muted">occurrences</dt>
-                    <dd className="font-mono">{weakness.occurrences}</dd>
-                  </div>
-                  <div>
-                    <dt className="font-ui text-xs text-muted">half-points lost</dt>
-                    <dd className="font-mono">{weakness.halfPointsLost}</dd>
-                  </div>
-                </dl>
-                {weakness.lineConsistency !== null ? (
-                  <LineConsistencyNote lineConsistency={weakness.lineConsistency} />
-                ) : null}
-                {weakness.groupKey !== null ? (
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                    {/* The click materializes the coaching: the model's line
-                        for the mistake, or just the resources for an opening. */}
-                    {weakness.kind === 'opening' && weakness.actionItems.length === 0 ? (
-                      <Link
-                        onClick={() => onToggle(weakness.id)}
-                        aria-expanded={expanded}
-                        className="min-h-11 items-center"
-                      >
-                        {coachingId === weakness.id ? 'Writing your resources...' : 'Get resources'}
-                      </Link>
-                    ) : null}
-                    {weakness.kind !== 'opening' ? (
-                      <Link onClick={() => onToggle(weakness.id)} aria-expanded={expanded}>
-                        {expanded ? 'Hide evidence' : 'Show evidence'}
-                      </Link>
-                    ) : null}
-                    {/* ST-111. The report names the weakness; the curriculum
-                        page owns the resources, their assessments, and their
-                        state. */}
-                    {weakness.actionItems.length > 0 ? (
-                      <Link hasUnderline href="/curriculum">
-                        View curriculum
-                      </Link>
-                    ) : null}
-                    {/* ST-106. The card's one entry: the group's 20-puzzle deal,
-                        renamed once the first batch is done. */}
-                    <Link
-                      hasUnderline
-                      href={`/practice?kind=${weakness.kind}&group=${encodeURIComponent(weakness.groupKey)}&label=${encodeURIComponent(weakness.label)}&stream=${stream}`}
-                    >
-                      {practiced ? 'Practice more puzzles' : 'Practice puzzles'}
-                    </Link>
-                  </div>
-                ) : null}
-                {coachingId === weakness.id && weakness.kind !== 'opening' ? (
-                  <Text type="supporting" className="font-ui text-xs">
-                    The coach is writing your note...
-                  </Text>
-                ) : null}
-              </div>
-              {/* The fold stays mounted and collapses through grid-template-rows
+                {/* The fold stays mounted and collapses through grid-template-rows
                   (styles.css .fold), so showing evidence moves the page instead
                   of jumping it. Inert while closed: unreachable and unread. */}
-              <div
-                className="fold"
-                data-open={expanded && weakness.kind !== 'opening'}
-                inert={!expanded || weakness.kind === 'opening'}
-              >
-                <div>
-                  {weakness.kind !== 'opening' ? <EvidenceDetail weakness={weakness} /> : null}
+                <div
+                  className="fold"
+                  data-open={expanded && weakness.kind !== 'opening'}
+                  inert={!expanded || weakness.kind === 'opening'}
+                >
+                  <div>
+                    {weakness.kind !== 'opening' ? <EvidenceDetail weakness={weakness} /> : null}
+                  </div>
                 </div>
-              </div>
-            </Card>
-          </li>
-        );
-      })}
-    </ol>
+              </Card>
+            </li>
+          );
+        })}
+      </ol>
+    </>
   );
 }
 /**

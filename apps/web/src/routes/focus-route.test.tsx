@@ -442,7 +442,7 @@ describe('FocusChoiceView ranking section', () => {
     renderFocusChoice({ stream: 'online' });
     const busy = document.querySelector('div[role="status"][aria-busy="true"]');
     expect(busy).not.toBeNull();
-    expect(screen.queryByText('Ranked by rating leak.')).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Estimate · /)).not.toBeInTheDocument();
   });
 
   test('names the missing ranking as a missing-import problem, not a failure', async () => {
@@ -480,6 +480,8 @@ describe('FocusChoiceView ranking section', () => {
   test('ranks the weaknesses with the leak, floored when saturated', async () => {
     vi.spyOn(diagnosisApi, 'getReport').mockResolvedValue(
       onlineReport({
+        // ST-175. The note names the model's input, so the fixture states one.
+        gamesCovered: 12,
         weaknesses: [
           rankingWeakness,
           { ...rankingWeakness, id: 'w-2', rank: 2, label: 'Hanging pieces', saturated: true },
@@ -487,7 +489,12 @@ describe('FocusChoiceView ranking section', () => {
       }),
     );
     renderFocusChoice({ stream: 'online' });
-    expect(await screen.findByText('Ranked by rating leak.')).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        'Estimate · modelled from the 12 rated games in this window, not counted from results. Rows are ordered by it.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText('Estimate')).toHaveLength(2);
     expect(screen.getByText('#1')).toBeInTheDocument();
     expect(screen.getByText('Missed captures')).toBeInTheDocument();
     expect(screen.getByText('#2')).toBeInTheDocument();

@@ -69,6 +69,20 @@ describe('DebtBoard', () => {
     expect(screen.getByText('42 drills')).toBeVisible();
   });
 
+  // ST-175, criterion 7. Every figure on a card is a count - the balance, the
+  // window, the drills beside it, the state read from them - so the card says so.
+  test('labels its figures as observed', async () => {
+    vi.spyOn(diagnosisApi, 'getPatterns').mockResolvedValue(boardFixture([patternFixture()]));
+
+    renderBoard();
+
+    expect(
+      await screen.findByText(
+        'Observed · counted from these games and your drills, not modelled from engine scores.',
+      ),
+    ).toBeVisible();
+  });
+
   test('a came-back card keeps the relapse in the history', async () => {
     vi.spyOn(diagnosisApi, 'getPatterns').mockResolvedValue(
       boardFixture([
@@ -172,7 +186,9 @@ describe('DebtBoard', () => {
     renderBoard([]);
 
     expect(
-      await screen.findByText('Rated sure on 75% of 4 failed drills, 100% in the last week.'),
+      await screen.findByText(
+        'Rated sure on 75% of 4 puzzles whose latest drill failed, 100% in the last week.',
+      ),
     ).toBeVisible();
   });
 

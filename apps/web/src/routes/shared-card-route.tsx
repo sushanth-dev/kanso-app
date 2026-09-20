@@ -7,6 +7,7 @@ import { useLocation, useParams } from '@tanstack/react-router';
 import { ApiRequestError } from '../api/account-api.ts';
 import { sharedCardApi } from '../api/report-share-api.ts';
 import { Mark } from '../components/mark.tsx';
+import { FigureTypeNote } from '../components/figure-type.tsx';
 
 /**
  * ST-127. The shared report card: the headline leak number, its weakness
@@ -51,6 +52,15 @@ export function SharedCardScreen({ card }: { card: { ratingLeak: number; label: 
       <div className="mt-6 flex items-baseline gap-3">
         <Text className="font-mono text-6xl text-primary">{card.ratingLeak}</Text>
         <Text className="text-lg">rating points</Text>
+      </div>
+      {/* ST-175. The card carries no game count by design - its payload is the
+          number and the label, and that is all a shared link may leak - so the
+          type is stated without the count the in-app surfaces name. */}
+      <div className="mt-4">
+        <FigureTypeNote
+          type="estimate"
+          detail="modelled from the player's rated games, not counted from results."
+        />
       </div>
       <div className="mt-8">
         <Button

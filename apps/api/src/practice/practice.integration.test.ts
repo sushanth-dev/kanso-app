@@ -668,17 +668,65 @@ describe('ST-156 confidence calibration', () => {
     expect(byPuzzle['h1500_3']).toBe('guessed');
   });
 
-  test("the latest drill's answer stands on a re-drill", async () => {
+  test('a skipped re-drill keeps the newest known answer', async () => {
     await drill('h1500_0', false, 'sure');
     await drill('h1500_0', false, 'not_sure');
-    await drill('h1500_0', false); // a skipped re-drill overwrites with null
+    await drill('h1500_0', false); // a skipped prompt erases no answer we hold
 
     const [row] = await harness.db
       .select()
       .from(puzzleAttempt)
       .where(eq(puzzleAttempt.puzzleId, 'h1500_0'));
-    expect(row!.confidence).toBeNull();
+    expect(row!.confidence).toBe('not_sure');
     expect(row!.attempts).toBe(3);
+
+    // An answered drill still moves the row on.
+    await drill('h1500_0', false, 'guessed');
+    const [afterAnswer] = await harness.db
+      .select()
+      .from(puzzleAttempt)
+      .where(eq(puzzleAttempt.puzzleId, 'h1500_0'));
+    expect(afterAnswer!.confidence).toBe('guessed');
+  });
+
+  test('a puzzle solved once and then failed counts as a failed drill', async () => {
+    // The hand-built fixture criterion 6 asks for: one row walked through a
+    // sure failure, a solve, then a failed drill answered `not_sure`. The row
+    // keeps `solved` true (ever-solved) while its ladder sits back at 0, so
+    // the signal has to read the ladder and not the sticky flag.
+    await drill('h1500_0', false, 'sure');
+    await drill('h1500_0', true, 'sure');
+    await drill('h1500_0', false, 'not_sure');
+
+    const [row] = await harness.db
+      .select()
+      .from(puzzleAttempt)
+      .where(eq(puzzleAttempt.puzzleId, 'h1500_0'));
+    expect(row!.solved).toBe(true);
+    expect(row!.reviewLevel).toBe(0);
+    expect(row!.confidence).toBe('not_sure');
+
+    const res = await app(OWNER).request('/practice/queue');
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      calibration: Record<string, { failedAnswered: number; overconfidence: number }>;
+    };
+    expect(body.calibration['motif:hanging_piece']).toEqual({
+      failedAnswered: 1,
+      overconfidence: 0,
+      weekFailedAnswered: 1,
+      weekOverconfidence: 0,
+    });
+  });
+
+  test('a solve that is not re-failed stays out of the signal', async () => {
+    await drill('h1500_0', false, 'sure');
+    await drill('h1500_0', true, 'sure');
+
+    const res = await app(OWNER).request('/practice/queue');
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { calibration: Record<string, unknown> };
+    expect(body.calibration).toEqual({});
   });
 
   test('the queue carries the overconfidence figures with the honest zero', async () => {

@@ -26,6 +26,7 @@ import { AssignmentLinksSection } from '../components/assignment-links-section.t
 import { track } from '../analytics.ts';
 import { StatusMessage } from '../components/status-message.tsx';
 import { StreamToggle } from '../components/stream-toggle.tsx';
+import { FigureTypeNote, FigureTypeTag, leakSourcePhrase } from '../components/figure-type.tsx';
 import { useRevealSequence } from '../use-reveal-sequence.ts';
 import {
   clearSessionState,
@@ -156,6 +157,12 @@ function FocusTrendCard({ measurement }: { measurement: FocusMeasurement }) {
       <VerdictReveal
         verdict={`${formatValue(measurement.baselineValue)} → ${formatValue(measurement.currentValue)} ${measurement.unit}`}
         gamesLine={`Measured over ${games} ${gamesLabel(games)}.`}
+      />
+      {/* ST-175. The verdict and the two figures behind it are counts. The
+          count F12 states stays exactly as it was; this only names the kind. */}
+      <FigureTypeNote
+        type="observed"
+        detail="the before and after figures are counted from those games, not modelled."
       />
     </Card>
   );
@@ -322,9 +329,13 @@ function RankingSection({
         </Text>
       ) : (
         <>
-          <Text as="p" display="block" type="supporting" className="text-sm">
-            Ranked by rating leak.
-          </Text>
+          {/* ST-175. The ranking is the leak, and the leak is the product's
+              only estimate, so the type is stated where the rows are met and
+              the model's own input is named rather than implied. */}
+          <FigureTypeNote
+            type="estimate"
+            detail={`${leakSourcePhrase(reportQuery.data.gamesCovered)}. Rows are ordered by it.`}
+          />
           <ol className="space-y-2">
             {reportQuery.data.weaknesses.map((weakness) => (
               <li key={weakness.id} className="flex items-baseline gap-3">
@@ -335,6 +346,7 @@ function RankingSection({
                 <span className="font-mono">
                   {weakness.saturated ? `at least ${weakness.ratingLeak}` : weakness.ratingLeak}
                 </span>
+                <FigureTypeTag type="estimate" />
               </li>
             ))}
           </ol>

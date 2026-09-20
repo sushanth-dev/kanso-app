@@ -138,7 +138,9 @@ describe('PuzzlesRoute', () => {
     renderAt();
 
     expect(
-      await screen.findByText('Rated sure on 67% of 3 failed drills, 100% in the last week.'),
+      await screen.findByText(
+        'Rated sure on 67% of 3 puzzles whose latest drill failed, 100% in the last week.',
+      ),
     ).toBeVisible();
   });
 

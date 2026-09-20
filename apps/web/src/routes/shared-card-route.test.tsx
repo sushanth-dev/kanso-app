@@ -38,7 +38,10 @@ describe('SharedCardRoute', () => {
     expect(screen.getByText('84')).toBeVisible();
     // The scoping contract, at the surface: no second data point, no identity.
     expect(screen.queryByText(/rating points/i)).toBeVisible();
-    expect(screen.queryByText(/games/i)).not.toBeInTheDocument();
+    // ST-175. The estimate now names what it is modelled from, so the word
+    // "games" is allowed; a count of games is the second data point this
+    // forbids, and it stays forbidden.
+    expect(screen.queryByText(/\d+\s*games/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/opponent/i)).not.toBeInTheDocument();
   });
 
