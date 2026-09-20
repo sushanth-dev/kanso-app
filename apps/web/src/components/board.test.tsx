@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, test, vi, type Mock } from 'vitest';
 import { Board, describePosition } from './board.tsx';
 
@@ -117,5 +118,166 @@ describe('Board', () => {
     expect(describePosition(START)).toBe(
       'white king e1, queen d1, rooks a1 h1, bishops c1 f1, knights b1 g1, pawns a2 b2 c2 d2 e2 f2 g2 h2. black king e8, queen d8, rooks a8 h8, bishops c8 f8, knights b8 g8, pawns a7 b7 c7 d7 e7 f7 g7 h7.',
     );
+  });
+});
+
+// ST-174. A white knight on f3 between the two kings: one piece to move, and a
+// destination list small enough to assert on.
+const KNIGHT = '4k3/8/8/8/8/5N2/8/4K3 w - - 0 1';
+const KNIGHT_MOVES = ['d4', 'e5', 'g5', 'h4', 'd2', 'h2', 'g1'];
+
+describe('Board keyboard path', () => {
+  test('a read-only board exposes no controls and keeps its image announcement', () => {
+    render(<Board fen={KNIGHT} label="Position" />);
+    expect(screen.getByRole('img', { name: 'Position' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'white knight' })).toBeInTheDocument();
+    expect(screen.queryByRole('group')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  test('an interactive board is a named group rather than one image', () => {
+    render(
+      <Board
+        fen={KNIGHT}
+        draggableSquares={['f3']}
+        onSquareClick={vi.fn()}
+        label="Practice puzzle"
+      />,
+    );
+    expect(screen.getByRole('group', { name: 'Practice puzzle' })).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: 'Practice puzzle' })).not.toBeInTheDocument();
+    // The position is spoken once, by the group name; the drawings inside the
+    // hidden SVG are not announced a second time.
+    expect(screen.queryByRole('img', { name: 'white knight' })).not.toBeInTheDocument();
+  });
+
+  test('tabbing into the board reaches a control named after a real square', async () => {
+    const user = userEvent.setup();
+    render(
+      <Board
+        fen={KNIGHT}
+        draggableSquares={['f3']}
+        onSquareClick={vi.fn()}
+        label="Practice puzzle"
+      />,
+    );
+    await user.tab();
+    expect(document.activeElement).toHaveAccessibleName('Select the white knight on f3');
+  });
+
+  test('the square a focused control names wears the highlight', async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <Board
+        fen={KNIGHT}
+        draggableSquares={['f3']}
+        onSquareClick={vi.fn()}
+        label="Practice puzzle"
+      />,
+    );
+    const square = (): Element | null => container.querySelector('rect[data-square="f3"]');
+    expect(square()?.getAttribute('fill')).not.toBe('#e9b44c');
+    await user.tab();
+    expect(square()?.getAttribute('fill')).toBe('#e9b44c');
+    await user.tab();
+    expect(square()?.getAttribute('fill')).not.toBe('#e9b44c');
+  });
+
+  test('a keyboard player picks a piece and then a destination', async () => {
+    const user = userEvent.setup();
+    const onSquareClick = vi.fn();
+    const props = {
+      fen: KNIGHT,
+      draggableSquares: ['f3'],
+      onSquareClick,
+      label: 'Practice puzzle',
+    };
+    const { rerender } = render(<Board {...props} />);
+    await user.tab();
+    await user.keyboard('{Enter}');
+    expect(onSquareClick).toHaveBeenLastCalledWith('f3');
+
+    // What the route does with f3: the piece is picked and its legal
+    // destinations are handed back.
+    rerender(<Board {...props} selectedSquare="f3" targetSquares={KNIGHT_MOVES} />);
+    expect(screen.queryByRole('button', { name: 'Select the white knight on f3' })).toBeNull();
+    // The picked piece's list replaces the piece list, so focus travels to the
+    // first destination instead of falling to the document.
+    expect(document.activeElement).toHaveAccessibleName('Move the white knight on f3 to d4');
+    await user.keyboard('{Enter}');
+    expect(onSquareClick).toHaveBeenLastCalledWith('d4');
+  });
+
+  test('a keyboard player keeps their place while the opponent answers', async () => {
+    const user = userEvent.setup();
+    const onSquareClick = vi.fn();
+    const props = {
+      fen: KNIGHT,
+      draggableSquares: ['f3'],
+      onSquareClick,
+      label: 'Practice puzzle',
+    };
+    const { rerender } = render(
+      <Board {...props} selectedSquare="f3" targetSquares={KNIGHT_MOVES} />,
+    );
+    await user.tab();
+    await user.keyboard('{Enter}');
+    expect(onSquareClick).toHaveBeenLastCalledWith('d4');
+
+    // What the routes do with the move: the board goes read-only while the
+    // opponent answers (the drill's `reply`, the finish session's `thinking`),
+    // which unmounts every control the player could hold focus on.
+    rerender(<Board fen={KNIGHT} label="Practice puzzle" />);
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+
+    // The answer lands and the player is on move again. Focus returns to the
+    // controls instead of being left on the document, which would send a
+    // keyboard player back through the whole page before their next move.
+    rerender(<Board {...props} />);
+    expect(document.activeElement).toHaveAccessibleName('Select the white knight on f3');
+  });
+
+  test('Escape clears the selection through the same callback', async () => {
+    const user = userEvent.setup();
+    const onSquareClick = vi.fn();
+    const props = {
+      fen: KNIGHT,
+      draggableSquares: ['f3'],
+      onSquareClick,
+      label: 'Practice puzzle',
+    };
+    const { rerender } = render(
+      <Board {...props} selectedSquare="f3" targetSquares={KNIGHT_MOVES} />,
+    );
+    await user.tab();
+    await user.keyboard('{Escape}');
+    expect(onSquareClick).toHaveBeenLastCalledWith('f3');
+
+    rerender(<Board {...props} />);
+    expect(
+      screen.getByRole('button', { name: 'Select the white knight on f3' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Move the/ })).toBeNull();
+  });
+
+  test('a picked piece with nowhere to go can still be cleared', async () => {
+    const user = userEvent.setup();
+    const onSquareClick = vi.fn();
+    render(
+      <Board
+        fen={KNIGHT}
+        selectedSquare="f3"
+        targetSquares={[]}
+        draggableSquares={['f3']}
+        onSquareClick={onSquareClick}
+        label="Practice puzzle"
+      />,
+    );
+    const clear = screen.getByRole('button', { name: 'Clear the selection on f3' });
+    // A picked piece with no destinations is the whole control set: without this
+    // control the cluster would be empty and the selection stuck.
+    expect(screen.getAllByRole('button')).toHaveLength(1);
+    await user.click(clear);
+    expect(onSquareClick).toHaveBeenCalledWith('f3');
   });
 });
