@@ -10,8 +10,10 @@ import {
   FOCUS_SPECS,
   FOCUS_WINDOW_GAMES,
   gamesToGoFor,
+  readWindow,
   splitWindow,
   trendFor,
+  WINDOW_PAGE_ROWS,
 } from './verify.ts';
 
 const SPEC = FOCUS_SPECS['converting_won_positions']!;
@@ -108,6 +110,96 @@ describe('splitWindow', () => {
     const { baselineIds, currentIds } = splitWindow(started, [...afterGames, ...beforeGames]);
     expect(currentIds).toHaveLength(FOCUS_WINDOW_GAMES);
     expect(baselineIds).toHaveLength(FOCUS_WINDOW_GAMES);
+  });
+});
+
+describe('readWindow', () => {
+  const source = Array.from({ length: 60 }, (_, i) => ({ id: `g${i}` }));
+
+  const record = () => {
+    const offsets: number[] = [];
+    return {
+      offsets,
+      fetch: (offset: number, limit: number) => {
+        offsets.push(offset);
+        return Promise.resolve(source.slice(offset, offset + limit));
+      },
+    };
+  };
+
+  test('stops on the page that reaches the floor, and asks for no page after it', async () => {
+    const { offsets, fetch } = record();
+    const kept = await readWindow(
+      fetch,
+      () => true,
+      (k) => k.length >= FOCUS_WINDOW_GAMES,
+    );
+    expect(offsets).toEqual([0]);
+    expect(kept).toHaveLength(WINDOW_PAGE_ROWS);
+  });
+
+  test('pages again while a page of eligible rows is short of the floor', async () => {
+    const { offsets, fetch } = record();
+    const kept = await readWindow(
+      fetch,
+      (row) => Number(row.id.slice(1)) % 4 === 0,
+      (k) => k.length >= FOCUS_WINDOW_GAMES,
+    );
+    expect(offsets).toEqual([0, WINDOW_PAGE_ROWS]);
+    expect(kept).toHaveLength(FOCUS_WINDOW_GAMES);
+  });
+
+  test('a page shorter than requested ends the read: the history ran out', async () => {
+    const offsets: number[] = [];
+    const short = source.slice(0, 12);
+    const kept = await readWindow(
+      (offset, limit) => {
+        offsets.push(offset);
+        return Promise.resolve(short.slice(offset, offset + limit));
+      },
+      () => true,
+      () => false,
+    );
+    expect(offsets).toEqual([0]);
+    expect(kept).toHaveLength(12);
+  });
+
+  test('the page cap ends a read the floor never reaches', async () => {
+    const { offsets, fetch } = record();
+    const kept = await readWindow(
+      fetch,
+      () => true,
+      () => false,
+      {
+        pageRows: 2,
+        maxPages: 3,
+      },
+    );
+    expect(offsets).toEqual([0, 2, 4]);
+    expect(kept).toHaveLength(6);
+  });
+
+  test('keeps the eligible rows and drops the rest', async () => {
+    const { fetch } = record();
+    const kept = await readWindow(
+      fetch,
+      (row) => row.id !== 'g0',
+      (k) => k.length >= FOCUS_WINDOW_GAMES,
+    );
+    expect(kept.map((row) => row.id)).not.toContain('g0');
+    expect(kept).toHaveLength(WINDOW_PAGE_ROWS - 1);
+  });
+
+  test('pages without repeating or skipping a row', async () => {
+    const { fetch } = record();
+    const kept = await readWindow(
+      fetch,
+      () => true,
+      (k) => k.length >= 2 * WINDOW_PAGE_ROWS,
+    );
+    expect(kept.map((row) => row.id)).toEqual(
+      source.slice(0, 2 * WINDOW_PAGE_ROWS).map((row) => row.id),
+    );
   });
 });
 

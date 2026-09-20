@@ -9,12 +9,14 @@
  * the window, and the handler wiring.
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
-import { eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { createApp } from '../app.ts';
 import { createAuth } from '../auth.ts';
 import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-harness.ts';
 import { user } from '../db/auth-schema.ts';
 import { focusCatalogue, game, movePly, playerFocus, subscription } from '../db/schema.ts';
+import { classifyTimeControl } from '../chess/time-control.ts';
+import { FOCUS_WINDOW_GAMES, splitWindow } from './verify.ts';
 
 let harness: IntegrationDatabase;
 
@@ -430,5 +432,122 @@ describe('focus verification', () => {
     )!;
     expect(online.windowGames).toBe(9);
     expect(online.trend).toBe('insufficient_evidence');
+  });
+
+  test('a history longer than one page still yields the newest windows', async () => {
+    const cookie = await signIn(EMAIL_A);
+    const playerId = await playerIdFor(cookie);
+    await seedFocus(playerId, {
+      catalogueId: await catalogueId('converting_won_positions'),
+      startedAt: STARTED,
+    });
+
+    // 45 baseline games whose ten newest are losses and whose older 35 are wins,
+    // then 15 current games, all wins. The history is three pages long and its
+    // first page holds only five baseline games, so the read has to page to fill
+    // the baseline half at all.
+    const DAY_MS = 86_400_000;
+    for (let i = 1; i <= 45; i++) {
+      await seedConvertedGame(playerId, {
+        stream: 'tournament',
+        playedAt: new Date(STARTED.getTime() - i * DAY_MS),
+        won: i > FOCUS_WINDOW_GAMES,
+      });
+    }
+    for (let i = 1; i <= 15; i++) {
+      await seedConvertedGame(playerId, {
+        stream: 'tournament',
+        playedAt: d(`2026-08-${String(15 + i).padStart(2, '0')}`),
+        won: true,
+      });
+    }
+
+    // The derivation the endpoint ran before ST-173: the whole history, no
+    // bound. A paged read must land on the same two windows.
+    const everything = await harness.db
+      .select({ id: game.id, playedAt: game.playedAt })
+      .from(game)
+      .where(and(eq(game.playerId, playerId), eq(game.stream, 'tournament')))
+      .orderBy(desc(game.playedAt));
+    const full = splitWindow(STARTED, everything);
+    expect(everything).toHaveLength(60);
+    expect(full.baselineIds).toHaveLength(FOCUS_WINDOW_GAMES);
+    expect(full.currentIds).toHaveLength(FOCUS_WINDOW_GAMES);
+
+    const body = await getFocus(cookie);
+    const tournament = (body.measurements as Array<Record<string, unknown>>).find(
+      (m) => m.stream === 'tournament',
+    )!;
+    expect(tournament.windowGames).toBe(full.currentIds.length);
+    // A thin baseline half refuses and reports null; a full one computes a
+    // value. Only the paged read can fill it here, because the first page of the
+    // history holds five baseline games and the ten the window keeps are the
+    // losses just before the start.
+    expect(tournament.baselineValue).not.toBeNull();
+    expect(tournament.baselineValue).toBeCloseTo(0);
+    expect(tournament.currentValue).toBeCloseTo(1);
+    expect(tournament.trend).toBe('improving');
+    expect(tournament.gamesToGo).toBe(0);
+  });
+
+  test('the online window pages past the games it excludes', async () => {
+    const cookie = await signIn(EMAIL_A);
+    const playerId = await playerIdFor(cookie);
+    await seedFocus(playerId, {
+      catalogueId: await catalogueId('converting_won_positions'),
+      startedAt: STARTED,
+    });
+
+    const DAY_MS = 86_400_000;
+    // The newest twenty games are bullet and every one of them is a lost won
+    // position: outside the window, and a wrong answer if any of them were let
+    // in. The blitz games behind them are ten current wins and, before the
+    // start, twenty-four baseline games whose ten newest are losses.
+    for (let i = 11; i <= 30; i++) {
+      await seedConvertedGame(playerId, {
+        stream: 'online',
+        playedAt: new Date(STARTED.getTime() + i * DAY_MS),
+        won: false,
+        timeControl: '60+0',
+      });
+    }
+    for (let i = 1; i <= 10; i++) {
+      await seedConvertedGame(playerId, {
+        stream: 'online',
+        playedAt: new Date(STARTED.getTime() + i * DAY_MS),
+        won: true,
+        timeControl: '180+0',
+      });
+    }
+    for (let i = 1; i <= 24; i++) {
+      await seedConvertedGame(playerId, {
+        stream: 'online',
+        playedAt: new Date(STARTED.getTime() - i * DAY_MS),
+        won: i > FOCUS_WINDOW_GAMES,
+        timeControl: '180+0',
+      });
+    }
+
+    // The same derivation the endpoint ran before ST-173, eligibility included.
+    const everything = await harness.db
+      .select({ id: game.id, playedAt: game.playedAt, timeControl: game.timeControl })
+      .from(game)
+      .where(and(eq(game.playerId, playerId), eq(game.stream, 'online')))
+      .orderBy(desc(game.playedAt));
+    const blitz = everything.filter((g) => classifyTimeControl(g.timeControl) === 'blitz');
+    const full = splitWindow(STARTED, blitz);
+    expect(everything).toHaveLength(54);
+    expect(blitz).toHaveLength(34);
+    expect(full.currentIds).toHaveLength(FOCUS_WINDOW_GAMES);
+    expect(full.baselineIds).toHaveLength(FOCUS_WINDOW_GAMES);
+
+    const body = await getFocus(cookie);
+    const online = (body.measurements as Array<Record<string, unknown>>).find(
+      (m) => m.stream === 'online',
+    )!;
+    expect(online.windowGames).toBe(full.currentIds.length);
+    expect(online.baselineValue).toBeCloseTo(0);
+    expect(online.currentValue).toBeCloseTo(1);
+    expect(online.trend).toBe('improving');
   });
 });

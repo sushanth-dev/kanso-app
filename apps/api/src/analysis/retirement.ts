@@ -29,10 +29,10 @@
  * `queued` and rethrows, which would pointlessly retry a successfully
  * analysed game. The hook therefore swallows and logs its own errors.
  */
-import { and, eq, gte, inArray, isNotNull, lte, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNotNull, lte, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { classifyTimeControl } from '../chess/time-control.ts';
-import { FOCUS_WINDOW_GAMES } from '../focus/verify.ts';
+import { FOCUS_WINDOW_GAMES, readWindow } from '../focus/verify.ts';
 import { log } from '../logging.ts';
 import { TROUBLE_CLOCK_MS } from '../phases/phases.ts';
 import * as schema from '../db/schema.ts';
@@ -70,33 +70,111 @@ async function instanceKeysOf(db: Db, gameId: string, eco: string | null): Promi
   return keys;
 }
 
-/**
- * The analysed game ids in the stream played since `since`, the same filter
- * `measureFocusStream` applies: complete analysis, a played date, and - for
- * the online stream - a blitz time control only. The retirement machine
- * counts them for the floor check; ST-152's read model aggregates the
- * window's instances and cost over them, so one function owns the filter
- * and the two can never disagree.
- */
-export async function windowGameIds(
-  db: Db,
+/** The window's filter, in one place: analysed, played, dated, and, in the online stream, blitz. */
+function windowScope(
   playerId: string,
   stream: (typeof schema.streamEnum.enumValues)[number],
   since: Date,
-): Promise<string[]> {
-  const scope = and(
+) {
+  return and(
     eq(game.playerId, playerId),
     eq(game.stream, stream),
     eq(game.analysisStatus, 'complete'),
     isNotNull(game.playedAt),
     gte(game.playedAt, since),
   );
+}
+
+/** The distinct instants in `dates`, keyed by epoch milliseconds, first occurrence winning. */
+function distinctTimes(dates: Date[]): Date[] {
+  return [...new Map(dates.map((d) => [d.getTime(), d])).values()];
+}
+
+/** The analysed game ids in one stream since `since`, uncapped: ST-152's read model needs every id. */
+async function windowGameIdsSince(
+  db: Db,
+  playerId: string,
+  stream: (typeof schema.streamEnum.enumValues)[number],
+  since: Date,
+): Promise<string[]> {
   const rows = await db
     .select({ id: game.id, timeControl: game.timeControl })
     .from(game)
-    .where(scope);
+    .where(windowScope(playerId, stream, since));
   if (stream === 'tournament') return rows.map((r) => r.id);
   return rows.filter((r) => classifyTimeControl(r.timeControl) === 'blitz').map((r) => r.id);
+}
+
+/**
+ * ST-173. The window's size, for every distinct date a caller needs at once,
+ * capped at `FOCUS_WINDOW_GAMES`.
+ *
+ * Every caller asks one question, "is this window thinner than the floor", so a
+ * value at the floor means "no" and not "exactly ten"; below the floor the
+ * value is exact. The read is bounded in a way the ids read is not: it pages
+ * newest-first and stops the moment the floor is reached, instead of returning
+ * a whole history for the caller to measure. The rows are also ordered by id
+ * within one timestamp, so paging cannot repeat or skip a row.
+ */
+export async function windowGameCounts(
+  db: Db,
+  playerId: string,
+  stream: (typeof schema.streamEnum.enumValues)[number],
+  dates: Date[],
+): Promise<Map<number, number>> {
+  const counts = await Promise.all(
+    distinctTimes(dates).map(async (since) => {
+      const rows = await readWindow(
+        (offset, limit) =>
+          db
+            .select({ id: game.id, timeControl: game.timeControl })
+            .from(game)
+            .where(windowScope(playerId, stream, since))
+            .orderBy(desc(game.playedAt), desc(game.id))
+            .limit(limit)
+            .offset(offset),
+        (row) => stream === 'tournament' || classifyTimeControl(row.timeControl) === 'blitz',
+        (kept) => kept.length >= FOCUS_WINDOW_GAMES,
+      );
+      return [since.getTime(), Math.min(rows.length, FOCUS_WINDOW_GAMES)] as const;
+    }),
+  );
+  return new Map(counts);
+}
+
+/** One date's window size, through the same counted read. */
+export async function windowGameCount(
+  db: Db,
+  playerId: string,
+  stream: (typeof schema.streamEnum.enumValues)[number],
+  since: Date,
+): Promise<number> {
+  return (await windowGameCounts(db, playerId, stream, [since])).get(since.getTime()) ?? 0;
+}
+
+/**
+ * ST-173. The window's ids, for every distinct date a caller needs at once.
+ *
+ * This read stays uncapped, and that is deliberate rather than an oversight:
+ * ST-152's read model aggregates the window's instances and cost over every id
+ * and reports the window's true size in `windowGames`, so truncating would
+ * change what that endpoint says. What the change buys here is the query count.
+ * Twelve weaknesses sharing one mastery date used to cost twelve full reads;
+ * they cost one now.
+ */
+export async function windowGameIdsForDates(
+  db: Db,
+  playerId: string,
+  stream: (typeof schema.streamEnum.enumValues)[number],
+  dates: Date[],
+): Promise<Map<number, string[]>> {
+  const entries = await Promise.all(
+    distinctTimes(dates).map(
+      async (since) =>
+        [since.getTime(), await windowGameIdsSince(db, playerId, stream, since)] as const,
+    ),
+  );
+  return new Map(entries);
 }
 
 /**
@@ -173,7 +251,9 @@ export async function applyRetirement(db: Db, gameId: string): Promise<void> {
         continue;
       }
       if (row.state === 'candidate' && inWindow) {
-        const count = (await windowGameIds(db, g.playerId, g.stream, row.masteredAt)).length;
+        // ST-173. A capped count: `FOCUS_WINDOW_GAMES` here means the window
+        // reached the floor, which is the only thing this check asks.
+        const count = await windowGameCount(db, g.playerId, g.stream, row.masteredAt);
         if (count >= FOCUS_WINDOW_GAMES) {
           await db
             .update(patternState)

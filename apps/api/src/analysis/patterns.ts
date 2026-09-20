@@ -34,7 +34,7 @@ import { FOCUS_WINDOW_GAMES } from '../focus/verify.ts';
 import { TROUBLE_CLOCK_MS } from '../phases/phases.ts';
 import { readCalibration } from '../practice/calibration.ts';
 import type { WeaknessKind } from './leak.ts';
-import { windowGameIds } from './retirement.ts';
+import { windowGameIdsForDates } from './retirement.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
 
@@ -120,9 +120,19 @@ export function mountPatterns(
     // failed drills stays out of the map and renders null, the honest zero.
     const calibration = await readCalibration(deps.db, playerId);
 
+    // ST-173. One grouped read for the whole list, keyed by mastery date: rows
+    // sharing a date share a window, and each one used to fetch the full
+    // history for itself.
+    const windowIdsByDate = await windowGameIdsForDates(
+      deps.db,
+      playerId,
+      stream,
+      rows.map((row) => row.masteredAt),
+    );
+
     const patterns = await Promise.all(
       rows.map(async (row) => {
-        const windowIds = await windowGameIds(deps.db, playerId, stream, row.masteredAt);
+        const windowIds = windowIdsByDate.get(row.masteredAt.getTime()) ?? [];
         const state: 'active' | 'candidate' | 'retired' | 'came_back' | 'not_yet_verifiable' =
           row.state === 'candidate' && windowIds.length < FOCUS_WINDOW_GAMES
             ? 'not_yet_verifiable'

@@ -36,7 +36,7 @@ import { orderSuggestions, recentMistakes } from '../analysis/drill-suggestion.t
 import { MIN_RATED_GAMES, SEASON_WINDOW_MS } from '../analysis/performance-rating.ts';
 import { scoreTimeTrouble, timeTroubleCounts } from '../phases/phases.ts';
 import { FOCUS_WINDOW_GAMES } from '../focus/verify.ts';
-import { windowGameIds } from '../analysis/retirement.ts';
+import { windowGameCounts } from '../analysis/retirement.ts';
 import { adviceFor, groupKeyOf, weaknessEvidence, type EvidenceInstance } from './evidence.ts';
 import { lineConsistencyByEco } from '../openings/line-consistency.ts';
 import { composeReport, type ComposedWeakness } from './compose.ts';
@@ -224,6 +224,15 @@ async function withEvidence(
     .from(patternState)
     .where(and(eq(patternState.playerId, playerId), eq(patternState.stream, stream)));
   const patternStateByGroup = new Map(patternRows.map((r) => [`${r.kind}:${r.groupKey}`, r]));
+  // ST-173. One grouped read serves the whole report: the window depends only
+  // on the candidate's mastery date, candidates often share one, and the loop
+  // below used to fetch the full history once per weakness.
+  const windowCounts = await windowGameCounts(
+    db,
+    playerId,
+    stream,
+    patternRows.filter((r) => r.state === 'candidate').map((r) => r.masteredAt),
+  );
   for (const w of response.weaknesses) {
     const key = groupKeyOf(w.kind, w.label, w.eco);
     w.evidence = evidence.get(`${w.kind}:${key}`) ?? [];
@@ -239,7 +248,7 @@ async function withEvidence(
       w.retirementState = null;
     } else if (
       pattern.state === 'candidate' &&
-      (await windowGameIds(db, playerId, stream, pattern.masteredAt)).length < FOCUS_WINDOW_GAMES
+      (windowCounts.get(pattern.masteredAt.getTime()) ?? 0) < FOCUS_WINDOW_GAMES
     ) {
       w.retirementState = 'not_yet_verifiable';
     } else {
