@@ -14,6 +14,14 @@
  * a player reading plausible generic prose about a mistake they did not make
  * is worse than a player seeing the numbers with an explanation still
  * loading.
+ *
+ * ST-177. Both texts are held to the facts they were generated from before
+ * they are stored, by the rule the report path already applies
+ * (`report/advice.ts`): every number and every SAN move in the reply must
+ * appear in the fact set the model was given. The ladder is the report's - one
+ * attempt, one corrective retry, a thrown call not retried - and a text that
+ * fails twice is not stored at all. It is cached prose on a row, so without
+ * the check an invented fact is that player's answer on every later read.
  */
 import type { Context } from 'hono';
 import { eq } from 'drizzle-orm';
@@ -25,6 +33,8 @@ import { game, mistake } from '../db/schema.ts';
 import { readSession } from '../session.ts';
 import { hasPlayerClaim } from '../players/claim.ts';
 import { coachBudget, coachRemaining } from '../billing/entitlement.ts';
+import { log } from '../logging.ts';
+import { checkTextWithinFacts, mistakeFactTokens } from '../report/advice.ts';
 import type { AiClient, MistakeFacts } from './zai.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
@@ -100,6 +110,64 @@ async function coachBudgetExhausted(db: Db, userId: string): Promise<LoadError |
   return null;
 }
 
+/**
+ * ST-177. The sentence caps, read off the prompts in `zai.ts`: the
+ * explanation asks for two or three sentences, the question for one.
+ */
+const EXPLANATION_MAX_SENTENCES = 3;
+const QUESTION_MAX_SENTENCES = 1;
+
+/** ST-177. The text, or the declared refusal to store it. */
+type TextOutcome = { text: string } | { refusal: { code: string; message: string } };
+
+/**
+ * ST-177. One attempt plus at most one corrective retry, each validated
+ * against the facts it was generated from; the report path's ladder. A thrown
+ * call is not retried, because a provider that is down should not get a second
+ * chance to stall the player. Both refusals are 502s with their own code, so
+ * an operator can tell a model that is down from a model that wrote something
+ * we will not serve, and neither substitutes prose.
+ */
+async function generateWithinFacts(
+  mistakeId: string,
+  kind: 'explanation' | 'question',
+  facts: MistakeFacts,
+  maxSentences: number,
+  generate: () => Promise<string>,
+): Promise<TextOutcome> {
+  const { numbers, sans } = mistakeFactTokens(facts);
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    let text: string;
+    try {
+      text = await generate();
+    } catch {
+      return {
+        refusal: { code: 'model_call_failed', message: 'The model call failed. Retry.' },
+      };
+    }
+
+    const failure = checkTextWithinFacts(text, numbers, sans, maxSentences);
+    if (failure === null) return { text: text.trim() };
+
+    // ST-177. Criterion 5: the rate these lines show is how we learn whether
+    // the check is rejecting text a player would have been fine with.
+    log('warn', 'coach_text_rejected', {
+      mistakeId,
+      kind,
+      attempt,
+      reason: failure.reason,
+      ...(failure.reason === 'token' ? { token: failure.token } : {}),
+    });
+  }
+
+  return {
+    refusal: {
+      code: 'explanation_unfaithful',
+      message: 'The coach wrote something that did not match the facts of your game. Retry.',
+    },
+  };
+}
+
 export function mountExplanation(
   app: OpenAPIHono,
   deps: { db: Db; getSession: (c: Context) => unknown; aiClient: AiClient | null },
@@ -133,7 +201,8 @@ export function mountExplanation(
     // ST-130. Generation needs a model; without one the answer is a declared
     // 503, not the 404 of an unmounted route, and it precedes the budget
     // check: no plan buys a model back, so upgrade_required would mislead.
-    if (deps.aiClient === null) {
+    const ai = deps.aiClient;
+    if (ai === null) {
       return c.json(
         { code: 'model_unavailable', message: 'The coach is not available right now.' },
         503,
@@ -142,12 +211,17 @@ export function mountExplanation(
 
     const exhausted = await coachBudgetExhausted(deps.db, loaded.userId);
     if (exhausted !== null) return c.json(exhausted.body, exhausted.status);
-    let text: string;
-    try {
-      text = await deps.aiClient.explainMistake(factsFrom(loaded.mistake, loaded.game));
-    } catch {
-      return c.json({ code: 'model_call_failed', message: 'The model call failed. Retry.' }, 502);
-    }
+
+    const facts = factsFrom(loaded.mistake, loaded.game);
+    const generated = await generateWithinFacts(
+      mistakeId,
+      'explanation',
+      facts,
+      EXPLANATION_MAX_SENTENCES,
+      () => ai.explainMistake(facts),
+    );
+    if ('refusal' in generated) return c.json(generated.refusal, 502);
+    const text = generated.text;
 
     const generatedAt = new Date();
     await deps.db
@@ -182,7 +256,8 @@ export function mountSocraticQuestion(
       );
     }
 
-    if (deps.aiClient === null) {
+    const ai = deps.aiClient;
+    if (ai === null) {
       return c.json(
         { code: 'model_unavailable', message: 'The coach is not available right now.' },
         503,
@@ -191,12 +266,17 @@ export function mountSocraticQuestion(
 
     const budget = await coachBudgetExhausted(deps.db, loaded.userId);
     if (budget !== null) return c.json(budget.body, budget.status);
-    let question: string;
-    try {
-      question = await deps.aiClient.askSocraticQuestion(factsFrom(loaded.mistake, loaded.game));
-    } catch {
-      return c.json({ code: 'model_call_failed', message: 'The model call failed. Retry.' }, 502);
-    }
+
+    const facts = factsFrom(loaded.mistake, loaded.game);
+    const generated = await generateWithinFacts(
+      mistakeId,
+      'question',
+      facts,
+      QUESTION_MAX_SENTENCES,
+      () => ai.askSocraticQuestion(facts),
+    );
+    if ('refusal' in generated) return c.json(generated.refusal, 502);
+    const question = generated.text;
 
     const generatedAt = new Date();
     await deps.db

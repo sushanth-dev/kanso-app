@@ -2,10 +2,19 @@
  * ST-099. The mechanical guard around the model-written advice: only numbers
  * and SAN tokens from the fact set survive, and the retry ladder caps at one
  * corrective attempt before the template copy takes over.
+ *
+ * ST-177. The same rule protects the coaching routes' two texts, so the check
+ * reports its reason and the coaching allowlists are built here.
  */
 import { describe, expect, test, vi } from 'vitest';
-import { adviceIsValid, generateAdvice } from './advice.ts';
-import type { ReportAdviceFacts } from '../coaching/zai.ts';
+import {
+  adviceIsValid,
+  checkTextWithinFacts,
+  generateAdvice,
+  mistakeFactTokens,
+  textWithinFacts,
+} from './advice.ts';
+import type { MistakeFacts, ReportAdviceFacts } from '../coaching/zai.ts';
 
 const facts: ReportAdviceFacts = {
   kind: 'motif',
@@ -90,6 +99,99 @@ describe('adviceIsValid', () => {
 
   test('rejects empty text', () => {
     expect(adviceIsValid('   ', facts)).toBe(false);
+  });
+});
+
+/**
+ * ST-177. The rule as the coaching routes read it: `null` when the text may be
+ * served, otherwise why not, with the invented token named for the log.
+ */
+describe('checkTextWithinFacts', () => {
+  const numbers = new Set(['3', '230', '0.3', '2.0']);
+  const sans = new Set(['Qf6', 'Nc6']);
+
+  test('passes a text built from the facts', () => {
+    expect(checkTextWithinFacts('Qf6 cost you 230 centipawns.', numbers, sans, 3)).toBeNull();
+  });
+
+  test('reads no number out of a move: Qf6 and Nc6 each print a 6', () => {
+    // The allowlist holds no 6, so a check that scanned the raw text would
+    // refuse a faithful reply for inventing the move's rank.
+    expect(
+      checkTextWithinFacts('Nc6 was the move; Qf6 was not.', new Set(['230']), sans, 3),
+    ).toBeNull();
+  });
+
+  test('names an invented number', () => {
+    expect(checkTextWithinFacts('You lost 900 centipawns.', numbers, sans, 3)).toEqual({
+      reason: 'token',
+      token: '900',
+    });
+  });
+
+  test('names an invented move', () => {
+    expect(checkTextWithinFacts('You should have played Bd3.', numbers, sans, 3)).toEqual({
+      reason: 'token',
+      token: 'Bd3',
+    });
+  });
+
+  test('reports the cap rather than a token when the text runs long', () => {
+    expect(checkTextWithinFacts('One. Two. Three. Four.', numbers, sans, 3)).toEqual({
+      reason: 'sentences',
+    });
+  });
+
+  test('reports empty text', () => {
+    expect(checkTextWithinFacts('   ', numbers, sans, 3)).toEqual({ reason: 'empty' });
+  });
+});
+
+/**
+ * ST-177. The allowlists for one coaching fact set: the numbers the prompt
+ * prints, including the evals it renders as pawns, and the two moves it names.
+ */
+describe('mistakeFactTokens', () => {
+  const facts: MistakeFacts = {
+    moveNumber: 3,
+    movingColor: 'black',
+    phase: 'opening',
+    moveSan: 'Qf6',
+    bestMoveSan: 'Nc6',
+    judgement: 'blunder',
+    evalBeforeCp: 30,
+    evalBeforeMate: null,
+    evalAfterCp: -200,
+    evalAfterMate: null,
+    cpLoss: 230,
+    motif: 'hanging_piece',
+    opening: 'Sicilian Defense',
+    eco: 'B20',
+  };
+
+  test('allows the numbers and moves the fact block prints', () => {
+    const { numbers, sans } = mistakeFactTokens(facts);
+    // The 2.0 is the unsigned form of `evalAfterCp: -200`, which the prompt
+    // prints as "-2.0 pawns": a reply saying "down 2.0 pawns" carries 2.0.
+    expect([...numbers].sort()).toEqual(['0.3', '2.0', '230', '3']);
+    expect([...sans].sort()).toEqual(['Nc6', 'Qf6']);
+  });
+
+  test('a mate distance stands in for the eval it replaced', () => {
+    const { numbers } = mistakeFactTokens({ ...facts, evalAfterMate: -3 });
+    expect(numbers.has('3')).toBe(true);
+  });
+
+  test('an eval we do not have contributes no number', () => {
+    const { numbers } = mistakeFactTokens({ ...facts, evalBeforeCp: null, evalAfterCp: null });
+    expect([...numbers].sort()).toEqual(['230', '3']);
+  });
+
+  test('a faithful sentence about the eval passes the check', () => {
+    const { numbers, sans } = mistakeFactTokens(facts);
+    expect(
+      textWithinFacts('Qf6 left you down 2.0 pawns; Nc6 was the way to develop.', numbers, sans, 3),
+    ).toBe(true);
   });
 });
 

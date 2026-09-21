@@ -15,12 +15,23 @@
  * `evidence.ts` - a deliberate deviation from ADR-0018's "never canned text"
  * rule, recorded in the story: the report must not fail because a garnish
  * failed, and the templates claim nothing about the position.
+ *
+ * ST-177 carries the same rule to the coaching routes, which stored whatever
+ * the model returned: `mistakeFactTokens` builds the allowlists for one
+ * `MistakeFacts` the way `adviceIsValid` builds its own, and
+ * `checkTextWithinFacts` reports why a text failed so the route can log it.
  */
-import type { AiClient, ReportAdviceFacts } from '../coaching/zai.ts';
+import type { AiClient, ReportAdviceFacts, MistakeFacts } from '../coaching/zai.ts';
+import { mateDistance, pawnsMagnitude } from '../coaching/zai.ts';
 
 /** SAN-shaped tokens; membership in the fact set is checked separately. */
 const SAN_PATTERN =
   /\b(?:[O0]-[O0](?:-[O0])?[+#]?|[KQRBN][a-h1-8]?x?[a-h][1-8](?:=[KQRBN])?[+#]?|[a-h]x[a-h][1-8](?:=[KQRBN])?[+#]?|[a-h][1-8](?:=[KQRBN])?[+#]?)\b/g;
+
+/** Numbers as a reply writes them; the sign is not part of the token. */
+const NUMBER_PATTERN = /\d+(?:\.\d+)?/g;
+
+const SENTENCE_PATTERN = /[.!?]/g;
 
 // ponytail: the number and SAN allowlists catch invented facts, the only bug
 // class that bit us. Semantic nonsense ("your queen is trapped" with no
@@ -32,17 +43,61 @@ export function textWithinFacts(
   allowedSans: ReadonlySet<string>,
   maxSentences: number,
 ): boolean {
+  return checkTextWithinFacts(text, allowedNumbers, allowedSans, maxSentences) === null;
+}
+
+/** Why a text cannot be served: it is empty, it runs long, or it invents a fact. */
+export type FactCheckFailure =
+  { reason: 'empty' } | { reason: 'sentences' } | { reason: 'token'; token: string };
+
+/**
+ * ST-099, ST-177. The rule as a reason rather than a boolean, so a caller can
+ * log which token a reply invented instead of only that it failed. ST-177's
+ * rejection rate is read from those lines.
+ */
+export function checkTextWithinFacts(
+  text: string,
+  allowedNumbers: ReadonlySet<string>,
+  allowedSans: ReadonlySet<string>,
+  maxSentences: number,
+): FactCheckFailure | null {
   const trimmed = text.trim();
-  if (trimmed === '') return false;
-  if ((trimmed.match(/[.!?]/g) ?? []).length > maxSentences) return false;
+  if (trimmed === '') return { reason: 'empty' };
+  if ((trimmed.match(SENTENCE_PATTERN) ?? []).length > maxSentences) return { reason: 'sentences' };
 
-  const numbers = trimmed.match(/\d+(?:\.\d+)?/g) ?? [];
-  if (numbers.some((n) => !allowedNumbers.has(n))) return false;
+  // A move carries digits that are not claims about a number: `Qf6` prints a
+  // 6, `e4` a 4. The number scan therefore reads the text with its SAN tokens
+  // blanked, or every faithful reply that names the move would be rejected for
+  // inventing the rank. The SAN check below still reads the raw text, which is
+  // what catches a move that was never in the facts.
+  const withoutSans = trimmed.replace(SAN_PATTERN, ' ');
+  const number = (withoutSans.match(NUMBER_PATTERN) ?? []).find((n) => !allowedNumbers.has(n));
+  if (number !== undefined) return { reason: 'token', token: number };
 
-  const sans = trimmed.match(SAN_PATTERN) ?? [];
-  if (sans.some((san) => !allowedSans.has(san))) return false;
+  const san = (trimmed.match(SAN_PATTERN) ?? []).find((s) => !allowedSans.has(s));
+  if (san !== undefined) return { reason: 'token', token: san };
 
-  return true;
+  return null;
+}
+
+/**
+ * ST-177. The allowlists for one coaching fact set, in the shape
+ * `adviceIsValid` builds: every number the prompt prints, and the two moves it
+ * names. The eval renderings come from `zai.ts` rather than being restated
+ * here, so this check cannot drift from what the model was shown.
+ */
+export function mistakeFactTokens(facts: MistakeFacts): {
+  numbers: Set<string>;
+  sans: Set<string>;
+} {
+  const numbers = new Set<string>([String(facts.moveNumber), String(facts.cpLoss)]);
+  for (const cp of [facts.evalBeforeCp, facts.evalAfterCp]) {
+    if (cp !== null) numbers.add(pawnsMagnitude(cp));
+  }
+  for (const mate of [facts.evalBeforeMate, facts.evalAfterMate]) {
+    if (mate !== null) numbers.add(mateDistance(mate));
+  }
+  return { numbers, sans: new Set([facts.moveSan, facts.bestMoveSan]) };
 }
 
 export function adviceIsValid(text: string, facts: ReportAdviceFacts): boolean {
