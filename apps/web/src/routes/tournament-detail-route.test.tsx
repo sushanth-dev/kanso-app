@@ -29,6 +29,7 @@ const meFixture: Me = {
   email: 'player@example.com',
   name: 'Player',
   tier: 'beginner',
+  analyticsSuiteAllowed: false,
   player: {
     id: playerId,
     displayName: 'Mina',
