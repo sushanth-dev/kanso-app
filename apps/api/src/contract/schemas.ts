@@ -19,6 +19,13 @@ export const Stream = z.enum(['tournament', 'online']).openapi('Stream', {
     'Tournament games and online games describe different players and are never aggregated together.',
 });
 
+/**
+ * The three import paths the API accepts, plus `uscf`, which is reserved: no
+ * code path produces it and nothing branches on it. It stays until a migration
+ * recreates the Postgres type and a contract change narrows this enum, which is
+ * not worth a schema change on its own. The player's own `uscfId` and
+ * `uscfRating` fields are live and unrelated to this value.
+ */
 export const GameSource = z
   .enum(['chesscom', 'lichess', 'pgn_upload', 'uscf'])
   .openapi('GameSource');

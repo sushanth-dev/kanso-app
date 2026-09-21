@@ -15,7 +15,7 @@ const VALUE_PROPS: ValueProp[] = [
   },
   {
     title: 'Games arrive without typing.',
-    body: 'Upload a PGN, or import a published tournament by name and player. No retyping nine handwritten scoresheets.',
+    body: 'Import from Chess.com or Lichess by username, or upload a PGN. No retyping nine handwritten scoresheets.',
   },
   {
     title: 'Verification is two-speed, and says which speed it is.',

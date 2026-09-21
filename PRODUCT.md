@@ -76,7 +76,14 @@ small for Chess.com to chase, which is the moat.
 Version one in scope (`project/main/docs/business-analysis.md`):
 
 - Account creation and sign-in, with a paying adult attachable to a playing
-  child from the start.
+  child from the start, and a minor able to sign up directly: sign-up collects
+  a date of birth, a stated age under 13 creates a guardian consent request,
+  and the account is gated until the guardian confirms by email (ADR-0030,
+  ADR-0035).
+- The age posture is stated age rather than verified age, and it reaches the
+  analytics suite: an account that says it is 13 or over, or whose guardian has
+  consented, runs the full PostHog suite, while an account that states no age
+  sends named product events only (ST-176, ADR-0038).
 - Import by Chess.com or Lichess username, plus tournament PGN upload,
   tagged tournament versus online and reported apart everywhere downstream.
 - Asynchronous engine analysis of imported games.
@@ -95,10 +102,13 @@ Version one in scope (`project/main/docs/business-analysis.md`):
 
 Deliberately out of scope: playing opponents, our own engine, native mobile
 apps (the web app must work on a phone), coach and parent accounts, video
-lessons, a coach marketplace, live annotation, scoresheet capture. Practice
-on the report's own mistakes ships (ST-101 through ST-103); what stays out is
-any generic puzzle source - puzzles not drawn from the player's analysed
-games, spaced-repetition scheduling, and separate puzzle sets.
+lessons, a coach marketplace, live annotation, scoresheet capture. Practice on
+the report's own mistakes ships (ST-101 through ST-103), drawing its drills
+from a theme-matched, rating-banded slice of the Lichess puzzle database
+(ST-106), and due reviews are dealt ahead of fresh material on a fixed ladder
+(ST-122, ST-124). What stays out is free-play browsing of that pool,
+player-chosen puzzle sets, generated curricula, and scheduling beyond the
+ladder.
 
 Constraints:
 
@@ -112,8 +122,6 @@ Constraints:
 
 Undecided product facts:
 
-- COPPA approach for under-13 players (blocks launch; needs verifiable
-  parental consent).
 - What coaches pay, if anything, once coach accounts exist.
 - What the first coaches get for helping (a permanent early free tier is
   hard to withdraw).

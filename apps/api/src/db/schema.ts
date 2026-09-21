@@ -38,6 +38,11 @@ import { user } from './auth-schema.ts';
  */
 export const streamEnum = pgEnum('stream', ['tournament', 'online']);
 
+/**
+ * `uscf` is reserved: no code path writes it and nothing reads it. Dropping a
+ * value from a shipped Postgres enum means recreating the type in a migration,
+ * so it stays. The player's own `uscfId` and `uscfRating` columns are live.
+ */
 export const gameSourceEnum = pgEnum('game_source', ['chesscom', 'lichess', 'pgn_upload', 'uscf']);
 
 export const colorEnum = pgEnum('color', ['white', 'black']);
