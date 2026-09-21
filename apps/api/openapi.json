@@ -148,6 +148,9 @@
           "tier": {
             "$ref": "#/components/schemas/Tier"
           },
+          "analyticsSuiteAllowed": {
+            "type": "boolean"
+          },
           "player": {
             "$ref": "#/components/schemas/Player"
           }
@@ -157,6 +160,7 @@
           "email",
           "name",
           "tier",
+          "analyticsSuiteAllowed",
           "player"
         ]
       },
