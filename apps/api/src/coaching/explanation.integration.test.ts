@@ -17,16 +17,36 @@ const sessionFor = (userId: string) => () => ({ userId });
 let explainCalls = 0;
 let questionCalls = 0;
 let fail = false;
+/**
+ * ST-177. Replies to hand back one call at a time, so a test can drive the
+ * validation ladder. Empty means the default faithful text.
+ */
+let script: (string | Error)[] = [];
+
+/**
+ * ST-177. Faithful to the seeded mistake: move 3, Qf6 played, Nc6 best. The
+ * check rejects any other number or move, so a fake that invented one now
+ * reads as a declared refusal rather than as a stored answer.
+ */
+const EXPLANATION = 'Qf6 left the knight loose; Nc6 was the way to develop.';
+const QUESTION = 'What would Nc6 have done that Qf6 did not?';
+
+const nextReply = (fallback: string): Promise<string> => {
+  const next = script.shift();
+  if (next instanceof Error) return Promise.reject(next);
+  if (typeof next === 'string') return Promise.resolve(next);
+  if (fail) return Promise.reject(new Error('model down'));
+  return Promise.resolve(fallback);
+};
+
 const aiClient: AiClient = {
   explainMistake() {
     explainCalls += 1;
-    if (fail) return Promise.reject(new Error('model down'));
-    return Promise.resolve('You left your knight hanging on d5.');
+    return nextReply(EXPLANATION);
   },
   askSocraticQuestion() {
     questionCalls += 1;
-    if (fail) return Promise.reject(new Error('model down'));
-    return Promise.resolve('What was defending d5 before your move?');
+    return nextReply(QUESTION);
   },
   adviseWeaknesses() {
     return Promise.reject(new Error('not used here'));
@@ -58,6 +78,7 @@ beforeEach(async () => {
   explainCalls = 0;
   questionCalls = 0;
   fail = false;
+  script = [];
 });
 
 function app(userId: string | null, model: AiClient | null = aiClient) {
@@ -144,17 +165,17 @@ describe('GET /mistakes/{mistakeId}/explanation', () => {
     const first = await app(OWNER).request(`/mistakes/${mistakeId}/explanation`);
     expect(first.status).toBe(200);
     const firstBody = (await first.json()) as { text: string; generatedAt: string };
-    expect(firstBody.text).toBe('You left your knight hanging on d5.');
+    expect(firstBody.text).toBe(EXPLANATION);
     expect(explainCalls).toBe(1);
 
     const [row] = await harness.db.select().from(mistake).where(eq(mistake.id, mistakeId));
-    expect(row!.explanation).toBe('You left your knight hanging on d5.');
+    expect(row!.explanation).toBe(EXPLANATION);
     expect(row!.explanationGeneratedAt).not.toBeNull();
 
     const second = await app(OWNER).request(`/mistakes/${mistakeId}/explanation`);
     expect(second.status).toBe(200);
     const secondBody = (await second.json()) as { text: string };
-    expect(secondBody.text).toBe('You left your knight hanging on d5.');
+    expect(secondBody.text).toBe(EXPLANATION);
     // Served from storage the second time; the model is called exactly once.
     expect(explainCalls).toBe(1);
   });
@@ -167,6 +188,83 @@ describe('GET /mistakes/{mistakeId}/explanation', () => {
 
     const [row] = await harness.db.select().from(mistake).where(eq(mistake.id, mistakeId));
     expect(row!.explanation).toBeNull();
+    // ST-177. A provider that is down does not get a second chance to stall
+    // the player: the retry is for a bad answer, not for a failed call.
+    expect(explainCalls).toBe(1);
+  });
+});
+
+/**
+ * ST-177. The coaching texts are held to the facts they were generated from,
+ * with the report path's ladder: one attempt, one corrective retry, a thrown
+ * call not retried, and nothing stored when both attempts fail.
+ */
+describe('ST-177 the coaching texts are held to their facts', () => {
+  test('an invented number is rejected, retried once, and nothing is stored', async () => {
+    script = ['You lost 900 centipawns at move 3.', 'You had only 900 centipawns there.'];
+    const mistakeId = await seedMistake(OWNER);
+
+    const res = await app(OWNER).request(`/mistakes/${mistakeId}/explanation`);
+    expect(res.status).toBe(502);
+    const body = (await res.json()) as { code: string };
+    expect(body.code).toBe('explanation_unfaithful');
+    expect(explainCalls).toBe(2);
+
+    const [row] = await harness.db.select().from(mistake).where(eq(mistake.id, mistakeId));
+    expect(row!.explanation).toBeNull();
+  });
+
+  test('an invented move is rejected the same way', async () => {
+    script = ['You should have played Bd3.', 'Bd3 would have held.'];
+    const mistakeId = await seedMistake(OWNER);
+
+    const res = await app(OWNER).request(`/mistakes/${mistakeId}/explanation`);
+    expect(res.status).toBe(502);
+    const body = (await res.json()) as { code: string };
+    expect(body.code).toBe('explanation_unfaithful');
+    expect(explainCalls).toBe(2);
+
+    const [row] = await harness.db.select().from(mistake).where(eq(mistake.id, mistakeId));
+    expect(row!.explanation).toBeNull();
+  });
+
+  test('a faithful retry is the one that gets stored', async () => {
+    script = ['You should have played Bd3.', EXPLANATION];
+    const mistakeId = await seedMistake(OWNER);
+
+    const res = await app(OWNER).request(`/mistakes/${mistakeId}/explanation`);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { text: string };
+    expect(body.text).toBe(EXPLANATION);
+    expect(explainCalls).toBe(2);
+
+    const [row] = await harness.db.select().from(mistake).where(eq(mistake.id, mistakeId));
+    expect(row!.explanation).toBe(EXPLANATION);
+  });
+
+  test('a thrown call is not retried, and reads as a failed call', async () => {
+    script = [new Error('model down')];
+    const mistakeId = await seedMistake(OWNER);
+
+    const res = await app(OWNER).request(`/mistakes/${mistakeId}/explanation`);
+    expect(res.status).toBe(502);
+    const body = (await res.json()) as { code: string };
+    expect(body.code).toBe('model_call_failed');
+    expect(explainCalls).toBe(1);
+  });
+
+  test('the question is held to the facts too, at one sentence', async () => {
+    script = ['What was defending d5?', 'What was defending d5?'];
+    const mistakeId = await seedMistake(OWNER);
+
+    const res = await app(OWNER).request(`/mistakes/${mistakeId}/question`);
+    expect(res.status).toBe(502);
+    const body = (await res.json()) as { code: string };
+    expect(body.code).toBe('explanation_unfaithful');
+    expect(questionCalls).toBe(2);
+
+    const [row] = await harness.db.select().from(mistake).where(eq(mistake.id, mistakeId));
+    expect(row!.socraticQuestion).toBeNull();
   });
 });
 
@@ -177,7 +275,7 @@ describe('GET /mistakes/{mistakeId}/question', () => {
     const first = await app(OWNER).request(`/mistakes/${mistakeId}/question`);
     expect(first.status).toBe(200);
     const firstBody = (await first.json()) as { question: string };
-    expect(firstBody.question).toBe('What was defending d5 before your move?');
+    expect(firstBody.question).toBe(QUESTION);
     expect(questionCalls).toBe(1);
 
     const second = await app(OWNER).request(`/mistakes/${mistakeId}/question`);

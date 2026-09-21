@@ -158,11 +158,28 @@ export function zaiConfigFromEnv(env: NodeJS.ProcessEnv = process.env): ZaiConfi
   return { apiKey: ZAI_API_KEY, model: ZAI_MODEL || 'glm-5.3-flash' };
 }
 
+/**
+ * ST-177. The mate distance as the fact block prints it. Exported because the
+ * check that holds a reply to the facts reads numbers off the reply, and a
+ * second copy of this rendering would let the two drift apart.
+ */
+export function mateDistance(mate: number): string {
+  return String(Math.abs(mate));
+}
+
+/**
+ * ST-177. The centipawn eval as pawns to one decimal, unsigned: the fact block
+ * adds the sign, and the sign is not part of the number a reply carries.
+ */
+export function pawnsMagnitude(cp: number): string {
+  return (Math.abs(cp) / 100).toFixed(1);
+}
+
 /** `cp`/`mate` render the way a study room's numbers do: signed, terse, no board. */
 function formatEval(cp: number | null, mate: number | null): string {
   if (mate !== null)
-    return `mate in ${Math.abs(mate)} for ${mate > 0 ? 'the mover' : 'the opponent'}`;
-  if (cp !== null) return `${(cp / 100).toFixed(1)} pawns`;
+    return `mate in ${mateDistance(mate)} for ${mate > 0 ? 'the mover' : 'the opponent'}`;
+  if (cp !== null) return `${cp < 0 ? '-' : ''}${pawnsMagnitude(cp)} pawns`;
   return 'unknown';
 }
 
