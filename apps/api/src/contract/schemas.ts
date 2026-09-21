@@ -138,6 +138,14 @@ export const Me = z
     email: z.email(),
     name: z.string(),
     tier: Tier,
+    /**
+     * ST-176. Whether the PostHog suite's automatic capture may run for this
+     * account: session replay, autocapture, page views, surveys and error
+     * reports. False unless the account stated an age outside the minor-consent
+     * gate or has a recorded guardian consent, which is also the value the
+     * browser starts from, so the gate fails shut.
+     */
+    analyticsSuiteAllowed: z.boolean(),
     /** The single chess identity this login owns. */
     player: Player,
   })

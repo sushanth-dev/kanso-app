@@ -41,6 +41,7 @@ const me: Me = {
   email: 'player@example.com',
   name: 'Player',
   tier: 'beginner',
+  analyticsSuiteAllowed: false,
   player: ownedPlayer,
 };
 

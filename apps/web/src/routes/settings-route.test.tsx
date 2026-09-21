@@ -42,6 +42,7 @@ function meFixture(overrides: Partial<Me> = {}): Me {
     email: 'player@example.com',
     name: 'Player',
     tier: 'beginner',
+    analyticsSuiteAllowed: false,
     player: player(),
     ...overrides,
   };

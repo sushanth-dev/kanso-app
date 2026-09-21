@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { accountApi, ApiRequestError } from './api/account-api.ts';
 import type * as AccountApi from './api/account-api.ts';
 import { authClient } from './auth-client.ts';
+import { enableAnalyticsSuite } from './analytics.ts';
 import { ME_QUERY_KEY, SESSION_QUERY_KEY } from './query-client.ts';
 import { createAppRouter } from './router.tsx';
 
@@ -29,11 +30,19 @@ vi.mock('./auth-client.ts', () => ({
   },
 }));
 
+// ST-176. Only the gate switch is replaced; every other export stays real, so the
+// route components' own `track` calls and the property whitelist keep working.
+vi.mock('./analytics.ts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./analytics.ts')>();
+  return { ...actual, enableAnalyticsSuite: vi.fn() };
+});
+
 // eslint-disable-next-line @typescript-eslint/unbound-method -- accountApi.getMe is a vi.fn() from the module mock.
 const getMe = vi.mocked(accountApi.getMe);
 // eslint-disable-next-line @typescript-eslint/unbound-method -- accountApi.getSession is a vi.fn() from the module mock.
 const getSession = vi.mocked(accountApi.getSession);
 const signOut = vi.mocked(authClient.signOut);
+const enableSuite = vi.mocked(enableAnalyticsSuite);
 
 const ownedPlayerId = '00000000-0000-4000-8000-000000000001';
 
@@ -60,6 +69,9 @@ const meFixture = {
   email: 'player@example.com',
   name: 'Player',
   tier: 'beginner' as const,
+  // ST-176. Without a stated age the suite's automatic capture stays off, which
+  // is also the value the browser starts from.
+  analyticsSuiteAllowed: false,
   player: ownedPlayer,
 };
 
@@ -82,6 +94,7 @@ describe('router', () => {
     getSession.mockResolvedValue({ signedIn: false });
     signOut.mockReset();
     signOut.mockResolvedValue({ data: { success: true }, error: null });
+    enableSuite.mockReset();
   });
 
   test('renders the landing page at /', async () => {
@@ -189,6 +202,22 @@ describe('router', () => {
     expect(screen.getByText('Level 1')).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Account details' })).toBeVisible();
     expect(screen.queryByRole('link', { name: 'Back to your account' })).not.toBeInTheDocument();
+  });
+
+  test('starts the analytics suite once /me establishes the account is outside the gate', async () => {
+    getMe.mockResolvedValue({ ...meFixture, analyticsSuiteAllowed: true });
+    renderAt('/settings');
+
+    expect(await screen.findByRole('heading', { name: 'Your account', level: 1 })).toBeVisible();
+    expect(enableSuite).toHaveBeenCalledOnce();
+  });
+
+  test('leaves the analytics suite off when the gate does not allow the account', async () => {
+    getMe.mockResolvedValue(meFixture);
+    renderAt('/settings');
+
+    expect(await screen.findByRole('heading', { name: 'Your account', level: 1 })).toBeVisible();
+    expect(enableSuite).not.toHaveBeenCalled();
   });
 
   test('shows every authenticated route in the header nav on the account section', async () => {

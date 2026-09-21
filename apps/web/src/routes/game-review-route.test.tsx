@@ -176,6 +176,7 @@ const meFixture: Me = {
   email: 'player@example.com',
   name: 'Player',
   tier: 'beginner',
+  analyticsSuiteAllowed: false,
   player: {
     id: '00000000-0000-4000-8000-000000000001',
     displayName: 'Mina',
