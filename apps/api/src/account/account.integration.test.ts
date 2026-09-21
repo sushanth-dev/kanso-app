@@ -69,6 +69,17 @@ async function signIn(email: string): Promise<string> {
   return setCookie as string;
 }
 
+/**
+ * ST-176. Whether the PostHog suite's automatic capture may run for this session.
+ * It rides `/me` rather than a route of its own, so this is the whole client-facing
+ * surface of the age gate.
+ */
+async function suiteAllowed(a: ReturnType<typeof app>, cookie: string): Promise<boolean> {
+  const res = await a.request('/me', { headers: { cookie } });
+  expect(res.status).toBe(200);
+  return ((await res.json()) as { analyticsSuiteAllowed: boolean }).analyticsSuiteAllowed;
+}
+
 describe('the signed-in user and their player', () => {
   test('/me carries the account identity and the auto-created player', async () => {
     const cookie = await signIn(EMAIL_A);
@@ -81,6 +92,7 @@ describe('the signed-in user and their player', () => {
       email: string;
       name: string;
       tier: string;
+      analyticsSuiteAllowed: boolean;
       player: {
         id: string;
         displayName: string;
@@ -91,9 +103,28 @@ describe('the signed-in user and their player', () => {
     expect(meBody.email).toBe(EMAIL_A);
     expect(meBody.name).toBe('alice');
     expect(meBody.tier).toBe('beginner');
+    // ST-176. This account never stated an age, so the suite's automatic capture
+    // is off. It is also the answer every account created before the gate existed
+    // gets, because the gate reads the row rather than anything recorded at
+    // sign-up.
+    expect(meBody.analyticsSuiteAllowed).toBe(false);
     expect(meBody.player.displayName).toBe('alice');
     expect(meBody.player.fideRating).toBeNull();
     expect(meBody.player.lichessUsername).toBeNull();
+  });
+
+  test('ST-176: the analytics gate reads the account as it is now, not as it was at sign-up', async () => {
+    const cookie = await signIn(EMAIL_A);
+    const a = app();
+
+    expect(await suiteAllowed(a, cookie)).toBe(false);
+
+    // Stating an age after the fact lifts the gate, which is why an account
+    // created before the gate existed needs no backfill: the row is read each
+    // time rather than anything recorded at creation.
+    await harness.db.update(user).set({ dateOfBirth: '2000-06-01' }).where(eq(user.email, EMAIL_A));
+
+    expect(await suiteAllowed(a, cookie)).toBe(true);
   });
 
   test('a second user’s player is absent from the first user’s /me', async () => {

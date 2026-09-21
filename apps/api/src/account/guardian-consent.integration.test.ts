@@ -5,6 +5,10 @@
  * blocks the minor until the token is confirmed, and confirming records consent
  * exactly once. The fake mailer keeps this suite off the provider; the real
  * sender's request shape is covered by `mailer.test.ts`.
+ *
+ * ST-176 adds the analytics suite's own account-state matrix here, because the
+ * suite and the consent workflow answer the age question through one threshold
+ * and must not drift apart.
  */
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
@@ -167,5 +171,58 @@ describe('minor self-sign-up and guardian consent', () => {
     expect((await app().request(`/guardians/confirm/${expired}`)).status).toBe(404);
 
     expect((await consentFor(userId))!.consentGrantedAt).toBeNull();
+  });
+});
+
+/**
+ * ST-176. The account-state matrix behind the analytics gate, one row per state an
+ * account can be in. The suite's automatic capture rides `/me`'s
+ * `analyticsSuiteAllowed`, so each row reads that field: the consent workflow and
+ * the analytics suite must agree about who is a child, and must diverge in exactly
+ * one place, the account that has stated no age.
+ */
+describe('the analytics suite gate', () => {
+  async function suiteState(cookie: string): Promise<Response> {
+    return app().request('/me', { headers: { cookie } });
+  }
+
+  async function suiteAllowed(cookie: string): Promise<boolean> {
+    const res = await suiteState(cookie);
+    expect(res.status).toBe(200);
+    return ((await res.json()) as { analyticsSuiteAllowed: boolean }).analyticsSuiteAllowed;
+  }
+
+  test('a stated adult gets the suite', async () => {
+    const res = await signUp('adult@example.com', ADULT_DOB);
+    expect(res.status).toBe(200);
+
+    expect(await suiteAllowed(cookieOf(res))).toBe(true);
+  });
+
+  test('a stated minor whose guardian has consented gets the suite', async () => {
+    const res = await signUp(MINOR, MINOR_DOB, GUARDIAN);
+    const cookie = cookieOf(res);
+
+    expect((await app().request(`/guardians/confirm/${lastToken()}`)).status).toBe(204);
+
+    expect(await suiteAllowed(cookie)).toBe(true);
+  });
+
+  test('a stated minor pending consent is refused /me, so the browser keeps the suite off', async () => {
+    const res = await signUp(MINOR, MINOR_DOB, GUARDIAN);
+
+    // No field is readable at all here: /me is behind the consent guard, and the
+    // browser starts from off and only an explicit true switches it on, so a
+    // refused read leaves the suite off rather than defaulting it on.
+    const me = await suiteState(cookieOf(res));
+    expect(me.status).toBe(403);
+    expect(await me.json()).toMatchObject({ code: 'consent_required' });
+  });
+
+  test('an account that has stated no age gets no suite', async () => {
+    const res = await signUp('noage@example.com');
+    expect(res.status).toBe(200);
+
+    expect(await suiteAllowed(cookieOf(res))).toBe(false);
   });
 });
