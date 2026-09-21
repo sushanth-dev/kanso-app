@@ -245,3 +245,28 @@ us rather than in front of a player. The function timeout and the per-game cost
 estimate above are tested by the same story, and all three are expected to move
 when it reports. The recorded exit for connection exhaustion is RDS Proxy, about
 $15 a month, added without changing the flow.
+
+## Amendment 2026-09-20
+
+Two bounds on the driver's reads, added by ST-172. Every UCI read now carries a
+wall-clock deadline: 30 seconds for a handshake (`uci`, and the `isready` before
+a search) and 180 seconds for one search. Until now a read settled only when its
+line arrived or the process died, so an engine that stopped writing without
+exiting left the promise pending for as long as the process lived, and took the
+game's whole walk with it until the invocation hit its timeout.
+
+The search bound is derived from numbers this record already fixes. A search is
+bounded in nodes before it is bounded in time, at 15,000,000, and the worst
+position measured here was 12,167,980 nodes inside a game of about 210 seconds.
+Three minutes is therefore a detector for a wedged engine, not a limit a healthy
+search approaches. It also sits under the analysis function's 600-second timeout
+in `infra/analysis.ts`, which is the property that makes it useful: a bound
+longer than the timeout would never fire, because the invocation would end
+first.
+
+A search that hits its deadline kills that engine's process before the error
+propagates, and a handshake that times out or dies kills the process it started,
+so neither converts a hang into an orphan. The engine pool is also started
+inside the block whose `finally` stops it, so a start that fails stops the
+engines beside it, which the previous ordering did not. The commands sent to the
+engine and their order are unchanged; only the waiting is bounded.

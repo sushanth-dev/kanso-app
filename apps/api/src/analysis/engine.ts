@@ -28,6 +28,31 @@ import { createInterface } from 'node:readline';
 import type { Readable, Writable } from 'node:stream';
 import type { EvalScore } from '../chess/lichess-utils.ts';
 
+export interface EngineTimeouts {
+  /** One handshake read: `uci`, or the `isready` before a search. */
+  handshakeMs: number;
+  /** One search: `go depth N nodes M`, until `bestmove` arrives. */
+  searchMs: number;
+}
+
+/**
+ * The handshake bound. Booting an engine costs 0.4 seconds, measured, so 30
+ * seconds is slack rather than a limit anything healthy reaches.
+ */
+export const HANDSHAKE_DEADLINE_MS = 30_000;
+
+/**
+ * The search bound, per `go`.
+ *
+ * A search is bounded in nodes before it is bounded in time: the ceiling is
+ * 15,000,000, and the worst position measured while writing ADR-0023 was
+ * 12,167,980 nodes. A whole game on the deployed shape takes about 210 seconds,
+ * so three minutes is a detector for a wedged engine rather than a performance
+ * limit, and it fires inside the analysis function's 600-second timeout, so a
+ * search that never answers fails its game instead of the invocation.
+ */
+export const SEARCH_DEADLINE_MS = 180_000;
+
 export interface EngineOptions {
   /**
    * The engine to run. A path ending in `.js` is the WebAssembly build and is
@@ -44,6 +69,11 @@ export interface EngineOptions {
   engines: number;
   /** Transposition table size per engine process. */
   hashMb: number;
+  /**
+   * Wall-clock bounds on each kind of UCI read, defaulting to the two deadlines
+   * above. A test sets a short one rather than sitting out the real bound.
+   */
+  timeouts?: Partial<EngineTimeouts>;
 }
 
 export interface EvaluatedPosition {
@@ -70,15 +100,18 @@ class Engine {
   private readonly proc: EngineProcess;
   private readonly listeners: ((line: string) => void)[];
   private readonly failure: () => Error | null;
+  private readonly timeouts: EngineTimeouts;
 
   private constructor(
     proc: EngineProcess,
     listeners: ((line: string) => void)[],
     failure: () => Error | null,
+    timeouts: EngineTimeouts,
   ) {
     this.proc = proc;
     this.listeners = listeners;
     this.failure = failure;
+    this.timeouts = timeouts;
   }
 
   static async start(options: EngineOptions): Promise<Engine> {
@@ -106,11 +139,23 @@ class Engine {
       die(`engine exited early (code ${code ?? 'null'}, signal ${signal ?? 'none'})`),
     );
 
-    const engine = new Engine(proc, listeners, () => failure);
-    await engine.send('uci', (l) => l === 'uciok');
-    engine.write(`setoption name Threads value 1`);
-    engine.write(`setoption name Hash value ${options.hashMb}`);
-    await engine.send('isready', (l) => l === 'readyok');
+    const timeouts: EngineTimeouts = {
+      handshakeMs: HANDSHAKE_DEADLINE_MS,
+      searchMs: SEARCH_DEADLINE_MS,
+      ...options.timeouts,
+    };
+    const engine = new Engine(proc, listeners, () => failure, timeouts);
+    try {
+      await engine.send('uci', (l) => l === 'uciok', { deadlineMs: timeouts.handshakeMs });
+      engine.write(`setoption name Threads value 1`);
+      engine.write(`setoption name Hash value ${options.hashMb}`);
+      await engine.send('isready', (l) => l === 'readyok', { deadlineMs: timeouts.handshakeMs });
+    } catch (err) {
+      // A handshake that timed out or died leaves a live process behind, and no
+      // pool holds this engine, because `start` never returned one.
+      engine.stop();
+      throw err;
+    }
     return engine;
   }
 
@@ -118,22 +163,43 @@ class Engine {
     this.proc.stdin.write(command + '\n');
   }
 
-  private send(command: string, until: (line: string) => boolean): Promise<string[]> {
+  private forget(listener: (line: string) => void): void {
+    const at = this.listeners.indexOf(listener);
+    if (at !== -1) this.listeners.splice(at, 1);
+  }
+
+  private send(
+    command: string,
+    until: (line: string) => boolean,
+    bounds: { deadlineMs: number; fen?: string },
+  ): Promise<string[]> {
     return new Promise((resolve, reject) => {
       const lines: string[] = [];
+
       const listener = (line: string) => {
         const failed = this.failure();
-        if (failed !== null) {
-          this.listeners.splice(this.listeners.indexOf(listener), 1);
-          reject(failed);
-          return;
-        }
-        lines.push(line);
-        if (until(line)) {
-          this.listeners.splice(this.listeners.indexOf(listener), 1);
-          resolve(lines);
-        }
+        if (failed === null) lines.push(line);
+        if (failed === null && !until(line)) return;
+        clearTimeout(timer);
+        this.forget(listener);
+        if (failed !== null) reject(failed);
+        else resolve(lines);
       };
+
+      // A live engine that stops writing never fires `error` or `exit`, so
+      // without this timer the promise waits as long as the process lives and
+      // takes the whole walk with it. The listener above cannot run before this
+      // exists: it is not registered until the two lines below.
+      const timer = setTimeout(() => {
+        this.forget(listener);
+        const where = bounds.fen === undefined ? '' : ` for position ${bounds.fen}`;
+        reject(
+          new Error(
+            `engine did not answer "${command}" within ${bounds.deadlineMs / 1000}s${where}`,
+          ),
+        );
+      }, bounds.deadlineMs);
+
       this.listeners.push(listener);
       this.write(command);
     });
@@ -144,10 +210,20 @@ class Engine {
       throw new Error('refusing to send a position that is not a plain FEN to the engine');
     }
     this.write(`position fen ${fen}`);
-    await this.send('isready', (l) => l === 'readyok');
-    const lines = await this.send(`go depth ${options.depth} nodes ${options.nodeCeiling}`, (l) =>
-      l.startsWith('bestmove'),
-    );
+    let lines: string[];
+    try {
+      await this.send('isready', (l) => l === 'readyok', { deadlineMs: this.timeouts.handshakeMs });
+      lines = await this.send(
+        `go depth ${options.depth} nodes ${options.nodeCeiling}`,
+        (l) => l.startsWith('bestmove'),
+        { deadlineMs: this.timeouts.searchMs, fen },
+      );
+    } catch (err) {
+      // A search that outlived its deadline must not leave its process behind:
+      // the deadline is meant to bound the walk, not to orphan an engine.
+      this.stop();
+      throw err;
+    }
     return readSearch(fen, lines);
   }
 
@@ -204,6 +280,11 @@ function readSearch(fen: string, lines: string[]): EvaluatedPosition {
  * worth engineering around. Every process is killed on the way out, including
  * when a position throws, because four abandoned engines on a Lambda are four
  * engines still burning the CPU the next position needs.
+ *
+ * A failed start is inside that promise too. This function used to start its
+ * pool above the `try`, so a rejection from the second `Engine.start` left the
+ * first engine running with nothing holding a reference to stop it. Every start
+ * is awaited before the work begins, so the `finally` covers what started.
  */
 export async function evaluatePositions(
   fens: string[],
@@ -212,10 +293,19 @@ export async function evaluatePositions(
   if (fens.length === 0) return [];
 
   const count = Math.max(1, Math.min(options.engines, fens.length));
-  const engines = await Promise.all(Array.from({ length: count }, () => Engine.start(options)));
+  const starts = await Promise.allSettled(
+    Array.from({ length: count }, () => Engine.start(options)),
+  );
+  const engines = starts
+    .filter((start): start is PromiseFulfilledResult<Engine> => start.status === 'fulfilled')
+    .map((start) => start.value);
+  const startFailure = starts.find(
+    (start): start is PromiseRejectedResult => start.status === 'rejected',
+  );
   const results = new Array<EvaluatedPosition>(fens.length);
 
   try {
+    if (startFailure !== undefined) throw startFailure.reason;
     await Promise.all(
       engines.map(async (engine, offset) => {
         for (let i = offset; i < fens.length; i += count) {
