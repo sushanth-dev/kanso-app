@@ -30,6 +30,12 @@ const PIECE_NAMES: Record<string, string> = {
 
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 
+// ST-174. The keyboard controls are ordinary buttons on the raised surface, the
+// same look the review panels' lists wear; the global focus-visible outline in
+// styles.css draws the ring, so no ring utility is needed here.
+const CONTROL_CLASS =
+  'press min-h-11 rounded-control border border-border-strong bg-raised px-2 text-left text-sm text-primary';
+
 // Board themes from DESIGN.md. The board is the brightest object on the screen.
 const BOARD_COLORS = {
   wood: { light: '#ead9b7', dark: '#8f5e38' },
@@ -304,6 +310,15 @@ export function Board({
   const skipMoveRef = useRef<string | null>(null);
   const snapbackRef = useRef<SVGGElement | null>(null);
   const [snapback, setSnapback] = useState<SnapbackState | null>(null);
+  // ST-174. The square a keyboard control is focused on, painted with the
+  // existing highlight fill so a sighted keyboard player can see which square
+  // the focused control names.
+  const [keyboardSquare, setKeyboardSquare] = useState<string | null>(null);
+  const clusterRef = useRef<HTMLDivElement | null>(null);
+  // Where focus lands after the control set changes: the square whose control
+  // should take it, or null for the first control of the new set. undefined
+  // means the change was not a control activation, so focus is left alone.
+  const focusAfterRef = useRef<string | null | undefined>(undefined);
 
   useLayoutEffect(() => {
     const skip = skipMoveRef.current;
@@ -364,6 +379,38 @@ export function Board({
     anim.oncancel = () => setSnapback(null);
   }, [snapback, fen, flipped]);
 
+  // ST-174. Activating a control replaces the whole set - the select list gives
+  // way to the destination list - so the focused button unmounts and focus would
+  // fall to the document. The activation says where it should land instead: the
+  // piece's own square when that control survives the change (Escape, clearing),
+  // the first control of the new set otherwise.
+  //
+  // A committed move takes the board out of interactive mode while the opponent
+  // answers - the drill's `reply`, the finish session's `thinking` - which
+  // unmounts the cluster entirely. That request is left standing rather than
+  // spent on the empty gap, and honoured when the cluster comes back, so a
+  // keyboard player keeps their place instead of restarting from the page top.
+  useLayoutEffect(() => {
+    const wanted = focusAfterRef.current;
+    if (wanted === undefined) return;
+    const cluster = clusterRef.current;
+    if (cluster === null) return;
+    focusAfterRef.current = undefined;
+    const first = cluster.querySelectorAll('button')[0];
+    if (first === undefined) return;
+    const preferred =
+      wanted === null
+        ? undefined
+        : cluster.querySelector<HTMLButtonElement>(`[data-keyboard-square="${wanted}"]`);
+    (preferred ?? first).focus();
+  }, [selectedSquare, fen, interactive]);
+
+  // Leaving interactive mode unmounts the focused control, so the keyboard
+  // highlight would otherwise outlive the focus it marks.
+  useLayoutEffect(() => {
+    if (!interactive) setKeyboardSquare(null);
+  }, [interactive]);
+
   const beginDrag = (event: ReactPointerEvent<SVGGElement>, square: string): void => {
     if (!interactive || !mayDrag(square)) return;
     try {
@@ -416,7 +463,7 @@ export function Board({
       const file = flipped ? 7 - column : column;
       const rank = flipped ? row : 7 - row;
       const squareName = `${FILES[file]}${rank + 1}`;
-      const highlighted = squareName === from || squareName === to;
+      const highlighted = squareName === from || squareName === to || squareName === keyboardSquare;
       const dark = (file + rank) % 2 === 0;
       cells.push(
         <rect
@@ -653,19 +700,141 @@ export function Board({
       </text>,
     );
   }
+  // ST-174. The keyboard path: one ordinary HTML button per move the pointer can
+  // make. The buttons are built from the same `draggableSquares` and
+  // `targetSquares` the pointer uses and call the same `onSquareClick`, so the
+  // two paths cannot disagree about a move, and the names are generated from the
+  // position rather than written by hand. The square rides on
+  // `data-keyboard-square` because `data-square` already names the SVG squares.
+  const piecePhrase = (square: string): string => {
+    const piece = pieces.find((placed) => squareOf(placed.file, placed.rank) === square);
+    return piece === undefined
+      ? 'piece'
+      : `${piece.white ? 'white' : 'black'} ${PIECE_NAMES[piece.type]}`;
+  };
+  const controls: ReactNode[] = [];
+  if (interactive) {
+    if (selectedSquare === undefined) {
+      for (const square of [...new Set(draggableSquares ?? [])]) {
+        controls.push(
+          <button
+            key={square}
+            type="button"
+            data-keyboard-square={square}
+            className={CONTROL_CLASS}
+            onClick={() => {
+              focusAfterRef.current = null;
+              onSquareClick(square);
+            }}
+          >
+            Select the {piecePhrase(square)} on {square}
+          </button>,
+        );
+      }
+    } else {
+      const destinations = [...new Set(targetSquares ?? [])];
+      const phrase = piecePhrase(selectedSquare);
+      for (const square of destinations) {
+        controls.push(
+          <button
+            key={square}
+            type="button"
+            data-keyboard-square={square}
+            className={CONTROL_CLASS}
+            onClick={() => {
+              focusAfterRef.current = null;
+              onSquareClick(square);
+            }}
+          >
+            Move the {phrase} on {selectedSquare} to {square}
+          </button>,
+        );
+      }
+      if (destinations.length === 0) {
+        // A picked piece with nowhere to go would leave the cluster empty, and
+        // the selection would then be unclearable without a pointer.
+        controls.push(
+          <button
+            key="clear"
+            type="button"
+            data-keyboard-square={selectedSquare}
+            className={CONTROL_CLASS}
+            onClick={() => {
+              focusAfterRef.current = selectedSquare;
+              onSquareClick(selectedSquare);
+            }}
+          >
+            Clear the selection on {selectedSquare}
+          </button>,
+        );
+      }
+    }
+  }
+
+  // The interactive board is a labelled group of controls, not an image: the SVG
+  // is hidden from assistive technology so a screen reader hears the position
+  // once, as the group's name, and then the moves. The read-only board keeps the
+  // labelled-image announcement it has always had.
   return (
-    <svg
-      ref={svgRef}
-      viewBox="0 0 10 10"
-      role="img"
-      aria-label={label}
-      className="block w-full"
-      style={interactive ? { touchAction: 'none' } : undefined}
-      onPointerMove={drag !== null ? moveDrag : undefined}
-      onPointerUp={drag !== null ? endDrag : undefined}
-      onPointerCancel={drag !== null ? () => setDrag(null) : undefined}
+    <div
+      role={interactive ? 'group' : undefined}
+      aria-label={interactive ? label : undefined}
+      className="relative w-full"
+      onFocus={
+        interactive
+          ? (event) => {
+              const square =
+                event.target instanceof HTMLElement
+                  ? event.target.dataset.keyboardSquare
+                  : undefined;
+              if (square !== undefined) setKeyboardSquare(square);
+            }
+          : undefined
+      }
+      onBlur={
+        interactive
+          ? (event) => {
+              if (!event.currentTarget.contains(event.relatedTarget)) setKeyboardSquare(null);
+            }
+          : undefined
+      }
+      onKeyDown={
+        interactive
+          ? (event) => {
+              // Escape backs out of a selection through the route's own rule: a
+              // click on the selected square is what clears it.
+              if (event.key !== 'Escape' || selectedSquare === undefined) return;
+              event.preventDefault();
+              focusAfterRef.current = selectedSquare;
+              onSquareClick(selectedSquare);
+            }
+          : undefined
+      }
     >
-      {cells}
-    </svg>
+      {interactive ? (
+        // The cluster is hidden until one of its controls holds focus, the
+        // treatment the skip link uses. The outer element carries the hiding so
+        // the panel inside can keep its own padding and border.
+        <div ref={clusterRef} className="sr-only focus-within:not-sr-only">
+          <div className="absolute left-2 top-2 z-50 flex max-h-72 w-56 flex-col gap-1 overflow-y-auto rounded-surface border border-border-strong bg-raised p-2">
+            {controls}
+          </div>
+        </div>
+      ) : null}
+      <svg
+        ref={svgRef}
+        viewBox="0 0 10 10"
+        role={interactive ? undefined : 'img'}
+        aria-label={interactive ? undefined : label}
+        aria-hidden={interactive ? true : undefined}
+        className="block w-full"
+        style={interactive ? { touchAction: 'none' } : undefined}
+        onPointerMove={drag !== null ? moveDrag : undefined}
+        onPointerUp={drag !== null ? endDrag : undefined}
+        onPointerCancel={drag !== null ? () => setDrag(null) : undefined}
+      >
+        {cells}
+      </svg>
+    </div>
   );
 }

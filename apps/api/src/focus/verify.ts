@@ -26,6 +26,20 @@ export type FocusTrend = 'improving' | 'flat' | 'declining' | 'insufficient_evid
 /** F12. The rolling window, in analysed games per half. ST-096 diverged it from the report's `MIN_RATED_GAMES` (6): the focus keeps the stronger ten-game bar. */
 export const FOCUS_WINDOW_GAMES = 10;
 
+/**
+ * ST-173. The rows one page of a window read asks for: both halves in a single
+ * page, so a stream where every game qualifies is read in one query.
+ */
+export const WINDOW_PAGE_ROWS = 2 * FOCUS_WINDOW_GAMES;
+
+/**
+ * ST-173. The page cap for one window read: 500 games. Reaching it means the
+ * newest 500 games of the stream held fewer than the floor's two halves, which
+ * is thin evidence. The read stops and the window refuses rather than walking
+ * the rest of a long history to prove what it already knows.
+ */
+export const WINDOW_MAX_PAGES = 25;
+
 export interface FocusSpec {
   /** What the two values are in, for the page that explains the number. */
   unit: string;
@@ -174,6 +188,37 @@ export interface FocusMeasurementDraft {
 }
 
 /**
+ * ST-173. Reads an eligible window newest-first, a page at a time, and stops as
+ * soon as `enough` holds. The caller owns the order and the eligibility rule;
+ * this decides only how far to go. Three things end it: enough rows kept, a
+ * page shorter than requested (the history ran out), or the page cap.
+ *
+ * Stopping early is safe, and that is what makes a bound acceptable here: a
+ * window short of the floor refuses to answer, so reading too little can cost a
+ * refusal but can never invent a verdict. Reading too much, by contrast, is
+ * what the whole change is against.
+ */
+export async function readWindow<T>(
+  fetchPage: (offset: number, limit: number) => Promise<T[]>,
+  isEligible: (row: T) => boolean,
+  enough: (kept: T[]) => boolean,
+  bounds: { pageRows: number; maxPages: number } = {
+    pageRows: WINDOW_PAGE_ROWS,
+    maxPages: WINDOW_MAX_PAGES,
+  },
+): Promise<T[]> {
+  const kept: T[] = [];
+  for (let page = 0; page < bounds.maxPages; page += 1) {
+    const rows = await fetchPage(page * bounds.pageRows, bounds.pageRows);
+    for (const row of rows) {
+      if (isEligible(row)) kept.push(row);
+    }
+    if (enough(kept) || rows.length < bounds.pageRows) break;
+  }
+  return kept;
+}
+
+/**
  * Measure one focus over one stream. The online stream counts blitz games
  * only (ST-040): bullet, rapid, and classical online games are excluded before
  * the window splits. A window thinner than the floor refuses without
@@ -187,21 +232,34 @@ export async function measureFocusStream(
   startedAt: Date,
   computeValue: FocusValueFn,
 ): Promise<FocusMeasurementDraft> {
-  const rows = await db
-    .select({ id: game.id, playedAt: game.playedAt, timeControl: game.timeControl })
-    .from(game)
-    .where(
-      and(
-        eq(game.playerId, playerId),
-        eq(game.stream, stream),
-        eq(game.analysisStatus, 'complete'),
-        isNotNull(game.playedAt),
-      ),
-    )
-    .orderBy(desc(game.playedAt));
+  const scope = and(
+    eq(game.playerId, playerId),
+    eq(game.stream, stream),
+    eq(game.analysisStatus, 'complete'),
+    isNotNull(game.playedAt),
+  );
 
-  const games =
-    stream === 'online' ? rows.filter((g) => classifyTimeControl(g.timeControl) === 'blitz') : rows;
+  // ST-173. This read used to return every analysed game the player had in the
+  // stream, which is the whole history once a player has years of it. It stops
+  // at the two full halves the floor needs: `splitWindow` discards everything
+  // past a full pair of halves, so the rows beyond them bought nothing.
+  // `desc(game.id)` breaks ties on a single timestamp, so paging cannot repeat
+  // or skip a row.
+  const games = await readWindow(
+    (offset, limit) =>
+      db
+        .select({ id: game.id, playedAt: game.playedAt, timeControl: game.timeControl })
+        .from(game)
+        .where(scope)
+        .orderBy(desc(game.playedAt), desc(game.id))
+        .limit(limit)
+        .offset(offset),
+    (row) => stream !== 'online' || classifyTimeControl(row.timeControl) === 'blitz',
+    (kept) => {
+      const { baselineIds, currentIds } = splitWindow(startedAt, kept);
+      return baselineIds.length >= FOCUS_WINDOW_GAMES && currentIds.length >= FOCUS_WINDOW_GAMES;
+    },
+  );
 
   const { baselineIds, currentIds, periodStart, periodEnd } = splitWindow(startedAt, games);
   const windowGames = currentIds.length;
