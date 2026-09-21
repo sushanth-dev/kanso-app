@@ -47,6 +47,9 @@ function meWithTier(tier: AccountApi.Tier = 'beginner'): AccountApi.Me {
     email: 'player@example.com',
     name: 'Player',
     tier,
+    // ST-176. These fixtures predate the analytics gate, so they read the way an
+    // account that has stated no age does, which is also the fail-shut default.
+    analyticsSuiteAllowed: false,
     player: {
       id: '00000000-0000-4000-8000-000000000001',
       displayName: 'Player',
