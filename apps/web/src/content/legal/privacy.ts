@@ -47,7 +47,8 @@ export const PRIVACY_PAGE: LegalPage = {
     {
       heading: 'Usage data, and session replay',
       blocks: [
-        'We use PostHog for product analytics, and we run its full suite rather than a few counters: page views, automatic capture of clicks and other interactions, session replay, surveys, feature flags, and error reports. Page views and automatic capture read the page and the address the browser is on. Session replay records what was on the screen.',
+        'We use PostHog for product analytics. For an account that has told us an age, or whose guardian has consented, we run its full suite rather than a few counters: page views, automatic capture of clicks and other interactions, session replay, surveys, feature flags, and error reports. Page views and automatic capture read the page and the address the browser is on. Session replay records what was on the screen.',
+        'An account that has not told us an age gets none of that automatic capture, and neither does a visitor who is not signed in. What those accounts send is a short list of named events, such as "a game was imported" and "a report was opened", which carry counts and labels and nothing from the screen or the address the browser is on. Feature flags still load, because a flag tells the app what to show rather than telling us anything about the player.',
         'What that means in practice is worth stating plainly, because a session recording can include the board, the game, the report, a name the app happened to be displaying, and text typed into a form.',
         "We never send PostHog a name, an email address, or an account identifier. A random anonymous identifier in the browser is the only identity this data carries. Both halves of that matter: a record in PostHog cannot be found by a person's name, and a recording can still show a name if the app was displaying one at the time.",
         'PostHog holds this on its cloud service in the United States. Error reports go there too, which is how we hear about a failure without being told about it.',
@@ -60,7 +61,7 @@ export const PRIVACY_PAGE: LegalPage = {
         "When the date of birth makes the player under 13, sign-up requires a parent or guardian's email address, and it refuses the player's own address in that field. The account is created and is then closed to use: signing in leads to a page that says consent is pending.",
         'The guardian is emailed an explanation and a link. Opening that link records consent and opens the account. The link is signed, so it cannot be forged. It is good for a single confirmation, and it stops working after three days.',
         'If the link expires before it is opened, writing to the address on the contact page is the only way to get another one today. There is no self-serve resend, and the request has to come from the guardian address.',
-        "Thirteen is the threshold the age gate uses. It is the line the Children's Online Privacy Protection Act (COPPA) draws in the United States, and the gate applies to every account regardless of where the player is.",
+        "Thirteen is the threshold the age gate uses. It is the line the Children's Online Privacy Protection Act (COPPA) draws in the United States, and the gate applies to every account regardless of where the player is. An account that never states an age is let in as an adult, because a sign-up form has to let somebody in, but it is not measured as one: without a stated age, the analytics suite's automatic capture stays off.",
         "A parent or guardian can exercise everything on this page on the player's behalf: a copy, a correction, or the deletion of the account and everything in it.",
       ],
     },
