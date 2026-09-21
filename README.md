@@ -18,8 +18,8 @@ the explanation behind each one rather than filling in a template. The result
 is a diagnosis a player can act on without a coach in the room, and a proof
 sheet they can hand to the parent who pays for it.
 
-Games arrive without typing: upload a PGN, or import a published tournament by
-name and player. The first diagnosis is free.
+Games arrive without typing: import from Chess.com or Lichess by username, or
+upload a tournament PGN. The first diagnosis is free.
 
 ## Repository layout
 
@@ -107,7 +107,7 @@ protected; every other stage is removed with the app.
   prompt once results land.
 
 The decisions behind that shape, and the ones we reversed, are written down in
-[docs/adrs](docs/adrs/index.md): 29 backend records and 19 front end records.
+[docs/adrs](docs/adrs/index.md): 28 backend records and 18 front end records.
 
 ## Documentation
 
