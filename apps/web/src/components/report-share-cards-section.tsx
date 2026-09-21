@@ -138,7 +138,7 @@ export function ReportShareCardsSection({
           {cards.map((card) => (
             <Card key={card.id}>
               <Text as="p" display="block" type="supporting">
-                {`${card.ratingLeak} rating points - ${card.label}. Created on ${createdFormatter.format(new Date(card.createdAt))}.`}
+                {`${card.ratingLeak} rating points - ${card.label}. Modelled from the rated games, not counted from results. Created on ${createdFormatter.format(new Date(card.createdAt))}.`}
                 {card.expiresAt !== null
                   ? ` Expires ${createdFormatter.format(new Date(card.expiresAt))}.`
                   : ''}

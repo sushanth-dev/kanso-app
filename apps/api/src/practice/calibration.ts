@@ -10,6 +10,12 @@
  * honest reading of "absent, never as guessed". The figure is practice
  * instrumentation under the ST-129 rule: nothing in the verdict, streak,
  * or ladder arithmetic reads the column.
+ *
+ * ST-175. "Failed" is the row's current outcome, read from the ladder: a fail
+ * or a reveal drops `review_level` to 0 and a solve climbs it, so level 0 is
+ * exactly "the latest drill did not solve it". The sticky `solved` column
+ * cannot stand in for that - a puzzle solved once and then failed reads
+ * `solved = true, review_level = 0`, and it is a failure now.
  */
 import { and, eq, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
@@ -19,7 +25,7 @@ import { puzzleAttempt } from '../db/schema.ts';
 type Db = PostgresJsDatabase<typeof schema>;
 
 export interface Calibration {
-  /** Failed drills that carry an answer. */
+  /** Rows whose latest drill failed and which carry an answer. */
   failedAnswered: number;
   /** The share of those rated sure, 0 when nothing is answered yet. */
   overconfidence: number;
@@ -40,29 +46,31 @@ interface AggregateRow {
 
 /**
  * Per group the player has drilled: the overconfidence figures. The query
- * counts failed drills (`solved` false on the aggregated row) that carry a
- * non-null confidence, split by answer and by whether the drill's
- * `last_attempt_at` sits inside the trailing week. A null answer - a
- * skipped prompt - lands in no bucket.
+ * counts the rows whose latest drill failed - the ladder is back at 0 - and
+ * which carry an answer, split by whether the row's `last_attempt_at` sits
+ * inside the trailing week. The answer is the newest one the player gave, so
+ * where a failed re-drill skipped the prompt the row is counted against the
+ * last answer it holds. A row with no answer at all lands in no bucket.
  */
 export async function readCalibration(db: Db, playerId: string): Promise<Map<string, Calibration>> {
   const rows: AggregateRow[] = await db
     .select({
       kind: puzzleAttempt.kind,
       groupKey: puzzleAttempt.groupKey,
-      failedAnswered: sql<number>`count(*) filter (where ${puzzleAttempt.solved} = false)::int`,
-      failedSure: sql<number>`count(*) filter (where ${puzzleAttempt.solved} = false and ${puzzleAttempt.confidence} = 'sure')::int`,
-      weekFailedAnswered: sql<number>`count(*) filter (where ${puzzleAttempt.solved} = false and ${puzzleAttempt.lastAttemptAt} >= now() - interval '7 days')::int`,
-      weekFailedSure: sql<number>`count(*) filter (where ${puzzleAttempt.solved} = false and ${puzzleAttempt.confidence} = 'sure' and ${puzzleAttempt.lastAttemptAt} >= now() - interval '7 days')::int`,
+      failedAnswered: sql<number>`count(*) filter (where ${puzzleAttempt.reviewLevel} = 0)::int`,
+      failedSure: sql<number>`count(*) filter (where ${puzzleAttempt.reviewLevel} = 0 and ${puzzleAttempt.confidence} = 'sure')::int`,
+      weekFailedAnswered: sql<number>`count(*) filter (where ${puzzleAttempt.reviewLevel} = 0 and ${puzzleAttempt.lastAttemptAt} >= now() - interval '7 days')::int`,
+      weekFailedSure: sql<number>`count(*) filter (where ${puzzleAttempt.reviewLevel} = 0 and ${puzzleAttempt.confidence} = 'sure' and ${puzzleAttempt.lastAttemptAt} >= now() - interval '7 days')::int`,
     })
     .from(puzzleAttempt)
     .where(
       and(
         eq(puzzleAttempt.playerId, playerId),
-        // Only rows that carry an answer enter the arithmetic; a skipped
-        // prompt is absent, never a guess.
+        // Only rows that carry an answer enter the arithmetic; a prompt the
+        // player never answered is absent, never a guess.
         sql`${puzzleAttempt.confidence} is not null`,
-        sql`${puzzleAttempt.solved} = false`,
+        // ST-175. The latest drill's outcome, not the sticky ever-solved flag.
+        sql`${puzzleAttempt.reviewLevel} = 0`,
       ),
     )
     .groupBy(puzzleAttempt.kind, puzzleAttempt.groupKey);

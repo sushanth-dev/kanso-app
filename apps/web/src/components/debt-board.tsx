@@ -22,6 +22,7 @@ import { Text } from '@astryxdesign/core/Text';
 import { useQuery } from '@tanstack/react-query';
 import type { PatternState, Stream, Weakness } from '../api/diagnosis-api.ts';
 import { patternsQueryOptions } from '../query-client.ts';
+import { FigureTypeNote } from './figure-type.tsx';
 
 /** The date the board's copy names: the day a debt retired or came back. */
 const dateFormatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' });
@@ -90,6 +91,14 @@ export function DebtCard({ pattern, drilled }: { pattern: PatternState; drilled:
         <Text className="font-display text-base">{pattern.label}</Text>
         <StateChip state={pattern.state} />
       </div>
+      {/* ST-175. Every figure on this card is a count: instances and
+          half-points across the window, the games in it, the drills beside it,
+          the calibration share, and the state read from those counts. None of
+          it is modelled, so the card carries no estimate. */}
+      <FigureTypeNote
+        type="observed"
+        detail="counted from these games and your drills, not modelled from engine scores."
+      />
       {pattern.state === 'retired' ? (
         <Text as="p" display="block">
           Paid in full: retired{' '}
@@ -123,10 +132,13 @@ export function DebtCard({ pattern, drilled }: { pattern: PatternState; drilled:
 }
 
 /**
- * ST-156. The overconfidence line: of the failed drills the player rated,
- * the share they said they were sure about, overall and across the trailing
- * week. A group with no answered failed drills renders the honest zero -
- * the line names the absence rather than showing a number.
+ * ST-156. The overconfidence line: of the puzzles whose latest drill failed,
+ * the share the player rated sure, overall and across the trailing week.
+ * ST-175. The count is the row's current state and the rating is the last
+ * answer the row holds, so the line names the puzzle rather than claiming the
+ * failing drill itself was rated. A group with no answered failed drills
+ * renders the honest zero - the line names the absence rather than showing a
+ * number.
  */
 function CalibrationLine({ calibration }: { calibration: PatternState['calibration'] }) {
   if (calibration === null) {
@@ -139,8 +151,8 @@ function CalibrationLine({ calibration }: { calibration: PatternState['calibrati
   const pct = (share: number) => `${Math.round(share * 100)}%`;
   return (
     <Text as="p" display="block" type="supporting" className="text-sm">
-      Rated sure on {pct(calibration.overconfidence)} of {calibration.failedAnswered} failed drill
-      {calibration.failedAnswered === 1 ? '' : 's'}
+      Rated sure on {pct(calibration.overconfidence)} of {calibration.failedAnswered} puzzle
+      {calibration.failedAnswered === 1 ? '' : 's'} whose latest drill failed
       {calibration.weekFailedAnswered > 0
         ? `, ${pct(calibration.weekOverconfidence)} in the last week`
         : ''}

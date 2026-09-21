@@ -6,7 +6,11 @@
  * excluded.solved`), so a puzzle solved once stays solved even when a later
  * attempt ended in a reveal, and the group identity is claimed by the first
  * drill - a puzzle later re-drilled under another group does not move rows
- * between counts. The activity write runs in the same transaction and only
+ * between counts. ST-175. The aggregate keeps each field's newest *known*
+ * value, so a skipped confidence prompt leaves the last answer standing
+ * rather than erasing it; which way the latest drill went is the ladder's
+ * question, and `review_level` answers it. The activity write runs in the
+ * same transaction and only
  * on a solve, so a reveal never pays; the once-per-day compare-and-swap in
  * `recordActivity` makes every repeat a no-op.
  *
@@ -89,9 +93,10 @@ export async function recordDrill(
           attempts: sql`${puzzleAttempt.attempts} + 1`,
           solved: sql`${puzzleAttempt.solved} or excluded.solved`,
           lastAttemptAt: sql`now()`,
-          // ST-156. The row aggregates drills, so the latest drill's answer
-          // stands: a skipped re-drill overwrites the older answer with null.
-          confidence: sql`excluded.confidence`,
+          // ST-156, ST-175. The row aggregates drills, so the newest answer
+          // stands; a skipped prompt carries no answer and so leaves the last
+          // one we hold in place rather than erasing it.
+          confidence: sql`coalesce(excluded.confidence, ${puzzleAttempt.confidence})`,
           // A solve climbs one rung (capped at 3, the thirty-day rung);
           // a reveal drops back to 0, due now, and the queue re-deals it.
           reviewLevel: solved ? sql`least(${puzzleAttempt.reviewLevel} + 1, 3)` : sql`0`,

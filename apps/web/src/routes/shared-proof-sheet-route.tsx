@@ -7,6 +7,7 @@ import { useParams } from '@tanstack/react-router';
 import { ApiRequestError } from '../api/account-api.ts';
 import { sharedProofSheetApi, type SharedProofSheet } from '../api/proof-sheet-api.ts';
 import { Mark } from '../components/mark.tsx';
+import { FigureTypeNote } from '../components/figure-type.tsx';
 
 const STREAM_LABEL: Record<SharedProofSheet['stream'], string> = {
   tournament: 'Tournament',
@@ -110,6 +111,15 @@ export function SharedProofSheetScreen({ sheet }: { sheet: SharedProofSheet }) {
           {gamesLabel(sheet.gamesAfter)} since. More games will make a verdict possible.
         </Text>
       )}
+
+      {/* ST-175. The proof sheet carries no estimate: every figure here, the
+          verdict and the two halves behind it, is counted from games. The note
+          sits under the figures rather than in a footer, and it names the
+          ingredient so "observed" teaches the reader something. */}
+      <FigureTypeNote
+        type="observed"
+        detail="every figure on this page is counted from these games, not modelled from engine scores."
+      />
 
       <Text as="p" display="block" type="supporting" className="mt-8 text-sm reveal-in">
         {STREAM_LABEL[sheet.stream]} games · {periodFormatter.format(new Date(sheet.periodStart))}{' '}

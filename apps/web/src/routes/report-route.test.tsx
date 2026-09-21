@@ -218,6 +218,52 @@ describe('ReportScreen', () => {
     expect(screen.getByText(/covering 12 games/)).toBeVisible();
   });
 
+  // ST-175, criterion 7. The labelling rule, enforced rather than reviewed:
+  // every figure this screen renders carries its type, and the estimate names
+  // the model's own input rather than a proxy for it.
+  test('labels each figure with its type, and names the estimate input', () => {
+    renderReport(
+      reportFixture({
+        weaknesses: [{ ...motifWeakness, retirementState: 'candidate' }, openingWeakness],
+      }),
+    );
+
+    // The estimate, where the player meets it: above the rows, naming the
+    // games the model was run over.
+    expect(
+      screen.getByText(
+        'Estimate · modelled from the 12 rated games in this window, not counted from results. Rows are ordered by it.',
+      ),
+    ).toBeVisible();
+    // One word per row, so the label travels with the number.
+    expect(screen.getAllByText('Estimate')).toHaveLength(2);
+    // Every counted figure carries the other word, on the card that holds it.
+    expect(
+      screen.getAllByText(
+        'Observed · counted from these games; the retirement state is read from your drills against them.',
+      ),
+    ).toHaveLength(2);
+  });
+
+  // ST-175, criterion 3. The estimate never reads as progress: no arrow, no
+  // "improved", and never in the slot the observed retirement occupies.
+  test('keeps the estimate out of the retirement slot and free of progress marks', () => {
+    renderReport(
+      reportFixture({
+        weaknesses: [{ ...motifWeakness, retirementState: 'candidate' }, openingWeakness],
+      }),
+    );
+
+    const rankOneTag = screen.getAllByText('Estimate')[0]!;
+    const leakSlot = rankOneTag.parentElement;
+    // The word itself is the mark, so the row carries no glyph and no verdict.
+    expect(rankOneTag.textContent).toBe('Estimate');
+    expect(leakSlot?.textContent).not.toMatch(/[↑↓→]|improved/i);
+    // The retirement chip is the observed figure, and it is a different slot.
+    expect(leakSlot?.textContent).not.toMatch(/Retirement/);
+    expect(screen.getByText('Retirement candidate')).toBeVisible();
+  });
+
   test('offers the share-card section beside the weaknesses', async () => {
     const card: ReportCardLink = {
       id: '77777777-7777-4777-8777-777777777777',
