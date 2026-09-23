@@ -33,15 +33,32 @@ const options: EngineOptions = {
 const BLUNDER_PGN = '1. e4 e5 2. Nf3 Qf6 3. Nc3 Qxf3 4. gxf3 1-0';
 
 /**
- * Black's ply 2 is the only legal move in the position. ADR-0023 skips searching
- * a forced move and carries the evaluation over from the position before it, so
- * this game is what proves the carry happened rather than leaving a hole.
+ * Black's ply 2 is the only legal move in the position, so that ply has no
+ * evaluation of its own: it takes the value of the position Black's move
+ * reaches, which is White's ply 3. ST-171.
  */
 const FORCED_PGN = [
   '[SetUp "1"]',
   '[FEN "7k/8/5K1P/8/8/8/8/8 w - - 0 1"]',
   '',
   '1. Kg6 Kg8 2. h7+ Kf8 3. h8=Q+ 1-0',
+].join('\n');
+
+/**
+ * White's 1. Qb8+ hangs the queen, and Black has exactly one reply, Kxb8.
+ *
+ * This is the case the report has to name. The move that decides the game
+ * leaves the opponent a forced reply, so the position after Qb8+ has no
+ * evaluation of its own. Before ST-171 that position borrowed the evaluation
+ * of the position before it, which made `evalBefore` and `evalAfter` of ply 1
+ * equal, the drop zero, and the worst move of the game invisible.
+ */
+const FORCED_BLUNDER_PGN = [
+  '[SetUp "1"]',
+  '[FEN "k7/pp6/3Q4/8/8/8/8/7K w - - 0 1"]',
+  '[Result "0-1"]',
+  '',
+  '1. Qb8+ Kxb8 0-1',
 ].join('\n');
 
 let harness: IntegrationDatabase;
@@ -203,18 +220,50 @@ describe('analyseGame', () => {
     expect(await mistakes(gameId)).toHaveLength(0);
   });
 
-  test('a forced move carries the previous evaluation rather than leaving a hole', async () => {
+  test('a forced move takes the value of the position after it', async () => {
     const gameId = await seedGame(FORCED_PGN, 'black');
 
     await analyseGame(harness.db, gameId, options);
 
     const rows = await plies(gameId);
-    const [before, forced] = rows;
+    const forced = rows[1];
     expect(forced!.san).toBe('Kg8');
-    expect(forced!.evalCp).toBe(before!.evalCp);
-    expect(forced!.evalMate).toBe(before!.evalMate);
+    // The forced position has no value of its own: it holds the value of the
+    // position the only legal move reaches, which is the next ply's before.
+    expect(forced!.evalCp).toBe(rows[2]!.evalCp);
+    expect(forced!.evalMate).toBe(rows[2]!.evalMate);
     // The only legal move is also the best one there was.
     expect(forced!.bestMoveSan).toBe('Kg8');
+    // A player who had one move to make did not make a mistake. The other
+    // black ply in this game, Kf8, does allow h8=Q+ where Kh8 would block the
+    // pawn, and it is a mistake row on its own merits.
+    expect((await mistakes(gameId)).map((row) => row.ply)).not.toContain(2);
+  });
+
+  test('names the blunder that forces the opponent to a single reply', async () => {
+    // k7/pp6/3Q4/8/8/8/8/7K w, 1. Qb8+ Kxb8. White hangs the queen and Black's
+    // only legal reply takes it. Before ST-171 the position after Qb8+ borrowed
+    // the evaluation of the position before it, so the drop read as zero and the
+    // worst move of the game produced no row at all.
+    const gameId = await seedGame(FORCED_BLUNDER_PGN, 'white');
+
+    await analyseGame(harness.db, gameId, options);
+
+    const rows = await plies(gameId);
+    expect(rows.map((row) => row.san)).toEqual(['Qb8+', 'Kxb8']);
+
+    const found = await mistakes(gameId);
+    expect(found).toHaveLength(1);
+    const blunder = found[0]!;
+    expect(blunder.ply).toBe(1);
+    expect(blunder.moveSan).toBe('Qb8+');
+    expect(blunder.judgement).toBe('blunder');
+    // White was winning and is now lost: the queen is gone and Black is up.
+    expect(blunder.evalAfterMate).toBeNull();
+    expect(blunder.evalAfterCp!).toBeLessThan(-300);
+    expect(blunder.winProbDrop).toBeGreaterThan(0.5);
+    // The engine preferred something other than hanging the queen.
+    expect(blunder.bestMoveSan).not.toBe('Qb8+');
   });
 
   test('caches evaluations and re-searches swings at the deeper depth', async () => {

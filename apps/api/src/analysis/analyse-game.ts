@@ -30,6 +30,7 @@ import { phaseFor } from './phase.ts';
 import { costMicrosFor, DEFAULT_MEMORY_MB } from './cost.ts';
 import { lookupEvaluations, storeEvaluations } from './evaluation-cache.ts';
 import { positionsToResearch } from './two-pass.ts';
+import { evaluationSources } from './evaluation-sources.ts';
 import {
   ANALYSIS_ENGINE_VERSION,
   DEEP_PASS_EXTRA_DEPTH,
@@ -105,20 +106,27 @@ async function evaluatePositionsCached(
 }
 
 /**
- * Evaluate every position, skipping the ones where there was only one legal
- * move, in two passes.
+ * Evaluate every position, searching the ones that need it, in two passes.
  *
- * A forced move cannot be a mistake: the player had nothing else to play. Its
- * evaluation is the evaluation of the position before it, carried over exactly
- * rather than approximated, so the ply still gets a row with a real number in
- * it. ADR-0023 skips these and deliberately does not skip opening-book moves,
- * because players make mistakes in the opening too.
+ * A position with one legal move cannot itself be a mistake: the player had
+ * nothing else to play. The mistake is the move that forced it, and that move
+ * is measured at the position the forced move leads to. So a forced position
+ * takes the evaluation of the position after it, which is the value that flows
+ * into the ply before it and makes a blunder that forces a reply visible
+ * instead of invisible. Inheriting a value that was searched at full depth
+ * costs one fewer search than evaluating the forced position as well, and does
+ * not write a borrowed number under the forced position's cache key. The last
+ * position in the walk has no successor, so it is always searched, and
+ * `evaluation-sources.ts` holds the rule. ADR-0023 covers these positions and
+ * deliberately does not cover opening-book moves, because players make
+ * mistakes in the opening too.
  *
- * The first pass searches every non-forced position at the contract depth,
- * through the cache. The second pass re-searches, a few plies deeper, both
- * flanks of every ply whose first-pass evaluation swung. A quiet ply keeps its
- * first-pass evaluation; a swinging ply gets the deeper one. Both passes share
- * the cache, keyed by depth.
+ * The first pass searches every position that is its own source at the
+ * contract depth, through the cache. The second pass re-searches, a few plies
+ * deeper, both flanks of every ply whose first-pass evaluation swung, resolved
+ * to the positions that hold those values. A quiet ply keeps its first-pass
+ * evaluation; a swinging ply gets the deeper one. Both passes share the cache,
+ * keyed by depth.
  */
 async function evaluateWalk(
   db: Db,
@@ -126,27 +134,34 @@ async function evaluateWalk(
   plies: WalkedPly[],
   options: EngineOptions,
 ): Promise<{ scores: EvalScore[]; bestMoveUci: (string | null)[]; nodes: number }> {
-  // Never skip the first position: with nothing before it there is nothing to
-  // carry over from, and a game can begin from an arbitrary FEN.
-  const forced = positions.map((fen, index) => index > 0 && new Chess(fen).moves().length === 1);
-  const searchedIndices = positions.map((_, index) => index).filter((index) => !forced[index]);
+  const legalMoves = positions.map((fen) => new Chess(fen).moves({ verbose: true }));
+  const sources = evaluationSources(legalMoves.map((moves) => moves.length));
+  const searchedIndices = positions
+    .map((_, index) => index)
+    .filter((index) => sources[index] === index);
   const searched = searchedIndices.map((index) => positions[index]!);
 
-  // Pass 1: every non-forced position, at the contract depth, through the cache.
+  // Pass 1: every position that holds its own value, at the contract depth,
+  // through the cache.
   const pass1 = await evaluatePositionsCached(db, searched, options);
   const shallowByIndex = new Map<number, EvaluatedPosition>();
   searchedIndices.forEach((index, j) => shallowByIndex.set(index, pass1.results[j]!));
 
   const shallowScores: EvalScore[] = [];
   positions.forEach((_, index) => {
-    const evaluated = shallowByIndex.get(index);
-    shallowScores.push(evaluated === undefined ? shallowScores[index - 1]! : evaluated.score);
+    shallowScores.push(shallowByIndex.get(sources[index]!)!.score);
   });
 
-  // Pass 2: re-search both flanks of every swinging ply, a few plies deeper.
-  const research = positionsToResearch(plies, shallowScores, SWING_WIN_PROB_EPSILON).filter(
-    (index) => !forced[index],
-  );
+  // Pass 2: re-search both flanks of every swinging ply, a few plies deeper,
+  // resolved to the positions that actually hold those evaluations. A forced
+  // position never holds its own, so a swing beside one re-searches its source.
+  const research = [
+    ...new Set(
+      positionsToResearch(plies, shallowScores, SWING_WIN_PROB_EPSILON).map(
+        (index) => sources[index]!,
+      ),
+    ),
+  ].sort((a, b) => a - b);
   const deepOptions: EngineOptions = { ...options, depth: options.depth + DEEP_PASS_EXTRA_DEPTH };
   const pass2 =
     research.length > 0
@@ -161,23 +176,13 @@ async function evaluateWalk(
 
   const scores: EvalScore[] = [];
   const bestMoveUci: (string | null)[] = [];
-  positions.forEach((fen, index) => {
-    const deep = deepByIndex.get(index);
-    if (deep !== undefined) {
-      scores.push(deep.score);
-      bestMoveUci.push(deep.bestMoveUci);
-      return;
-    }
-    const shallow = shallowByIndex.get(index);
-    if (shallow !== undefined) {
-      scores.push(shallow.score);
-      bestMoveUci.push(shallow.bestMoveUci);
-      return;
-    }
-    // Forced: the evaluation is the previous position's, and the best move is
-    // the only move.
-    scores.push(scores[index - 1]!);
-    bestMoveUci.push(new Chess(fen).moves({ verbose: true })[0]!.lan);
+  positions.forEach((_, index) => {
+    const source = sources[index]!;
+    const evaluated = deepByIndex.get(source) ?? shallowByIndex.get(source)!;
+    scores.push(evaluated.score);
+    // A position that holds its own value keeps the engine's best move. A
+    // forced position has one legal move, and that is the best move there was.
+    bestMoveUci.push(source === index ? evaluated.bestMoveUci : legalMoves[index]![0]!.lan);
   });
 
   return { scores, bestMoveUci, nodes: pass1.nodes + pass2.nodes };

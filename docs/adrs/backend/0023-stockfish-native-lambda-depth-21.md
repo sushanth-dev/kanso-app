@@ -130,6 +130,10 @@ position. This is exact rather than approximate, and it is worth stating that it
 saving is small: one position in the 107-ply game measured. It costs three lines
 and never costs accuracy.
 
+*Amended 2026-09-19: the direction of the carry was wrong. The paragraph above is
+superseded by [Amendment 2026-09-19](#amendment-2026-09-19) at the end of this
+record.*
+
 **Book plies are searched like any other.** Skipping the opening would be a
 larger saving, and it is rejected: players make real mistakes inside known
 openings, and the openings a player leaks in are the entire product.
@@ -245,6 +249,39 @@ us rather than in front of a player. The function timeout and the per-game cost
 estimate above are tested by the same story, and all three are expected to move
 when it reports. The recorded exit for connection exhaustion is RDS Proxy, about
 $15 a month, added without changing the flow.
+
+## Amendment 2026-09-19
+
+A position with one legal move took the evaluation of the position *before* it,
+which is backwards. The value of a position is the value of the position the
+player's move reaches, and a forced move reaches a position whose evaluation is
+the one the forced move's ply is measured against. Carrying the earlier number
+instead made `evalBefore` and `evalAfter` equal for the ply that forced the
+reply, so the drop read as zero and the worst move of a game could produce no
+`mistake` row at all. It also let a forced ply inherit the opponent's previous
+number, which could invent a mistake as easily as it deleted one, and the deeper
+pass skipped forced indices outright, so the move that decided a game was never
+re-searched.
+
+The rule is now: a position with exactly one legal move takes the evaluation of
+the position *after* it, a run of such positions takes the value at the end of
+the run, and the last position of a walk is always searched because it has no
+successor to take a value from. The rule lives in
+`apps/api/src/analysis/evaluation-sources.ts` as a pure function, and
+`evaluateWalk` resolves both passes through it. The paragraph above claimed the
+carry was exact and free; it was neither. The saving is still real and still
+small, and it is now one search fewer per forced position rather than a borrowed
+number, which also means a forced position never has a value written under its
+own cache key.
+
+A game where the player's move gave the opponent exactly one reply used to report
+nothing. It now reports the blunder. `analyse-game.integration.test.ts` pins it
+with a White `1. Qb8+??` that Black must answer with `Kxb8`.
+
+Unchanged: the depth contract, the node ceiling, the cache keyed by depth, the
+swing epsilon, the classifier thresholds, the motif rules, and the delete-then-
+insert write. Recorded games are not re-analysed; a game keeps the analysis it
+was given until someone runs it again.
 
 ## Amendment 2026-09-20
 
