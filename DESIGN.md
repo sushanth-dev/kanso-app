@@ -1140,11 +1140,12 @@ Right: the hero focal object - the real `Board` component (product truth,
 never a mockup) holding the position before Morphy's Opera Game queen
 sacrifice, tilted seven degrees under a single lamp glow (`.lamp`, the one
 narrative light source on the page), with the ghost move notation
-"16.Qb8+!!" as typographic texture behind it. Overlapping the board floats
+"16.Qb8+!!" as typographic texture behind it. Beneath the board sits
 the raised `Card` labelled "Synthetic example" - the named tournament and
 three-row ranked weakness list, rank and `ratingLeak` in IBM Plex Mono,
-mirroring the report's ranked list without a real player behind it - so
-promise and proof compose as one object.
+mirroring the report's ranked list without a real player behind it - paired
+with the verified platform evidence card (ST-167), keeping the board fully
+unobstructed across viewports (ST-168) while promise and proof compose cleanly.
 
 Four sections in all: the hero, a value proposition with the free/paid
 boundary, the technology behind the diagnosis, and a closing call to action.
