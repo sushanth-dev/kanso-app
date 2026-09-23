@@ -8,6 +8,12 @@ import type * as AccountApi from '../api/account-api.ts';
 import { createAppRouter } from '../router.tsx';
 import { track } from '../analytics.ts';
 import { checkoutApi, type CheckoutResponse } from '../api/checkout-api.ts';
+import { DISPLAY_PLAN_PRICES } from '../billing/plan-prices.ts';
+
+const INTERMEDIATE_PRICE = DISPLAY_PLAN_PRICES.intermediate.inrString;
+const PRO_PRICE = DISPLAY_PLAN_PRICES.pro.inrString;
+const PAY_INTERMEDIATE = `Pay ${INTERMEDIATE_PRICE}`;
+const PAY_PRO = `Pay ${PRO_PRICE}`;
 
 vi.mock('../api/account-api.ts', async (importOriginal) => {
   const actual = await importOriginal<typeof AccountApi>();
@@ -94,6 +100,7 @@ describe('UpgradeRoute', () => {
     document
       .querySelectorAll<HTMLScriptElement>(`script[src="${RAZORPAY_CHECKOUT_SRC}"]`)
       .forEach((script) => script.remove());
+    Object.defineProperty(navigator, 'language', { value: 'en-IN', configurable: true });
   });
 
   test('states the boundary and the three plans', async () => {
@@ -105,8 +112,8 @@ describe('UpgradeRoute', () => {
     expect(screen.getByRole('heading', { name: 'Intermediate' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Pro' })).toBeInTheDocument();
     expect(screen.getByText('Free')).toBeInTheDocument();
-    expect(screen.getByText('₹799')).toBeInTheDocument();
-    expect(screen.getByText('₹1,299')).toBeInTheDocument();
+    expect(screen.getByText(INTERMEDIATE_PRICE)).toBeInTheDocument();
+    expect(screen.getByText(PRO_PRICE)).toBeInTheDocument();
   });
 
   test('carries the entrance motion classes on the header and the plan-card grid', async () => {
@@ -127,8 +134,8 @@ describe('UpgradeRoute', () => {
   test('gives intermediate and pro a pay button, and beginner none', async () => {
     renderAt('/upgrade');
 
-    expect(await screen.findByRole('button', { name: 'Pay ₹799' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Pay ₹1,299' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: PAY_INTERMEDIATE })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: PAY_PRO })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Pay Free' })).not.toBeInTheDocument();
   });
 
@@ -144,11 +151,11 @@ describe('UpgradeRoute', () => {
     renderAt('/upgrade');
 
     await waitFor(() => {
-      expect(screen.queryByRole('button', { name: 'Pay ₹799' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: PAY_INTERMEDIATE })).not.toBeInTheDocument();
     });
 
     resolveMe(meWithTier());
-    expect(await screen.findByRole('button', { name: 'Pay ₹799' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: PAY_INTERMEDIATE })).toBeInTheDocument();
   });
 
   test('shows which plan a pro account is already on, and no pay buttons', async () => {
@@ -186,7 +193,7 @@ describe('UpgradeRoute', () => {
     });
 
     renderAt('/upgrade');
-    await user.click(await screen.findByRole('button', { name: 'Pay ₹799' }));
+    await user.click(await screen.findByRole('button', { name: PAY_INTERMEDIATE }));
 
     const script = await waitFor(() => {
       const el = document.querySelector<HTMLScriptElement>(
@@ -208,7 +215,7 @@ describe('UpgradeRoute', () => {
     checkoutMock.mockRejectedValue(new Error('checkout failed'));
 
     renderAt('/upgrade');
-    await user.click(await screen.findByRole('button', { name: 'Pay ₹799' }));
+    await user.click(await screen.findByRole('button', { name: PAY_INTERMEDIATE }));
 
     expect(await screen.findByText(/payment could not be started/i)).toBeInTheDocument();
     expect(screen.queryByText(/payment received/i)).not.toBeInTheDocument();
@@ -233,7 +240,7 @@ describe('UpgradeRoute', () => {
     };
 
     renderAt('/upgrade');
-    await user.click(await screen.findByRole('button', { name: 'Pay ₹799' }));
+    await user.click(await screen.findByRole('button', { name: PAY_INTERMEDIATE }));
 
     await waitFor(() => expect(razorpayHandler).toBeDefined());
     tier = 'intermediate';
@@ -254,7 +261,7 @@ describe('UpgradeRoute', () => {
     });
 
     renderAt('/upgrade');
-    await user.click(await screen.findByRole('button', { name: 'Pay ₹799' }));
+    await user.click(await screen.findByRole('button', { name: PAY_INTERMEDIATE }));
     const script = await waitFor(() => {
       const el = document.querySelector<HTMLScriptElement>(
         `script[src="${RAZORPAY_CHECKOUT_SRC}"]`,
@@ -285,10 +292,10 @@ describe('UpgradeRoute', () => {
     };
 
     renderAt('/upgrade');
-    await user.click(await screen.findByRole('button', { name: 'Pay ₹799' }));
+    await user.click(await screen.findByRole('button', { name: PAY_INTERMEDIATE }));
 
     expect(await screen.findByText(/payment provider could not be reached/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Pay ₹799' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: PAY_INTERMEDIATE })).toBeEnabled();
   });
 
   test('keeps the other plans unclickable while one checkout is opening', async () => {
@@ -297,10 +304,10 @@ describe('UpgradeRoute', () => {
     checkoutMock.mockReturnValue(promise);
 
     renderAt('/upgrade');
-    await user.click(await screen.findByRole('button', { name: 'Pay ₹799' }));
+    await user.click(await screen.findByRole('button', { name: PAY_INTERMEDIATE }));
 
     expect(screen.getByRole('button', { name: 'Opening checkout...' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Pay ₹1,299' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: PAY_PRO })).toBeDisabled();
 
     resolve({ keyId: 'rzp_test', amount: 79900, currency: 'INR', orderId: 'order_1' });
   });
@@ -338,7 +345,7 @@ describe('UpgradeRoute', () => {
     };
 
     renderAt('/upgrade');
-    await user.click(await screen.findByRole('button', { name: 'Pay ₹799' }));
+    await user.click(await screen.findByRole('button', { name: PAY_INTERMEDIATE }));
     await waitFor(() => expect(razorpayHandler).toBeDefined());
     // The fake clock starts before the poll so every retry delay is faked.
     vi.useFakeTimers();
@@ -356,10 +363,58 @@ describe('UpgradeRoute', () => {
       expect(
         screen.getByText(/Your account has not updated yet\. Refresh to see your new plan\./),
       ).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Pay ₹799' })).toBeDisabled();
-      expect(screen.getByRole('button', { name: 'Pay ₹1,299' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: PAY_INTERMEDIATE })).toBeDisabled();
+      expect(screen.getByRole('button', { name: PAY_PRO })).toBeDisabled();
     } finally {
       vi.useRealTimers();
+    }
+  });
+
+  test('renders rupee price for an INR locale with no conversion', async () => {
+    const originalLanguage = navigator.language;
+    try {
+      Object.defineProperty(navigator, 'language', { value: 'en-IN', configurable: true });
+      renderAt('/upgrade');
+
+      expect(await screen.findByText(INTERMEDIATE_PRICE)).toBeInTheDocument();
+      expect(screen.getByText(PRO_PRICE)).toBeInTheDocument();
+      expect(screen.queryByText(/Estimate ·/)).not.toBeInTheDocument();
+    } finally {
+      Object.defineProperty(navigator, 'language', { value: originalLanguage, configurable: true });
+    }
+  });
+
+  test('renders estimate, rate date, and stated rupee charge for supported foreign locale', async () => {
+    const originalLanguage = navigator.language;
+    try {
+      Object.defineProperty(navigator, 'language', { value: 'en-US', configurable: true });
+      renderAt('/upgrade');
+
+      expect(await screen.findByText('~$9.59')).toBeInTheDocument();
+      expect(screen.getByText('~$15.59')).toBeInTheDocument();
+      expect(screen.getAllByText(/Estimate · Charged as/)).toHaveLength(2);
+      expect(screen.getAllByText(/Rate from 2026-09-18/)).toHaveLength(2);
+      expect(screen.getAllByText(/Card issuer sets final statement amount/)).toHaveLength(2);
+    } finally {
+      Object.defineProperty(navigator, 'language', { value: originalLanguage, configurable: true });
+    }
+  });
+
+  test('renders rupee fallback and explanation clause for unsupported currency locale', async () => {
+    const originalLanguage = navigator.language;
+    try {
+      Object.defineProperty(navigator, 'language', { value: 'ja-JP', configurable: true });
+      renderAt('/upgrade');
+
+      expect(await screen.findByText(INTERMEDIATE_PRICE)).toBeInTheDocument();
+      expect(screen.getByText(PRO_PRICE)).toBeInTheDocument();
+      expect(
+        screen.getAllByText(
+          /Shown in Indian Rupees \(₹\) because local estimates are not available for your currency/,
+        ),
+      ).toHaveLength(2);
+    } finally {
+      Object.defineProperty(navigator, 'language', { value: originalLanguage, configurable: true });
     }
   });
 });

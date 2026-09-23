@@ -39,11 +39,11 @@ import type { Tier } from '../api/account-api.ts';
 import { StatusMessage } from '../components/status-message.tsx';
 import { ME_QUERY_KEY, meQueryOptions } from '../query-client.ts';
 import { track } from '../analytics.ts';
+import { getPlanPriceDisplay } from '../billing/plan-prices.ts';
 
 interface PlanOption {
   tier: Tier;
   name: string;
-  price: string;
   limit: string;
   features: string[];
   mostPopular?: boolean;
@@ -53,7 +53,6 @@ const PLANS: PlanOption[] = [
   {
     tier: 'beginner',
     name: 'Beginner',
-    price: 'Free',
     limit: '30 games analysed a month',
     features: [
       'Import from Chess.com or Lichess by username, plus PGN upload for tournament games.',
@@ -65,7 +64,6 @@ const PLANS: PlanOption[] = [
   {
     tier: 'intermediate',
     name: 'Intermediate',
-    price: '₹799',
     limit: '150 games analysed a month',
     features: [
       'A focus, and verification afterwards, checked honestly.',
@@ -78,7 +76,6 @@ const PLANS: PlanOption[] = [
   {
     tier: 'pro',
     name: 'Pro',
-    price: '₹1,299',
     limit: 'Unlimited games analysed',
     features: [
       'Everything intermediate gives, with no monthly cap.',
@@ -292,6 +289,7 @@ export function UpgradeRoute() {
         <div className="stagger-in mt-4 grid gap-4 md:grid-cols-3">
           {PLANS.map((plan) => {
             const payableTier = isPayable(plan.tier) ? plan.tier : null;
+            const priceInfo = getPlanPriceDisplay(plan.tier);
             return (
               <Card
                 key={plan.tier}
@@ -303,17 +301,30 @@ export function UpgradeRoute() {
                     <Badge label="Most popular" variant="orange" />
                   ) : null}
                 </div>
-                <div className="mt-3 flex items-baseline gap-1">
-                  <Text
-                    as="p"
-                    display="block"
-                    className="font-mono text-3xl leading-tight tracking-tight"
-                  >
-                    {plan.price}
-                  </Text>
-                  {plan.tier !== 'beginner' ? (
-                    <Text as="p" display="block" type="supporting" className="text-sm">
-                      /month
+                <div className="mt-3">
+                  <div className="flex items-baseline gap-1">
+                    <Text
+                      as="p"
+                      display="block"
+                      className="font-mono text-3xl leading-tight tracking-tight"
+                    >
+                      {priceInfo.primaryPrice}
+                    </Text>
+                    {plan.tier !== 'beginner' ? (
+                      <Text as="p" display="block" type="supporting" className="text-sm">
+                        /month
+                      </Text>
+                    ) : null}
+                  </div>
+                  {priceInfo.estimateInfo ? (
+                    <Text as="p" display="block" type="supporting" className="mt-1 text-xs">
+                      Estimate · {priceInfo.chargedInrText} Rate from {priceInfo.estimateInfo.date}.
+                      Card issuer sets final statement amount.
+                    </Text>
+                  ) : null}
+                  {priceInfo.unsupportedNotice ? (
+                    <Text as="p" display="block" type="supporting" className="mt-1 text-xs">
+                      {priceInfo.unsupportedNotice} {priceInfo.chargedInrText}
                     </Text>
                   ) : null}
                 </div>
@@ -327,7 +338,11 @@ export function UpgradeRoute() {
                 </ul>
                 {payableTier !== null ? (
                   <Button
-                    label={paying === payableTier ? 'Opening checkout...' : `Pay ${plan.price}`}
+                    label={
+                      paying === payableTier
+                        ? 'Opening checkout...'
+                        : `Pay ${priceInfo.buttonPrice}`
+                    }
                     variant={plan.mostPopular === true ? 'primary' : 'secondary'}
                     onClick={() => void handlePay(payableTier)}
                     isDisabled={paying !== null || status !== 'idle'}
@@ -338,6 +353,11 @@ export function UpgradeRoute() {
             );
           })}
         </div>
+        <Text as="p" display="block" type="supporting" className="mt-6 text-center text-xs">
+          All orders are charged in Indian Rupees (INR) via Razorpay. Converted figures are dated
+          estimates; your card issuer determines the final exchange rate and any foreign transaction
+          fees.
+        </Text>
       </section>
     </div>
   );

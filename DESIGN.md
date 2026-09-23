@@ -1228,7 +1228,11 @@ the single place the accent appears on the surface besides the primary pay
 action, so the recommended plan reads as raised without breaking the
 flat-by-default rule. Prices render in IBM Plex Mono (the tabular rule) with
 a `/month` unit in supporting type beside them; the terracotta accent stays
-on the pay action and the recommended card only.
+on the pay action and the recommended card only. For visitors whose locale implies
+a non-INR currency (ST-169), the primary price renders the estimated converted figure,
+accompanied by a supporting notice stating the charged INR amount, the rate date,
+and the card issuer statement; unsupported regions render the rupee price with an
+explanatory clause. The charge is always in INR via Razorpay.
 
 The tier is read from `/me` on load. While it resolves, a skeleton renders in
 the page frame (`aria-busy`, `role="status"`), never the pay buttons, so a
