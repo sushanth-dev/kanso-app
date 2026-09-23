@@ -62,7 +62,9 @@ describe('LandingRoute', () => {
 
     expect(await screen.findByRole('heading', { name: 'Free today' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Paid for the loop' })).toBeInTheDocument();
-    expect(screen.getByText(/From ₹799 a month, uncapped on the Pro plan/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Monthly plans start on Intermediate, uncapped on the Pro plan/),
+    ).toBeInTheDocument();
   });
 
   test('routes the join call to action to sign-up', async () => {
