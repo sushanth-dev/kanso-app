@@ -61,6 +61,7 @@ import {
   STAGGER_STEP_CAP,
 } from '../../motion-tokens.ts';
 import { Board } from '../board.tsx';
+import { ProductEvidence } from './product-evidence.tsx';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -259,7 +260,7 @@ export function Hero({ signedIn }: HeroProps) {
       <div className="relative grid gap-12 md:grid-cols-2 md:items-center md:gap-10">
         <div>
           <p data-hero-reveal className="kicker">
-            Tournament-first chess study
+            AI chess training platform
           </p>
           <Heading
             level={1}
@@ -333,6 +334,7 @@ export function Hero({ signedIn }: HeroProps) {
             </div>
             <div className="relative z-10 mx-auto -mt-14 max-w-[340px] px-2 [transform:translateZ(48px)] md:mt-0 md:px-0 lg:absolute lg:-bottom-12 lg:left-0 lg:max-w-[320px]">
               <SampleDiagnosis />
+              <ProductEvidence />
             </div>
           </div>
         </div>

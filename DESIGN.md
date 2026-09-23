@@ -1,6 +1,6 @@
 ---
 name: Kanso Chess
-description: Tournament-first chess improvement for junior players and their coaches.
+description: AI chess training platform for junior players and their coaches, with Stockfish analysis and AI coaching.
 colors:
   primary: "#a03f22"
   primary-deep: "#86341c"

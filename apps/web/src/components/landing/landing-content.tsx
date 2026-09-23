@@ -12,6 +12,21 @@ interface LandingContentProps {
 }
 
 /**
+ * Sourced facts about the shipped platform (ST-167). Counted from data in
+ * the repository, with reproducible commands, source, and count date.
+ * No usage figures or estimated active users.
+ */
+export const PRODUCT_EVIDENCE = {
+  puzzleCount: '34,372',
+  puzzleThemes: '7',
+  puzzleSource: 'Lichess puzzle database (CC0)',
+  puzzleCountDate: 'September 2026',
+  ecoCount: '500',
+  ecoSource: 'lichess-org/chess-openings (public domain)',
+  ecoCountDate: 'September 2026',
+} as const;
+
+/**
  * Everything below the header that GSAP and Lenis drive (ST-133), split
  * into its own lazy chunk from `landing-route.tsx`: importing `gsap` alone
  * starts its ticker (a perpetual `requestAnimationFrame` loop), and every
