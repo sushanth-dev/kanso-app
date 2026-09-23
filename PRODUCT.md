@@ -45,9 +45,10 @@ One claim, three parts (from `project/main/docs/positioning.md`):
 > at. We watch your tournaments, tell you the one thing to fix, and prove
 > whether it worked.
 
-1. **The tournament is a first-class object**, not a filter on a game stream.
-   It has a name, date, section, result, and five to nine classical games,
-   and it is how a junior, a coach, and a parent already think.
+1. **An AI training platform anchored on tournament play**, where tournament
+   games are the input rather than a filter on a game stream. The chess
+   analysis is Stockfish; the AI is the coaching layer that explains
+   mistakes, generates close-out summaries, and primes pre-game preparation.
 2. **Games arrive without typing** where possible: PGN upload first,
    eventually scoresheet capture.
 3. **Verification is two-speed and says which speed it is**: online blitz is

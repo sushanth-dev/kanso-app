@@ -33,6 +33,7 @@ describe('LandingRoute', () => {
         name: 'Know the one thing to fix after every tournament.',
       }),
     ).toBeInTheDocument();
+    expect(screen.getByText('AI chess training platform')).toBeInTheDocument();
     expect(screen.getByText(/Your first diagnosis is free/)).toBeInTheDocument();
     expect(
       screen.getByText(/it makes every lesson you already pay for work harder/),
@@ -46,8 +47,16 @@ describe('LandingRoute', () => {
     expect(screen.getByText(/A scholastic tournament/)).toBeInTheDocument();
     expect(screen.getByText('Missing tactics in the middlegame')).toBeInTheDocument();
     expect(screen.getByText('Tactical motif')).toBeInTheDocument();
+    expect(screen.getByText('34,372 curated puzzles')).toBeInTheDocument();
+    expect(screen.getByText('7 themes')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Source: Lichess puzzle database \(CC0\) · September 2026/),
+    ).toBeInTheDocument();
+    expect(screen.getByText('500 opening families')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Source: lichess-org\/chess-openings \(public domain\) · September 2026/),
+    ).toBeInTheDocument();
   });
-
   test('states the free and paid boundary factually', async () => {
     renderLanding();
 
@@ -154,7 +163,7 @@ describe('LandingRoute', () => {
     );
     expect(
       screen.getByText(
-        'Kanso Chess is tournament-first chess improvement for junior players and their coaches.',
+        'Kanso Chess is an AI chess training platform for junior players and their coaches, with Stockfish analysis and AI coaching.',
       ),
     ).toBeInTheDocument();
   });

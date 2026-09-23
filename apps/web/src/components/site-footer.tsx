@@ -26,7 +26,8 @@ export function SiteFooter() {
       <div className="mx-auto w-full max-w-5xl px-4 py-8">
         <p className="kicker">Kanso Chess</p>
         <Text as="p" display="block" type="supporting" className="mt-2 text-sm">
-          Kanso Chess is tournament-first chess improvement for junior players and their coaches.
+          Kanso Chess is an AI chess training platform for junior players and their coaches, with
+          Stockfish analysis and AI coaching.
         </Text>
         <nav aria-label="Policy pages" className="mt-4">
           <ul className="flex flex-wrap gap-x-6">
