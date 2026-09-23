@@ -332,7 +332,7 @@ export function Hero({ signedIn }: HeroProps) {
             >
               <Board fen={HERO_FEN} theme="wood" label={HERO_BOARD_LABEL} />
             </div>
-            <div className="relative z-10 mx-auto -mt-14 max-w-[340px] px-2 [transform:translateZ(48px)] md:mt-0 md:px-0 lg:absolute lg:-bottom-12 lg:left-0 lg:max-w-[320px]">
+            <div className="relative z-10 mx-auto mt-6 max-w-[340px] px-2 [transform:translateZ(48px)] md:max-w-[420px] md:px-0">
               <SampleDiagnosis />
               <ProductEvidence />
             </div>
