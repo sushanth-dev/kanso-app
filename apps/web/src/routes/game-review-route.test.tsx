@@ -260,6 +260,42 @@ describe('GameReviewScreen', () => {
     expect(screen.getByText(/best was/)).toHaveTextContent('d6');
   });
 
+  test('resets the position when a different game replaces this one on the same mount', async () => {
+    const user = userEvent.setup();
+    const history = createMemoryHistory();
+    const queryClient = new QueryClient();
+    const router = createAppRouter({ history, queryClient });
+    const view = render(
+      <QueryClientProvider client={queryClient}>
+        <RouterContextProvider router={router}>
+          <GameReviewScreen game={gameFixture()} />
+        </RouterContextProvider>
+      </QueryClientProvider>,
+    );
+    // Step off the first-game default to ply 7, White's move (Alice's Nc3).
+    await user.click(screen.getByRole('button', { name: /Nc3/ }));
+    expect(screen.getByText(/Alice played/)).toHaveTextContent('Nc3');
+
+    // The route stays mounted while its param swaps to another game. The
+    // replaced game's first mistake is ply 8, so the screen must jump to its
+    // own default instead of holding the previous game's position. Before the
+    // fix the stale plyIndex kept showing Alice's Nc3.
+    view.rerender(
+      <QueryClientProvider client={queryClient}>
+        <RouterContextProvider router={router}>
+          <GameReviewScreen
+            game={gameFixture({
+              id: '00000000-0000-4000-8000-000000000009',
+              mistakes: [mistakes[1]!],
+            })}
+          />
+        </RouterContextProvider>
+      </QueryClientProvider>,
+    );
+    expect(screen.getByText(/you played/)).toHaveTextContent('Qxf3');
+    expect(screen.getByText(/best was/)).toHaveTextContent('d6');
+  });
+
   test('says honestly when the game has no recorded moves', () => {
     renderScreen(gameFixture({ mistakes: [], plies: [] }));
     expect(screen.getByText('No recorded moves in this game.')).toBeInTheDocument();

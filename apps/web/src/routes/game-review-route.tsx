@@ -197,6 +197,15 @@ export function GameReviewScreen({
   // flip it manually rather than the board auto-flipping to the side to move.
   const [flipped, setFlipped] = useState(() => game.playerColor === 'black');
 
+  // The route stays mounted while `gameId` changes between two games, so the
+  // initializer above runs once, not per game. Reset to the new game's default
+  // rather than showing the previous game's ply on its board. Only the id and
+  // the deep-link ply drive it: the query refetches an active game every few
+  // seconds, and a fresh `game` object must not yank the player backwards.
+  useEffect(() => {
+    setPlyIndex(initialPlyIndex(game, targetPly));
+  }, [game.id, targetPly]);
+
   // When the player sets their colour (the game starts undecided), orient the
   // board to their side. A manual flip is left alone while the colour is still
   // unknown.
