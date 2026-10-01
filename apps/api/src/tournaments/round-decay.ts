@@ -32,8 +32,13 @@ type Db = PostgresJsDatabase<typeof schema>;
 
 /** A trend is not reported until the tournament holds at least this many rounds. */
 export const MIN_ROUNDS = 2;
-/** A round is not reported until it holds at least this many complete games. */
-export const MIN_GAMES_PER_ROUND = 3;
+/**
+ * A round is not reported until it holds at least this many complete games.
+ * A tournament belongs to one player, and that player plays one game per
+ * round, so a round's full evidence is its single game; the old three-game
+ * demand was unreachable with real data and every real tournament 422'd.
+ */
+export const MIN_GAMES_PER_ROUND = 1;
 
 /** One round's raw counts, as the queries return them before scoring. */
 export interface RoundCount {

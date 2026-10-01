@@ -27,9 +27,23 @@ describe('scoreRoundDecay', () => {
     expect(scoreRoundDecay([row(1, 3)])).toEqual({ kind: 'not_enough_evidence' });
   });
 
-  test('refuses a tournament where any round has fewer than three games', () => {
-    expect(scoreRoundDecay([row(1, 3), row(2, 2)])).toEqual({
+  test('refuses a tournament where any round has no complete game', () => {
+    // A round with zero games is refused; one complete game is the round's
+    // full evidence, because a tournament belongs to one player who plays one
+    // game per round.
+    expect(scoreRoundDecay([row(1, 1), row(2, 0)])).toEqual({
       kind: 'not_enough_evidence',
+    });
+  });
+
+  test('accepts single-game rounds, the real tournament shape', () => {
+    expect(scoreRoundDecay([row(1, 1), row(2, 1)])).toEqual({
+      kind: 'ok',
+      roundCount: 2,
+      rounds: [
+        { round: 1, games: 1, mistakes: 0, lossPerMove: 0 },
+        { round: 2, games: 1, mistakes: 0, lossPerMove: 0 },
+      ],
     });
   });
 
