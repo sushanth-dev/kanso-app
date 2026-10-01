@@ -13,6 +13,8 @@ import {
 import { createAppRouter } from '../router.tsx';
 
 vi.mock('../analytics.ts', () => ({
+  enableAnalyticsSuite: vi.fn(),
+  disableAnalyticsSuite: vi.fn(),
   track: vi.fn(),
 }));
 

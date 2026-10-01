@@ -7,7 +7,11 @@ import { ApiRequestError } from '../api/account-api.ts';
 import { sharedCardApi } from '../api/report-share-api.ts';
 import { createAppRouter } from '../router.tsx';
 
-vi.mock('../analytics.ts', () => ({ track: vi.fn() }));
+vi.mock('../analytics.ts', () => ({
+  enableAnalyticsSuite: vi.fn(),
+  disableAnalyticsSuite: vi.fn(),
+  track: vi.fn(),
+}));
 
 function renderRoute(path: string) {
   const history = createMemoryHistory({ initialEntries: [path] });

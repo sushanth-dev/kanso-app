@@ -12,6 +12,8 @@ import { createAppRouter } from '../router.tsx';
 import { ActiveFocusView, FocusChoiceView } from './focus-route.tsx';
 
 vi.mock('../analytics.ts', () => ({
+  enableAnalyticsSuite: vi.fn(),
+  disableAnalyticsSuite: vi.fn(),
   safeProperties: (properties: Record<string, string | number>) => properties,
   track: vi.fn(),
 }));
