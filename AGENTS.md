@@ -211,7 +211,7 @@ directly. The pre-push hook refuses a direct push to `main`.
 Follow the writing style in the `project` repository
 (`docs/writing-style.md`). Key points:
 
-- Write in Sushanth's voice. Use "we", "our", "us". Never address him as
+- Write in Sushanth's voice. Use "I", "me", "my". Never address him as
   "you".
 - Sentence case for headings.
 - No emojis, no em dashes.
