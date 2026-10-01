@@ -21,7 +21,7 @@ import * as schema from '../db/schema.ts';
 import { game, importJob, player, movePly } from '../db/schema.ts';
 import { user } from '../db/auth-schema.ts';
 import { enqueueAnalysis } from '../analysis/queue.ts';
-import { analysisRemaining } from '../billing/entitlement.ts';
+import { analysisAvailable } from '../billing/entitlement.ts';
 import { getOwnPlayerId } from '../players/claim.ts';
 import { parseOne, parsePgn, type ParsedGame } from './parse-pgn.ts';
 import { decidePlayerColor } from './player-color.ts';
@@ -416,8 +416,9 @@ export function mountImport(
     // and re-queue. Failing the import would instead ask the player to re-send
     // games that are already safely in the database.
     // Each plan caps analysed games a month; pro has no cap. Games past the
-    // cap stay pending for next month.
-    const budget = await analysisRemaining(deps.db, session.userId);
+    // cap stay pending for next month. The budget counts games already queued
+    // or analysing too, so a second import cannot spend the same allowance.
+    const budget = await analysisAvailable(deps.db, session.userId);
     const toQueue = budget === null ? queued : queued.slice(0, budget);
     try {
       await enqueueAnalysis(toQueue, undefined, c.get('requestId'));

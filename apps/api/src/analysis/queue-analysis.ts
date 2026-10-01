@@ -22,7 +22,7 @@ import * as schema from '../db/schema.ts';
 import { game, player } from '../db/schema.ts';
 import { readSession } from '../session.ts';
 import { enqueueAnalysis } from './queue.ts';
-import { analysisRemaining } from '../billing/entitlement.ts';
+import { analysisAvailable } from '../billing/entitlement.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
 
@@ -82,10 +82,11 @@ export function mountQueueAnalysis(
     }
     const previousStatus = outcome.previousStatus;
 
-    // The cap is checked outside the transaction: it counts games analysed this
-    // month, and a concurrent import may be spending the same budget. The check
-    // is best-eff; the worker is the final authority on the cap.
-    const remaining = await analysisRemaining(deps.db, session.userId);
+    // The cap is checked outside the transaction: it counts games analysed
+    // this month plus games already queued or analysing, and a concurrent
+    // import may be spending the same budget. The check is best-eff; the
+    // worker is the final authority on the cap.
+    const remaining = await analysisAvailable(deps.db, session.userId);
     if (remaining === 0) {
       return c.json({ code: 'cap_reached', message: "The plan's analysis cap is reached." }, 429);
     }

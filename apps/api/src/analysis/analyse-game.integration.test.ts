@@ -297,4 +297,58 @@ describe('analyseGame', () => {
       .where(and(eq(game.id, gameId), eq(game.analysisStatus, 'failed')));
     expect(row).toBeDefined();
   });
+
+  test('refuses to spend engine time once the plan has used this month’s budget', async () => {
+    await harness.db.insert(user).values({
+      id: 'user_owner',
+      name: 'Owner',
+      email: 'owner@example.com',
+      emailVerified: true,
+    });
+    const [playerRow] = await harness.db
+      .insert(player)
+      .values({ ownerUserId: 'user_owner', displayName: 'Test Player' })
+      .returning({ id: player.id });
+    const playerId = playerRow!.id;
+
+    // No subscription, so beginner: 30 analyses month. Fill the budget with
+    // completed games so the worker's recheck must refuse.
+    for (let i = 0; i < 30; i += 1) {
+      await harness.db.insert(game).values({
+        playerId,
+        stream: 'tournament',
+        source: 'pgn_upload',
+        pgnHash: `cap-hash-${i}`,
+        pgn: BLUNDER_PGN,
+        playerColor: 'black',
+        result: '1-0',
+        analysisStatus: 'complete',
+        analyzedAt: new Date(),
+      });
+    }
+
+    // The game is queued for analysis past the budget.
+    const [target] = await harness.db
+      .insert(game)
+      .values({
+        playerId,
+        stream: 'tournament',
+        source: 'pgn_upload',
+        pgnHash: 'target-hash',
+        pgn: BLUNDER_PGN,
+        playerColor: 'black',
+        result: '1-0',
+        analysisStatus: 'queued',
+      })
+      .returning({ id: game.id });
+
+    const outcome = await analyseGame(harness.db, target!.id, options);
+
+    expect(outcome.status).toBe('failed');
+    expect(outcome.plies).toBe(0);
+    const [row] = await harness.db.select().from(game).where(eq(game.id, target!.id));
+    expect(row!.analysisStatus).toBe('failed');
+    expect(row!.analysisError).toContain('cap');
+    expect(await plies(target!.id)).toHaveLength(0);
+  });
 });

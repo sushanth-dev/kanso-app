@@ -13,6 +13,8 @@ import { createAuth } from '../auth.ts';
 import { game, mistake, processedPayment, subscription } from '../db/schema.ts';
 import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-harness.ts';
 import {
+  analysisAvailable,
+  analysisInFlight,
   analysisRemaining,
   coachBudget,
   coachRemaining,
@@ -359,6 +361,26 @@ describe('the three tiers', () => {
       analyzedAt: lastMonth,
     });
     expect(await analysisRemaining(harness.db, userId)).toBe(0);
+  });
+
+  test('queued and analysing games count against the available budget', async () => {
+    const { cookie, userId } = await signUpCookie('inflight@example.com');
+    const playerId = await ownPlayerId(cookie);
+
+    for (const status of ['queued', 'analyzing']) {
+      await harness.db.insert(game).values({
+        playerId,
+        stream: 'online',
+        source: 'chesscom',
+        pgn: `pgn-inflight-${status}`,
+        pgnHash: `hash-inflight-${status}`,
+        result: '1-0',
+        analysisStatus: status as 'queued' | 'analyzing',
+      });
+    }
+    expect(await analysisInFlight(harness.db, userId)).toBe(2);
+    // Two in flight, nothing analysed: the plan can still be given 28.
+    expect(await analysisAvailable(harness.db, userId)).toBe(28);
   });
 
   test('pro has no analysis cap', async () => {
