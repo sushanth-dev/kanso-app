@@ -116,13 +116,15 @@ export function createAuth(db: PostgresJsDatabase<typeof schema>, deps: { mailer
       },
     },
     rateLimit: {
-      // better-auth only enables rate limiting in production by default, and
-      // that default is what keeps the integration suite - which signs up and
-      // signs in far more than any real attacker - unthrottled. Production is
-      // on automatically via NODE_ENV so a deploy cannot forget the launch
-      // gate; the ST-021 test opts in with SIGN_IN_RATE_LIMIT_ENABLED.
-      enabled:
-        process.env.SIGN_IN_RATE_LIMIT_ENABLED === 'true' || process.env.NODE_ENV === 'production',
+      // The ST-021 sign-in throttle. Enabled only by the explicit deploy flag,
+      // never by NODE_ENV: the Lambda sets SIGN_IN_RATE_LIMIT_ENABLED in
+      // infra/api.ts, and a deploy review sees the setting rather than an
+      // environment variable that the Fargate images used to set and the
+      // Lambda never did. The integration suite opts in the same way.
+      // better-auth's default store is per-process memory, so on the Lambda
+      // fleet the limiter is per-instance; a shared store is the upgrade path
+      // if the throttle needs to hold across instances.
+      enabled: process.env.SIGN_IN_RATE_LIMIT_ENABLED === 'true',
       customRules: {
         '/sign-in/email': { window: rateLimitWindow, max: rateLimitMax },
         '/request-password-reset': { window: rateLimitWindow, max: rateLimitMax },

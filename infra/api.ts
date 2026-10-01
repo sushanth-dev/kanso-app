@@ -44,6 +44,16 @@ const handler = new sst.aws.Function('ApiHandler', {
   environment: {
     DATABASE_URL: databaseUrl,
     ANALYSIS_QUEUE_URL: analysisQueue.url,
+    // The runtime environment. better-auth gates production defaults (Secure
+    // session cookies) on NODE_ENV; only the retired Fargate images set it via
+    // a Dockerfile ENV, and the Lambda never did, so Secure was off in
+    // production. Setting it here keeps that gate on.
+    NODE_ENV: 'production',
+    // Turns on the ST-021 sign-in throttle (auth.ts reads only this flag).
+    // Kept separate from NODE_ENV so the deploy config states plainly that the
+    // limiter is on; it stays off in local dev where the suite signs in
+    // hundreds of times.
+    SIGN_IN_RATE_LIMIT_ENABLED: 'true',
     // The web origin the browser holds a session from. Both halves of the
     // browser's access control read this: Hono CORS and better-auth's
     // trustedOrigins (ST-030 Part 2).
