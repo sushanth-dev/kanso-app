@@ -113,13 +113,30 @@ async function sendRawWebhook(
   });
 }
 
+/**
+ * Posts the capture for the order the stub created, echoing the amount and
+ * currency the checkout quoted (the stub returned `order_test_<seq>`, and its
+ * `createdOrders` holds the quoted amount in the same order). A capture that
+ * contradicts the quote is exactly the mismatch the webhook must refuse.
+ */
 async function sendWebhook(orderId: string, paymentId = 'pay_1'): Promise<Response> {
+  const seq = Number(orderId.replace('order_test_', ''));
+  const quote = createdOrders[seq - 1];
   return app().request('/payments/webhook', {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-razorpay-signature': 'a-signature' },
     body: JSON.stringify({
       event: 'payment.captured',
-      payload: { payment: { entity: { id: paymentId, order_id: orderId } } },
+      payload: {
+        payment: {
+          entity: {
+            id: paymentId,
+            order_id: orderId,
+            amount: quote?.amount ?? 0,
+            currency: quote?.currency ?? 'INR',
+          },
+        },
+      },
     }),
   });
 }
@@ -140,7 +157,13 @@ describe('the three tiers', () => {
 
   test('an intermediate or pro account reaches the paid routes', async () => {
     const { cookie, userId } = await signUpCookie('pro@example.com');
-    await harness.db.insert(subscription).values({ userId, tier: 'pro' });
+    // A paid tier is a time-bound grant: the fixture must hold a live period
+    // end, not a bare row that tierFor would read as lapsed.
+    await harness.db.insert(subscription).values({
+      userId,
+      tier: 'pro',
+      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    });
 
     expect((await app().request('/focuses', { headers: { cookie } })).status).toBe(200);
   });
@@ -191,6 +214,80 @@ describe('the three tiers', () => {
     const rows = await harness.db.select().from(processedPayment);
     expect(rows).toHaveLength(1);
     expect(rows[0]!.razorpayPaymentId).toBe('pay_1');
+  });
+
+  test('a capture that contradicts the checkout quote flips nothing', async () => {
+    const { cookie, userId } = await signUpCookie('short-paid@example.com');
+    const orderId = await checkout(cookie, 'pro');
+
+    // The stub quoted 129900 paise; send a capture for a fraction of it.
+    const res = await app().request('/payments/webhook', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-razorpay-signature': 'a-signature' },
+      body: JSON.stringify({
+        event: 'payment.captured',
+        payload: {
+          payment: { entity: { id: 'pay_short', order_id: orderId, amount: 1, currency: 'INR' } },
+        },
+      }),
+    });
+    expect(res.status).toBe(204);
+
+    const [sub] = await harness.db
+      .select()
+      .from(subscription)
+      .where(eq(subscription.userId, userId));
+    expect(sub).toBeUndefined();
+    const [row] = await harness.db.select().from(processedPayment);
+    expect(row!.razorpayPaymentId).toBeNull();
+  });
+
+  test('a second capture extends prepaid time and never downgrades a live tier', async () => {
+    const { cookie, userId } = await signUpCookie('prepaid@example.com');
+    // Pro is already paid and live for two more months.
+    const proEnd = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
+    await harness.db.insert(subscription).values({ userId, tier: 'pro', currentPeriodEnd: proEnd });
+
+    // An intermediate purchase lands while pro is still running.
+    const orderId = await checkout(cookie, 'intermediate');
+    expect((await sendWebhook(orderId)).status).toBe(204);
+
+    const [sub] = await harness.db
+      .select()
+      .from(subscription)
+      .where(eq(subscription.userId, userId));
+    expect(sub!.tier).toBe('pro');
+    // The period extended past the old end instead of resetting to now + a month.
+    expect(sub!.currentPeriodEnd!.getTime()).toBeGreaterThan(proEnd.getTime());
+  });
+
+  test('a full refund lapses the entitlement', async () => {
+    const { cookie, userId } = await signUpCookie('refunded@example.com');
+    const orderId = await checkout(cookie, 'pro');
+    expect((await sendWebhook(orderId)).status).toBe(204);
+    expect(await tierFor(harness.db, userId)).toBe('pro');
+
+    const res = await app().request('/payments/webhook', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-razorpay-signature': 'a-signature' },
+      body: JSON.stringify({
+        event: 'refund.processed',
+        payload: { refund: { entity: { payment_id: 'pay_1', amount: 129900 } } },
+      }),
+    });
+    expect(res.status).toBe(204);
+    expect(await tierFor(harness.db, userId)).toBe('beginner');
+  });
+
+  test('a subscription whose period has ended is on beginner', async () => {
+    const { userId } = await signUpCookie('lapsed@example.com');
+    await harness.db.insert(subscription).values({
+      userId,
+      tier: 'pro',
+      currentPeriodEnd: new Date(Date.now() - 24 * 60 * 60 * 1000),
+    });
+
+    expect(await tierFor(harness.db, userId)).toBe('beginner');
   });
 
   test('a bad signature is refused and flips nothing', async () => {

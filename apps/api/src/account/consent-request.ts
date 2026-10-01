@@ -29,6 +29,27 @@ function confirmUrlFor(token: string): string {
   return `${origin}/guardians/confirm/${token}`;
 }
 
+/**
+ * True for a strict `YYYY-MM-DD` that is also a real calendar date. The age
+ * gate parses the string and reads it back through `Date`, so a value that is
+ * not exactly this shape silently becomes Invalid Date: `isUnder13` then
+ * answers false and an under-13 signer is treated as an adult. Every sign-up
+ * passes through `validateMinorSignup`, which rejects anything this rejects.
+ */
+export function isIsoDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const year = Number(value.slice(0, 4));
+  const month = Number(value.slice(5, 7));
+  const day = Number(value.slice(8, 10));
+  // Built on Date.UTC and compared through UTC fields so the answer never
+  // depends on the host timezone. The rollover check catches impossible dates
+  // like 2023-02-31 (which composes to March 3) and 2021-13-01 (January).
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+  );
+}
+
 /** Under 13, the COPPA threshold: today is before the 13th birthday. */
 export function isUnder13(dateOfBirth: string, today: Date = new Date()): boolean {
   const thirteenth = new Date(`${dateOfBirth}T00:00:00`);
@@ -43,6 +64,9 @@ export interface MinorSignup {
 }
 
 export function validateMinorSignup(user: MinorSignup): void {
+  if (user.dateOfBirth !== null && !isIsoDate(user.dateOfBirth)) {
+    throw new Error('The date of birth must be a real date in YYYY-MM-DD form.');
+  }
   if (user.dateOfBirth === null || !isUnder13(user.dateOfBirth)) return;
   if (!user.guardianEmail) {
     throw new Error(

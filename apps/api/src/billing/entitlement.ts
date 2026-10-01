@@ -14,13 +14,20 @@ type Db = PostgresJsDatabase<typeof schema>;
 
 export type { Tier };
 
-export async function tierFor(db: Db, userId: string): Promise<Tier> {
+export async function tierFor(db: Db, userId: string, now = new Date()): Promise<Tier> {
   const [sub] = await db
-    .select({ tier: subscription.tier })
+    .select({ tier: subscription.tier, currentPeriodEnd: subscription.currentPeriodEnd })
     .from(subscription)
     .where(eq(subscription.userId, userId))
     .limit(1);
-  return sub?.tier ?? 'beginner';
+  // A paid tier is a time-bound grant (ST-044 follow-up). A subscription whose
+  // period has ended, or records no end, is on beginner until the next capture
+  // renews it. Previously currentPeriodEnd was written and never read, so an
+  // expired or refunded account kept the paid tier forever.
+  if (!sub || sub.currentPeriodEnd === null || sub.currentPeriodEnd.getTime() <= now.getTime()) {
+    return 'beginner';
+  }
+  return sub.tier;
 }
 
 /** Games with `analyzed_at` this calendar month, across the account's players. */
