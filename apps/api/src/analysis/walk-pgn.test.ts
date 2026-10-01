@@ -6,6 +6,7 @@
  * chain and the move times chess.js makes derivable, and the one-more-position
  * rule. No database, no engine; the PGNs are inline strings.
  */
+import { Chess } from 'chess.js';
 import { describe, expect, test } from 'vitest';
 import { mergeAdjacentComments, pliesForImport, walkGame } from './walk-pgn.ts';
 
@@ -99,6 +100,27 @@ describe('walkGame', () => {
 
   test('an illegal game is refused', () => {
     expect(() => walkGame('1. e4 e5 2. Ke2 Qxh1 *')).toThrow();
+  });
+});
+
+describe('stripNags alongside walkGame', () => {
+  test('walks a comment followed by a NAG, which raw chess.js rejects', () => {
+    // "{ 0.22 } $14" is the shape provider exports produce and chess.js's PEG
+    // refuses; the walk must replay it the way parse accepts it.
+    expect(() => new Chess().loadPgn('1. e4 { 0.22 } $14 e5 1-0')).toThrow();
+    const walk = walkGame('1. e4 { 0.22 } $14 e5 1-0');
+    expect(walk.plies.map((p) => p.san)).toEqual(['e4', 'e5']);
+  });
+
+  test('walks the annotated variation shape the audit reproduced', () => {
+    const walk = walkGame('1. e4 ( 3... d5 4. Nf3 { 0.22 } $14 ) e5 1-0');
+    // The main line is e4 e5; the variation carries the annotation.
+    expect(walk.plies.map((p) => p.san)).toEqual(['e4', 'e5']);
+  });
+
+  test('a clock comment survives the NAG strip', () => {
+    const walk = walkGame('1. e4 $14 { [%clk 0:03:00] } e5 1-0');
+    expect(walk.plies[0]!.clockMs).toBe(180_000);
   });
 });
 

@@ -52,12 +52,27 @@ export function mergeAdjacentComments(pgn: string): string {
 }
 
 /**
+ * Strip NAGs ($NN) from the movetext before chess.js parses it.
+ *
+ * chess.js's PEG rejects a brace comment immediately followed by a NAG, a
+ * shape real exports and studies produce (`{ 0.22 } $14`, inside variations
+ * too): the parser accepts the comment, then chokes on the `$`. The comment
+ * is where this walk reads `%clk`, so it stays; only the NAG, which carries
+ * no move information the walk stores, goes. One linear pass, no structure.
+ * Kept separate from `mergeAdjacentComments` so each repair has one name and
+ * one test.
+ */
+export function stripNags(pgn: string): string {
+  return pgn.replace(/\$[0-9]+/g, ' ');
+}
+
+/**
  * Replay the PGN into plies and the positions they were played from. Throws
  * when the PGN has no moves.
  */
 export function walkGame(pgn: string): Walk {
   const chess = new Chess();
-  chess.loadPgn(mergeAdjacentComments(pgn));
+  chess.loadPgn(stripNags(mergeAdjacentComments(pgn)));
   const history = chess.history({ verbose: true });
   if (history.length === 0) throw new Error('game has no moves to analyse');
 
