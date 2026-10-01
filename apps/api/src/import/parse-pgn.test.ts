@@ -86,6 +86,18 @@ describe('parsePgn', () => {
     expect(result.faults[0]!.code).toBe('too_many_games');
   });
 
+  test('rejects a game whose Result tag is not canonical when the movetext cannot correct it', () => {
+    // With a termination in the movetext, chess.js normalises the header away
+    // (`1 0` + "1-0" reads as "1-0"). A moveless game keeps the raw tag, and
+    // an unaudited cast to the `game_result` enum then 500s the import.
+    const pgn = `[Event "Walkover"]\n[Result "1 0"]\n\n`;
+    const result = parsePgn(pgn);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.faults).toHaveLength(1);
+    expect(result.faults[0]!.reason).toContain('"1 0"');
+  });
+
   test('splits and imports a moveless forfeit game as its own entry', () => {
     const result = parsePgn(fixture('with-forfeit.pgn'));
     expect(result.ok).toBe(true);

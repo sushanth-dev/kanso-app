@@ -18,6 +18,9 @@ import { Chess } from 'chess.js';
 /** Mirrors the `GameResult` contract enum; a game with no result tag is `*`. */
 export type GameResult = '1-0' | '0-1' | '1/2-1/2' | '*';
 
+/** The values the `game_result` column accepts; anything else is a fault. */
+const RESULT_VALUES: readonly string[] = ['1-0', '0-1', '1/2-1/2', '*'];
+
 export interface ParsedGame {
   pgn: string;
   pgnHash: string;
@@ -155,7 +158,15 @@ export function parseOne(text: string, index: number): ParsedGame | ParseFault {
     };
   }
   const h = chess.getHeaders();
-  const result = (str(h.Result) ?? '*') as GameResult;
+  const rawResult = str(h.Result) ?? '*';
+  // chess.js accepts whatever the Result tag says; a noncanonical value like
+  // `1 0` would otherwise reach the `game_result` column and throw inside the
+  // import transaction, rolling back a batch whose games all parsed. A bad
+  // tag is a fault here, like a bad move.
+  if (!RESULT_VALUES.includes(rawResult)) {
+    return { index, reason: `result "${rawResult}" is not one of 1-0, 0-1, 1/2-1/2, *` };
+  }
+  const result = rawResult as GameResult;
   const { round, board } = roundAndBoard(h.Round, h.Board);
 
   return {
