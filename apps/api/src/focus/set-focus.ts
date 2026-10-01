@@ -75,7 +75,7 @@ export async function setFocusForPlayer(
       .set({ endedAt: new Date() })
       .where(and(eq(playerFocus.playerId, playerId), isNull(playerFocus.endedAt)));
 
-    return tx
+    const inserted = await tx
       .insert(playerFocus)
       .values({
         playerId,
@@ -84,7 +84,19 @@ export async function setFocusForPlayer(
         source: body.source,
         pairedFocusId: result.focus.pairedFocusId,
       })
+      .onConflictDoNothing()
       .returning();
+    if (inserted.length > 0) return inserted;
+
+    // A concurrent request committed the active focus while this transaction
+    // waited on the row lock, so the single-active-focus index rejected our
+    // insert. Both calls settle on the winner's row instead of one becoming a
+    // 500. The update above already ended nothing or an older row.
+    return tx
+      .select()
+      .from(playerFocus)
+      .where(and(eq(playerFocus.playerId, playerId), isNull(playerFocus.endedAt)))
+      .limit(1);
   });
 
   return { ok: true, row: row!, catalogue };

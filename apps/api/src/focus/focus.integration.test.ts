@@ -78,10 +78,16 @@ async function signIn(email: string): Promise<string> {
   const setCookie = res.headers.get('set-cookie');
   expect(setCookie).toBeTruthy();
   const cookie = setCookie as string;
-  // ST-044. Focus and proof sheets are paid surfaces; grant the tier.
+  // ST-044. Focus and proof sheets are paid surfaces; grant the tier. A paid
+  // tier is a time-bound grant, so the row needs a live period end or tierFor
+  // reads it as lapsed.
   const session = await a.request('/api/auth/get-session', { headers: { cookie } });
   const who = (await session.json()) as { session: { userId: string } };
-  await harness.db.insert(subscription).values({ userId: who.session.userId, tier: 'pro' });
+  await harness.db.insert(subscription).values({
+    userId: who.session.userId,
+    tier: 'pro',
+    currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+  });
   return cookie;
 }
 
