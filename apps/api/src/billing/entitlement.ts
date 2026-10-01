@@ -104,3 +104,31 @@ export async function coachRemaining(
 ): Promise<number | null> {
   return (await coachBudget(db, userId, now))?.remaining ?? null;
 }
+
+export interface CoachBudgetRefusal {
+  status: 403;
+  body: { code: 'upgrade_required'; message: string };
+}
+
+/**
+ * ST-111. The plan's coach budget as a refusal, or `null` when the account
+ * may still generate. Every route that spends a model call on coach text
+ * checks through here so the cap is one law: the explanation and socratic
+ * routes, plus the report's weakness advice and action-item verdict, which
+ * used to fire the model with no budget check at all.
+ */
+export async function coachBudgetRefusal(
+  db: Db,
+  userId: string,
+): Promise<CoachBudgetRefusal | null> {
+  if ((await coachRemaining(db, userId)) === 0) {
+    return {
+      status: 403,
+      body: {
+        code: 'upgrade_required',
+        message: 'You have used all your coach explanations for this month. Upgrade for more.',
+      },
+    };
+  }
+  return null;
+}
