@@ -588,11 +588,12 @@ export function DrillCard({
       return;
     }
     if (selected !== null && targets.includes(square)) {
+      // A promotion square is reached by any of the four promotion moves;
+      // accept the click, then apply the solution's move, which carries its
+      // own promotion piece for non-queen ones.
       const candidate = chess
         .moves({ square: selected as Square, verbose: true })
-        .find(
-          (move) => move.to === square && (move.promotion === undefined || move.promotion === 'q'),
-        );
+        .find((move) => move.to === square);
       // The player's moves sit at the even indices of the solution; an
       // opponent's reply never counts as an attempted answer.
       const expected = solution[solutionIndex.current] ?? '';
@@ -601,7 +602,7 @@ export function DrillCard({
         candidate.from === expected.slice(0, 2) &&
         candidate.to === expected.slice(2, 4)
       ) {
-        chess.move({ from: candidate.from, to: candidate.to, promotion: candidate.promotion });
+        chess.move(uciMove(expected));
         setFen(chess.fen());
         solutionIndex.current += 1;
         setSelected(null);

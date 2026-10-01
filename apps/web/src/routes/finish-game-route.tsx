@@ -42,6 +42,11 @@ interface SessionPly {
   onRails: boolean;
 }
 
+/** Whether a click lands on the stored continuation's from and to squares. */
+function matchesRails(check: { from: string; to: string }, expected: SessionPly): boolean {
+  return check.from === expected.uci.slice(0, 2) && check.to === expected.uci.slice(2, 4);
+}
+
 /**
  * The state machine the session walks: the player's turn (which also covers
  * the pause while a stored rail reply is about to play), waiting on the
@@ -51,6 +56,10 @@ type SessionStatus = 'playing' | 'thinking' | 'over';
 
 export function FinishGameScreen({ game, mistakePly }: { game: GameDetail; mistakePly: number }) {
   const navigate = useNavigate();
+  // A game whose player side was never recorded cannot tell whose moves are
+  // the player's, so no rail can auto-play; the side is set on the review
+  // page first, and the session below shows that before it opens the board.
+  const playerColorKnown = game.playerColor !== null;
   // The deep-linked ply is a report or review link's claim; an unknown one
   // lands on the game's first recorded mistake, the review's own default.
   const startPly = game.mistakes.some((candidate) => candidate.ply === mistakePly)
@@ -148,6 +157,7 @@ export function FinishGameScreen({ game, mistakePly }: { game: GameDetail; mista
   // position sits on the rails at the opponent's turn. The player's turn
   // hands control over; no rails at the opponent's turn asks the endpoint.
   useEffect(() => {
+    if (!playerColorKnown) return;
     if (status !== 'playing') return;
     if (playerTurn) return;
     if (rails.length === 0) {
@@ -168,7 +178,7 @@ export function FinishGameScreen({ game, mistakePly }: { game: GameDetail; mista
       readPosition(rails.slice(1));
     }, MOVE_PAUSE_MS);
     return () => clearTimeout(timer);
-  }, [status, rails, chess, playerTurn, readPosition]);
+  }, [status, rails, chess, playerTurn, readPosition, playerColorKnown]);
 
   const onSquareClick = (square: string) => {
     if (status !== 'playing' || !playerTurn) return;
@@ -177,21 +187,19 @@ export function FinishGameScreen({ game, mistakePly }: { game: GameDetail; mista
       return;
     }
     if (selected !== null && targetSquares.includes(square)) {
+      // A promotion square is reached by any of the four promotion moves;
+      // accept the click, then let the stored continuation or the board decide
+      // the piece, instead of hard-coding the queen.
       const candidate = chess
         .moves({ square: selected as never, verbose: true })
-        .find(
-          (move) => move.to === square && (move.promotion === undefined || move.promotion === 'q'),
-        );
+        .find((move) => move.to === square);
       setSelected(null);
       if (candidate === undefined) return;
       const expected = rails[0];
-      if (
-        expected !== undefined &&
-        candidate.from === expected.uci.slice(0, 2) &&
-        candidate.to === expected.uci.slice(2, 4)
-      ) {
-        // On the rails: the stored continuation applies, no engine call.
-        chess.move({ from: candidate.from, to: candidate.to, promotion: candidate.promotion });
+      if (expected !== undefined && matchesRails(candidate, expected)) {
+        // On the rails: the stored continuation applies, no engine call. The
+        // stored move carries its own promotion piece for non-queen ones.
+        chess.move(uciMove(expected.uci));
         setSessionPlies((current) => [...current, expected]);
         setRails((current) => current.slice(1));
         readPosition(rails.slice(1));
@@ -281,6 +289,28 @@ export function FinishGameScreen({ game, mistakePly }: { game: GameDetail; mista
 
   const currentMove = sessionPlies[sessionPlies.length - 1];
   const boardDisabled = status !== 'playing' || !playerTurn;
+
+  if (!playerColorKnown) {
+    return (
+      <div className="space-y-4">
+        <Heading level={1} className="reveal-in">
+          Finish your own game
+        </Heading>
+        <Text as="p" display="block" type="supporting" className="reveal-in text-sm">
+          Your side was not recorded for this game, so this session cannot tell whose moves are
+          yours. Set your colour on the game review page and come back here.
+        </Text>
+        <Button
+          label="Back to the game review"
+          variant="primary"
+          onClick={() => {
+            void navigate({ to: '/games/$gameId', params: { gameId: game.id } });
+          }}
+          className="press"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -380,7 +410,16 @@ export function FinishGameScreen({ game, mistakePly }: { game: GameDetail; mista
 export function FinishGameRoute() {
   const { gameId } = useParams({ from: '/account/games/$gameId/finish' });
   const { ply } = useSearch({ from: '/account/games/$gameId/finish' });
+  const navigate = useNavigate();
   const query = useQuery(gameQueryOptions(gameId));
+
+  // A game with no recorded player side sends the user to the review page,
+  // where the colour is set; the session cannot tell whose moves are whose.
+  useEffect(() => {
+    if (query.data !== undefined && query.data.playerColor === null) {
+      void navigate({ to: '/games/$gameId', params: { gameId: query.data.id }, replace: true });
+    }
+  }, [query.data, navigate]);
 
   if (query.isPending) {
     return (

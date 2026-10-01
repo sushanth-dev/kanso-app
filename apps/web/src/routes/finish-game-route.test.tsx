@@ -7,6 +7,7 @@
  */
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { Chess } from 'chess.js';
 import { finishGameApi, type EngineReply } from '../api/finish-game-api.ts';
 import type { GameDetail } from '../api/diagnosis-api.ts';
 import { FinishGameScreen } from './finish-game-route.tsx';
@@ -277,4 +278,103 @@ describe('FinishGameScreen', () => {
 
     expect(screen.getByText(/From move/)).toHaveTextContent('Nf3');
   });
+
+  test('a game with no recorded colour asks for the side instead of playing White', async () => {
+    renderScreen(gameFixture({ playerColor: null }));
+
+    expect(screen.getByText(/Your side was not recorded/)).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Back to the game review' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Stop the session' })).toBeNull();
+    // No rail auto-plays as if the player were White.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(MOVE_PAUSE_MS + 50);
+    });
+    expect(screen.queryByText('The game as it was played continues…')).toBeNull();
+  });
+
+  test('an on-rails non-queen promotion plays the stored piece, not a queen', () => {
+    const engineReply = vi.spyOn(finishGameApi, 'engineReply');
+    renderScreen(promotionFixture());
+
+    // The player's own stored move 5. b7b8n: clicking the target keeps the
+    // session on the rails, and the knight lands on b8 instead of a queen.
+    playMove('b7', 'b8');
+    expect(engineReply).not.toHaveBeenCalled();
+    // Two home knights plus the promoted one on b8; the home queen on d1 stays
+    // the only queen, where a queen promotion would put a second on b8.
+    expect(screen.getAllByRole('img', { name: 'white knight' })).toHaveLength(3);
+    expect(screen.getAllByRole('img', { name: 'white queen' })).toHaveLength(1);
+  });
 });
+
+/**
+ * A game whose recorded continuation ends in a knight promotion. The mistake
+ * ply is the player's own `5. b8=N` (uci b7b8n); replaying the stored plies
+ * puts a white pawn on b7 with white to move, so the player clicks it and the
+ * session must apply the stored knight, not force a queen.
+ */
+function promotionFixture(): GameDetail {
+  const position = new Chess();
+  const seeds = [['a4', 'e5', 'a5', 'e4', 'a6', 'e3', 'axb7', 'Na6']];
+  const plies: GameDetail['plies'] = [];
+  for (const san of seeds[0]!) {
+    const fenBefore = position.fen();
+    const move = position.move(san);
+    plies.push({
+      ply: plies.length + 1,
+      san,
+      uci: move.lan,
+      fenBefore,
+      phase: 'opening',
+      evaluation: null,
+      bestMoveSan: null,
+      bestMoveUci: null,
+      clockMs: null,
+      moveTimeMs: null,
+    });
+  }
+  const fenBefore = position.fen();
+  const move = position.move({ from: 'b7', to: 'b8', promotion: 'n' });
+  plies.push({
+    ply: plies.length + 1,
+    san: move.san,
+    uci: move.lan,
+    fenBefore,
+    phase: 'opening',
+    evaluation: null,
+    bestMoveSan: null,
+    bestMoveUci: null,
+    clockMs: null,
+    moveTimeMs: null,
+  });
+  return gameFixture({
+    playerColor: 'white',
+    moveCount: 9,
+    pgn: '1. a4 e5 2. a5 e4 3. a6 e3 4. axb7 Na6 5. b8=N *',
+    plies,
+    mistakes: [
+      {
+        id: 'm-promo',
+        gameId: '00000000-0000-4000-8000-0000000000b2',
+        ply: 9,
+        moveNumber: 5,
+        movingColor: 'white',
+        phase: 'opening',
+        fen: fenBefore,
+        moveSan: move.san,
+        bestMoveSan: 'b8=Q',
+        evalBefore: { cp: 0, mate: null },
+        evalAfter: { cp: 0, mate: null },
+        judgement: 'inaccuracy',
+        cpLoss: 0,
+        winProbDrop: 0,
+        motif: null,
+        crossedResultBoundary: false,
+        halfPointsLost: 0,
+        explanation: null,
+        opponentElo: null,
+        severity: 0,
+      },
+    ],
+  });
+}
