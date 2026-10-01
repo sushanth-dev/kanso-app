@@ -63,7 +63,13 @@ export function checkTextWithinFacts(
 ): FactCheckFailure | null {
   const trimmed = text.trim();
   if (trimmed === '') return { reason: 'empty' };
-  if ((trimmed.match(SENTENCE_PATTERN) ?? []).length > maxSentences) return { reason: 'sentences' };
+  // Sentence terminators are counted with numbers blanked, so the dot inside a
+  // decimal ("1.5 pawns", a deliberately allowed number) is not misread as a
+  // sentence end. NUMBER_PATTERN already treats a decimal as one token.
+  const sentenceText = trimmed.replace(NUMBER_PATTERN, ' ');
+  if ((sentenceText.match(SENTENCE_PATTERN) ?? []).length > maxSentences) {
+    return { reason: 'sentences' };
+  }
 
   // A move carries digits that are not claims about a number: `Qf6` prints a
   // 6, `e4` a 4. The number scan therefore reads the text with its SAN tokens

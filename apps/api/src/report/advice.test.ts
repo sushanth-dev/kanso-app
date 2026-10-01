@@ -142,6 +142,12 @@ describe('checkTextWithinFacts', () => {
     });
   });
 
+  test('a decimal does not tip a one-sentence reply over the budget', () => {
+    // "2.0" carries a sentence-like dot; at maxSentences 1 the reply is still
+    // one sentence and must pass (ST-177, audit follow-up).
+    expect(checkTextWithinFacts('Two pawns ahead is 2.0.', numbers, sans, 1)).toBeNull();
+  });
+
   test('reports empty text', () => {
     expect(checkTextWithinFacts('   ', numbers, sans, 3)).toEqual({ reason: 'empty' });
   });
