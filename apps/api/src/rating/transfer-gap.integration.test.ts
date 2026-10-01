@@ -202,7 +202,52 @@ describe('the transfer gap', () => {
     expect(row.ratingFetchedAt).not.toBeNull();
   });
 
+  test('a failed refresh keeps the stored snapshot instead of wiping it', async () => {
+    canned.chesscom = 1900;
+
+    const cookie = await signIn(OWNER);
+    const owner = await whoAmI(cookie);
+    const playerId = await ownPlayer(owner, { fideRating: 1300, chesscomUsername: 'onlinekid' });
+
+    await transferGap(cookie);
+    // The refresh must clear the 30s explicit-refresh floor to exercise the
+    // failure path, not be served from the snapshot.
+    await harness.db
+      .update(player)
+      .set({ ratingFetchedAt: new Date(Date.now() - 60_000) })
+      .where(eq(player.id, playerId));
+    canned.chesscom = null; // the upstream now fails
+
+    const res = await transferGap(cookie, true);
+    const body = (await res.json()) as TransferGapBody;
+    expect(body.chesscom).toEqual({ rating: 1900, gap: 600 });
+
+    const row = await stored(playerId);
+    expect(row.chesscomRating).toBe(1900);
+  });
+
   test('a second view inside the TTL does not re-fetch, and refresh does', async () => {
+    canned.chesscom = 1900;
+
+    const cookie = await signIn(OWNER);
+    const owner = await whoAmI(cookie);
+    const playerId = await ownPlayer(owner, { fideRating: 1300, chesscomUsername: 'onlinekid' });
+
+    await transferGap(cookie);
+    expect(requested).toHaveLength(1);
+
+    await transferGap(cookie);
+    expect(requested).toHaveLength(1);
+
+    await harness.db
+      .update(player)
+      .set({ ratingFetchedAt: new Date(Date.now() - 60_000) })
+      .where(eq(player.id, playerId));
+    await transferGap(cookie, true);
+    expect(requested).toHaveLength(2);
+  });
+
+  test('an explicit refresh younger than the floor is served from the snapshot', async () => {
     canned.chesscom = 1900;
 
     const cookie = await signIn(OWNER);
@@ -212,10 +257,11 @@ describe('the transfer gap', () => {
     await transferGap(cookie);
     expect(requested).toHaveLength(1);
 
-    await transferGap(cookie);
+    // Re-refresh immediately: within the 30s floor, no second fetch happens.
+    const res = await transferGap(cookie, true);
+    expect(res.status).toBe(200);
     expect(requested).toHaveLength(1);
-
-    await transferGap(cookie, true);
-    expect(requested).toHaveLength(2);
+    const body = (await res.json()) as TransferGapBody;
+    expect(body.chesscom).toEqual({ rating: 1900, gap: 600 });
   });
 });
