@@ -400,7 +400,11 @@ describe('ST-111 plan caps on generated coach texts', () => {
 
   test('intermediate: refuses at the 101st generated text', async () => {
     const ids = await seedMistakes(OWNER, 101);
-    await harness.db.insert(subscription).values({ userId: OWNER, tier: 'intermediate' });
+    await harness.db.insert(subscription).values({
+      userId: OWNER,
+      tier: 'intermediate',
+      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    });
     for (const id of ids.slice(0, 100)) {
       const res = await app(OWNER).request(`/mistakes/${id}/explanation`);
       expect(res.status).toBe(200);
@@ -413,7 +417,11 @@ describe('ST-111 plan caps on generated coach texts', () => {
 
   test('pro: never refuses', async () => {
     const ids = await seedMistakes(OWNER, 11);
-    await harness.db.insert(subscription).values({ userId: OWNER, tier: 'pro' });
+    await harness.db.insert(subscription).values({
+      userId: OWNER,
+      tier: 'pro',
+      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    });
     for (const id of ids) {
       const res = await app(OWNER).request(`/mistakes/${id}/explanation`);
       expect(res.status).toBe(200);
@@ -458,7 +466,11 @@ describe('ST-128 coach budget counter on the explanation response', () => {
 
   test('intermediate: the counter reads the intermediate cap', async () => {
     const [id] = await seedMistakes(OWNER, 1);
-    await harness.db.insert(subscription).values({ userId: OWNER, tier: 'intermediate' });
+    await harness.db.insert(subscription).values({
+      userId: OWNER,
+      tier: 'intermediate',
+      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    });
     const res = await app(OWNER).request(`/mistakes/${id}/explanation`);
     const body = (await res.json()) as { remaining: number | null; monthlyCap: number | null };
     expect(body.monthlyCap).toBe(100);
@@ -467,7 +479,11 @@ describe('ST-128 coach budget counter on the explanation response', () => {
 
   test('pro: both counter fields are null, so no counter renders', async () => {
     const [id] = await seedMistakes(OWNER, 1);
-    await harness.db.insert(subscription).values({ userId: OWNER, tier: 'pro' });
+    await harness.db.insert(subscription).values({
+      userId: OWNER,
+      tier: 'pro',
+      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    });
     const res = await app(OWNER).request(`/mistakes/${id}/explanation`);
     expect(res.status).toBe(200);
     const body = (await res.json()) as { remaining: number | null; monthlyCap: number | null };

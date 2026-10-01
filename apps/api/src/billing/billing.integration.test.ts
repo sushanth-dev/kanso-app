@@ -344,7 +344,11 @@ describe('the three tiers', () => {
 
   test('pro has no analysis cap', async () => {
     const { userId } = await signUpCookie('unlimited@example.com');
-    await harness.db.insert(subscription).values({ userId, tier: 'pro' });
+    await harness.db.insert(subscription).values({
+      userId,
+      tier: 'pro',
+      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    });
 
     expect(await analysisRemaining(harness.db, userId)).toBeNull();
   });
@@ -352,7 +356,11 @@ describe('the three tiers', () => {
     const { userId } = await signUpCookie('tierless@example.com');
     expect(await tierFor(harness.db, userId)).toBe('beginner');
 
-    await harness.db.insert(subscription).values({ userId, tier: 'intermediate' });
+    await harness.db.insert(subscription).values({
+      userId,
+      tier: 'intermediate',
+      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    });
     expect(await tierFor(harness.db, userId)).toBe('intermediate');
   });
 
@@ -415,7 +423,11 @@ describe('the three tiers', () => {
 
   test('pro has no coach budget either', async () => {
     const { userId } = await signUpCookie('coach-pro@example.com');
-    await harness.db.insert(subscription).values({ userId, tier: 'pro' });
+    await harness.db.insert(subscription).values({
+      userId,
+      tier: 'pro',
+      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    });
     expect(await coachRemaining(harness.db, userId)).toBeNull();
   });
 

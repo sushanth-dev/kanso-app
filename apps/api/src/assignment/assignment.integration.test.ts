@@ -72,7 +72,11 @@ async function signIn(email: string, tier: 'pro' | 'beginner' = 'pro'): Promise<
   if (tier === 'pro') {
     const session = await a.request('/api/auth/get-session', { headers: { cookie } });
     const who = (await session.json()) as { session: { userId: string } };
-    await harness.db.insert(subscription).values({ userId: who.session.userId, tier: 'pro' });
+    await harness.db.insert(subscription).values({
+      userId: who.session.userId,
+      tier: 'pro',
+      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    });
   }
   return cookie;
 }
