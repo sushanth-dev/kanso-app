@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import type { Context } from 'hono';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { createApp } from '../app.ts';
-import { player } from '../db/schema.ts';
+import { player, report } from '../db/schema.ts';
 import { user } from '../db/auth-schema.ts';
 import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-harness.ts';
 import { importGames } from './import-games.ts';
@@ -428,5 +428,74 @@ describe('POST /imports (pgn_upload)', () => {
         analysis_status: string;
       }>;
     expect(rows.every((r) => r.analysis_status === 'pending')).toBe(true);
+  });
+
+  test('merging a split cluster deletes the merged-away tournament and its reports', async () => {
+    const playerId = await seedPlayer('Test Player');
+    // Two games 46 days apart split into two tournaments, then a bridging
+    // game between them chains the pair into one cluster.
+    const pgn = (date: string, movetext: string) =>
+      [
+        '[Event "Club Night"]',
+        '[Site "Main Hall"]',
+        `[Date "${date}"]`,
+        '[Round "1"]',
+        '[White "Alice"]',
+        '[Black "Bob"]',
+        '[Result "1-0"]',
+        '',
+        `${movetext} 1-0`,
+      ].join('\n');
+    const early = pgn('2026.01.10', '1. e4 e5 2. Nf3 Nc6 3. Bb5');
+    const late = pgn('2026.02.25', '1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bg5');
+    await upload(OWNER, {
+      source: 'pgn_upload',
+      stream: 'tournament',
+      pgn: [early, late].join('\n\n'),
+    });
+
+    const tournamentsBefore = (await harness.sql`
+      SELECT id FROM tournament WHERE player_id = ${playerId}`) as Array<{ id: string }>;
+    expect(tournamentsBefore).toHaveLength(2);
+
+    // Each tournament owns a report; the one whose tournament is merged away
+    // must cascade with it (report.tournament_id on delete cascade).
+    for (const { id } of tournamentsBefore) {
+      await harness.db.insert(report).values({
+        playerId,
+        stream: 'tournament',
+        tournamentId: id,
+        gamesCovered: 0,
+      });
+    }
+
+    const bridge = pgn('2026.02.05', '1. c4 c5 2. Nc3 Nc6 3. g3 g6 4. Bg2');
+    const res = await upload(OWNER, {
+      source: 'pgn_upload',
+      stream: 'tournament',
+      pgn: bridge,
+    });
+    expect(res.status).toBe(202);
+
+    const survivors = (await harness.sql`
+      SELECT id FROM tournament WHERE player_id = ${playerId}`) as Array<{ id: string }>;
+    // The merged-away row is deleted, not left as an empty orphan the next
+    // import could treat as still-open.
+    expect(survivors).toHaveLength(1);
+
+    const attached = (await harness.sql`
+      SELECT tournament_id FROM game WHERE player_id = ${playerId}`) as Array<{
+      tournament_id: string;
+    }>;
+    expect(attached).toHaveLength(3);
+    expect(attached.every((r) => r.tournament_id === survivors[0]!.id)).toBe(true);
+
+    // Only the surviving tournament's report remains; the other cascaded away.
+    const reports = (await harness.sql`
+      SELECT tournament_id FROM report WHERE player_id = ${playerId}`) as Array<{
+      tournament_id: string | null;
+    }>;
+    expect(reports).toHaveLength(1);
+    expect(reports[0]!.tournament_id).toBe(survivors[0]!.id);
   });
 });

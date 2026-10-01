@@ -91,6 +91,31 @@ describe('fetchChesscomGames', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  test('drops a game from the since month that was played before since', async () => {
+    const pgn = (date: string, n: number) => `[UTCDate "${date}"]\n\n${n}. e4 e5`;
+    fetchMock
+      .mockResolvedValueOnce(
+        jsonResponse({ archives: ['https://api.chess.com/pub/player/onlinekid/games/2026/08'] }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          games: [
+            { url: 'https://www.chess.com/game/live/1', pgn: pgn('2026.08.05', 1) },
+            { url: 'https://www.chess.com/game/live/2', pgn: pgn('2026.08.12', 2) },
+          ],
+        }),
+      );
+
+    const outcome = await fetchChesscomGames('onlinekid', new Date('2026-08-10'), 1000);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    // The same month archive still loads; only the game dated before `since`
+    // is dropped, and the dropped game does not eat into maxGames.
+    expect(outcome.games.map((g) => g.externalId)).toEqual(['2']);
+    expect(outcome.games[0]!.pgn).toBe(pgn('2026.08.12', 2));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   test('bounds the fetch to maxGames from the newest month', async () => {
     const game = (n: number) => ({
       url: `https://www.chess.com/game/live/${n}`,
