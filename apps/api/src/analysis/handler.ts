@@ -80,7 +80,10 @@ export async function handler(event: SqsEvent): Promise<void> {
       // retry would have fixed must not sit there looking permanently broken,
       // so it goes back to `queued` and the message comes back with it.
       if (attempt < MAX_ATTEMPTS) {
-        await db.update(game).set({ analysisStatus: 'queued' }).where(eq(game.id, gameId));
+        await db
+          .update(game)
+          .set({ analysisStatus: 'queued', analysisStartedAt: null })
+          .where(eq(game.id, gameId));
         log('warn', 'analysis_retrying', {
           requestId,
           gameId,

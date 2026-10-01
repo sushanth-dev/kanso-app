@@ -33,6 +33,21 @@ const RUNNING_OR_DONE: Record<string, true> = {
   complete: true,
 };
 
+/**
+ * The worker's hard ceiling (infra/analysis.ts sets a 600s Lambda timeout)
+ * plus a margin. A claim that has outlived it is provably orphaned: the hard
+ * kill never reached the worker's failure handler, the message is in the
+ * dead-letter queue, and without this the Retry path would answer 409 on the
+ * game until it was re-imported. Every real worker claim refreshes the
+ * timestamp, so a healthy analysis is never mistaken for a stale one.
+ */
+const ANALYSIS_STALE_MS = 600_000 + 60_000;
+
+/** Whether an `analyzing` claim is old enough to be a dead worker. */
+function isStaleClaim(claimedAt: Date | null): boolean {
+  return claimedAt !== null && Date.now() - claimedAt.getTime() > ANALYSIS_STALE_MS;
+}
+
 export function mountQueueAnalysis(
   app: OpenAPIHono,
   deps: { db: Db; getSession: (c: Context) => unknown },
@@ -52,18 +67,29 @@ export function mountQueueAnalysis(
     // status flip and enqueue ran, which doubled the message.
     const outcome = await deps.db.transaction(async (tx) => {
       const [owner] = await tx
-        .select({ ownerUserId: player.ownerUserId, analysisStatus: game.analysisStatus })
+        .select({
+          ownerUserId: player.ownerUserId,
+          analysisStatus: game.analysisStatus,
+          analysisStartedAt: game.analysisStartedAt,
+        })
         .from(game)
         .innerJoin(player, eq(game.playerId, player.id))
         .where(eq(game.id, gameId))
         .for('update');
       if (!owner) return { kind: 'not_found' as const };
       if (owner.ownerUserId !== session.userId) return { kind: 'forbidden' as const };
-      if (RUNNING_OR_DONE[owner.analysisStatus]) return { kind: 'conflict' as const };
+      // An `analyzing` row whose claim outlived the worker's ceiling is a
+      // killed invocation, not a live one; it is freed for re-queueing.
+      if (
+        RUNNING_OR_DONE[owner.analysisStatus] &&
+        !(owner.analysisStatus === 'analyzing' && isStaleClaim(owner.analysisStartedAt))
+      ) {
+        return { kind: 'conflict' as const };
+      }
       const previousStatus = owner.analysisStatus;
       await tx
         .update(game)
-        .set({ analysisStatus: 'queued', analysisError: null })
+        .set({ analysisStatus: 'queued', analysisError: null, analysisStartedAt: null })
         .where(eq(game.id, gameId));
       return { kind: 'ok' as const, previousStatus };
     });

@@ -84,6 +84,36 @@ describe('POST /games/{gameId}/analysis', () => {
     expect(res.status).toBe(409);
   });
 
+  test('re-queues an analyzing game whose claim has outlived the worker', async () => {
+    // A 600s worker invocation that gets killed never runs its failure
+    // handler; the game is stuck `analyzing` and its claim stops refreshing.
+    const gameId = await seedFailedGame(OWNER);
+    await harness.db
+      .update(game)
+      .set({
+        analysisStatus: 'analyzing',
+        analysisStartedAt: new Date(Date.now() - 40 * 60 * 1000),
+      })
+      .where(eq(game.id, gameId));
+
+    const res = await app(OWNER).request(`/games/${gameId}/analysis`, { method: 'POST' });
+    expect(res.status).toBe(202);
+
+    const [g] = await harness.db.select().from(game).where(eq(game.id, gameId));
+    expect(g!.analysisStatus).toBe('queued');
+    expect(g!.analysisStartedAt).toBeNull();
+  });
+
+  test('answers 409 for an analyzing game whose worker is still live', async () => {
+    const gameId = await seedFailedGame(OWNER);
+    await harness.db
+      .update(game)
+      .set({ analysisStatus: 'analyzing', analysisStartedAt: new Date() })
+      .where(eq(game.id, gameId));
+    const res = await app(OWNER).request(`/games/${gameId}/analysis`, { method: 'POST' });
+    expect(res.status).toBe(409);
+  });
+
   test('answers 401 with no session', async () => {
     const gameId = await seedFailedGame(OWNER);
     const res = await app(null).request(`/games/${gameId}/analysis`, { method: 'POST' });

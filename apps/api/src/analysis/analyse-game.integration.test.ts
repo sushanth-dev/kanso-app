@@ -121,6 +121,9 @@ describe('analyseGame', () => {
     expect(row!.analysisStatus).toBe('complete');
     expect(row!.analyzedAt).not.toBeNull();
     expect(row!.analysisError).toBeNull();
+    // The claim time is what lets the Retry path free a game whose worker was
+    // hard-killed, so it must be written on every real analysis.
+    expect(row!.analysisStartedAt).not.toBeNull();
     // B3: cost per analysed game is an objective with no number behind it yet.
     // These columns are what turn it from an estimate into a measurement.
     expect(row!.analysisNodes).toBeGreaterThan(0);

@@ -438,6 +438,15 @@ export const game = pgTable(
     analysisError: text('analysis_error'),
 
     /**
+     * When the worker last claimed this game, `queued` to `analyzing`. A
+     * Lambda hard timeout never reaches the worker's failure handler, so a
+     * killed invocation can leave a game `analyzing` forever; the Retry path
+     * uses this claim time to re-queue a stale one instead of answering 409
+     * without end. Null for a game analysis has not touched.
+     */
+    analysisStartedAt: timestamp('analysis_started_at', { withTimezone: true }),
+
+    /**
      * B3, N4. Cost per analyzed game is an objective (O4) with no number behind
      * it yet, and it gates both the free-tier caps and the price. Recording it
      * per game is what turns it from an estimate into a measurement, so these

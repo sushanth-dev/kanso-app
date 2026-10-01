@@ -203,7 +203,10 @@ async function analyse(db: Db, gameId: string, options: EngineOptions): Promise<
   }
 
   const startedAt = performance.now();
-  await db.update(game).set({ analysisStatus: 'analyzing' }).where(eq(game.id, gameId));
+  await db
+    .update(game)
+    .set({ analysisStatus: 'analyzing', analysisStartedAt: new Date() })
+    .where(eq(game.id, gameId));
 
   const { plies, positions } = walkGame(row.pgn);
   const { scores, bestMoveUci, nodes } = await evaluateWalk(db, positions, plies, options);
