@@ -64,10 +64,13 @@ export interface MinorSignup {
 }
 
 export function validateMinorSignup(user: MinorSignup): void {
-  if (user.dateOfBirth !== null && !isIsoDate(user.dateOfBirth)) {
+  // `!= null`, not `!== null`: better-auth leaves an omitted optional field
+  // as undefined, and that would be sent through the date parser as a
+  // phantom invalid birth date.
+  if (user.dateOfBirth != null && !isIsoDate(user.dateOfBirth)) {
     throw new Error('The date of birth must be a real date in YYYY-MM-DD form.');
   }
-  if (user.dateOfBirth === null || !isUnder13(user.dateOfBirth)) return;
+  if (user.dateOfBirth == null || !isUnder13(user.dateOfBirth)) return;
   if (!user.guardianEmail) {
     throw new Error(
       'A guardian email is required when the date of birth makes the person a minor.',
@@ -88,8 +91,8 @@ export async function maybeCreateGuardianConsent(
   mailer: Mailer,
   newUser: NewUser,
 ): Promise<void> {
-  if (newUser.dateOfBirth === null || !isUnder13(newUser.dateOfBirth)) return;
-  if (newUser.guardianEmail === null) return;
+  if (newUser.dateOfBirth == null || !isUnder13(newUser.dateOfBirth)) return;
+  if (newUser.guardianEmail == null) return;
 
   const [consent] = await db
     .insert(guardianConsent)
