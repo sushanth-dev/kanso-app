@@ -45,6 +45,11 @@ export function mountQueueAnalysis(
       return c.json({ code: 'no_session', message: 'Sign in to use this endpoint.' }, 401);
     }
 
+    // The row is locked and flipped to `queued` in one transaction. Two
+    // concurrent retries cannot both enqueue: the loser's `FOR UPDATE` resumes
+    // after the winner commits and sees `queued`, so it answers 409 instead of
+    // sending a second message. The old code released the read lock before the
+    // status flip and enqueue ran, which doubled the message.
     const outcome = await deps.db.transaction(async (tx) => {
       const [owner] = await tx
         .select({ ownerUserId: player.ownerUserId, analysisStatus: game.analysisStatus })
@@ -55,7 +60,12 @@ export function mountQueueAnalysis(
       if (!owner) return { kind: 'not_found' as const };
       if (owner.ownerUserId !== session.userId) return { kind: 'forbidden' as const };
       if (RUNNING_OR_DONE[owner.analysisStatus]) return { kind: 'conflict' as const };
-      return { kind: 'ok' as const };
+      const previousStatus = owner.analysisStatus;
+      await tx
+        .update(game)
+        .set({ analysisStatus: 'queued', analysisError: null })
+        .where(eq(game.id, gameId));
+      return { kind: 'ok' as const, previousStatus };
     });
 
     if (outcome.kind === 'not_found') {
@@ -70,6 +80,7 @@ export function mountQueueAnalysis(
         409,
       );
     }
+    const previousStatus = outcome.previousStatus;
 
     // The cap is checked outside the transaction: it counts games analysed this
     // month, and a concurrent import may be spending the same budget. The check
@@ -79,14 +90,18 @@ export function mountQueueAnalysis(
       return c.json({ code: 'cap_reached', message: "The plan's analysis cap is reached." }, 429);
     }
 
-    // Mark queued before sending so the game card shows a live state, then send.
-    // A queue that is down leaves the game `queued` with nothing behind it; the
-    // worker's redrive and the manual Retry are the recovery paths.
-    await deps.db
-      .update(game)
-      .set({ analysisStatus: 'queued', analysisError: null })
-      .where(eq(game.id, gameId));
-    await enqueueAnalysis([gameId], undefined, c.get('requestId'));
+    try {
+      await enqueueAnalysis([gameId], undefined, c.get('requestId'));
+    } catch {
+      // A queue that is down must not leave the game `queued` with no message
+      // behind it: the manual Retry reads `queued` as already-running and
+      // would answer 409 forever. Restore the prior status so Retry works.
+      await deps.db.update(game).set({ analysisStatus: previousStatus }).where(eq(game.id, gameId));
+      return c.json(
+        { code: 'queue_unavailable', message: 'The analysis queue is unavailable right now.' },
+        503,
+      );
+    }
 
     return c.json({ gameId, status: 'queued' }, 202);
   });

@@ -555,6 +555,7 @@ export const queueAnalysis = createRoute({
     404: error('No such game.'),
     409: error('Analysis is already running for this game.'),
     429: error("The plan's analysis cap is reached."),
+    503: error('The analysis queue is unavailable right now.'),
   },
 });
 
