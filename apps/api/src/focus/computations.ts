@@ -41,9 +41,14 @@ export function reachedWonPosition(color: Color, evals: EvalScore[]): boolean {
   return evals.some((ev) => povChances(color, ev) >= WON_POSITION_CHANCES);
 }
 
-/** The share of +2.0 positions converted to a win, or null when too few exist. */
+/**
+ * The share of +2.0 positions converted to a win, or null when too few exist.
+ * An unresolved game (`*`, no verdict stored) that reached +2.0 counts in the
+ * denominator - the window did reach a won position - but has no result to
+ * convert into, so `won` is null and it is a neither a conversion nor a miss.
+ */
 export function wonPositionConversion(
-  games: { wonPosition: boolean; won: boolean }[],
+  games: { wonPosition: boolean; won: boolean | null }[],
 ): number | null {
   const reached = games.filter((g) => g.wonPosition).length;
   if (reached < MIN_WON_POSITIONS) return null;
@@ -87,7 +92,7 @@ export async function convertingPositionsValue(
       const color: Color = g.playerColor === 'white' ? 'white' : 'black';
       return {
         wonPosition: reachedWonPosition(color, evalsByGame.get(g.id) ?? []),
-        won: playerWon(color, g.result),
+        won: g.result === '*' ? null : playerWon(color, g.result),
       };
     }),
   );
