@@ -146,14 +146,19 @@ async function handleCapture(c: Context, db: Db, payload: WebhookPayload): Promi
     // resetting it to now plus a month, so prepaid days on a dearer plan
     // survive a cheaper purchase landing first. A lapsed period starts fresh
     // from now. Within a live period the tier only rises, so a mid-period
-    // downgrade purchase cannot truncate the remaining days.
+    // downgrade purchase cannot truncate the remaining days; once the period
+    // has lapsed the purchased tier is the paid tier again.
     const anchor =
       existing?.currentPeriodEnd && existing.currentPeriodEnd.getTime() > now.getTime()
         ? existing.currentPeriodEnd
         : now;
     const periodEnd = nextRenewal(anchor);
-    const tier =
-      existing && TIER_RANK[existing.tier] > TIER_RANK[row.tier] ? existing.tier : row.tier;
+    const keepHigherTier =
+      existing !== undefined &&
+      existing.currentPeriodEnd !== null &&
+      existing.currentPeriodEnd.getTime() > now.getTime() &&
+      TIER_RANK[existing.tier] > TIER_RANK[row.tier];
+    const tier = keepHigherTier ? existing.tier : row.tier;
 
     await tx
       .insert(subscription)

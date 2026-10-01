@@ -261,6 +261,25 @@ describe('the three tiers', () => {
     expect(sub!.currentPeriodEnd!.getTime()).toBeGreaterThan(proEnd.getTime());
   });
 
+  test('a capture after a lapse takes the purchased tier, not the old one', async () => {
+    const { cookie, userId } = await signUpCookie('relapsed@example.com');
+    // Pro lapsed a week ago; a cheaper plan is bought now.
+    await harness.db.insert(subscription).values({
+      userId,
+      tier: 'pro',
+      currentPeriodEnd: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+    });
+
+    const orderId = await checkout(cookie, 'intermediate');
+    expect((await sendWebhook(orderId)).status).toBe(204);
+
+    const [sub] = await harness.db
+      .select()
+      .from(subscription)
+      .where(eq(subscription.userId, userId));
+    expect(sub!.tier).toBe('intermediate');
+  });
+
   test('a full refund lapses the entitlement', async () => {
     const { cookie, userId } = await signUpCookie('refunded@example.com');
     const orderId = await checkout(cookie, 'pro');
