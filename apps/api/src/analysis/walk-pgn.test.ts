@@ -122,6 +122,32 @@ describe('stripNags alongside walkGame', () => {
     const walk = walkGame('1. e4 $14 { [%clk 0:03:00] } e5 1-0');
     expect(walk.plies[0]!.clockMs).toBe(180_000);
   });
+
+  test('a repeated position keeps each ply’s own clock, not the last occurrence’s', () => {
+    // The knights return to their homes at plies 4 and 8, so the after-FEN of
+    // ply 4 repeats at ply 8. chess.js keys comments by that FEN and keeps
+    // only the last; the walk must read the movetext so ply 4 keeps its clock
+    // instead of inheriting ply 8's.
+    const cycling = [
+      '1. Nf3 { [%clk 0:03:00] } Nf6 { [%clk 0:02:50] }',
+      '2. Ng1 { [%clk 0:02:57] } Ng8 { [%clk 0:02:40] }',
+      '3. Nf3 { [%clk 0:02:50] } Nf6 { [%clk 0:02:30] }',
+      '4. Ng1 { [%clk 0:02:47] } Ng8 { [%clk 0:02:20] } *',
+    ].join(' ');
+    const walk = walkGame(cycling);
+    expect(walk.plies.map((p) => p.clockMs)).toEqual([
+      180_000, 170_000, 177_000, 160_000, 170_000, 150_000, 167_000, 140_000,
+    ]);
+  });
+
+  test('a clock inside a variation annotates no mainline ply', () => {
+    const withVariation =
+      '1. e4 { [%clk 0:03:00] } e5 ( 2. Nf3 { [%clk 0:02:55] } ) 2. Nf3 { [%clk 0:02:57] } *';
+    const walk = walkGame(withVariation);
+    // The main line is e4 e5 Nf3; the variation's clock must not leak in.
+    expect(walk.plies.map((p) => p.san)).toEqual(['e4', 'e5', 'Nf3']);
+    expect(walk.plies.map((p) => p.clockMs)).toEqual([180_000, null, 177_000]);
+  });
 });
 
 describe('pliesForImport', () => {

@@ -67,23 +67,69 @@ export function stripNags(pgn: string): string {
 }
 
 /**
+ * The `%clk` for each mainline ply, read from the cleaned movetext in move
+ * order. chess.js stores comments keyed by the after-move FEN
+ * (`_comments[fen()]`), so a repeated or transposed position keeps only the
+ * last occurrence's comment, and a FEN-keyed walk reports one clock for every
+ * ply that reaches the same position. Reading here instead reproduces
+ * chess.js's mainline placement (a comment after a move is that move's ply)
+ * without the FEN-keyed overwrite. Variation content is skipped by depth, so
+ * a clock inside a line annotates nothing on the mainline.
+ */
+function mainlineClocks(cleaned: string, sanByPly: readonly string[]): Map<number, number> {
+  const clocks = new Map<number, number>();
+  let ply = 0;
+  let depth = 0;
+  const token = /\(|\)|\d+\.{1,3}|\d+|\{[^}]*\}|[^\s(){}]+/g;
+  let match: RegExpExecArray | null;
+  while ((match = token.exec(cleaned)) !== null) {
+    const value = match[0];
+    if (value === '(') {
+      depth += 1;
+      continue;
+    }
+    if (value === ')') {
+      if (depth > 0) depth -= 1;
+      continue;
+    }
+    if (value.startsWith('{')) {
+      if (depth === 0 && ply > 0) {
+        const ms = parseClockMs(value);
+        if (ms !== null) clocks.set(ply - 1, ms);
+      }
+      continue;
+    }
+    if (ply === 0 && /^\d+$/.test(value)) {
+      // A lone number is a move number when nothing yet leads it (or the tail
+      // of a "1." token); it never equals a san, so the match below ignores it.
+      continue;
+    }
+    if (depth === 0 && ply < sanByPly.length && value === sanByPly[ply]) {
+      ply += 1;
+    }
+  }
+  return clocks;
+}
+
+/**
  * Replay the PGN into plies and the positions they were played from. Throws
  * when the PGN has no moves.
  */
 export function walkGame(pgn: string): Walk {
+  const cleaned = stripNags(mergeAdjacentComments(pgn));
   const chess = new Chess();
-  chess.loadPgn(stripNags(mergeAdjacentComments(pgn)));
+  chess.loadPgn(cleaned);
   const history = chess.history({ verbose: true });
   if (history.length === 0) throw new Error('game has no moves to analyse');
 
   // `%clk` rides on the position a move reached. chess.js exposes it through
   // `getComments()`, keyed by the after-move FEN, so a ply's remaining clock is
-  // the comment attached to that ply's `after` position.
-  const clockAfter = new Map<string, number>();
-  for (const { fen, comment } of chess.getComments()) {
-    const ms = parseClockMs(comment);
-    if (ms !== null) clockAfter.set(fen, ms);
-  }
+  // the comment attached to that ply's `after` position. Clocks are read from
+  // the movetext instead so a repeated position keeps each ply's own clock.
+  const clockMsByPly = mainlineClocks(
+    cleaned,
+    history.map((move) => move.san),
+  );
 
   // Time spent on a move is the same side's previous remaining clock minus this
   // one; the first move of each side has no previous clock, so it is null.
@@ -95,7 +141,7 @@ export function walkGame(pgn: string): Walk {
     // its moves the way a player would say them.
     const fields = move.before.split(' ');
     const movingColor = fields[1] === 'b' ? ('black' as const) : ('white' as const);
-    const clockMs = clockAfter.get(move.after) ?? null;
+    const clockMs = clockMsByPly.get(index) ?? null;
     const previous = prevClock[movingColor];
     const moveTimeMs = clockMs !== null && previous !== null ? previous - clockMs : null;
     if (clockMs !== null) prevClock[movingColor] = clockMs;
