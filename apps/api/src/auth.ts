@@ -85,20 +85,21 @@ export function createAuth(db: PostgresJsDatabase<typeof schema>, deps: { mailer
               privacyAcknowledgedAt?: unknown;
             };
             validateMinorSignup(candidate);
-            // ST-166. The client asserts that the notice was accepted; the
-            // instant recorded is ours. A client-chosen timestamp would let a
-            // caller backdate the acknowledgement it is the whole point of
-            // keeping. better-auth merges this return value into the create
-            // payload, so nothing else the caller sent is dropped.
-            return Promise.resolve({
-              data: {
-                privacyAcknowledgedAt:
-                  candidate.privacyAcknowledgedAt === undefined ||
-                  candidate.privacyAcknowledgedAt === null
-                    ? null
-                    : new Date(),
-              },
-            });
+            // ST-166 + the audit's 26.10. The acknowledgement is required,
+            // not merely recorded: a sign-up that omits it has asserted
+            // nothing, so it is refused the same way a bad birth date is.
+            // The instant recorded is still ours when the claim is present -
+            // a client-chosen timestamp would let a caller backdate the
+            // acknowledgement it is the whole point of keeping. better-auth
+            // merges this return value into the create payload, so nothing
+            // else the caller sent is dropped.
+            if (
+              candidate.privacyAcknowledgedAt === undefined ||
+              candidate.privacyAcknowledgedAt === null
+            ) {
+              throw new Error('The privacy notice must be acknowledged before sign-up.');
+            }
+            return Promise.resolve({ data: { privacyAcknowledgedAt: new Date() } });
           },
           after: async (created) => {
             const newUser = created as unknown as NewUser & { name: string };

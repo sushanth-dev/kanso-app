@@ -70,6 +70,7 @@ async function signUp(
       password: PASSWORD,
       dateOfBirth,
       guardianEmail,
+      privacyAcknowledgedAt: new Date().toISOString(),
     }),
   });
 }

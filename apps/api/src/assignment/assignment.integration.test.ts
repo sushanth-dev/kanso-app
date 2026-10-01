@@ -60,7 +60,12 @@ async function signIn(email: string, tier: 'pro' | 'beginner' = 'pro'): Promise<
   await a.request('/api/auth/sign-up/email', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ name: email.split('@')[0], email, password: PASSWORD }),
+    body: JSON.stringify({
+      name: email.split('@')[0],
+      email,
+      password: PASSWORD,
+      privacyAcknowledgedAt: new Date().toISOString(),
+    }),
   });
   const res = await a.request('/api/auth/sign-in/email', {
     method: 'POST',

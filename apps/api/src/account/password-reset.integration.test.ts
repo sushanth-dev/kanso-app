@@ -53,7 +53,12 @@ async function signUp(email = EMAIL): Promise<void> {
   const res = await app().request('/api/auth/sign-up/email', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ name: email.split('@')[0], email, password: PASSWORD }),
+    body: JSON.stringify({
+      name: email.split('@')[0],
+      email,
+      password: PASSWORD,
+      privacyAcknowledgedAt: new Date().toISOString(),
+    }),
   });
   expect(res.status).toBe(200);
 }
