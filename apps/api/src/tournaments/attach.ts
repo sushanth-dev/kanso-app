@@ -214,6 +214,11 @@ export async function attachGames(
             .update(game)
             .set({ tournamentId: target.id })
             .where(and(eq(game.playerId, playerId), inArray(game.tournamentId, others)));
+          // The merged-away rows now own no games; leaving them behind would
+          // let a later cluster treat a split as already resolved or re-split
+          // into them. They are empty rows of this player's own making, and
+          // their stale reports cascade with them.
+          await tx.delete(tournament).where(inArray(tournament.id, others));
         }
       }
 
