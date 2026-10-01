@@ -35,6 +35,14 @@ function monthFromArchiveUrl(url: string): number | null {
   return match ? Number(match[1]) * 100 + Number(match[2]) : null;
 }
 
+/** The game's date from its PGN `[Date]`/`[UTCDate]` header, as YYYYMMDD, or null when absent. */
+function gameDateOf(pgn: string): number | null {
+  const match = /\[(?:UTCDate|Date) "(\d{4})\.(\d{2})\.(\d{2})"\]/.exec(pgn);
+  return match === null
+    ? null
+    : Number(match[1]) * 10000 + Number(match[2]) * 100 + Number(match[3]);
+}
+
 export async function fetchChesscomGames(
   username: string,
   since: Date,
@@ -45,6 +53,8 @@ export async function fetchChesscomGames(
   }
 
   const sinceMonth = since.getUTCFullYear() * 100 + (since.getUTCMonth() + 1);
+  const sinceDay =
+    since.getUTCFullYear() * 10000 + (since.getUTCMonth() + 1) * 100 + since.getUTCDate();
   const archivesUrl = `${CHESSCOM_ARCHIVES_URL}/${encodeURIComponent(username)}/games/archives`;
 
   try {
@@ -76,6 +86,13 @@ export async function fetchChesscomGames(
 
       for (const raw of body.games) {
         if (typeof raw.pgn !== 'string' || raw.pgn.trim() === '') continue;
+        // Chess.com publishes a whole month per archive, so a game in the
+        // `since` month but played before `since` would slip past the month
+        // filter; drop it on its own date header. A game without a date
+        // header is kept: it could not have been filtered, and only proves an
+        // absent tag, not an early game.
+        const played = gameDateOf(raw.pgn);
+        if (played !== null && played < sinceDay) continue;
         games.push({
           externalId: raw.url ? gameIdFromUrl(raw.url) : null,
           pgn: raw.pgn,

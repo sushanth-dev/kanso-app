@@ -42,6 +42,7 @@ export interface SettingsScreenProps {
 }
 
 export function SettingsScreen({ me, signOut, accountApi, queryClient }: SettingsScreenProps) {
+  const navigate = useNavigate();
   const [signOutError, setSignOutError] = useState<string | null>(null);
   const [savingUsernames, setSavingUsernames] = useState(false);
   const [usernameError, setUsernameError] = useState<string | null>(null);
@@ -79,10 +80,12 @@ export function SettingsScreen({ me, signOut, accountApi, queryClient }: Setting
       }
     } catch (error) {
       if (error instanceof ApiRequestError && error.status === 401) {
-        // The session died under us; the guard will send the player to
-        // sign-in once /me is fetched again.
+        // The session died under us; go to sign-in now rather than leaving the
+        // user on a page whose data can no longer be fetched.
         setDeleteOpen(false);
         clearSessionState(queryClient);
+        await navigate({ to: '/sign-in' });
+        return;
       } else if (error instanceof ApiRequestError) {
         setDeleteError(error.message);
       } else {
@@ -111,6 +114,8 @@ export function SettingsScreen({ me, signOut, accountApi, queryClient }: Setting
     } catch (error) {
       if (error instanceof ApiRequestError && error.status === 401) {
         clearSessionState(queryClient);
+        await navigate({ to: '/sign-in' });
+        return;
       } else {
         setUsernameError('The default usernames could not be saved.');
       }

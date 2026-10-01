@@ -2,9 +2,10 @@
  * The endpoint that returns the signed-in user and the one player they are.
  *
  * ST-072, ST-074. The account IS the player, so this returns a single
- * `player`, not a list. The tier comes from the user's `subscription` row,
- * defaulting to `beginner` when there is none, which is the schema's own
- * default for a fresh sign-up rather than a value invented in the handler.
+ * `player`, not a list. The tier comes from `tierFor`, which defaults to
+ * `beginner` when there is no subscription row and, since the ST-044
+ * follow-up, also when a paid period has ended: `/me` never reports a paid
+ * tier the gates no longer honor.
  *
  * ST-176 adds the analytics gate's answer. It rides this response rather than a
  * route of its own because the account route already resolves `/me` before any
@@ -17,10 +18,11 @@ import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { getMe } from '../contract/routes.ts';
 import * as schema from '../db/schema.ts';
-import { player, subscription } from '../db/schema.ts';
+import { player } from '../db/schema.ts';
 import { user } from '../db/auth-schema.ts';
 import { log } from '../logging.ts';
 import { readSession } from '../session.ts';
+import { tierFor } from '../billing/entitlement.ts';
 import { analyticsSuiteGate } from './consent-request.ts';
 import { toPlayer } from './player-view.ts';
 
@@ -52,11 +54,7 @@ export function mountMe(
       return c.json({ code: 'no_session', message: 'Sign in to use this endpoint.' }, 401);
     }
 
-    const [sub] = await deps.db
-      .select({ tier: subscription.tier })
-      .from(subscription)
-      .where(eq(subscription.userId, session.userId))
-      .limit(1);
+    const tier = await tierFor(deps.db, session.userId);
 
     const [own] = await deps.db
       .select()
@@ -87,7 +85,7 @@ export function mountMe(
         userId: account.id,
         email: account.email,
         name: account.name,
-        tier: sub?.tier ?? 'beginner',
+        tier,
         analyticsSuiteAllowed: suite.allowed,
         player: toPlayer(own),
       },

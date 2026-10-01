@@ -7,6 +7,8 @@ import gsap from 'gsap';
 import { track } from '../analytics.ts';
 
 vi.mock('../analytics.ts', () => ({
+  enableAnalyticsSuite: vi.fn(),
+  disableAnalyticsSuite: vi.fn(),
   safeProperties: (properties: Record<string, string | number>) => properties,
   track: vi.fn(),
 }));

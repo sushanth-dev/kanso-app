@@ -166,18 +166,32 @@ export function mountGetFocus(
         );
         const measuredAt = new Date();
 
-        // A window thin enough to refuse is returned, not stored: it changes
-        // with every import and costs nothing to recompute.
+        // A recompute writes its measurement in place of the previous one.
+        // `latestMeasurement` only ever reads the newest row per focus and
+        // stream, and every recompute carries a fresh measuredAt, so a plain
+        // insert would stack one dead row per recompute behind the live one.
+        // Delete then insert in one transaction keeps the series a single,
+        // current row.
         if (draft.windowGames >= FOCUS_WINDOW_GAMES) {
-          await deps.db.insert(focusMeasurement).values({
-            playerFocusId: row.id,
-            stream,
-            measuredAt,
-            windowGames: draft.windowGames,
-            baselineValue: draft.baselineValue,
-            currentValue: draft.currentValue,
-            unit: spec.unit,
-            trend,
+          await deps.db.transaction(async (tx) => {
+            await tx
+              .delete(focusMeasurement)
+              .where(
+                and(
+                  eq(focusMeasurement.playerFocusId, row.id),
+                  eq(focusMeasurement.stream, stream),
+                ),
+              );
+            await tx.insert(focusMeasurement).values({
+              playerFocusId: row.id,
+              stream,
+              measuredAt,
+              windowGames: draft.windowGames,
+              baselineValue: draft.baselineValue,
+              currentValue: draft.currentValue,
+              unit: spec.unit,
+              trend,
+            });
           });
         }
 

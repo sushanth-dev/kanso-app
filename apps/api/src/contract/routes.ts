@@ -346,30 +346,12 @@ export const startImport = createRoute({
     body: json(StartImport, 'What to import.'),
   },
   responses: {
-    202: json(ImportJob, 'Queued. Poll the job or watch the event stream.'),
+    202: json(ImportJob, 'Queued.'),
     ...authErrors,
     404: error('No such player.'),
     422: error('No matching account for the source.'),
     429: error('The daily import cap is reached.'),
     502: error('The provider fetch failed. Retry later.'),
-  },
-});
-
-export const getImport = createRoute({
-  method: 'get',
-  path: '/imports/{importId}',
-  tags: ['Import'],
-  summary: 'Import job status',
-  request: {
-    params: z.object({
-      importId: Uuid.openapi({ param: { name: 'importId', in: 'path' } }),
-    }),
-  },
-  responses: {
-    200: json(ImportJob, 'The job.'),
-    401: error('No session.'),
-    403: error('Not your job.'),
-    404: error('No such job.'),
   },
 });
 
@@ -540,7 +522,7 @@ export const queueAnalysis = createRoute({
   method: 'post',
   path: '/games/{gameId}/analysis',
   tags: ['Analysis'],
-  summary: 'Queue engine analysis for one game',
+  summary: 'Queue a game for analysis',
   description:
     'F3, N1. Analysis runs on SQS and Lambda (ADR-0014) and takes minutes, so this returns immediately and the result arrives on the event stream.',
   request: {
@@ -555,23 +537,7 @@ export const queueAnalysis = createRoute({
     404: error('No such game.'),
     409: error('Analysis is already running for this game.'),
     429: error("The plan's analysis cap is reached."),
-  },
-});
-
-export const analysisEvents = createRoute({
-  method: 'get',
-  path: '/analysis/events',
-  tags: ['Analysis'],
-  summary: 'Server-sent events for analysis progress',
-  description:
-    'ADR-0016, N1. A player is never made to wait on a blank screen. Events carry the game id and its new analysis status; the client refetches the game on completion.',
-  responses: {
-    200: {
-      description: 'An event stream that stays open until the client closes it.',
-      content: { 'text/event-stream': { schema: z.string() } },
-    },
-    401: error('No session.'),
-    403: error('Not your player.'),
+    503: error('The analysis queue is unavailable right now.'),
   },
 });
 
@@ -1292,7 +1258,6 @@ export const routes = [
   confirmGuardian,
   nudgeUnsubscribe,
   startImport,
-  getImport,
   listGames,
   getGame,
   setGameColor,
@@ -1301,7 +1266,6 @@ export const routes = [
   recordPracticePuzzle,
   deleteGame,
   queueAnalysis,
-  analysisEvents,
   listTournaments,
   getTournament,
   getReport,

@@ -70,6 +70,7 @@ async function signUp(
       password: PASSWORD,
       dateOfBirth,
       guardianEmail,
+      privacyAcknowledgedAt: new Date().toISOString(),
     }),
   });
 }
@@ -138,6 +139,15 @@ describe('minor self-sign-up and guardian consent', () => {
 
   test('a minor without a guardian email is refused at sign-up', async () => {
     const res = await signUp(MINOR, MINOR_DOB);
+    expect(res.status).not.toBe(200);
+    expect(sent).toHaveLength(0);
+  });
+
+  test('a malformed date of birth is refused, never read as an adult', async () => {
+    // "2015/06/01" is not strict YYYY-MM-DD: parsed by Date it is Invalid, and
+    // the under-13 check used to answer false on it, letting a minor sign up
+    // with no guardian consent. It must be refused at the boundary instead.
+    const res = await signUp('sneaky@example.com', '2015/06/01', GUARDIAN);
     expect(res.status).not.toBe(200);
     expect(sent).toHaveLength(0);
   });

@@ -13,7 +13,7 @@ import {
   type RouterHistory,
 } from '@tanstack/react-router';
 import { ApiRequestError } from './api/account-api.ts';
-import { enableAnalyticsSuite } from './analytics.ts';
+import { disableAnalyticsSuite, enableAnalyticsSuite } from './analytics.ts';
 import { AnnouncementBanner } from './components/announcement-banner.tsx';
 import { NotFound } from './components/not-found.tsx';
 import { PageFrame } from './components/page-frame.tsx';
@@ -191,8 +191,11 @@ const accountRoute = createRoute({
       const me = await context.queryClient.ensureQueryData(meQueryOptions());
       // ST-176. The suite's automatic capture stays off until an account's age
       // is positively established, and this is the one place the app learns
-      // that. A gated account never reaches this line, so the gate fails shut.
+      // that. Every account load re-posts the posture, so a gated account that
+      // follows an allowed one in the same tab turns the capture off instead
+      // of inheriting the earlier account's latch.
       if (me.analyticsSuiteAllowed) enableAnalyticsSuite();
+      else disableAnalyticsSuite();
     } catch (error) {
       if (error instanceof ApiRequestError && error.status === 401) {
         // eslint-disable-next-line @typescript-eslint/only-throw-error -- redirect() throws a Response, not an Error.

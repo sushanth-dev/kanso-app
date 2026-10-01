@@ -117,18 +117,23 @@ function freshEngine(): { enginePath: string; stoppedPath: string; dieOnPath: st
 }
 
 /**
- * A stop is a signal, so the marker lands some milliseconds after the call that
- * sent it.
+ * A stop is a signal, so the marker lands some milliseconds after the call
+ * that sent it. The child appends to the file, which creates it before the
+ * write lands, so existence is not enough: read only once non-empty, or the
+ * poll can race the open and return the empty file. The wait is on a real
+ * child process's signal handler, an OS event no fake clock can advance.
  */
 async function stoppedLaunches(file: string): Promise<string> {
   const deadline = Date.now() + 5_000;
   for (;;) {
     try {
-      return readFileSync(file, 'utf8');
+      const content = readFileSync(file, 'utf8');
+      if (content.length > 0) return content;
     } catch {
-      if (Date.now() > deadline) throw new Error(`${file} was never written`);
-      await new Promise((resolve) => setTimeout(resolve, 25));
+      // Not written yet; fall through to the deadline check.
     }
+    if (Date.now() > deadline) throw new Error(`${file} was never written`);
+    await new Promise((resolve) => setTimeout(resolve, 25));
   }
 }
 

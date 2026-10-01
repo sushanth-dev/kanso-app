@@ -21,7 +21,7 @@ import * as schema from '../db/schema.ts';
 import { player } from '../db/schema.ts';
 import { readSession } from '../session.ts';
 import { getOwnPlayerId } from '../players/claim.ts';
-import { RATING_TTL_SECONDS } from './constants.ts';
+import { RATING_REFRESH_FLOOR_MS, RATING_TTL_SECONDS } from './constants.ts';
 import type { RatingFetcher } from './rating-fetcher.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
@@ -54,18 +54,28 @@ export function mountTransferGap(
     let chesscomRating = current.chesscomRating;
     let lichessRating = current.lichessRating;
 
-    if (hasUsername && (refresh === 'true' || stale)) {
+    // An explicit refresh is throttled: a re-click younger than the floor is
+    // served from the snapshot, so the platforms are not hammered on demand.
+    const lastFetchMs = current.ratingFetchedAt?.getTime() ?? 0;
+    const refreshTooSoon =
+      refresh === 'true' && lastFetchMs !== 0 && Date.now() - lastFetchMs < RATING_REFRESH_FLOOR_MS;
+
+    if (hasUsername && (refresh === 'true' || stale) && !refreshTooSoon) {
       const [fetchedChesscom, fetchedLichess] = await Promise.all([
         current.chesscomUsername ? deps.ratingFetcher.chesscom(current.chesscomUsername) : null,
         current.lichessUsername ? deps.ratingFetcher.lichess(current.lichessUsername) : null,
       ]);
-      chesscomRating = fetchedChesscom;
-      lichessRating = fetchedLichess;
+      // A fetch that fails is null, but null must not erase a good stored
+      // snapshot: keep the older rating on the row and in the report, and
+      // refresh the snapshot time only so an outage does not make the next
+      // view hammer the upstream. The next explicit refresh retries.
+      chesscomRating = fetchedChesscom ?? current.chesscomRating;
+      lichessRating = fetchedLichess ?? current.lichessRating;
       await deps.db
         .update(player)
         .set({
-          chesscomRating: fetchedChesscom,
-          lichessRating: fetchedLichess,
+          chesscomRating,
+          lichessRating,
           ratingFetchedAt: new Date(),
         })
         .where(eq(player.id, playerId));

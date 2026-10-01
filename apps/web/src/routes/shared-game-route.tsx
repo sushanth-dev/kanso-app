@@ -196,7 +196,9 @@ export function SharedGameRoute() {
       <div aria-hidden="true" className="mb-6">
         <Mark size={28} />
       </div>
-      <SharedGameScreen shared={query.data} />
+      {/* The route stays mounted when the token changes; the key remounts the
+          screen so its ply position and board flip reset for the new game. */}
+      <SharedGameScreen key={token} shared={query.data} />
     </main>
   );
 }

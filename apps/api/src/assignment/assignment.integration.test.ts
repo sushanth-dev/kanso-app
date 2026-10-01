@@ -60,7 +60,12 @@ async function signIn(email: string, tier: 'pro' | 'beginner' = 'pro'): Promise<
   await a.request('/api/auth/sign-up/email', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ name: email.split('@')[0], email, password: PASSWORD }),
+    body: JSON.stringify({
+      name: email.split('@')[0],
+      email,
+      password: PASSWORD,
+      privacyAcknowledgedAt: new Date().toISOString(),
+    }),
   });
   const res = await a.request('/api/auth/sign-in/email', {
     method: 'POST',
@@ -72,7 +77,11 @@ async function signIn(email: string, tier: 'pro' | 'beginner' = 'pro'): Promise<
   if (tier === 'pro') {
     const session = await a.request('/api/auth/get-session', { headers: { cookie } });
     const who = (await session.json()) as { session: { userId: string } };
-    await harness.db.insert(subscription).values({ userId: who.session.userId, tier: 'pro' });
+    await harness.db.insert(subscription).values({
+      userId: who.session.userId,
+      tier: 'pro',
+      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    });
   }
   return cookie;
 }

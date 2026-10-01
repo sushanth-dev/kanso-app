@@ -32,7 +32,7 @@ import * as schema from '../db/schema.ts';
 import { game, mistake } from '../db/schema.ts';
 import { readSession } from '../session.ts';
 import { hasPlayerClaim } from '../players/claim.ts';
-import { coachBudget, coachRemaining } from '../billing/entitlement.ts';
+import { coachBudget, coachBudgetRefusal } from '../billing/entitlement.ts';
 import { log } from '../logging.ts';
 import { checkTextWithinFacts, mistakeFactTokens } from '../report/advice.ts';
 import type { AiClient, MistakeFacts } from './zai.ts';
@@ -90,24 +90,6 @@ export async function loadOwnedMistake(
   }
 
   return { mistake: mistakeRow, game: gameRow, userId: session.userId };
-}
-
-/**
- * ST-111. The plan's coach budget as a refusal, or `null` when the account
- * may still generate. Fires only on the generate path; cached re-reads are
- * free.
- */
-async function coachBudgetExhausted(db: Db, userId: string): Promise<LoadError | null> {
-  if ((await coachRemaining(db, userId)) === 0) {
-    return {
-      status: 403,
-      body: {
-        code: 'upgrade_required',
-        message: 'You have used all your coach explanations for this month. Upgrade for more.',
-      },
-    };
-  }
-  return null;
 }
 
 /**
@@ -209,7 +191,7 @@ export function mountExplanation(
       );
     }
 
-    const exhausted = await coachBudgetExhausted(deps.db, loaded.userId);
+    const exhausted = await coachBudgetRefusal(deps.db, loaded.userId);
     if (exhausted !== null) return c.json(exhausted.body, exhausted.status);
 
     const facts = factsFrom(loaded.mistake, loaded.game);
@@ -264,7 +246,7 @@ export function mountSocraticQuestion(
       );
     }
 
-    const budget = await coachBudgetExhausted(deps.db, loaded.userId);
+    const budget = await coachBudgetRefusal(deps.db, loaded.userId);
     if (budget !== null) return c.json(budget.body, budget.status);
 
     const facts = factsFrom(loaded.mistake, loaded.game);

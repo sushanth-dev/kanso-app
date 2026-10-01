@@ -50,6 +50,8 @@ interface SeedSpec {
   email?: string;
   games?: Array<{ stream: 'tournament' | 'online'; importedAt: Date }>;
   lastSignIn?: Date;
+  /** Last session use: better-auth extends a used session by writing `updatedAt`. */
+  lastSeen?: Date;
   nudgedAt?: Date[];
   unsubscribedAt?: Date;
 }
@@ -91,6 +93,11 @@ async function seedAccount(spec: SeedSpec): Promise<string> {
       userId,
       expiresAt: new Date(Date.now() + DAY),
       createdAt: spec.lastSignIn,
+      // A session without `lastSeen` lands the DB's `now()` default, which is
+      // what better-auth effectively does while a session stays in use. The
+      // liveness tests that model a dormant account must pass an explicit
+      // stale `lastSeen`.
+      ...(spec.lastSeen !== undefined ? { updatedAt: spec.lastSeen } : {}),
     });
   }
   for (const sentAt of spec.nudgedAt ?? []) {
@@ -192,6 +199,37 @@ describe('nudge selection', () => {
     await seedAccount({
       games: [{ stream: 'tournament', importedAt: ago(30) }],
       lastSignIn: ago(31),
+      // Both the session's creation and its last use sit outside the window.
+      lastSeen: ago(31),
+    });
+
+    await runFor(depsFor(fakeMailer()));
+
+    expect(await sentUserIds()).toEqual([]);
+  });
+
+  test('emails an account whose session was created long ago but used recently', async () => {
+    // Liveness is activity, not creation: better-auth extends a used session
+    // by rewriting updatedAt, so an account created months ago that still
+    // shows up reads as live, and must not be dropped for its age.
+    await seedAccount({
+      games: [{ stream: 'tournament', importedAt: ago(30) }],
+      lastSignIn: ago(60),
+      lastSeen: ago(1),
+    });
+
+    await runFor(depsFor(fakeMailer()));
+
+    expect(await sentUserIds()).toHaveLength(1);
+  });
+
+  test('does not email an account whose session was created recently but never used again', async () => {
+    // The mirror of the case above: a fresh createdAt with a stale updatedAt
+    // means the sign-in happened once and the account never came back.
+    await seedAccount({
+      games: [{ stream: 'tournament', importedAt: ago(30) }],
+      lastSignIn: ago(1),
+      lastSeen: ago(31),
     });
 
     await runFor(depsFor(fakeMailer()));

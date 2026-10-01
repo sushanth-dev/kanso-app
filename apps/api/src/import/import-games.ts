@@ -21,7 +21,7 @@ import * as schema from '../db/schema.ts';
 import { game, importJob, player, movePly } from '../db/schema.ts';
 import { user } from '../db/auth-schema.ts';
 import { enqueueAnalysis } from '../analysis/queue.ts';
-import { analysisRemaining } from '../billing/entitlement.ts';
+import { analysisAvailable } from '../billing/entitlement.ts';
 import { getOwnPlayerId } from '../players/claim.ts';
 import { parseOne, parsePgn, type ParsedGame } from './parse-pgn.ts';
 import { decidePlayerColor } from './player-color.ts';
@@ -78,17 +78,33 @@ export interface ImportGamesResult {
 }
 
 /**
- * The importer's write path (ST-011): store parsed games and attach
- * them to tournaments, in one transaction. The HTTP route calls this after
- * authorization, and it parses before the call; the dev-only seed calls it
- * directly, which is what lets the seed exercise the same `attachGames` as the
- * route rather than a copy of it.
+ * The importer's write path (ST-011): store parsed games and attach them to
+ * tournaments, all in one transaction. The HTTP route calls this after
+ * authorization and parsing; the dev-only seed calls it directly, which is
+ * what lets the seed exercise the same `attachGames` as the route rather than
+ * a copy of it.
  */
 export async function importGames(db: Db, input: ImportGamesInput): Promise<ImportGamesResult> {
+  return db.transaction((tx) => importGamesInTransaction(tx, input));
+}
+
+/** The transaction the import write path runs in, shared with its cap lock. */
+type ImportTx = Parameters<Parameters<Db['transaction']>[0]>[0];
+
+/**
+ * The importer's write path inside the caller's transaction. The username
+ * route passes its own transaction so the per-player advisory lock, the daily
+ * cap re-count, and this write commit together; `importGames` wraps it in a
+ * fresh transaction for the upload and seed paths.
+ */
+export async function importGamesInTransaction(
+  tx: ImportTx,
+  input: ImportGamesInput,
+): Promise<ImportGamesResult> {
   const { playerId, source, username, stream, matchName, games, gamesRejected } = input;
   const queued: string[] = [];
   const gameIds: string[] = [];
-  const { job, tournament } = await db.transaction(async (tx) => {
+  const { job, tournament } = await (async () => {
     const [created] = await tx
       .insert(importJob)
       .values({
@@ -105,17 +121,11 @@ export async function importGames(db: Db, input: ImportGamesInput): Promise<Impo
       })
       .returning({ id: importJob.id });
 
-    // A provider game dedupes on its own id; an upload dedupes on the PGN hash.
-    // The partial index needs its predicate in the target or PostgreSQL cannot
-    // infer it.
-    const conflictTarget =
-      source === 'pgn_upload'
-        ? { target: [game.playerId, game.pgnHash] }
-        : {
-            target: [game.playerId, game.source, game.externalId],
-            where: sql`${game.externalId} is not null`,
-          };
-
+    // A provider game dedupes on its own id, an upload on the PGN hash, and a
+    // game can arrive by both routes (uploaded, then pulled by username, or
+    // the reverse). No target means any unique conflict is ignored, which
+    // covers both existing unique indexes - (player, source, external id) and
+    // (player, pgn hash) - instead of naming one and raising on the other.
     const inserted =
       games.length === 0
         ? []
@@ -150,7 +160,7 @@ export async function importGames(db: Db, input: ImportGamesInput): Promise<Impo
                 analysisError: g.moveCount === 0 ? 'no moves' : null,
               })),
             )
-            .onConflictDoNothing(conflictTarget)
+            .onConflictDoNothing()
             .returning({
               id: game.id,
               playerColor: game.playerColor,
@@ -231,7 +241,7 @@ export async function importGames(db: Db, input: ImportGamesInput): Promise<Impo
       .returning();
 
     return { job: updated!, tournament };
-  });
+  })();
 
   return { job, queued, gameIds, tournament };
 }
@@ -249,7 +259,7 @@ const DEFAULT_PERIOD_MS = 365 * 24 * 60 * 60 * 1000;
  * undetermined games and errs conservative against the day's budget.
  */
 async function countGamesImportedSince(
-  db: Db,
+  db: Db | ImportTx,
   playerId: string,
   stream: 'online' | 'tournament',
   since: Date,
@@ -396,15 +406,41 @@ export function mountImport(
         games.push({ ...parsed, externalId: providerGame.externalId });
       });
 
-      ({ job, queued, gameIds, tournament } = await importGames(deps.db, {
-        playerId,
-        source: body.source,
-        username,
-        stream: 'online',
-        matchName: username,
-        games,
-        gamesRejected,
-      }));
+      const capResult = await deps.db.transaction(async (tx) => {
+        // The pre-fetch check above is a fast 429, not the allowance gate: two
+        // concurrent imports for this player could both read the same remaining
+        // count and each spend the full budget. The real gate is a per-player
+        // advisory lock held across the re-count and the write, so the second
+        // importer sees the first one's games.
+        await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${playerId}))`);
+        const importedToday = await countGamesImportedSince(
+          tx,
+          playerId,
+          'online',
+          new Date(Date.now() - 24 * 60 * 60 * 1000),
+        );
+        const remaining = ONLINE_IMPORT_DAILY_CAP_GAMES - importedToday;
+        if (remaining <= 0) return null;
+        return importGamesInTransaction(tx, {
+          playerId,
+          source: body.source,
+          username,
+          stream: 'online',
+          matchName: username,
+          games: games.slice(0, remaining),
+          gamesRejected,
+        });
+      });
+      if (capResult === null) {
+        return c.json(
+          {
+            code: 'daily_import_cap',
+            message: 'Daily online import cap reached. Try again tomorrow.',
+          },
+          429,
+        );
+      }
+      ({ job, queued, gameIds, tournament } = capResult);
     }
 
     // After the commit, never inside it. A message pointing at a game the
@@ -416,8 +452,9 @@ export function mountImport(
     // and re-queue. Failing the import would instead ask the player to re-send
     // games that are already safely in the database.
     // Each plan caps analysed games a month; pro has no cap. Games past the
-    // cap stay pending for next month.
-    const budget = await analysisRemaining(deps.db, session.userId);
+    // cap stay pending for next month. The budget counts games already queued
+    // or analysing too, so a second import cannot spend the same allowance.
+    const budget = await analysisAvailable(deps.db, session.userId);
     const toQueue = budget === null ? queued : queued.slice(0, budget);
     try {
       await enqueueAnalysis(toQueue, undefined, c.get('requestId'));

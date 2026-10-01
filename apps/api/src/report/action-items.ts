@@ -72,6 +72,18 @@ const TIER_BY_TAG: Record<string, ItemRow['tier']> = {
   advanced: 'advanced',
 };
 
+/** The set position maps to the tier when a resource carries no `[Tag]` prefix. */
+const TIER_BY_INDEX: readonly ItemRow['tier'][] = ['beginner', 'intermediate', 'advanced'];
+
+/**
+ * The tier an untagged resource takes from its position in the three-part
+ * set: the first is beginner work, the last advanced. Out-of-range positions
+ * keep the middle default rather than inventing a fourth label.
+ */
+export function tierAtResourceIndex(resourceIndex: number): ItemRow['tier'] {
+  return TIER_BY_INDEX[resourceIndex] ?? 'intermediate';
+}
+
 /** The tier a resource's `[Beginner]`-style prefix names, or null without one. */
 export function tierOf(resource: string): ItemRow['tier'] | null {
   const tag = resource
@@ -173,7 +185,7 @@ export async function ensureActionItems(
       groupKey: request.groupKey,
       label: request.label,
       resourceIndex,
-      tier: tierOf(resource) ?? TIER_BY_TAG[`${resourceIndex}`] ?? 'intermediate',
+      tier: tierOf(resource) ?? tierAtResourceIndex(resourceIndex),
       resource,
       dueAt,
     })),

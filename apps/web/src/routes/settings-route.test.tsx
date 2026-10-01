@@ -209,6 +209,9 @@ describe('SettingsScreen', () => {
     await waitFor(() => {
       expect(queryClient.getQueryData(ME_QUERY_KEY)).toBeUndefined();
     });
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/sign-in');
+    });
   });
 
   // ST-104. The Appearance section writes the real theme attribute and the
@@ -355,6 +358,9 @@ describe('SettingsScreen', () => {
     // The session died under us: the password form closes instead of
     // reporting an error the player cannot act on.
     expect(screen.queryByLabelText('Confirm with your password')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/sign-in');
+    });
   });
 
   test('an unexpected delete failure explains itself and keeps the form', async () => {

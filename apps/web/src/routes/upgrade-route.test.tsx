@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { accountApi } from '../api/account-api.ts';
+import { accountApi, ApiRequestError } from '../api/account-api.ts';
 import type * as AccountApi from '../api/account-api.ts';
 import { createAppRouter } from '../router.tsx';
 import { track } from '../analytics.ts';
@@ -32,6 +32,8 @@ vi.mock('../auth-client.ts', () => ({
 }));
 
 vi.mock('../analytics.ts', () => ({
+  enableAnalyticsSuite: vi.fn(),
+  disableAnalyticsSuite: vi.fn(),
   track: vi.fn(),
 }));
 
@@ -368,6 +370,88 @@ describe('UpgradeRoute', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  test('a dropped confirmation poll reports the failure and re-enables the pay buttons', async () => {
+    const user = userEvent.setup();
+    checkoutMock.mockResolvedValue({
+      keyId: 'rzp_test',
+      amount: 79900,
+      currency: 'INR',
+      orderId: 'order_1',
+    });
+    let handler: (() => void) | undefined;
+    window.Razorpay = class {
+      constructor(options: { handler: () => void }) {
+        handler = options.handler;
+      }
+      open(): void {}
+    };
+    // The mount read succeeds; once the payment handler runs, /me drops, as a
+    // network cut would.
+    let pollFails = false;
+    getMe.mockImplementation(() => {
+      if (pollFails) return Promise.reject(new TypeError('Failed to fetch'));
+      return Promise.resolve(meWithTier());
+    });
+
+    renderAt('/upgrade');
+    await user.click(await screen.findByRole('button', { name: PAY_INTERMEDIATE }));
+    await waitFor(() => expect(handler).toBeDefined());
+    vi.useFakeTimers();
+    try {
+      pollFails = true;
+      handler?.();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(100);
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(
+      screen.getByText(/Payment received, but your plan could not be confirmed yet/),
+    ).toBeInTheDocument();
+    // The confirming freeze is gone: both paid plans take a fresh attempt.
+    expect(screen.getByRole('button', { name: PAY_INTERMEDIATE })).toBeEnabled();
+    expect(screen.getByRole('button', { name: PAY_PRO })).toBeEnabled();
+  });
+
+  test('an expired session during confirmation goes to sign-in', async () => {
+    const user = userEvent.setup();
+    checkoutMock.mockResolvedValue({
+      keyId: 'rzp_test',
+      amount: 79900,
+      currency: 'INR',
+      orderId: 'order_1',
+    });
+    let handler: (() => void) | undefined;
+    window.Razorpay = class {
+      constructor(options: { handler: () => void }) {
+        handler = options.handler;
+      }
+      open(): void {}
+    };
+    let pollFails = false;
+    getMe.mockImplementation(() => {
+      if (pollFails)
+        return Promise.reject(new ApiRequestError(401, 'unauthorized', [], 'Signed out'));
+      return Promise.resolve(meWithTier());
+    });
+
+    renderAt('/upgrade');
+    await user.click(await screen.findByRole('button', { name: PAY_INTERMEDIATE }));
+    await waitFor(() => expect(handler).toBeDefined());
+    vi.useFakeTimers();
+    try {
+      pollFails = true;
+      handler?.();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(100);
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
   });
 
   test('renders rupee price for an INR locale with no conversion', async () => {

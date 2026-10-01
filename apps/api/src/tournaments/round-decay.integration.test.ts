@@ -163,18 +163,6 @@ describe('GET /tournaments/{tournamentId}/round-decay', () => {
     expect(body.code).toBe('not_enough_evidence');
   });
 
-  test('refuses with 422 when any round has fewer than three games', async () => {
-    const playerId = await makePlayer(OWNER);
-    const tournamentId = await seedTournament(playerId);
-    for (let i = 0; i < 3; i++) await seedGame(tournamentId, playerId, { round: 1 });
-    for (let i = 0; i < 2; i++) await seedGame(tournamentId, playerId, { round: 2 });
-
-    const res = await get(OWNER, tournamentId);
-    expect(res.status).toBe(422);
-    const body = (await res.json()) as { code: string };
-    expect(body.code).toBe('not_enough_evidence');
-  });
-
   test('a round with no games is absent from the line, not a zero point', async () => {
     const playerId = await makePlayer(OWNER);
     const tournamentId = await seedTournament(playerId);

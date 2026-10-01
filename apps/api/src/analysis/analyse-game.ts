@@ -23,7 +23,8 @@ import { eq } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { EvalScore } from '../chess/lichess-utils.ts';
 import * as schema from '../db/schema.ts';
-import { game, mistake, movePly } from '../db/schema.ts';
+import { game, mistake, movePly, player } from '../db/schema.ts';
+import { analysisRemaining } from '../billing/entitlement.ts';
 import { evaluatePositions, type EngineOptions, type EvaluatedPosition } from './engine.ts';
 import { toMistakeRow, type MistakeInsert } from './to-mistake.ts';
 import { phaseFor } from './phase.ts';
@@ -202,7 +203,10 @@ async function analyse(db: Db, gameId: string, options: EngineOptions): Promise<
   }
 
   const startedAt = performance.now();
-  await db.update(game).set({ analysisStatus: 'analyzing' }).where(eq(game.id, gameId));
+  await db
+    .update(game)
+    .set({ analysisStatus: 'analyzing', analysisStartedAt: new Date() })
+    .where(eq(game.id, gameId));
 
   const { plies, positions } = walkGame(row.pgn);
   const { scores, bestMoveUci, nodes } = await evaluateWalk(db, positions, plies, options);
@@ -295,6 +299,27 @@ export async function analyseGame(
   options: EngineOptions,
 ): Promise<AnalysisOutcome> {
   try {
+    // The API checks the cap before enqueueing, read-then-write, so concurrent
+    // imports can over-queue. The worker is the final money gate: it refuses
+    // to spend engine time on a game whose account has already used this
+    // month's budget, marking it failed instead so the message is consumed
+    // and the Retry path can take it next month.
+    const [owner] = await db
+      .select({ ownerUserId: player.ownerUserId })
+      .from(game)
+      .innerJoin(player, eq(game.playerId, player.id))
+      .where(eq(game.id, gameId));
+    if (owner !== undefined && (await analysisRemaining(db, owner.ownerUserId)) === 0) {
+      await db
+        .update(game)
+        .set({
+          analysisStatus: 'failed',
+          analysisError: "This month's analysis cap is reached; Retry after it resets.",
+        })
+        .where(eq(game.id, gameId));
+      return { status: 'failed', plies: 0, mistakes: 0, nodes: 0, durationMs: 0, costMicros: 0 };
+    }
+
     const outcome = await analyse(db, gameId, options);
     if (outcome.status === 'complete') await applyRetirement(db, gameId);
     return outcome;

@@ -56,7 +56,12 @@ async function signIn(email: string): Promise<string> {
   await a.request('/api/auth/sign-up/email', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ name: email.split('@')[0], email, password: PASSWORD }),
+    body: JSON.stringify({
+      name: email.split('@')[0],
+      email,
+      password: PASSWORD,
+      privacyAcknowledgedAt: new Date().toISOString(),
+    }),
   });
   const res = await a.request('/api/auth/sign-in/email', {
     method: 'POST',
@@ -215,11 +220,19 @@ describe('the sign-up acknowledgement', () => {
     expect(recorded!.getTime()).toBeLessThanOrEqual(after);
   });
 
-  test('records null for an account created without one', async () => {
+  test('refuses sign-up without the acknowledgement (audit 26.10)', async () => {
+    // The acknowledgement is required, not merely recorded: a sign-up that
+    // omits the claim has asserted nothing, so the create.before hook throws
+    // and no account is made.
     const res = await signUp(EMAIL_B, undefined);
-    expect(res.status).toBe(200);
+    expect(res.status).toBeGreaterThanOrEqual(400);
 
-    expect(await acknowledgedAt(EMAIL_B)).toBeNull();
+    const [row] = await harness.db
+      .select({ id: user.id })
+      .from(user)
+      .where(eq(user.email, EMAIL_B))
+      .limit(1);
+    expect(row).toBeUndefined();
   });
 });
 

@@ -21,9 +21,16 @@ describe('themeForGroup', () => {
     expect(themeForGroup('phase', 'endgame')).toBe('endgame');
   });
 
-  test('maps any opening group to the opening theme, whatever the ECO', () => {
+  test('maps an opening group to the opening theme when the key is an ECO code', () => {
     expect(themeForGroup('opening', 'B22')).toBe('opening');
     expect(themeForGroup('opening', 'A00')).toBe('opening');
+  });
+
+  test('refuses an opening key that cannot be an ECO code', () => {
+    expect(themeForGroup('opening', 'zzz')).toBeNull();
+    expect(themeForGroup('opening', 'B0')).toBeNull();
+    expect(themeForGroup('opening', 'B123')).toBeNull();
+    expect(themeForGroup('opening', '')).toBeNull();
   });
 
   test('maps time trouble to the decisive-move fallback', () => {
@@ -35,8 +42,11 @@ describe('themeForGroup', () => {
     expect(themeForGroup('phase', 'hanging_piece')).toBeNull();
   });
 
-  test('time_trouble maps whatever key it is handed, the kind deciding alone', () => {
-    expect(themeForGroup('time_trouble', 'B01')).toBe('crushing');
+  test('time trouble accepts only its own key, the evidence deciding alone', () => {
+    // groupKeyOf returns exactly 'time_trouble' for the kind; a different
+    // string is not a group this player could have, so B01 - the pinned
+    // behaviour bug 26.9 named - now refuses like any other unknown group.
+    expect(themeForGroup('time_trouble', 'B01')).toBeNull();
   });
 
   test("a kind only reads its own table, never another kind's keys", () => {

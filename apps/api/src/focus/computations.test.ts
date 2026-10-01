@@ -41,6 +41,17 @@ describe('converting won positions', () => {
     expect(wonPositionConversion(games)).toBeCloseTo(2 / 3);
   });
 
+  test('wonPositionConversion counts an unresolved reached position as neither', () => {
+    // The `*` game reached +2.0 but has no verdict: it stays in the reached
+    // denominator, yet is not a conversion and not a miss.
+    const games = [
+      { wonPosition: true, won: true },
+      { wonPosition: true, won: false },
+      { wonPosition: true, won: null },
+    ];
+    expect(wonPositionConversion(games)).toBeCloseTo(1 / 3);
+  });
+
   test('wonPositionConversion refuses below the floor', () => {
     const games = Array.from({ length: MIN_WON_POSITIONS - 1 }, () => ({
       wonPosition: true,

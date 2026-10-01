@@ -32,12 +32,12 @@ import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { Heading } from '@astryxdesign/core/Heading';
 import { Text } from '@astryxdesign/core/Text';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { checkoutApi, type CheckoutResponse, type PayableTier } from '../api/checkout-api.ts';
-import type { Tier } from '../api/account-api.ts';
+import { accountApi, ApiRequestError, type Tier } from '../api/account-api.ts';
 import { StatusMessage } from '../components/status-message.tsx';
-import { ME_QUERY_KEY, meQueryOptions } from '../query-client.ts';
+import { meQueryOptions } from '../query-client.ts';
 import { track } from '../analytics.ts';
 import { getPlanPriceDisplay } from '../billing/plan-prices.ts';
 
@@ -97,7 +97,7 @@ const TIER_LABEL: Record<Tier, string> = {
   pro: 'Pro',
 };
 
-type PayError = 'provider-unreachable' | 'checkout-failed';
+type PayError = 'provider-unreachable' | 'checkout-failed' | 'confirm-failed';
 
 interface RazorpayCheckout {
   open(): void;
@@ -176,7 +176,6 @@ function AlreadySubscribed({ tier }: { tier: Tier }) {
 
 export function UpgradeRoute() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const meQuery = useQuery(meQueryOptions());
   const [paying, setPaying] = useState<PayableTier | null>(null);
   const [payError, setPayError] = useState<PayError | null>(null);
@@ -184,15 +183,32 @@ export function UpgradeRoute() {
 
   async function confirmUpgrade(tier: PayableTier) {
     setStatus('confirming');
-    for (let attempt = 0; attempt < 10; attempt += 1) {
-      await queryClient.invalidateQueries({ queryKey: ME_QUERY_KEY });
-      const me = await queryClient.fetchQuery(meQueryOptions());
-      if (me.tier === tier) {
-        track('converted_to_paid', { tier });
-        await navigate({ to: '/settings' });
+    try {
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        // Poll the account endpoint directly. The React Query cache keeps the
+        // last good /me for 30s, so a fresh server read through it never sees a
+        // flipped tier or a dropped confirmation - each attempt must hit the
+        // network and let a failed read reject here.
+        const me = await accountApi.getMe();
+        if (me.tier === tier) {
+          track('converted_to_paid', { tier });
+          await navigate({ to: '/settings' });
+          return;
+        }
+        await delay(1500);
+      }
+    } catch (error: unknown) {
+      // A dropped confirmation (the session expired or a network cut) must
+      // not leave the page on the confirming notice with every pay button
+      // disabled. An expired session goes to sign-in; anything else hands the
+      // turn back so the user can retry the payment.
+      setStatus('idle');
+      if (error instanceof ApiRequestError && error.status === 401) {
+        await navigate({ to: '/sign-in' });
         return;
       }
-      await delay(1500);
+      setPayError('confirm-failed');
+      return;
     }
     setStatus('processing');
   }
@@ -269,6 +285,14 @@ export function UpgradeRoute() {
           <div className="mt-4">
             <StatusMessage tone="error">
               The payment could not be started. Please try again.
+            </StatusMessage>
+          </div>
+        ) : null}
+        {payError === 'confirm-failed' ? (
+          <div className="mt-4">
+            <StatusMessage tone="error">
+              Payment received, but your plan could not be confirmed yet. Check your connection and
+              try again.
             </StatusMessage>
           </div>
         ) : null}

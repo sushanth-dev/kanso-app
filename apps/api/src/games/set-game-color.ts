@@ -24,7 +24,7 @@ import * as schema from '../db/schema.ts';
 import { game, player } from '../db/schema.ts';
 import { readSession } from '../session.ts';
 import { enqueueAnalysis } from '../analysis/queue.ts';
-import { analysisRemaining } from '../billing/entitlement.ts';
+import { analysisAvailable } from '../billing/entitlement.ts';
 import { toGameSummary } from './game-summary.ts';
 
 type Db = PostgresJsDatabase<typeof schema>;
@@ -90,7 +90,7 @@ export function mountSetGameColor(
       // The cap is checked like POST /games/{gameId}/analysis does: best-effort
       // here, and the worker is the final authority. At the cap the game keeps
       // its previous status and stays available to Retry next month.
-      const remaining = await analysisRemaining(deps.db, session.userId);
+      const remaining = await analysisAvailable(deps.db, session.userId);
       if (remaining !== 0) {
         await deps.db
           .update(game)

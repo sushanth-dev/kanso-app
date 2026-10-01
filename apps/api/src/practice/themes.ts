@@ -40,17 +40,24 @@ const PHASE_THEMES: Record<string, string> = {
 
 /**
  * The theme one weakness group drills, or null when the group is unknown.
- * The kind decides which table the group key reads from, exactly as
- * `groupKeyOf` decided which table produced it; an opening group keys on the
- * ECO code `groupKeyOf` returned, so any group under the `opening` kind maps
- * to the opening theme, with the mapped ECO family preferred first.
+ * The kind decides the table the group key is validated against, exactly as
+ * `groupKeyOf` decided which table produced it. An opening group keys on the
+ * ECO code `groupKeyOf` returned, so the code must look like one; `time_trouble`
+ * has exactly one key (`groupKeyOf` returns `'time_trouble'`), so any other
+ * string is not a group the evidence could have produced.
  */
 export function themeForGroup(kind: WeaknessKind, groupKey: string): string | null {
   switch (kind) {
     case 'opening':
-      return 'opening';
+      // An opening group keys on the ECO code `groupKeyOf` recovered. The
+      // generated map covers every real code (A00-E99), so a code cannot be
+      // "unmapped" except by stepping outside that range, which some stored
+      // tags do; the drill handles one the map lacks by falling back to the
+      // theme rungs. The check therefore only refuses a string that cannot be
+      // a code at all, so a non-standard stored code still drills.
+      return /^[A-Z]\d{2}$/.test(groupKey) ? 'opening' : null;
     case 'time_trouble':
-      return 'crushing';
+      return groupKey === 'time_trouble' ? 'crushing' : null;
     case 'motif':
       return MOTIF_THEMES[groupKey] ?? null;
     case 'phase':

@@ -29,6 +29,7 @@ import * as schema from '../db/schema.ts';
 import { actionItem, game, patternState, puzzleAttempt, report, weakness } from '../db/schema.ts';
 import { readSession } from '../session.ts';
 import { getOwnPlayerId } from '../players/claim.ts';
+import { coachBudgetRefusal } from '../billing/entitlement.ts';
 import { leakBaseline, scoreLeaks, weaknessLeakRows } from '../analysis/leak.ts';
 import { missedPunishments } from '../analysis/missed-punishment.ts';
 import { phaseHeatmap } from '../analysis/phase-heatmap.ts';
@@ -651,6 +652,12 @@ export function mountReport(
 
     let advice = row.w.advice;
     if (advice === null && deps.aiClient !== null && row.w.kind !== 'opening') {
+      // The coach budget is one law across every model-writing route: the
+      // advice line spends the same monthly allowance as an explanation, so
+      // an account past its cap cannot keep firing the provider from the
+      // report (ST-111, audit follow-up). Cached re-reads stay free.
+      const refusal = await coachBudgetRefusal(deps.db, session.userId);
+      if (refusal !== null) return c.json(refusal.body, refusal.status);
       const evidence = await weaknessEvidence(
         deps.db,
         playerId,
@@ -733,6 +740,12 @@ export function mountReport(
           200,
         );
       }
+      // The assessment verdict spends the same monthly coach budget (ST-111,
+      // audit follow-up). Gated here so a free account at its cap cannot keep
+      // retrying the verdict until the model accepts.
+      const refusal = await coachBudgetRefusal(deps.db, session.userId);
+      if (refusal !== null) return c.json(refusal.body, refusal.status);
+
       let verdict;
       try {
         verdict = await ai.verifyResourceAssessment({

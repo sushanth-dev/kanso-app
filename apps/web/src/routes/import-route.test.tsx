@@ -11,6 +11,8 @@ import { ImportScreen, type ImportScreenProps } from './import-route.tsx';
 import { track } from '../analytics.ts';
 
 vi.mock('../analytics.ts', () => ({
+  enableAnalyticsSuite: vi.fn(),
+  disableAnalyticsSuite: vi.fn(),
   track: vi.fn(),
 }));
 

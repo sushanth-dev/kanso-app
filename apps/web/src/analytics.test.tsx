@@ -88,6 +88,44 @@ describe('enableAnalyticsSuite', () => {
   });
 });
 
+describe('disableAnalyticsSuite', () => {
+  test('re-applies the gated posture, undoing an earlier allowed account', async () => {
+    const analytics = await loadAnalytics();
+    analytics.enableAnalyticsSuite();
+    analytics.disableAnalyticsSuite();
+
+    const [config] = posthogMocks.set_config.mock.calls.at(-1)!;
+    expect(config?.autocapture).toBe(false);
+    expect(config?.capture_pageview).toBe(false);
+    expect(config?.capture_exceptions).toBe(false);
+    expect(config?.disable_session_recording).toBe(true);
+    expect(config?.disable_surveys).toBe(true);
+    expect(config?.advanced_disable_feature_flags).toBeUndefined();
+  });
+
+  test('a later allowed account turns the suite back on', async () => {
+    const analytics = await loadAnalytics();
+    analytics.enableAnalyticsSuite();
+    analytics.disableAnalyticsSuite();
+    analytics.enableAnalyticsSuite();
+
+    // Disable then re-enable: capture ends established, and 3 postures were
+    // applied rather than the latch swallowing the re-enable.
+    expect(posthogMocks.set_config).toHaveBeenCalledTimes(3);
+    const [config] = posthogMocks.set_config.mock.calls.at(-1)!;
+    expect(config?.autocapture).toBe(true);
+    expect(config?.capture_pageview).toBe('history_change');
+  });
+
+  test('is a no-op the second time', async () => {
+    const analytics = await loadAnalytics();
+    analytics.disableAnalyticsSuite();
+    analytics.disableAnalyticsSuite();
+
+    expect(posthogMocks.set_config).toHaveBeenCalledOnce();
+  });
+});
+
 describe('safeProperties', () => {
   test('keeps only the whitelisted keys', () => {
     expect(

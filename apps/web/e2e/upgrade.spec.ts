@@ -52,10 +52,12 @@ test('states the fact-only boundary and the three plans at the 320px floor', asy
   await expect(page.getByText('A focus, and verification')).toBeVisible();
   await expect(page.getByText('The proof sheet')).toBeVisible();
 
-  // Three plans, exactly as decided: beginner free, the other two paid.
+  // Three plans, exactly as decided: beginner free, the other two paid. The
+  // paid cards lead with a local-currency estimate and always state the
+  // charged INR amount, so the spec pins that charge, not the estimate.
   await expect(page.getByText('Free', { exact: true })).toBeVisible();
-  await expect(page.getByText('₹799', { exact: true })).toBeVisible();
-  await expect(page.getByText('₹1,299', { exact: true })).toBeVisible();
+  await expect(page.getByText(/Charged as ₹799 in INR/)).toBeVisible();
+  await expect(page.getByText(/Charged as ₹1,299 in INR/)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Pay ₹799', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Pay ₹1,299', exact: true })).toBeVisible();
   await expectNoAxeViolations(page);

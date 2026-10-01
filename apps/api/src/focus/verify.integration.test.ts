@@ -14,7 +14,14 @@ import { createApp } from '../app.ts';
 import { createAuth } from '../auth.ts';
 import { setupIntegrationDatabase, type IntegrationDatabase } from '../db/test-harness.ts';
 import { user } from '../db/auth-schema.ts';
-import { focusCatalogue, game, movePly, playerFocus, subscription } from '../db/schema.ts';
+import {
+  focusCatalogue,
+  focusMeasurement,
+  game,
+  movePly,
+  playerFocus,
+  subscription,
+} from '../db/schema.ts';
 import { classifyTimeControl } from '../chess/time-control.ts';
 import { FOCUS_WINDOW_GAMES, splitWindow } from './verify.ts';
 
@@ -72,7 +79,12 @@ async function signIn(email: string): Promise<string> {
   await a.request('/api/auth/sign-up/email', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ name: email.split('@')[0], email, password: PASSWORD }),
+    body: JSON.stringify({
+      name: email.split('@')[0],
+      email,
+      password: PASSWORD,
+      privacyAcknowledgedAt: new Date().toISOString(),
+    }),
   });
   const res = await a.request('/api/auth/sign-in/email', {
     method: 'POST',
@@ -84,7 +96,11 @@ async function signIn(email: string): Promise<string> {
   // ST-044. Focus and proof sheets are paid surfaces; grant the tier.
   const session = await a.request('/api/auth/get-session', { headers: { cookie } });
   const who = (await session.json()) as { session: { userId: string } };
-  await harness.db.insert(subscription).values({ userId: who.session.userId, tier: 'pro' });
+  await harness.db.insert(subscription).values({
+    userId: who.session.userId,
+    tier: 'pro',
+    currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+  });
   return cookie;
 }
 
@@ -283,7 +299,7 @@ describe('focus verification', () => {
   test('a stored measurement is reused until new analysis changes the evidence', async () => {
     const cookie = await signIn(EMAIL_A);
     const playerId = await playerIdFor(cookie);
-    await seedFocus(playerId, {
+    const focusId = await seedFocus(playerId, {
       catalogueId: await catalogueId('converting_won_positions'),
       startedAt: STARTED,
     });
@@ -332,6 +348,19 @@ describe('focus verification', () => {
       (m) => m.stream === 'tournament',
     )!.measuredAt;
     expect(thirdMeasuredAt).not.toBe(firstMeasuredAt);
+
+    // A recompute replaces its measurement rather than appending: the series
+    // stays a single, current row per focus and stream, never a row per
+    // recompute. (The bug 26.7 flags: each recompute used a fresh measuredAt,
+    // so a plain insert stacked dead rows behind the live one.)
+    const stored = await harness.db
+      .select()
+      .from(focusMeasurement)
+      .where(
+        and(eq(focusMeasurement.playerFocusId, focusId), eq(focusMeasurement.stream, 'tournament')),
+      );
+    expect(stored).toHaveLength(1);
+    expect(stored[0]!.measuredAt.toISOString()).toBe(thirdMeasuredAt);
   });
 
   test('time management reports the online stream alone', async () => {

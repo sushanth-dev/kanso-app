@@ -80,7 +80,11 @@ export async function selectNudgeCandidates(db: Db, limit: number): Promise<Nudg
                 ),
               ),
           ),
-          // Signed in within 30 days (AC 1): the nudge reaches a live account.
+          // Active within 30 days (AC 1): the nudge reaches a live account.
+          // Activity is `updatedAt`, not `createdAt`: better-auth extends a
+          // used session by writing a fresh updatedAt, so a long-lived
+          // account that still shows up keeps its updatedAt rolling, while a
+          // session created long ago and never seen again reads as dormant.
           exists(
             db
               .select({ one: sql`1` })
@@ -88,7 +92,7 @@ export async function selectNudgeCandidates(db: Db, limit: number): Promise<Nudg
               .where(
                 and(
                   eq(session.userId, user.id),
-                  gt(session.createdAt, sql`now() - interval '30 days'`),
+                  gt(session.updatedAt, sql`now() - interval '30 days'`),
                 ),
               ),
           ),

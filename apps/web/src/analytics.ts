@@ -77,7 +77,11 @@ if (key) {
   posthog.init(key, GATED_CAPTURE);
 }
 
-let suiteStarted = false;
+// The current capture posture, not a once-ever latch: an account the gate
+// allows can switch the suite on, and a later gated account in the same tab
+// must be able to switch it off again. `null` means nobody has stated a
+// posture yet, which is the capture-off state in practice.
+let suiteState: 'gated' | 'established' | null = null;
 
 /**
  * ST-176. Turn the suite's automatic capture on for an account the server's gate
@@ -86,9 +90,21 @@ let suiteStarted = false;
  * the capture off, which is the direction this gate has to fail in.
  */
 export function enableAnalyticsSuite(): void {
-  if (!key || suiteStarted) return;
-  suiteStarted = true;
+  if (!key || suiteState === 'established') return;
+  suiteState = 'established';
   posthog.set_config(ESTABLISHED_CAPTURE);
+}
+
+/**
+ * ST-176. Turn the suite's automatic capture off for an account the gate does
+ * not allow. Paired with `enableAnalyticsSuite` on every account-route load, so
+ * a gated account that follows an allowed one in the same tab re-applies the
+ * gated posture instead of inheriting the allowed account's capture.
+ */
+export function disableAnalyticsSuite(): void {
+  if (!key || suiteState === 'gated') return;
+  suiteState = 'gated';
+  posthog.set_config(GATED_CAPTURE);
 }
 
 /**

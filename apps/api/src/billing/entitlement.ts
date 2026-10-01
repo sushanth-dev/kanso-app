@@ -4,7 +4,7 @@
  * answers from the account's `subscription` row; the budgets count this
  * calendar month's usage across the account's players.
  */
-import { and, count, eq, gte, sql } from 'drizzle-orm';
+import { and, count, eq, gte, inArray, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import * as schema from '../db/schema.ts';
 import { game, mistake, player, subscription } from '../db/schema.ts';
@@ -14,13 +14,20 @@ type Db = PostgresJsDatabase<typeof schema>;
 
 export type { Tier };
 
-export async function tierFor(db: Db, userId: string): Promise<Tier> {
+export async function tierFor(db: Db, userId: string, now = new Date()): Promise<Tier> {
   const [sub] = await db
-    .select({ tier: subscription.tier })
+    .select({ tier: subscription.tier, currentPeriodEnd: subscription.currentPeriodEnd })
     .from(subscription)
     .where(eq(subscription.userId, userId))
     .limit(1);
-  return sub?.tier ?? 'beginner';
+  // A paid tier is a time-bound grant (ST-044 follow-up). A subscription whose
+  // period has ended, or records no end, is on beginner until the next capture
+  // renews it. Previously currentPeriodEnd was written and never read, so an
+  // expired or refunded account kept the paid tier forever.
+  if (!sub || sub.currentPeriodEnd === null || sub.currentPeriodEnd.getTime() <= now.getTime()) {
+    return 'beginner';
+  }
+  return sub.tier;
 }
 
 /** Games with `analyzed_at` this calendar month, across the account's players. */
@@ -36,7 +43,9 @@ export async function analysedThisMonth(db: Db, userId: string, now = new Date()
 
 /**
  * How many more games the account's plan may analyse this month; 0 at the
- * cap, `null` when the plan has none (pro).
+ * cap, `null` when the plan has none (pro). This counts completed analyses
+ * only, which is what the worker re-checks before spending engine time: the
+ * final money gate is completions, not queue entries.
  */
 export async function analysisRemaining(
   db: Db,
@@ -46,6 +55,36 @@ export async function analysisRemaining(
   const cap = ANALYSIS_MONTHLY_CAP[await tierFor(db, userId)];
   if (cap === null) return null;
   return Math.max(0, cap - (await analysedThisMonth(db, userId, now)));
+}
+
+/** Games queued or analysing right now, across the account's players. */
+export async function analysisInFlight(db: Db, userId: string): Promise<number> {
+  const [row] = await db
+    .select({ n: count() })
+    .from(game)
+    .innerJoin(player, eq(game.playerId, player.id))
+    .where(
+      and(eq(player.ownerUserId, userId), inArray(game.analysisStatus, ['queued', 'analyzing'])),
+    );
+  return Number(row?.n ?? 0);
+}
+
+/**
+ * How many more games the account's plan may be queued this month: the cap
+ * minus games analysed this month and games already queued or analysing,
+ * so an import or manual retry cannot queue beyond the budget. `null` when
+ * the plan has none (pro).
+ */
+export async function analysisAvailable(
+  db: Db,
+  userId: string,
+  now = new Date(),
+): Promise<number | null> {
+  const cap = ANALYSIS_MONTHLY_CAP[await tierFor(db, userId)];
+  if (cap === null) return null;
+  const committed =
+    (await analysedThisMonth(db, userId, now)) + (await analysisInFlight(db, userId));
+  return Math.max(0, cap - committed);
 }
 
 /**
@@ -96,4 +135,32 @@ export async function coachRemaining(
   now = new Date(),
 ): Promise<number | null> {
   return (await coachBudget(db, userId, now))?.remaining ?? null;
+}
+
+export interface CoachBudgetRefusal {
+  status: 403;
+  body: { code: 'upgrade_required'; message: string };
+}
+
+/**
+ * ST-111. The plan's coach budget as a refusal, or `null` when the account
+ * may still generate. Every route that spends a model call on coach text
+ * checks through here so the cap is one law: the explanation and socratic
+ * routes, plus the report's weakness advice and action-item verdict, which
+ * used to fire the model with no budget check at all.
+ */
+export async function coachBudgetRefusal(
+  db: Db,
+  userId: string,
+): Promise<CoachBudgetRefusal | null> {
+  if ((await coachRemaining(db, userId)) === 0) {
+    return {
+      status: 403,
+      body: {
+        code: 'upgrade_required',
+        message: 'You have used all your coach explanations for this month. Upgrade for more.',
+      },
+    };
+  }
+  return null;
 }
