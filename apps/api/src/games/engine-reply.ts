@@ -105,18 +105,30 @@ async function consumeRateLimit(db: Db, key: string): Promise<boolean> {
 }
 
 /**
+ * The starting FEN a PGN's headers declare, or null for a standard-start
+ * game. A game whose SANs are relative to a `[SetUp "1"]` board must be
+ * replayed from that board, not from the standard start.
+ */
+function startingFenFromPgn(pgn: string): string | null {
+  const match = /^\[FEN "([^"]+)"\]$/m.exec(pgn);
+  return match === null ? null : match[1]!;
+}
+
+/**
  * The position after the stored plies whose number is at most `railPly` and
  * the player's own moves, or null when a move is not legal where it is
  * played. The player's move list is bounded by the contract schema (max 8),
- * so the loop is bounded before it starts.
+ * so the loop is bounded before it starts. A FEN-start game replays from the
+ * FEN its PGN declared; a standard-start game from the initial board.
  */
 function positionAfter(
   rails: readonly { ply: number; san: string }[],
   railPly: number,
   playerMoves: readonly string[],
+  startingFen: string | null,
 ): Chess | null {
   try {
-    const chess = new Chess();
+    const chess = startingFen === null ? new Chess() : new Chess(startingFen);
     for (const ply of rails) {
       if (ply.ply > railPly) break;
       chess.move(ply.san);
@@ -175,7 +187,7 @@ export function mountEngineReply(
       );
     }
 
-    const position = positionAfter(plies, railPly, playerMoves);
+    const position = positionAfter(plies, railPly, playerMoves, startingFenFromPgn(row.pgn));
     if (position === null) {
       return c.json(
         { code: 'bad_move', message: 'A move is not legal in the position it was played in.' },

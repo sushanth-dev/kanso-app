@@ -85,6 +85,39 @@ async function seedGame(ownerId: string): Promise<{ playerId: string; gameId: st
   return { playerId: row!.id, gameId: created!.id };
 }
 
+// A game whose PGN declares a starting FEN: 1. Kg6 is legal from that board
+// and impossible from the standard start, which is how a replay bug shows.
+const FEN_RAILS = [{ ply: 1, san: 'Kg6' }];
+const FEN_PGN = '[SetUp "1"]\n[FEN "7k/8/5K1P/8/8/8/8/8 w - - 0 1"]\n\n1. Kg6 *';
+
+async function seedFenGame(ownerId: string): Promise<string> {
+  await harness.db
+    .insert(user)
+    .values([{ id: OWNER, name: 'Owner', email: 'owner@example.com', emailVerified: true }])
+    .onConflictDoNothing();
+  const [row] = await harness.db
+    .insert(player)
+    .values({ ownerUserId: ownerId, displayName: 'Owner' })
+    .returning({ id: player.id });
+  const [created] = await harness.db
+    .insert(game)
+    .values({
+      playerId: row!.id,
+      stream: 'tournament',
+      source: 'pgn_upload',
+      pgnHash: 'fen-game',
+      pgn: FEN_PGN,
+      result: '*',
+      playerColor: 'white',
+      analysisStatus: 'complete',
+    })
+    .returning({ id: game.id });
+  await harness.db
+    .insert(movePly)
+    .values(FEN_RAILS.map((r) => ({ gameId: created!.id, ...r, uci: 'f6g6', fenBefore: 'x' })));
+  return created!.id;
+}
+
 describe('POST /games/{gameId}/engine-reply (fallback)', () => {
   test('answers one engine reply when the player leaves the rails', async () => {
     const { gameId } = await seedGame(OWNER);
@@ -142,5 +175,32 @@ describe('POST /games/{gameId}/engine-reply (fallback)', () => {
       .from(player)
       .where(eq(player.id, playerId));
     expect(playerAfter).toEqual(playerBefore);
+  });
+
+  test('replays a FEN-setup game from its declared board, not the standard start', async () => {
+    const gameId = await seedFenGame(OWNER);
+    const fenSearch: EngineSearch = vi.fn(() =>
+      Promise.resolve({ score: { cp: -300, mate: null }, bestMoveUci: 'h8g8' }),
+    );
+    const app = new OpenAPIHono();
+    mountEngineReply(app, {
+      db: harness.db,
+      getSession: (() => ({ userId: OWNER })) as (c: Context) => unknown,
+      search: fenSearch,
+    });
+
+    // 1. Kg6 is only legal from the FEN board: before the fix the replay
+    // started from the standard start, the rail was illegal, and this
+    // answered bad_move instead of the opponent's reply.
+    const res = await app.request(`/games/${gameId}/engine-reply`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ railPly: 1, playerMoves: [] }),
+    });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({
+      status: 'reply',
+      move: { san: 'Kg8', uci: 'h8g8' },
+    });
   });
 });
