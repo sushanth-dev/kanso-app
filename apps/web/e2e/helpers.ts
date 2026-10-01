@@ -17,13 +17,22 @@ export async function upgradeToPaid(page: Page): Promise<void> {
   if (!checkout.ok()) {
     throw new Error(`checkout failed with ${checkout.status()}: ${await checkout.text()}`);
   }
-  const { orderId } = (await checkout.json()) as { orderId: string };
+  const { orderId, amount, currency } = (await checkout.json()) as {
+    orderId: string;
+    amount: number;
+    currency: string;
+  };
 
   const paymentId = `pay_${randomUUID()}`;
+  // The webhook refuses a capture whose amount or currency it cannot verify
+  // against the checkout record (a fraud signal, not a tier to grant). A real
+  // Razorpay capture event always carries both, so this stub must too.
   const webhook = await page.request.post('/payments/webhook', {
     data: {
       event: 'payment.captured',
-      payload: { payment: { entity: { id: paymentId, order_id: orderId } } },
+      payload: {
+        payment: { entity: { id: paymentId, order_id: orderId, amount, currency } },
+      },
     },
     headers: { 'x-razorpay-signature': 'stub-signature' },
   });
