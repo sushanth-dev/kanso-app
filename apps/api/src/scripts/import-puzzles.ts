@@ -27,6 +27,14 @@ import { puzzle } from '../db/schema.ts';
 
 /** The theme slugs the ST-106 mapping drills. Anything else is dead weight. */
 const IMPORT_THEMES: Record<string, true> = {
+  fork: true,
+  pin: true,
+  skewer: true,
+  discoveredAttack: true,
+  trappedPiece: true,
+  backRankMate: true,
+  deflection: true,
+  attraction: true,
   hangingPiece: true,
   intermezzo: true,
   advantage: true,

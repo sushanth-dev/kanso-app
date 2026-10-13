@@ -9,6 +9,12 @@ import { themeForGroup } from './themes.ts';
 
 describe('themeForGroup', () => {
   test('maps every motif group to its Lichess theme', () => {
+    expect(themeForGroup('motif', 'fork')).toBe('fork');
+    expect(themeForGroup('motif', 'pin')).toBe('pin');
+    expect(themeForGroup('motif', 'skewer')).toBe('skewer');
+    expect(themeForGroup('motif', 'discovered_attack')).toBe('discoveredAttack');
+    expect(themeForGroup('motif', 'trapped_piece')).toBe('trappedPiece');
+    expect(themeForGroup('motif', 'back_rank_mate')).toBe('backRankMate');
     expect(themeForGroup('motif', 'hanging_piece')).toBe('hangingPiece');
     expect(themeForGroup('motif', 'missed_check')).toBe('intermezzo');
     expect(themeForGroup('motif', 'missed_capture')).toBe('advantage');

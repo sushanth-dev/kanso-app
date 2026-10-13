@@ -26,6 +26,12 @@
 import type { WeaknessKind } from '../analysis/leak.ts';
 
 const MOTIF_THEMES: Record<string, string> = {
+  fork: 'fork',
+  pin: 'pin',
+  skewer: 'skewer',
+  discovered_attack: 'discoveredAttack',
+  trapped_piece: 'trappedPiece',
+  back_rank_mate: 'backRankMate',
   hanging_piece: 'hangingPiece',
   missed_check: 'intermezzo',
   missed_capture: 'advantage',
