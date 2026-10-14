@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { Button } from '@astryxdesign/core/Button';
 import { Heading } from '@astryxdesign/core/Heading';
+import { EndorsementSection } from './endorsement-section.tsx';
 import { Hero } from './hero.tsx';
 import { TechnologySection } from './technology-section.tsx';
 import { ValuePropsSection } from './value-props-section.tsx';
@@ -42,6 +43,8 @@ export function LandingContent({ signedIn }: LandingContentProps) {
   return (
     <>
       <Hero signedIn={signedIn} />
+
+      <EndorsementSection />
 
       <ValuePropsSection />
 

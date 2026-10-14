@@ -40,9 +40,20 @@ describe('LandingRoute', () => {
     ).toBeInTheDocument();
   });
 
-  test('shows a synthetic, labelled sample diagnosis, not a real player', async () => {
+  test('displays Grandmaster Alex Colovic endorsement verbatim', async () => {
     renderLanding();
 
+    expect(
+      await screen.findByText(
+        /I checked it with some of my games and it does give valuable information\./,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText('GM Alex Colovic')).toBeInTheDocument();
+    expect(screen.getByText(/Grandmaster/)).toBeInTheDocument();
+  });
+
+  test('shows a synthetic, labelled sample diagnosis, not a real player', async () => {
+    renderLanding();
     expect(await screen.findByText('Synthetic example')).toBeInTheDocument();
     expect(screen.getByText(/A scholastic tournament/)).toBeInTheDocument();
     expect(screen.getByText('Missing tactics in the middlegame')).toBeInTheDocument();
