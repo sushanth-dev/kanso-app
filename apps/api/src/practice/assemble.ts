@@ -24,13 +24,13 @@
  * from the best rating the account actually holds: FIDE, then USCF, then the
  * two site ratings, then 1500.
  */
-import { and, asc, eq, gte, lte, notInArray, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, isNotNull, lte, notInArray, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { z } from 'zod';
 import type { WeaknessKind } from '../analysis/leak.ts';
 import { windowGameCount } from '../analysis/retirement.ts';
 import * as schema from '../db/schema.ts';
-import { patternState, player, puzzle, puzzleAttempt } from '../db/schema.ts';
+import { game, mistake, patternState, player, puzzle, puzzleAttempt } from '../db/schema.ts';
 import { FOCUS_WINDOW_GAMES } from '../focus/verify.ts';
 import { RetirementState } from '../contract/schemas.ts';
 import { themeForGroup } from './themes.ts';
@@ -226,6 +226,35 @@ export async function assembleDrill(
     await gather(db, playerId, null, family, rating - 400, rating + 400, picked);
     await gather(db, playerId, null, family, rating - 800, rating + 800, picked);
     if (picked.size > before) openingMatched = family.replaceAll('_', ' ');
+  }
+  // ST-179. When drilling a phase group (middlegame/endgame) or opening group,
+  // prefer puzzles matching the tactical motifs the player actually stumbled on
+  // in that group (e.g. fork, pin, hanging piece), rather than dealing purely
+  // generic phase puzzles.
+  if ((kind === 'phase' || kind === 'opening') && picked.size < DRILL_SIZE) {
+    const mistakeMotifs = await db
+      .select({ motif: mistake.motif })
+      .from(mistake)
+      .innerJoin(game, eq(game.id, mistake.gameId))
+      .where(
+        and(
+          eq(game.playerId, playerId),
+          eq(game.stream, stream),
+          kind === 'phase'
+            ? eq(mistake.phase, group as (typeof schema.phaseEnum.enumValues)[number])
+            : sql`${game.eco} = ${group}`,
+          isNotNull(mistake.motif),
+        ),
+      )
+      .limit(10);
+    for (const row of mistakeMotifs) {
+      if (picked.size >= DRILL_SIZE) break;
+      if (!row.motif) continue;
+      const motifTheme = themeForGroup('motif', row.motif);
+      if (motifTheme !== null) {
+        await gather(db, playerId, motifTheme, null, rating - 400, rating + 400, picked);
+      }
+    }
   }
 
   // The prototype's ladder: exact theme near the player's rating, then the

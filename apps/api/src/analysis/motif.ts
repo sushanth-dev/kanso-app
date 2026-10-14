@@ -7,14 +7,25 @@
  * two primitives in `../chess/diagnostic-utils.ts` rather than writing a second
  * scan: `computeHygiene` for the move played, `findCCT` for the move missed.
  *
- * This is a labeler, not a classifier. `classifyMove` in
  * `../chess/lichess-utils.ts` decided whether the move was bad before this runs,
  * so no threshold that decides badness appears here.
  */
 import { computeHygiene, findCCT } from '../chess/diagnostic-utils.ts';
+import { detectTacticalMotif } from './tactics.ts';
 
 /** The closed motif set. A mistake none of these explains stays null (unattributed). */
-export const MOTIFS = ['hanging_piece', 'missed_check', 'missed_capture', 'missed_threat'] as const;
+export const MOTIFS = [
+  'fork',
+  'pin',
+  'skewer',
+  'discovered_attack',
+  'trapped_piece',
+  'back_rank_mate',
+  'hanging_piece',
+  'missed_check',
+  'missed_capture',
+  'missed_threat',
+] as const;
 export type Motif = (typeof MOTIFS)[number];
 
 /**
@@ -30,6 +41,11 @@ export function attributeMotif(fen: string, moveSan: string, bestMoveSan: string
   const hygiene = computeHygiene(fen, moveSan);
   if (hygiene !== null && hygiene.defenders > hygiene.attackers) {
     return 'hanging_piece';
+  }
+
+  const tactical = detectTacticalMotif(fen, bestMoveSan);
+  if (tactical !== null) {
+    return tactical;
   }
 
   const good = findCCT(fen, bestMoveSan).all.find((m) => m.isGoodOption);

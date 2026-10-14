@@ -10,7 +10,18 @@ import { MOTIFS, attributeMotif } from './motif.ts';
 
 describe('attributeMotif', () => {
   test('the set is closed and named', () => {
-    expect(MOTIFS).toEqual(['hanging_piece', 'missed_check', 'missed_capture', 'missed_threat']);
+    expect(MOTIFS).toEqual([
+      'fork',
+      'pin',
+      'skewer',
+      'discovered_attack',
+      'trapped_piece',
+      'back_rank_mate',
+      'hanging_piece',
+      'missed_check',
+      'missed_capture',
+      'missed_threat',
+    ]);
   });
 
   test('a move that hangs a piece is a hanging_piece', () => {
@@ -45,5 +56,24 @@ describe('attributeMotif', () => {
   test('a quiet move with no tactic and no hung piece is unattributed', () => {
     const fen = '4k3/8/8/4p3/3P4/Q7/8/4K3 w - - 0 1';
     expect(attributeMotif(fen, 'Ke2', 'Kd2')).toBeNull();
+  });
+  test('a move missing a knight fork attributes to fork', () => {
+    const forkFen = 'r3k3/8/8/3N4/8/8/8/4K3 w - - 0 1';
+    expect(attributeMotif(forkFen, 'Kd2', 'Nc7+')).toBe('fork');
+  });
+
+  test('a move missing an absolute pin attributes to pin', () => {
+    const pinFen = 'r1bqkb1r/ppp2ppp/2np4/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 4';
+    expect(attributeMotif(pinFen, 'Be2', 'Bb5')).toBe('pin');
+  });
+
+  test('a move missing a skewer attributes to skewer', () => {
+    const skewerFen = '4q3/8/4k3/8/8/8/8/R5K1 w - - 0 1';
+    expect(attributeMotif(skewerFen, 'Kf2', 'Re1+')).toBe('skewer');
+  });
+
+  test('a move missing a back-rank mate attributes to back_rank_mate', () => {
+    const mateFen = '6k1/5ppp/8/8/8/8/8/3R2K1 w - - 0 1';
+    expect(attributeMotif(mateFen, 'Kf2', 'Rd8#')).toBe('back_rank_mate');
   });
 });

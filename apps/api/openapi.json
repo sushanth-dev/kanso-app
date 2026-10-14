@@ -2418,6 +2418,12 @@
       "Motif": {
         "type": "string",
         "enum": [
+          "fork",
+          "pin",
+          "skewer",
+          "discovered_attack",
+          "trapped_piece",
+          "back_rank_mate",
           "hanging_piece",
           "missed_check",
           "missed_capture",
