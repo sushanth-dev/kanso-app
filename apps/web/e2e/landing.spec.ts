@@ -19,6 +19,11 @@ test('lands a new visitor on a coherent, axe-clean front door', async ({ page })
     page.getByRole('heading', { name: 'Know the one thing to fix after every tournament.' }),
   ).toBeVisible();
   await expect(page.getByText(/Your first diagnosis is free/)).toBeVisible();
+  // ST-180: Grandmaster endorsement from GM Alex Colovic.
+  await expect(
+    page.getByText(/I checked it with some of my games and it does give valuable information\./),
+  ).toBeVisible();
+  await expect(page.getByText('GM Alex Colovic')).toBeVisible();
 
   // The synthetic ranked list mirrors the report's shape: rank, label, kind.
   await expect(page.getByText('Synthetic example')).toBeVisible();
