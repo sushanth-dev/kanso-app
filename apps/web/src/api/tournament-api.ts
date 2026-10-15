@@ -47,4 +47,8 @@ export function createTournamentApi(
   };
 }
 
+export function tournamentPgnUrl(tournamentId: string): string {
+  const base = apiBaseUrl.replace(/\/+$/, '');
+  return `${base}/tournaments/${tournamentId}/export.pgn`;
+}
 export const tournamentApi = createTournamentApi();

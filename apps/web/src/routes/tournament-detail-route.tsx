@@ -7,7 +7,12 @@ import { Text } from '@astryxdesign/core/Text';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from '@tanstack/react-router';
 import { ApiRequestError } from '../api/account-api.ts';
-import type { RoundDecay, TournamentDetail, TournamentGame } from '../api/tournament-api.ts';
+import {
+  tournamentPgnUrl,
+  type RoundDecay,
+  type TournamentDetail,
+  type TournamentGame,
+} from '../api/tournament-api.ts';
 import { roundDecayQueryOptions, tournamentQueryOptions } from '../query-client.ts';
 
 const dateFormatter = new Intl.DateTimeFormat('en-US', {
@@ -173,10 +178,21 @@ export function TournamentDetailRoute() {
             {range}
           </Text>
         ) : null}
-        <div className="flex flex-wrap gap-2">
-          <Badge label={`${detail.score} / ${detail.scoreGames}`} variant="info" />
-          {detail.scoreExcluded > 0 ? (
-            <Badge label={`${detail.scoreExcluded} games not counted`} variant="neutral" />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-2">
+            <Badge label={`${detail.score} / ${detail.scoreGames}`} variant="info" />
+            {detail.scoreExcluded > 0 ? (
+              <Badge label={`${detail.scoreExcluded} games not counted`} variant="neutral" />
+            ) : null}
+          </div>
+          {detail.games.length > 0 ? (
+            <Button
+              label="Download PGN"
+              href={tournamentPgnUrl(tournamentId)}
+              variant="secondary"
+              size="sm"
+              className="min-h-11"
+            />
           ) : null}
         </div>
       </header>

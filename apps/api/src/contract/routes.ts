@@ -74,6 +74,13 @@ const json = <T extends z.ZodType>(schema: T, description: string) => ({
   description,
   content: { 'application/json': { schema } },
 });
+const textPgn = (description: string) => ({
+  description,
+  content: {
+    'application/x-chess-pgn': { schema: z.string() },
+    'text/plain': { schema: z.string() },
+  },
+});
 
 const error = (description: string) => json(ApiError, description);
 
@@ -411,6 +418,25 @@ export const getGame = createRoute({
     404: error('No such game.'),
   },
 });
+export const exportGamePgn = createRoute({
+  method: 'get',
+  path: '/games/{gameId}/export.pgn',
+  tags: ['Games'],
+  summary: 'Export one analyzed game as annotated PGN',
+  description:
+    'ST-183. Downloads standard annotated PGN for a single game with engine evaluations, clock data, NAGs, and mistake commentary. Answers 403 if the session does not own the game, 404 if no such game.',
+  request: {
+    params: z.object({
+      gameId: Uuid.openapi({ param: { name: 'gameId', in: 'path' } }),
+    }),
+  },
+  responses: {
+    200: textPgn('The annotated game PGN file.'),
+    401: error('No session.'),
+    403: error('Not your game.'),
+    404: error('No such game.'),
+  },
+});
 
 export const setGameColor = createRoute({
   method: 'patch',
@@ -571,6 +597,24 @@ export const getTournament = createRoute({
   },
   responses: {
     200: json(TournamentDetail, 'The tournament, with its games in round order.'),
+    401: error('No session.'),
+    403: error('Not your tournament.'),
+  },
+});
+export const exportTournamentPgn = createRoute({
+  method: 'get',
+  path: '/tournaments/{tournamentId}/export.pgn',
+  tags: ['Tournaments'],
+  summary: 'Export all analyzed games in a tournament as annotated PGN',
+  description:
+    'ST-183. Downloads standard annotated PGN with engine evaluations, clock data, NAGs, and mistake commentary for all games in the tournament. Answers 403 if the session does not own the tournament.',
+  request: {
+    params: z.object({
+      tournamentId: Uuid.openapi({ param: { name: 'tournamentId', in: 'path' } }),
+    }),
+  },
+  responses: {
+    200: textPgn('The annotated tournament PGN file.'),
     401: error('No session.'),
     403: error('Not your tournament.'),
   },
@@ -1268,6 +1312,8 @@ export const routes = [
   queueAnalysis,
   listTournaments,
   getTournament,
+  exportTournamentPgn,
+  exportGamePgn,
   getReport,
   generateWeaknessCoaching,
   listActionItems,
