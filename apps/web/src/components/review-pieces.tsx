@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Badge } from '@astryxdesign/core/Badge';
+import { Button } from '@astryxdesign/core/Button';
 import { Card } from '@astryxdesign/core/Card';
 import { Heading } from '@astryxdesign/core/Heading';
 import { Link } from '@astryxdesign/core/Link';
@@ -261,12 +262,14 @@ export function MoveCard({
   mistake,
   drillHref,
   finishHref,
+  onTryMove,
 }: {
   game: MoveCardGame;
   ply: MovePly;
   mistake?: ReviewMistake;
   drillHref?: string;
   finishHref?: string;
+  onTryMove?: () => void;
 }) {
   if (mistake === undefined) {
     return (
@@ -321,7 +324,16 @@ export function MoveCard({
           {MOTIF_LABEL[mistake.motif] ?? mistake.motif}
         </Text>
       ) : null}
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap items-center gap-4">
+        {onTryMove !== undefined ? (
+          <Button
+            label="Try your move"
+            variant="secondary"
+            size="sm"
+            onClick={onTryMove}
+            className="min-h-11 press"
+          />
+        ) : null}
         {drillHref !== undefined ? (
           <Link hasUnderline href={drillHref}>
             Drill this pattern

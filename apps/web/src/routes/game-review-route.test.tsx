@@ -5,6 +5,7 @@ import { createMemoryHistory, RouterContextProvider, RouterProvider } from '@tan
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import gsap from 'gsap';
 import { accountApi, ApiRequestError, type Me } from '../api/account-api.ts';
+import { finishGameApi } from '../api/finish-game-api.ts';
 import {
   diagnosisApi,
   type CctScan,
@@ -842,5 +843,154 @@ describe('GameReviewRoute', () => {
       'href',
       expect.stringContaining(`/games/${gameId}/export.pgn`),
     );
+  });
+
+  test('enters candidate move sandbox, plays engine best move, and resets', async () => {
+    const user = userEvent.setup();
+    const testGame = gameFixture({
+      plies: [
+        {
+          ply: 6,
+          san: 'Qf6',
+          uci: 'd8f6',
+          fenBefore: FEN,
+          phase: 'opening',
+          evaluation: { cp: 30, mate: null },
+          bestMoveSan: 'Nf3',
+          bestMoveUci: 'g1f3',
+          clockMs: null,
+          moveTimeMs: null,
+        },
+      ],
+      mistakes: [
+        {
+          id: 'm-1',
+          gameId,
+          ply: 6,
+          moveNumber: 3,
+          movingColor: 'white',
+          phase: 'opening',
+          fen: FEN,
+          moveSan: 'Qf6',
+          bestMoveSan: 'Nf3',
+          evalBefore: { cp: 30, mate: null },
+          evalAfter: { cp: -200, mate: null },
+          judgement: 'blunder',
+          cpLoss: 230,
+          winProbDrop: 0.4,
+          motif: 'hanging_piece',
+          crossedResultBoundary: true,
+          halfPointsLost: 1,
+          explanation: null,
+          opponentElo: null,
+          severity: 230,
+        },
+      ],
+    });
+    vi.spyOn(diagnosisApi, 'getGame').mockResolvedValue(testGame);
+    renderRoute();
+
+    // 1. "Try your move" button is present on mistake ply
+    const tryMoveBtn = await screen.findByRole('button', { name: 'Try your move' });
+    expect(tryMoveBtn).toBeVisible();
+
+    // 2. Click "Try your move" to enter sandbox mode
+    await user.click(tryMoveBtn);
+    expect(
+      await screen.findByRole('heading', { level: 3, name: 'Try a candidate move' }),
+    ).toBeVisible();
+    expect(screen.getByText('Make a move on the board to test your intuition.')).toBeVisible();
+
+    // 3. Play the engine's best move (g1 to f3) using accessible piece controls
+    const knightBtn = screen.getByRole('button', { name: /Select the white knight on g1/i });
+    await user.click(knightBtn);
+    const moveBtn = screen.getByRole('button', { name: /Move the white knight on g1 to f3/i });
+    await user.click(moveBtn);
+
+    // 4. Positive reinforcement for finding the engine's best move
+    expect(await screen.findByText("You found the engine's best move!")).toBeVisible();
+    expect(screen.getByText('Best move')).toBeVisible();
+
+    // 5. Reset to game
+    const resetBtn = screen.getByRole('button', { name: 'Reset to game' });
+    await user.click(resetBtn);
+    expect(
+      screen.queryByRole('heading', { level: 3, name: 'Try a candidate move' }),
+    ).not.toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Try your move' })).toBeVisible();
+  });
+
+  test('plays an alternative move and gets engine response in sandbox mode', async () => {
+    const user = userEvent.setup();
+    const testGame = gameFixture({
+      plies: [
+        {
+          ply: 6,
+          san: 'Qf6',
+          uci: 'd8f6',
+          fenBefore: FEN,
+          phase: 'opening',
+          evaluation: { cp: 30, mate: null },
+          bestMoveSan: 'Nf3',
+          bestMoveUci: 'g1f3',
+          clockMs: null,
+          moveTimeMs: null,
+        },
+      ],
+      mistakes: [
+        {
+          id: 'm-1',
+          gameId,
+          ply: 6,
+          moveNumber: 3,
+          movingColor: 'white',
+          phase: 'opening',
+          fen: FEN,
+          moveSan: 'Qf6',
+          bestMoveSan: 'Nf3',
+          evalBefore: { cp: 30, mate: null },
+          evalAfter: { cp: -200, mate: null },
+          judgement: 'blunder',
+          cpLoss: 230,
+          winProbDrop: 0.4,
+          motif: 'hanging_piece',
+          crossedResultBoundary: true,
+          halfPointsLost: 1,
+          explanation: null,
+          opponentElo: null,
+          severity: 230,
+        },
+      ],
+    });
+    vi.spyOn(diagnosisApi, 'getGame').mockResolvedValue(testGame);
+    const engineReplySpy = vi.spyOn(finishGameApi, 'engineReply').mockResolvedValue({
+      status: 'reply',
+      move: { san: 'd5', uci: 'd7d5' },
+      evaluation: { cp: 40, mate: null },
+    });
+    renderRoute();
+
+    await user.click(await screen.findByRole('button', { name: 'Try your move' }));
+
+    // Play alternative move: white pawn on e2 to e4
+    const pawnBtn = screen.getByRole('button', { name: /Select the white pawn on e2/i });
+    await user.click(pawnBtn);
+    const movePawnBtn = screen.getByRole('button', { name: /Move the white pawn on e2 to e4/i });
+    await user.click(movePawnBtn);
+
+    expect(await screen.findByText(/You played/i)).toBeVisible();
+    expect(screen.getByText('e4')).toBeVisible();
+
+    // Request engine response
+    const getEngineBtn = screen.getByRole('button', { name: 'Get engine response' });
+    await user.click(getEngineBtn);
+
+    expect(engineReplySpy).toHaveBeenCalledWith(gameId, {
+      railPly: 5,
+      playerMoves: ['e4'],
+    });
+    expect(await screen.findByText('Engine responds:')).toBeVisible();
+    expect(screen.getByText('d5')).toBeVisible();
+    expect(screen.getByText('Evaluation: +0.4')).toBeVisible();
   });
 });

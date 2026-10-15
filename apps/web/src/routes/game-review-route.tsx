@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertDialog } from '@astryxdesign/core/AlertDialog';
 import { Badge } from '@astryxdesign/core/Badge';
 import { Button } from '@astryxdesign/core/Button';
@@ -13,6 +13,9 @@ import { isActiveGame } from '../analysis-status.ts';
 import { ApiRequestError } from '../api/account-api.ts';
 import type { CctMove, GameDetail } from '../api/diagnosis-api.ts';
 import { diagnosisApi, gamePgnUrl } from '../api/diagnosis-api.ts';
+import { finishGameApi, type EngineReply } from '../api/finish-game-api.ts';
+import { Chess, type Square } from 'chess.js';
+import { evalLabel } from '../components/eval-bar.tsx';
 import { UpgradePrompt } from '../components/upgrade-prompt.tsx';
 import { Board, describePosition } from '../components/board.tsx';
 import { GameShareLinksSection } from '../components/game-share-links-section.tsx';
@@ -197,6 +200,29 @@ export function GameReviewScreen({
   // flip it manually rather than the board auto-flipping to the side to move.
   const [flipped, setFlipped] = useState(() => game.playerColor === 'black');
 
+  // ST-184. Candidate-move sandbox state when examining mistakes.
+  const [isSandbox, setIsSandbox] = useState(false);
+  const [sandboxFen, setSandboxFen] = useState('');
+  const [sandboxMove, setSandboxMove] = useState<{
+    from: string;
+    to: string;
+    san: string;
+    uci: string;
+  } | null>(null);
+  const [sandboxReply, setSandboxReply] = useState<EngineReply | null>(null);
+  const [isEngineLoading, setIsEngineLoading] = useState(false);
+  const [engineError, setEngineError] = useState<string | null>(null);
+  const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
+  const sandboxChessRef = useRef<Chess>(new Chess());
+
+  useEffect(() => {
+    setIsSandbox(false);
+    setSandboxMove(null);
+    setSandboxReply(null);
+    setEngineError(null);
+    setSelectedSquare(null);
+  }, [plyIndex]);
+
   // The route stays mounted while `gameId` changes between two games, so the
   // initializer above runs once, not per game. Reset to the new game's default
   // rather than showing the previous game's ply on its board. Only the id and
@@ -266,6 +292,111 @@ export function GameReviewScreen({
               label: currentMistake.phase.charAt(0).toUpperCase() + currentMistake.phase.slice(1),
             }
           : null;
+  const enterSandbox = () => {
+    if (currentPly === undefined) return;
+    try {
+      sandboxChessRef.current = new Chess(currentPly.fenBefore);
+    } catch {
+      sandboxChessRef.current = new Chess();
+    }
+    setSandboxFen(currentPly.fenBefore);
+    setIsSandbox(true);
+    setSandboxMove(null);
+    setSandboxReply(null);
+    setEngineError(null);
+    setSelectedSquare(null);
+  };
+
+  const resetSandbox = () => {
+    setIsSandbox(false);
+    setSandboxMove(null);
+    setSandboxReply(null);
+    setEngineError(null);
+    setSelectedSquare(null);
+  };
+
+  const targetSquares = useMemo<string[]>(() => {
+    if (!isSandbox || selectedSquare === null || sandboxMove !== null) return [];
+    return sandboxChessRef.current
+      .moves({ square: selectedSquare as Square, verbose: true })
+      .map((m) => m.to);
+  }, [isSandbox, selectedSquare, sandboxMove, sandboxFen]);
+
+  const draggableSquares = useMemo(() => {
+    if (!isSandbox || sandboxMove !== null) return [];
+    return [...new Set(sandboxChessRef.current.moves({ verbose: true }).map((m) => m.from))];
+  }, [isSandbox, sandboxMove, sandboxFen]);
+
+  const onSquareClick = (square: string) => {
+    if (!isSandbox || sandboxMove !== null) return;
+    if (square === selectedSquare) {
+      setSelectedSquare(null);
+      return;
+    }
+    if (selectedSquare !== null && targetSquares.includes(square)) {
+      const candidate = sandboxChessRef.current
+        .moves({ square: selectedSquare as Square, verbose: true })
+        .find((m) => m.to === square);
+      setSelectedSquare(null);
+      if (!candidate) return;
+      try {
+        const played = sandboxChessRef.current.move({
+          from: candidate.from,
+          to: candidate.to,
+          promotion: candidate.promotion ?? 'q',
+        });
+        setSandboxFen(sandboxChessRef.current.fen());
+        setSandboxMove({
+          from: candidate.from,
+          to: candidate.to,
+          san: played.san,
+          uci: `${candidate.from}${candidate.to}${candidate.promotion ?? ''}`,
+        });
+      } catch {
+        // invalid move
+      }
+      return;
+    }
+    const piece = sandboxChessRef.current.get(square as Square);
+    if (piece && piece.color === sandboxChessRef.current.turn()) {
+      setSelectedSquare(square);
+    } else {
+      setSelectedSquare(null);
+    }
+  };
+
+  const isBestMove =
+    sandboxMove !== null &&
+    currentPly !== undefined &&
+    currentPly.bestMoveSan !== null &&
+    (sandboxMove.san === currentPly.bestMoveSan ||
+      sandboxMove.uci === currentPly.bestMoveUci ||
+      `${sandboxMove.from}${sandboxMove.to}` === currentPly.bestMoveUci?.slice(0, 4));
+
+  const onGetEngineResponse = async () => {
+    if (sandboxMove === null || currentPly === undefined) return;
+    setIsEngineLoading(true);
+    setEngineError(null);
+    try {
+      const reply = await finishGameApi.engineReply(game.id, {
+        railPly: currentPly.ply - 1,
+        playerMoves: [sandboxMove.san],
+      });
+      setSandboxReply(reply);
+      if (reply.status === 'reply' && reply.move !== null) {
+        try {
+          sandboxChessRef.current.move(reply.move.san);
+          setSandboxFen(sandboxChessRef.current.fen());
+        } catch {
+          // move failed
+        }
+      }
+    } catch {
+      setEngineError('Could not get engine response. Please try again.');
+    } finally {
+      setIsEngineLoading(false);
+    }
+  };
   const stepBy = (delta: number) => {
     setPlyIndex((index) => Math.min(Math.max(index + delta, 0), game.plies.length - 1));
   };
@@ -412,13 +543,33 @@ export function GameReviewScreen({
             <div className="flex flex-wrap items-start gap-6">
               <div className="flex w-[480px] max-w-full items-stretch gap-4">
                 <Board
-                  fen={currentPly.fenBefore}
-                  from={currentPly.uci.slice(0, 2)}
-                  to={currentPly.uci.slice(2, 4)}
-                  bestFrom={currentPly.bestMoveUci?.slice(0, 2)}
-                  bestTo={currentPly.bestMoveUci?.slice(2, 4)}
+                  fen={isSandbox ? sandboxFen : currentPly.fenBefore}
+                  from={isSandbox ? sandboxMove?.from : currentPly.uci.slice(0, 2)}
+                  to={isSandbox ? sandboxMove?.to : currentPly.uci.slice(2, 4)}
+                  bestFrom={
+                    isSandbox
+                      ? isBestMove
+                        ? sandboxMove?.from
+                        : undefined
+                      : currentPly.bestMoveUci?.slice(0, 2)
+                  }
+                  bestTo={
+                    isSandbox
+                      ? isBestMove
+                        ? sandboxMove?.to
+                        : undefined
+                      : currentPly.bestMoveUci?.slice(2, 4)
+                  }
+                  selectedSquare={isSandbox ? (selectedSquare ?? undefined) : undefined}
+                  targetSquares={isSandbox ? targetSquares : undefined}
+                  draggableSquares={isSandbox ? draggableSquares : undefined}
+                  onSquareClick={isSandbox ? onSquareClick : undefined}
                   flipped={flipped}
-                  label={`Position before move ${Math.ceil(currentPly.ply / 2)}, ${movingColorOf(currentPly)} to move. ${describePosition(currentPly.fenBefore)}`}
+                  label={
+                    isSandbox
+                      ? `Try your move sandbox, ${movingColorOf(currentPly)} to move. ${describePosition(sandboxFen)}`
+                      : `Position before move ${Math.ceil(currentPly.ply / 2)}, ${movingColorOf(currentPly)} to move. ${describePosition(currentPly.fenBefore)}`
+                  }
                 />
                 <PlayerColorDot playerColor={game.playerColor} />
               </div>
@@ -441,17 +592,101 @@ export function GameReviewScreen({
             <ClockCurve game={game} />
             {stepControls}
 
-            <MoveCard
-              game={game}
-              ply={currentPly}
-              mistake={currentMistake}
-              drillHref={
-                drillEntry === null
-                  ? undefined
-                  : `/practice?kind=${drillEntry.kind}&group=${encodeURIComponent(drillEntry.group)}&label=${encodeURIComponent(drillEntry.label)}&stream=${game.stream}`
-              }
-              finishHref={`/games/${game.id}/finish?ply=${currentPly.ply}`}
-            />
+            {isSandbox ? (
+              <Card className="reveal-in space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Heading level={3}>Try a candidate move</Heading>
+                  <Button
+                    label="Reset to game"
+                    variant="secondary"
+                    size="sm"
+                    onClick={resetSandbox}
+                    className="min-h-11 press"
+                  />
+                </div>
+                {sandboxMove === null ? (
+                  <Text as="p" display="block" type="supporting">
+                    Make a move on the board to test your intuition.
+                  </Text>
+                ) : isBestMove ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Badge label="Best move" variant="success" />
+                      <Text className="font-semibold text-success">
+                        You found the engine's best move!
+                      </Text>
+                    </div>
+                    <Text as="p" display="block">
+                      <span className="font-mono">{sandboxMove.san}</span> was the top engine
+                      recommendation.
+                    </Text>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <Text as="p" display="block">
+                      You played <span className="font-mono">{sandboxMove.san}</span>.
+                    </Text>
+                    {sandboxReply === null ? (
+                      <div className="flex flex-wrap items-center gap-3">
+                        <Button
+                          label="Get engine response"
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => {
+                            void onGetEngineResponse();
+                          }}
+                          isDisabled={isEngineLoading}
+                          className="min-h-11 press"
+                        />
+                        {engineError !== null ? (
+                          <Text type="supporting" className="text-danger text-sm">
+                            {engineError}
+                          </Text>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <div className="space-y-2 rounded-control bg-sunken p-3">
+                        <Text as="p" display="block">
+                          {sandboxReply.status === 'reply' && sandboxReply.move !== null ? (
+                            <>
+                              Engine responds:{' '}
+                              <span className="font-mono font-semibold">
+                                {sandboxReply.move.san}
+                              </span>
+                            </>
+                          ) : (
+                            'Game over.'
+                          )}
+                        </Text>
+                        {sandboxReply.evaluation !== null ? (
+                          <Text
+                            as="p"
+                            display="block"
+                            type="supporting"
+                            className="font-mono text-sm"
+                          >
+                            Evaluation: {evalLabel(sandboxReply.evaluation)}
+                          </Text>
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </Card>
+            ) : (
+              <MoveCard
+                game={game}
+                ply={currentPly}
+                mistake={currentMistake}
+                drillHref={
+                  drillEntry === null
+                    ? undefined
+                    : `/practice?kind=${drillEntry.kind}&group=${encodeURIComponent(drillEntry.group)}&label=${encodeURIComponent(drillEntry.label)}&stream=${game.stream}`
+                }
+                finishHref={`/games/${game.id}/finish?ply=${currentPly.ply}`}
+                onTryMove={currentMistake !== undefined ? enterSandbox : undefined}
+              />
+            )}
             {currentMistake !== undefined ? (
               /* Stepping onto a mistake mounts two large cards; keying them to
                  the mistake rides the base reveal, so the page settles instead
