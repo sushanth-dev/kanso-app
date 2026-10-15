@@ -277,4 +277,18 @@ describe('TournamentDetailRoute', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'City Open' })).toBeVisible();
     expect(screen.queryByText('Round-by-round decay')).not.toBeInTheDocument();
   });
+
+  test('shows Download PGN button linking to tournament PGN export', async () => {
+    vi.spyOn(accountApi, 'getMe').mockResolvedValue(meFixture);
+    vi.spyOn(tournamentApi, 'getTournament').mockResolvedValue(detailFixture());
+    vi.spyOn(tournamentApi, 'getRoundDecay').mockResolvedValue(decayFixture());
+
+    renderTournament(`/tournaments/${tournamentId}`);
+    const downloadBtn = await screen.findByRole('link', { name: 'Download PGN' });
+    expect(downloadBtn).toBeVisible();
+    expect(downloadBtn).toHaveAttribute(
+      'href',
+      expect.stringContaining(`/tournaments/${tournamentId}/export.pgn`),
+    );
+  });
 });

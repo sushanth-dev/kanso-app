@@ -830,4 +830,17 @@ describe('GameReviewRoute', () => {
       await screen.findByText('Your colour could not be saved. Please try again.'),
     ).toBeVisible();
   });
+
+  test('shows Download PGN button linking to game PGN export', async () => {
+    vi.spyOn(diagnosisApi, 'getGame').mockResolvedValue(
+      gameFixture({ analysisStatus: 'complete' }),
+    );
+    renderRoute();
+    const downloadBtn = await screen.findByRole('link', { name: 'Download PGN' });
+    expect(downloadBtn).toBeVisible();
+    expect(downloadBtn).toHaveAttribute(
+      'href',
+      expect.stringContaining(`/games/${gameId}/export.pgn`),
+    );
+  });
 });

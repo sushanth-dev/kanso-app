@@ -12,7 +12,7 @@ import { useNavigate, useParams, useSearch } from '@tanstack/react-router';
 import { isActiveGame } from '../analysis-status.ts';
 import { ApiRequestError } from '../api/account-api.ts';
 import type { CctMove, GameDetail } from '../api/diagnosis-api.ts';
-import { diagnosisApi } from '../api/diagnosis-api.ts';
+import { diagnosisApi, gamePgnUrl } from '../api/diagnosis-api.ts';
 import { UpgradePrompt } from '../components/upgrade-prompt.tsx';
 import { Board, describePosition } from '../components/board.tsx';
 import { GameShareLinksSection } from '../components/game-share-links-section.tsx';
@@ -333,12 +333,20 @@ export function GameReviewScreen({
             variant="secondary"
             className="min-h-11 press"
           />
-          <Button
-            label="Delete game"
-            variant="destructive"
-            onClick={() => setIsDeleteOpen(true)}
-            className="min-h-11 press"
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              label="Download PGN"
+              href={gamePgnUrl(game.id)}
+              variant="secondary"
+              className="min-h-11 press"
+            />
+            <Button
+              label="Delete game"
+              variant="destructive"
+              onClick={() => setIsDeleteOpen(true)}
+              className="min-h-11 press"
+            />
+          </div>
         </div>
         <Heading level={1}>Game review</Heading>
         <Text as="p" display="block" type="supporting">

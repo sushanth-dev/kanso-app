@@ -39,6 +39,7 @@ import { mountPriming } from './priming/brief.ts';
 import { mountListTournaments } from './tournaments/list-tournaments.ts';
 import { mountGetTournament } from './tournaments/get-tournament.ts';
 import { mountRoundDecay } from './tournaments/round-decay.ts';
+import { mountExportGamePgn, mountExportTournamentPgn } from './tournaments/export-pgn.ts';
 import { realSessionReader, readSession } from './session.ts';
 import type * as schema from './db/schema.ts';
 import { httpRatingFetcher, type RatingFetcher } from './rating/rating-fetcher.ts';
@@ -346,6 +347,8 @@ export function createApp({
     mountListTournaments(app, { db, getSession: effectiveGetSession });
     mountGetTournament(app, { db, getSession: effectiveGetSession });
     mountRoundDecay(app, { db, getSession: effectiveGetSession });
+    mountExportGamePgn(app, { db, getSession: effectiveGetSession });
+    mountExportTournamentPgn(app, { db, getSession: effectiveGetSession });
     mountTransferGap(app, { db, getSession: effectiveGetSession, ratingFetcher });
     mountTransferGapSeries(app, { db, getSession: effectiveGetSession });
     mountMotifs(app, { db, getSession: effectiveGetSession });

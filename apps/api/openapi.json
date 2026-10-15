@@ -4790,6 +4790,130 @@
         }
       }
     },
+    "/tournaments/{tournamentId}/export.pgn": {
+      "get": {
+        "tags": [
+          "Tournaments"
+        ],
+        "summary": "Export all analyzed games in a tournament as annotated PGN",
+        "description": "ST-183. Downloads standard annotated PGN with engine evaluations, clock data, NAGs, and mistake commentary for all games in the tournament. Answers 403 if the session does not own the tournament.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "tournamentId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The annotated tournament PGN file.",
+            "content": {
+              "application/x-chess-pgn": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not your tournament.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/games/{gameId}/export.pgn": {
+      "get": {
+        "tags": [
+          "Games"
+        ],
+        "summary": "Export one analyzed game as annotated PGN",
+        "description": "ST-183. Downloads standard annotated PGN for a single game with engine evaluations, clock data, NAGs, and mistake commentary. Answers 403 if the session does not own the game, 404 if no such game.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "gameId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The annotated game PGN file.",
+            "content": {
+              "application/x-chess-pgn": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not your game.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such game.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/report": {
       "get": {
         "tags": [

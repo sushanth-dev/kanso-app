@@ -215,4 +215,8 @@ export function createDiagnosisApi(
   };
 }
 
+export function gamePgnUrl(gameId: string): string {
+  const base = apiBaseUrl.replace(/\/+$/, '');
+  return `${base}/games/${gameId}/export.pgn`;
+}
 export const diagnosisApi = createDiagnosisApi();
