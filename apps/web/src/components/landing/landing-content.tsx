@@ -18,10 +18,10 @@ interface LandingContentProps {
  * No usage figures or estimated active users.
  */
 export const PRODUCT_EVIDENCE = {
-  puzzleCount: '34,372',
-  puzzleThemes: '7',
+  puzzleCount: '37,172',
+  puzzleThemes: '13',
   puzzleSource: 'Lichess puzzle database (CC0)',
-  puzzleCountDate: 'September 2026',
+  puzzleCountDate: 'October 2026',
   ecoCount: '500',
   ecoSource: 'lichess-org/chess-openings (public domain)',
   ecoCountDate: 'September 2026',

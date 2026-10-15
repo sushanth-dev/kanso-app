@@ -6,7 +6,7 @@
  * No database. The evidence query itself is pinned by the integration suite.
  */
 import { describe, expect, test } from 'vitest';
-import { adviceFor, type EvidenceInstance } from './evidence.ts';
+import { adviceFor, groupKeyOf, type EvidenceInstance } from './evidence.ts';
 
 function instance(moveNumber: number): EvidenceInstance {
   return {
@@ -45,5 +45,29 @@ describe('adviceFor', () => {
   test('opening has no advice and unknown groups fall back to the generic line', () => {
     expect(adviceFor('opening', 'B01')).toBeNull();
     expect(adviceFor('motif', 'unknown_key')).toContain('repetition');
+  });
+});
+
+describe('groupKeyOf', () => {
+  test('maps every tactical motif human label to its group key', () => {
+    expect(groupKeyOf('motif', 'Fork', null)).toBe('fork');
+    expect(groupKeyOf('motif', 'Pin', null)).toBe('pin');
+    expect(groupKeyOf('motif', 'Skewer', null)).toBe('skewer');
+    expect(groupKeyOf('motif', 'Discovered attack', null)).toBe('discovered_attack');
+    expect(groupKeyOf('motif', 'Trapped piece', null)).toBe('trapped_piece');
+    expect(groupKeyOf('motif', 'Back-rank mate', null)).toBe('back_rank_mate');
+    expect(groupKeyOf('motif', 'Hanging piece', null)).toBe('hanging_piece');
+    expect(groupKeyOf('motif', 'Missed check', null)).toBe('missed_check');
+    expect(groupKeyOf('motif', 'Missed capture', null)).toBe('missed_capture');
+    expect(groupKeyOf('motif', 'Missed threat', null)).toBe('missed_threat');
+  });
+
+  test('returns specific advice for newly mapped tactical motifs', () => {
+    expect(adviceFor('motif', 'fork')).toContain('double attacks');
+    expect(adviceFor('motif', 'pin')).toContain('pinned');
+    expect(adviceFor('motif', 'skewer')).toContain('front piece');
+    expect(adviceFor('motif', 'discovered_attack')).toContain('discovered attacks');
+    expect(adviceFor('motif', 'trapped_piece')).toContain('escape squares');
+    expect(adviceFor('motif', 'back_rank_mate')).toContain('luft');
   });
 });

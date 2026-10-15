@@ -48,6 +48,15 @@ describe('detectTacticalMotif', () => {
     const mateSetupFen = '6k1/5ppp/8/8/8/8/8/3R2K1 w - - 0 1';
     expect(detectTacticalMotif(mateSetupFen, 'Rd8#')).toBe('back_rank_mate');
   });
+  test('discovered check: unmasking check while mover attacks rook is discovered attack, not fork', () => {
+    const fen = '3k4/r7/8/8/3N4/8/8/3Q2K1 w - - 0 1';
+    expect(detectTacticalMotif(fen, 'Nb5+')).toBe('discovered_attack');
+  });
+
+  test('trapped piece: pawn move traps enemy rook with zero legal moves', () => {
+    const fen = '6br/7p/6P1/7k/8/8/8/7K w - - 0 1';
+    expect(detectTacticalMotif(fen, 'g7')).toBe('trapped_piece');
+  });
 
   test('quiet move has no tactical motif', () => {
     const fen = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1';

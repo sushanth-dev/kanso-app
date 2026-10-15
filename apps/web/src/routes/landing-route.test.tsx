@@ -58,10 +58,10 @@ describe('LandingRoute', () => {
     expect(screen.getByText(/A scholastic tournament/)).toBeInTheDocument();
     expect(screen.getByText('Missing tactics in the middlegame')).toBeInTheDocument();
     expect(screen.getByText('Tactical motif')).toBeInTheDocument();
-    expect(screen.getByText('34,372 curated puzzles')).toBeInTheDocument();
-    expect(screen.getByText('7 themes')).toBeInTheDocument();
+    expect(screen.getByText('37,172 curated puzzles')).toBeInTheDocument();
+    expect(screen.getByText('13 themes')).toBeInTheDocument();
     expect(
-      screen.getByText(/Source: Lichess puzzle database \(CC0\) · September 2026/),
+      screen.getByText(/Source: Lichess puzzle database \(CC0\) · October 2026/),
     ).toBeInTheDocument();
     expect(screen.getByText('500 opening families')).toBeInTheDocument();
     expect(

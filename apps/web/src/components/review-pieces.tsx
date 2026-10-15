@@ -39,6 +39,12 @@ export const JUDGEMENT_GLYPH: Record<Mistake['judgement'], string> = {
 };
 
 export const MOTIF_LABEL: Record<string, string> = {
+  fork: 'Missed a fork',
+  pin: 'Missed a pin',
+  skewer: 'Missed a skewer',
+  discovered_attack: 'Missed a discovered attack',
+  trapped_piece: 'Trapped piece',
+  back_rank_mate: 'Missed back-rank mate',
   hanging_piece: 'Hung a piece',
   missed_check: 'Missed a check',
   missed_capture: 'Missed a capture',
