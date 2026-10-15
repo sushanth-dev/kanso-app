@@ -259,46 +259,85 @@ function checkPinOrSkewer(chess: Chess, move: Move): 'pin' | 'skewer' | null {
  */
 function isFork(chess: Chess, move: Move): boolean {
   const enemyColor: Color = move.color === 'w' ? 'b' : 'w';
-  const moverVal = PIECE_VAL[move.piece];
+  const effectivePiece = move.promotion ?? move.piece;
+  const moverVal = PIECE_VAL[effectivePiece];
   const attackedTargets = new Set<Square>();
-
-  if (move.san.includes('+') || chess.inCheck()) {
-    for (let f = 0; f < 8; f++) {
-      for (let r = 0; r < 8; r++) {
-        const sq = squareAt(f, r);
-        if (sq === null) continue;
-        const p = chess.get(sq);
-        if (p && p.color === enemyColor && p.type === 'k') {
-          attackedTargets.add(sq);
-        }
-      }
-    }
-  }
 
   const toFile = move.to.charCodeAt(0) - 97;
   const toRank = move.to.charCodeAt(1) - 49;
 
-  if (move.piece === 'p') {
+  let kingSq: Square | null = null;
+  for (let f = 0; f < 8; f++) {
+    for (let r = 0; r < 8; r++) {
+      const sq = squareAt(f, r);
+      if (sq === null) continue;
+      const p = chess.get(sq);
+      if (p && p.color === enemyColor && p.type === 'k') {
+        kingSq = sq;
+        break;
+      }
+    }
+    if (kingSq !== null) break;
+  }
+
+  if (kingSq !== null) {
+    const kFile = kingSq.charCodeAt(0) - 97;
+    const kRank = kingSq.charCodeAt(1) - 49;
+    let moverChecksKing = false;
+
+    if (effectivePiece === 'p') {
+      const dr = move.color === 'w' ? 1 : -1;
+      moverChecksKing = toRank + dr === kRank && Math.abs(toFile - kFile) === 1;
+    } else if (effectivePiece === 'n') {
+      moverChecksKing =
+        (Math.abs(toFile - kFile) === 1 && Math.abs(toRank - kRank) === 2) ||
+        (Math.abs(toFile - kFile) === 2 && Math.abs(toRank - kRank) === 1);
+    } else if (effectivePiece !== 'k') {
+      const dirs = dirsFor(effectivePiece);
+      for (const [df, dr] of dirs) {
+        let step = 1;
+        while (true) {
+          const sq = squareAt(toFile + df * step, toRank + dr * step);
+          if (sq === null) break;
+          const p = chess.get(sq);
+          if (p) {
+            if (p.color === enemyColor && p.type === 'k') {
+              moverChecksKing = true;
+            }
+            break;
+          }
+          step++;
+        }
+        if (moverChecksKing) break;
+      }
+    }
+
+    if (moverChecksKing) {
+      attackedTargets.add(kingSq);
+    }
+  }
+
+  if (effectivePiece === 'p') {
     const dr = move.color === 'w' ? 1 : -1;
     for (const df of [-1, 1]) {
       const sq = squareAt(toFile + df, toRank + dr);
-      if (sq === null) continue;
+      if (sq === null || sq === kingSq) continue;
       const p = chess.get(sq);
-      if (p && p.color === enemyColor && p.type !== 'k') {
+      if (p && p.color === enemyColor) {
         attackedTargets.add(sq);
       }
     }
-  } else if (move.piece === 'n') {
+  } else if (effectivePiece === 'n') {
     for (const [df, dr] of KNIGHT_OFFSETS) {
       const sq = squareAt(toFile + df, toRank + dr);
-      if (sq === null) continue;
+      if (sq === null || sq === kingSq) continue;
       const p = chess.get(sq);
-      if (p && p.color === enemyColor && p.type !== 'k') {
+      if (p && p.color === enemyColor) {
         attackedTargets.add(sq);
       }
     }
   } else {
-    const dirs = dirsFor(move.piece);
+    const dirs = dirsFor(effectivePiece);
     for (const [df, dr] of dirs) {
       let step = 1;
       while (true) {
@@ -325,13 +364,25 @@ function isFork(chess: Chess, move: Move): boolean {
  * Check whether a move attacks an enemy piece (N, B, R, Q) that has 0 safe escape squares.
  */
 function isTrappedPiece(chess: Chess, move: Move): boolean {
+  if (chess.inCheck()) return false;
+
   const enemyColor: Color = move.color === 'w' ? 'b' : 'w';
   const toFile = move.to.charCodeAt(0) - 97;
   const toRank = move.to.charCodeAt(1) - 49;
+  const effectivePiece = move.promotion ?? move.piece;
 
   const attackedPieces: Square[] = [];
-  const dirs = dirsFor(move.piece);
-  if (move.piece === 'n') {
+  if (effectivePiece === 'p') {
+    const dr = move.color === 'w' ? 1 : -1;
+    for (const df of [-1, 1]) {
+      const sq = squareAt(toFile + df, toRank + dr);
+      if (sq === null) continue;
+      const p = chess.get(sq);
+      if (p && p.color === enemyColor && p.type !== 'p' && p.type !== 'k') {
+        attackedPieces.push(sq);
+      }
+    }
+  } else if (effectivePiece === 'n') {
     for (const [df, dr] of KNIGHT_OFFSETS) {
       const sq = squareAt(toFile + df, toRank + dr);
       if (sq === null) continue;
@@ -341,6 +392,7 @@ function isTrappedPiece(chess: Chess, move: Move): boolean {
       }
     }
   } else {
+    const dirs = dirsFor(effectivePiece);
     for (const [df, dr] of dirs) {
       let step = 1;
       while (true) {

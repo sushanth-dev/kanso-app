@@ -5,6 +5,7 @@ import type { MovePly } from '../api/diagnosis-api.ts';
 import {
   JUDGEMENT_GLYPH,
   JUDGEMENT_LABEL,
+  MOTIF_LABEL,
   MoveCard,
   Notation,
   moverName,
@@ -217,6 +218,28 @@ describe('MoveCard', () => {
     const unmapped = mistakeFixture({ motif: 'time_trouble_blunder' });
     render(<MoveCard game={game} ply={plyFixture({ ply: 6, san: 'Qf6' })} mistake={unmapped} />);
     expect(screen.getByText('time_trouble_blunder')).toBeInTheDocument();
+  });
+  test('tactical motifs render with readable human labels', () => {
+    expect(MOTIF_LABEL['fork']).toBe('Missed a fork');
+    expect(MOTIF_LABEL['pin']).toBe('Missed a pin');
+    const { unmount } = render(
+      <MoveCard
+        game={game}
+        ply={plyFixture({ ply: 6, san: 'Qf6' })}
+        mistake={mistakeFixture({ motif: 'fork' })}
+      />,
+    );
+    expect(screen.getByText('Missed a fork')).toBeInTheDocument();
+    unmount();
+
+    render(
+      <MoveCard
+        game={game}
+        ply={plyFixture({ ply: 6, san: 'Qf6' })}
+        mistake={mistakeFixture({ motif: 'pin' })}
+      />,
+    );
+    expect(screen.getByText('Missed a pin')).toBeInTheDocument();
   });
 
   test('no motif reads as no motif line', () => {

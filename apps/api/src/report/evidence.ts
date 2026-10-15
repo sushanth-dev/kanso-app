@@ -71,6 +71,12 @@ const ROW_CEILING = 500;
  * evidence rather than a guess.
  */
 const LABEL_KEYS: Record<string, string> = {
+  Fork: 'fork',
+  Pin: 'pin',
+  Skewer: 'skewer',
+  'Discovered attack': 'discovered_attack',
+  'Trapped piece': 'trapped_piece',
+  'Back-rank mate': 'back_rank_mate',
   'Hanging piece': 'hanging_piece',
   'Missed check': 'missed_check',
   'Missed capture': 'missed_capture',
@@ -253,6 +259,24 @@ const GENERIC_ADVICE =
   'repetition, not talent, is what fixes tactics.';
 
 const MOTIF_ADVICE: Record<string, string> = {
+  fork:
+    'Before moving, scan for pieces that step into double attacks - particularly ' +
+    'knights and pawns that can hit two undefended targets at once.',
+  pin:
+    'Watch the lines to your king and queen: any piece standing on the same ' +
+    'file, rank, or diagonal is vulnerable to being pinned and immobilized.',
+  skewer:
+    'Keep high-value pieces off open lines shared with less valuable pieces ' +
+    'behind them; a check or attack on the front piece wins the piece behind.',
+  discovered_attack:
+    'Whenever your opponent moves a piece away from a line, look at what was ' +
+    'unmasked behind it - discovered attacks are the most commonly overlooked tactics.',
+  trapped_piece:
+    'Before placing a minor piece on the board edge or deep in enemy territory, ' +
+    'map its escape squares so it cannot be boxed in by advancing pawns.',
+  back_rank_mate:
+    'Create an escape square (luft) for your king before opening tactical lines, ' +
+    'especially when major pieces control the board.',
   hanging_piece:
     'Before each move, ask what your opponent’s last move attacks - and after ' +
     'choosing one, check it does not leave the moved piece, or anything it was ' +
@@ -263,6 +287,9 @@ const MOTIF_ADVICE: Record<string, string> = {
   missed_capture:
     'After every opponent move, count what each available capture wins or ' +
     'recovers; the capture hidden behind a defender is the one that gets missed.',
+  missed_threat:
+    'Look beyond direct checks and captures: identify decisive threats against ' +
+    'the enemy king or undefended targets that force concessions.',
 };
 
 const PHASE_ADVICE: Record<string, string> = {
