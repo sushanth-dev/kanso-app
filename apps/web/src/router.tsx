@@ -348,6 +348,8 @@ const practiceRoute = createRoute({
     group: string | null;
     label: string | null;
     stream: 'tournament' | 'online';
+    warmup?: boolean;
+    tournamentId?: string;
   } => {
     const kind =
       search.kind === 'motif' ||
@@ -365,7 +367,12 @@ const practiceRoute = createRoute({
         ? search.label
         : null;
     const stream = search.stream === 'online' ? ('online' as const) : ('tournament' as const);
-    return { kind, group, label, stream };
+    const warmup = search.warmup === true || search.warmup === 'true';
+    const tournamentId =
+      typeof search.tournamentId === 'string' && search.tournamentId.length > 0
+        ? search.tournamentId
+        : undefined;
+    return { kind, group, label, stream, warmup, tournamentId };
   },
   component: PracticeRoute,
 });

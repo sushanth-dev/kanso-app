@@ -119,6 +119,28 @@ describe('diagnosis API transport', () => {
     expect(new URL(lastRequest?.url ?? 'about:blank').pathname).toBe('/practice/puzzles');
     expect(await lastRequest?.json()).toEqual(input);
   });
+  test('requests a pre-tournament warm-up routine', async () => {
+    let lastRequest: Request | undefined;
+    const api = createDiagnosisApi((input) => {
+      lastRequest = input as Request;
+      return Promise.resolve(
+        jsonResponse({
+          kind: 'motif',
+          group: 'fork',
+          theme: 'fork',
+          rating: 1500,
+          puzzles: [],
+          focusTitle: 'Tactical alertness',
+        }),
+      );
+    });
+
+    const result = await api.postWarmup({ tournamentId: 't-1', stream: 'tournament' });
+    expect(result.theme).toBe('fork');
+    expect(result.focusTitle).toBe('Tactical alertness');
+    expect(new URL(lastRequest?.url ?? 'about:blank').pathname).toBe('/practice/warmup');
+    expect(await lastRequest?.json()).toEqual({ tournamentId: 't-1', stream: 'tournament' });
+  });
 
   test('gets the practice queue and review sections', async () => {
     const requests: Request[] = [];

@@ -38,6 +38,7 @@ export type PracticeReviewItem = components['schemas']['PracticeReviewItem'];
 export type PatternReport = components['schemas']['PatternReport'];
 export type PatternState = components['schemas']['PatternState'];
 export type GroupCalibration = components['schemas']['GroupCalibration'];
+export type WarmupSet = components['schemas']['WarmupSet'];
 
 export interface DiagnosisApi {
   getReport(stream: Stream, tournamentId?: string): Promise<Report>;
@@ -51,6 +52,8 @@ export interface DiagnosisApi {
     group: string;
     solved: boolean;
   }): Promise<PracticePuzzleTally>;
+  /** ST-185. Deals 5 confidence-banded puzzles for pre-tournament warm-up. */
+  postWarmup(input: { tournamentId?: string; stream?: Stream }): Promise<WarmupSet>;
   /** ST-107. Ask the coach to judge one action item's assessment. */
   markActionItemDone(input: { actionItemId: string; summary: string }): Promise<ActionItemDone>;
   /** ST-107. The puzzles page's pending, upcoming, and mastered buckets. */
@@ -129,6 +132,11 @@ export function createDiagnosisApi(
     },
     async recordPracticePuzzle(input) {
       const result = await client.POST('/practice/puzzles', { body: input });
+      if (result.data !== undefined) return result.data;
+      throw failure(result.response.status, result.error);
+    },
+    async postWarmup(input) {
+      const result = await client.POST('/practice/warmup', { body: input });
       if (result.data !== undefined) return result.data;
       throw failure(result.response.status, result.error);
     },

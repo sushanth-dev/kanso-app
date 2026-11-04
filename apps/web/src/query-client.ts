@@ -67,6 +67,15 @@ export const practiceQueryOptions = (kind: WeaknessKind, group: string, stream: 
     staleTime: 0,
   });
 
+/** ST-185. Pre-tournament 5-puzzle warm-up routine. */
+export const warmupQueryOptions = (tournamentId?: string, stream?: Stream) =>
+  queryOptions({
+    queryKey: ['warmup', tournamentId ?? null, stream ?? null] as const,
+    queryFn: () => diagnosisApi.postWarmup({ tournamentId, stream }),
+    retry: false,
+    staleTime: 0,
+  });
+
 /** ST-107. The puzzles page's pending, upcoming, and mastered buckets. */
 export const practiceQueueQueryOptions = () =>
   queryOptions({
