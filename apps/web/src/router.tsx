@@ -44,6 +44,7 @@ import { GamesRoute } from './routes/games-route.tsx';
 import { UpgradeRoute } from './routes/upgrade-route.tsx';
 import { TournamentsRoute } from './routes/tournaments-route.tsx';
 import { TournamentDetailRoute } from './routes/tournament-detail-route.tsx';
+import { TournamentDossierRoute } from './routes/tournament-dossier-route.tsx';
 import { TransferGapRoute } from './routes/transfer-gap-route.tsx';
 import { PuzzlesRoute } from './routes/puzzles-route.tsx';
 import { CurriculumRoute } from './routes/curriculum-route.tsx';
@@ -348,6 +349,8 @@ const practiceRoute = createRoute({
     group: string | null;
     label: string | null;
     stream: 'tournament' | 'online';
+    warmup?: boolean;
+    tournamentId?: string;
   } => {
     const kind =
       search.kind === 'motif' ||
@@ -365,7 +368,12 @@ const practiceRoute = createRoute({
         ? search.label
         : null;
     const stream = search.stream === 'online' ? ('online' as const) : ('tournament' as const);
-    return { kind, group, label, stream };
+    const warmup = search.warmup === true || search.warmup === 'true';
+    const tournamentId =
+      typeof search.tournamentId === 'string' && search.tournamentId.length > 0
+        ? search.tournamentId
+        : undefined;
+    return { kind, group, label, stream, warmup, tournamentId };
   },
   component: PracticeRoute,
 });
@@ -396,6 +404,11 @@ const tournamentDetailRoute = createRoute({
   getParentRoute: () => accountRoute,
   path: '/tournaments/$tournamentId',
   component: TournamentDetailRoute,
+});
+const tournamentDossierRoute = createRoute({
+  getParentRoute: () => accountRoute,
+  path: '/tournaments/$tournamentId/dossier',
+  component: TournamentDossierRoute,
 });
 
 const transferGapRoute = createRoute({
@@ -507,6 +520,7 @@ const routeTree = rootRoute.addChildren([
     finishGameRoute,
     tournamentsRoute,
     tournamentDetailRoute,
+    tournamentDossierRoute,
     transferGapRoute,
     upgradeRoute,
   ]),

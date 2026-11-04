@@ -141,8 +141,8 @@ describe('PracticeDebtCard', () => {
   });
 });
 
-function renderPracticeRoute() {
-  const history = createMemoryHistory({ initialEntries: ['/practice'] });
+function renderPracticeRoute(path = '/practice') {
+  const history = createMemoryHistory({ initialEntries: [path] });
   const queryClient = new QueryClient();
   const router = createAppRouter({ history, queryClient });
   return render(
@@ -200,6 +200,42 @@ describe('PracticeRoute', () => {
 
     expect(await screen.findByRole('heading', { name: 'Mistakes eliminated' })).toBeVisible();
     expect(await screen.findByText('No weakness named')).toBeVisible();
+  });
+  test('ST-185: renders warm-up routine and banner on completion', async () => {
+    vi.spyOn(accountApi, 'getMe').mockResolvedValue(meFixture);
+    vi.spyOn(diagnosisApi, 'postWarmup').mockResolvedValue({
+      kind: 'motif',
+      group: 'fork',
+      theme: 'fork',
+      rating: 1500,
+      puzzles: [
+        {
+          id: 'p1',
+          fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+          moves: 'e2e4 e7e5',
+          rating: 1400,
+        },
+      ],
+      focusTitle: 'Tactical alertness',
+    });
+
+    renderPracticeRoute('/practice?warmup=true&tournamentId=00000000-0000-4000-8000-0000000000t1');
+
+    expect(await screen.findByRole('heading', { name: 'Pre-tournament warm-up' })).toBeVisible();
+    expect(screen.getByText('Active focus: Tactical alertness')).toBeVisible();
+    expect(screen.getByText(/Puzzle 1 of 1/)).toBeVisible();
+  });
+
+  test('ST-185: renders empty state when warm-up pool fails to deal', async () => {
+    vi.spyOn(accountApi, 'getMe').mockResolvedValue(meFixture);
+    vi.spyOn(diagnosisApi, 'postWarmup').mockRejectedValue(new Error('pool_empty'));
+
+    renderPracticeRoute('/practice?warmup=true&tournamentId=00000000-0000-4000-8000-0000000000t1');
+
+    expect(
+      await screen.findByRole('heading', { name: 'The warm-up pool is not ready' }),
+    ).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Back to tournament briefing' })).toBeVisible();
   });
 });
 

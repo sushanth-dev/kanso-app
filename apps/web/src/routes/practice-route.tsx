@@ -33,6 +33,7 @@ import {
   practiceQueryOptions,
   practiceReviewsQueryOptions,
   reportQueryOptions,
+  warmupQueryOptions,
 } from '../query-client.ts';
 import { DebtCard } from '../components/debt-board.tsx';
 import { RetiredHeadline } from '../components/retired-headline.tsx';
@@ -51,8 +52,16 @@ function uciMove(uci: string): { from: string; to: string; promotion?: string } 
   return uci.length > 4 ? { ...move, promotion: uci.slice(4, 5) } : move;
 }
 
+/** The three answers the confidence prompt offers, plus a skip. */
+export type ConfidenceAnswer = 'sure' | 'not_sure' | 'guessed';
+
 export function PracticeRoute() {
-  const { kind, group, label, stream } = useSearch({ from: '/account/practice' });
+  const { kind, group, label, stream, warmup, tournamentId } = useSearch({
+    from: '/account/practice',
+  });
+  if (warmup) {
+    return <WarmupScreen tournamentId={tournamentId} stream={stream} />;
+  }
   if (kind === null || group === null) {
     return (
       <div className="space-y-6">
@@ -317,6 +326,159 @@ export function PracticeScreen({
     />
   );
 }
+export function WarmupScreen({
+  tournamentId,
+  stream,
+}: {
+  tournamentId?: string;
+  stream: 'tournament' | 'online';
+}) {
+  const query = useQuery(warmupQueryOptions(tournamentId, stream));
+
+  if (query.isPending) {
+    return (
+      <div role="status" className="reveal-in flex items-center gap-3 py-16">
+        <Spinner />
+        <Text as="p" display="block" type="supporting">
+          Dealing 5 warm-up puzzles for round one…
+        </Text>
+      </div>
+    );
+  }
+
+  if (query.isError) {
+    return (
+      <EmptyState
+        className="reveal-in"
+        title="The warm-up pool is not ready"
+        description="Not enough puzzles could be dealt for the warm-up routine. Try again later."
+        headingLevel={1}
+        actions={
+          <Link
+            hasUnderline
+            href={tournamentId ? `/tournaments/${tournamentId}` : `/report?stream=${stream}`}
+            className="min-h-11 items-center"
+          >
+            {tournamentId ? 'Back to tournament briefing' : 'Back to report'}
+          </Link>
+        }
+      />
+    );
+  }
+
+  const set = query.data;
+  return (
+    <WarmupSession
+      key={set.theme}
+      puzzles={set.puzzles}
+      theme={set.theme}
+      focusTitle={set.focusTitle}
+      kind={set.kind}
+      group={set.group}
+      tournamentId={tournamentId}
+      stream={stream}
+    />
+  );
+}
+
+export function WarmupSession({
+  puzzles,
+  theme,
+  focusTitle,
+  kind,
+  group,
+  tournamentId,
+}: {
+  puzzles: PracticePuzzle[];
+  theme: string;
+  focusTitle: string | null;
+  kind: WeaknessKind;
+  group: string;
+  tournamentId?: string;
+  stream: 'tournament' | 'online';
+}) {
+  const [queue, setQueue] = useState<PracticePuzzle[]>(puzzles);
+  const [solvedCount, setSolvedCount] = useState(0);
+
+  const advance = (
+    puzzle: PracticePuzzle,
+    solved: boolean,
+    confidence: ConfidenceAnswer | null,
+  ) => {
+    if (solved) setSolvedCount((count) => count + 1);
+    diagnosisApi
+      .recordPracticePuzzle({
+        puzzleId: puzzle.id,
+        kind,
+        group,
+        solved,
+        ...(confidence !== null ? { confidence } : {}),
+      })
+      .catch((error: unknown) => {
+        console.error('Failed to record practice puzzle attempt', error);
+      });
+
+    setQueue((current) => current.filter((p) => p.id !== puzzle.id));
+  };
+
+  if (queue.length === 0) {
+    return (
+      <div className="reveal-in space-y-6">
+        <Card className="reveal-in border-border-emphasis bg-surface-subtle p-6">
+          <Heading level={1} className="text-xl">
+            You are warmed up and ready for round one!
+          </Heading>
+          <Text as="p" display="block" type="supporting" className="mt-2">
+            Completed all {puzzles.length} warm-up puzzles ({solvedCount} solved). Tactical
+            calculation is activated.
+          </Text>
+          <div className="mt-6 flex flex-wrap gap-4">
+            <Button
+              label="Back to tournament briefing"
+              href={tournamentId ? `/tournaments/${tournamentId}` : '/tournaments'}
+              variant="primary"
+              className="min-h-11 press"
+            />
+            <Button
+              label="See your puzzle queue"
+              href="/puzzles"
+              variant="secondary"
+              className="min-h-11 press"
+            />
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  const current = queue[0]!;
+  const currentNum = puzzles.length - queue.length + 1;
+
+  return (
+    <div className="reveal-in space-y-4">
+      <header className="space-y-1">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Heading level={1}>Pre-tournament warm-up</Heading>
+          <Badge label={`Puzzle ${currentNum} of ${puzzles.length}`} variant="info" />
+        </div>
+        {focusTitle && (
+          <Text as="p" display="block" type="supporting" className="text-sm font-medium">
+            Active focus: {focusTitle}
+          </Text>
+        )}
+        <Text as="p" display="block" type="supporting" className="text-sm">
+          Theme: <span className="font-mono">{theme}</span>. 5 confidence-building puzzles before
+          round one.
+        </Text>
+      </header>
+      <DrillCard
+        key={current.id}
+        puzzle={current}
+        onDone={(solved, confidence) => advance(current, solved, confidence)}
+      />
+    </div>
+  );
+}
 
 /**
  * The queue and its progress. A solved puzzle leaves the queue; a revealed
@@ -449,9 +611,6 @@ export function DrillSession({
 /** One puzzle's status. `confidence` is ST-156's prompt at the commit boundary. */
 type DrillStatus =
   'setup' | 'playing' | 'reply' | 'solved' | 'confidence' | 'revealing' | 'revealed';
-
-/** The three answers the confidence prompt offers, plus a skip. */
-type ConfidenceAnswer = 'sure' | 'not_sure' | 'guessed';
 
 /**
  * One puzzle's lifecycle: the setup move plays itself, the player's correct

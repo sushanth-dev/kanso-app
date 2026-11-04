@@ -138,6 +138,32 @@ describe('TournamentDetailRoute', () => {
     expect(screen.getAllByRole('list').some((el) => el.classList.contains('reveal-in'))).toBe(true);
   });
 
+  test('ST-185: renders pre-tournament warm-up card and start button linking to practice', async () => {
+    vi.spyOn(accountApi, 'getMe').mockResolvedValue(meFixture);
+    vi.spyOn(tournamentApi, 'getTournament').mockResolvedValue(detailFixture());
+    vi.spyOn(tournamentApi, 'getRoundDecay').mockResolvedValue(decayFixture());
+
+    renderTournament(`/tournaments/${tournamentId}`);
+
+    expect(
+      await screen.findByRole('heading', { level: 2, name: 'Pre-tournament warm-up routine' }),
+    ).toBeVisible();
+    const button = screen.getByRole('link', { name: 'Start 5-puzzle warm-up' });
+    expect(button).toBeVisible();
+    expect(button).toHaveAttribute('href', `/practice?warmup=true&tournamentId=${tournamentId}`);
+  });
+  test('ST-186: renders Print dossier button linking to dossier page', async () => {
+    vi.spyOn(accountApi, 'getMe').mockResolvedValue(meFixture);
+    vi.spyOn(tournamentApi, 'getTournament').mockResolvedValue(detailFixture());
+    vi.spyOn(tournamentApi, 'getRoundDecay').mockResolvedValue(decayFixture());
+
+    renderTournament(`/tournaments/${tournamentId}`);
+
+    const dossierLink = await screen.findByRole('link', { name: 'Print dossier' });
+    expect(dossierLink).toBeVisible();
+    expect(dossierLink).toHaveAttribute('href', `/tournaments/${tournamentId}/dossier`);
+  });
+
   test('a multi-day event reads as a range; no dates reads as no range', async () => {
     vi.spyOn(accountApi, 'getMe').mockResolvedValue(meFixture);
     vi.spyOn(tournamentApi, 'getTournament').mockResolvedValue(

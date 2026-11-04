@@ -186,16 +186,42 @@ export function TournamentDetailRoute() {
             ) : null}
           </div>
           {detail.games.length > 0 ? (
-            <Button
-              label="Download PGN"
-              href={tournamentPgnUrl(tournamentId)}
-              variant="secondary"
-              size="sm"
-              className="min-h-11"
-            />
+            <div className="flex flex-wrap gap-2">
+              <Button
+                label="Print dossier"
+                href={`/tournaments/${tournamentId}/dossier`}
+                variant="secondary"
+                size="sm"
+                className="min-h-11 press"
+              />
+              <Button
+                label="Download PGN"
+                href={tournamentPgnUrl(tournamentId)}
+                variant="secondary"
+                size="sm"
+                className="min-h-11"
+              />
+            </div>
           ) : null}
         </div>
       </header>
+
+      <Card className="reveal-in space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="space-y-1">
+            <Heading level={2}>Pre-tournament warm-up routine</Heading>
+            <Text as="p" display="block" type="supporting" className="text-sm">
+              5 quick tactical puzzles targeted to your active focus and key tournament leak motifs.
+            </Text>
+          </div>
+          <Button
+            label="Start 5-puzzle warm-up"
+            href={`/practice?warmup=true&tournamentId=${tournamentId}`}
+            variant="primary"
+            className="min-h-11 press"
+          />
+        </div>
+      </Card>
 
       {detail.games.length === 0 ? (
         <EmptyState

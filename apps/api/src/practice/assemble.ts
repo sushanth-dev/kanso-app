@@ -24,13 +24,22 @@
  * from the best rating the account actually holds: FIDE, then USCF, then the
  * two site ratings, then 1500.
  */
-import { and, asc, eq, gte, isNotNull, lte, notInArray, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, isNotNull, isNull, lte, notInArray, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { z } from 'zod';
 import type { WeaknessKind } from '../analysis/leak.ts';
 import { windowGameCount } from '../analysis/retirement.ts';
 import * as schema from '../db/schema.ts';
-import { game, mistake, patternState, player, puzzle, puzzleAttempt } from '../db/schema.ts';
+import {
+  focusCatalogue,
+  game,
+  mistake,
+  patternState,
+  player,
+  playerFocus,
+  puzzle,
+  puzzleAttempt,
+} from '../db/schema.ts';
 import { FOCUS_WINDOW_GAMES } from '../focus/verify.ts';
 import { RetirementState } from '../contract/schemas.ts';
 import { themeForGroup } from './themes.ts';
@@ -41,6 +50,9 @@ type Stream = (typeof schema.streamEnum.enumValues)[number];
 
 /** The size of one drill, the ask's "at least 20". */
 export const DRILL_SIZE = 20;
+
+/** ST-185. The size of one pre-tournament warm-up routine: exactly 5 confidence-building puzzles. */
+export const WARMUP_SIZE = 5;
 
 /** The rating of a player with no measured rating anywhere, the prototype's default. */
 const DEFAULT_RATING = 1500;
@@ -80,7 +92,20 @@ async function gather(
   high: number,
   into: Map<string, DrillPuzzle>,
 ): Promise<void> {
-  if (into.size >= DRILL_SIZE) return;
+  return gatherTo(db, playerId, theme, openingPrefix, low, high, into, DRILL_SIZE);
+}
+
+async function gatherTo(
+  db: Db,
+  playerId: string,
+  theme: string | null,
+  openingPrefix: string | null,
+  low: number,
+  high: number,
+  into: Map<string, DrillPuzzle>,
+  targetSize: number,
+): Promise<void> {
+  if (into.size >= targetSize) return;
   // Exactly one of `theme` and `openingPrefix` is set: the theme rungs match
   // the dump's tag array, the opening rungs prefix-match the family slug.
   const familyMatch =
@@ -115,7 +140,7 @@ async function gather(
       ),
     )
     .orderBy(sql`random()`)
-    .limit(DRILL_SIZE - into.size);
+    .limit(targetSize - into.size);
   for (const row of rows) {
     into.set(row.lichessId, {
       id: row.lichessId,
@@ -332,5 +357,155 @@ export async function assembleDrill(
     puzzles: [...picked.values()],
     opening: openingMatched,
     retirementState,
+  };
+}
+
+export interface WarmupSet {
+  kind: WeaknessKind;
+  group: string;
+  theme: string;
+  rating: number;
+  puzzles: DrillPuzzle[];
+  focusTitle: string | null;
+}
+
+/**
+ * ST-185. Assemble a 5-puzzle warm-up routine for pre-tournament activation:
+ * deals 5 puzzles banded at [rating - 300, rating] targeted to the player's
+ * active focus or top weakness motif, assigned with reviewLevel 0 to preserve
+ * long-term spaced repetition ladder scheduling.
+ */
+export async function assembleWarmup(
+  db: Db,
+  playerId: string,
+  tournamentId?: string,
+  stream?: Stream,
+): Promise<WarmupSet | 'pool_empty'> {
+  const [playerRow] = await db
+    .select({
+      fideRating: player.fideRating,
+      uscfRating: player.uscfRating,
+      chesscomRating: player.chesscomRating,
+      lichessRating: player.lichessRating,
+    })
+    .from(player)
+    .where(eq(player.id, playerId))
+    .limit(1);
+
+  const rating =
+    playerRow === undefined
+      ? DEFAULT_RATING
+      : (playerRow.fideRating ??
+        playerRow.uscfRating ??
+        playerRow.chesscomRating ??
+        playerRow.lichessRating ??
+        DEFAULT_RATING);
+
+  let kind: WeaknessKind = 'motif';
+  let group = 'hanging_piece';
+  let focusTitle: string | null = null;
+
+  const [activeFocus] = await db
+    .select({
+      title: focusCatalogue.title,
+      key: focusCatalogue.key,
+    })
+    .from(playerFocus)
+    .leftJoin(focusCatalogue, eq(playerFocus.catalogueId, focusCatalogue.id))
+    .where(and(eq(playerFocus.playerId, playerId), isNull(playerFocus.endedAt)))
+    .limit(1);
+
+  if (activeFocus?.title) {
+    focusTitle = activeFocus.title;
+    if (activeFocus.key === 'converting_won_positions') {
+      kind = 'phase';
+      group = 'endgame';
+    } else if (activeFocus.key === 'opening_repertoire_results') {
+      kind = 'phase';
+      group = 'opening';
+    }
+  }
+
+  if (tournamentId !== undefined) {
+    const [tourneyMistake] = await db
+      .select({ motif: mistake.motif })
+      .from(mistake)
+      .innerJoin(game, eq(game.id, mistake.gameId))
+      .where(
+        and(
+          eq(game.playerId, playerId),
+          eq(game.tournamentId, tournamentId),
+          isNotNull(mistake.motif),
+        ),
+      )
+      .limit(1);
+    if (tourneyMistake?.motif) {
+      group = tourneyMistake.motif;
+      kind = 'motif';
+    }
+  } else if (kind === 'motif') {
+    const [recentMistake] = await db
+      .select({ motif: mistake.motif })
+      .from(mistake)
+      .innerJoin(game, eq(game.id, mistake.gameId))
+      .where(
+        and(
+          eq(game.playerId, playerId),
+          stream !== undefined ? eq(game.stream, stream) : sql`true`,
+          isNotNull(mistake.motif),
+        ),
+      )
+      .limit(1);
+    if (recentMistake?.motif) {
+      group = recentMistake.motif;
+    }
+  }
+
+  const theme = themeForGroup(kind, group) ?? 'hangingPiece';
+  const picked = new Map<string, DrillPuzzle>();
+  const low = rating - 300;
+  const high = rating;
+
+  await gatherTo(db, playerId, theme, null, low, high, picked, WARMUP_SIZE);
+  if (picked.size < WARMUP_SIZE) {
+    await gatherTo(db, playerId, theme, null, rating - 400, rating + 100, picked, WARMUP_SIZE);
+  }
+  if (picked.size < WARMUP_SIZE && theme !== 'crushing') {
+    await gatherTo(db, playerId, 'crushing', null, rating - 400, rating + 100, picked, WARMUP_SIZE);
+  }
+  if (picked.size < WARMUP_SIZE) {
+    await gatherTo(db, playerId, null, null, rating - 400, rating + 100, picked, WARMUP_SIZE);
+  }
+
+  if (picked.size < WARMUP_SIZE) {
+    return 'pool_empty';
+  }
+
+  await db
+    .insert(puzzleAttempt)
+    .values(
+      [...picked.values()].map((p) => ({
+        playerId,
+        puzzleId: p.id,
+        kind,
+        groupKey: group,
+        attempts: 0,
+        solved: false,
+        reviewLevel: 0,
+        nextReviewAt: new Date(),
+        assignedAt: new Date(),
+      })),
+    )
+    .onConflictDoNothing({
+      target: [puzzleAttempt.playerId, puzzleAttempt.puzzleId],
+    });
+
+  return {
+    kind,
+    group,
+    theme,
+    rating,
+    puzzles: [...picked.values()],
+    focusTitle,
   };
 }

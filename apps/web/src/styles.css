@@ -13,6 +13,7 @@
 @import './generated/tokens.dark.css';
 @import './generated/tokens.high-contrast.css';
 @import 'tailwindcss/utilities.css' layer(utilities);
+@import './styles/print.css';
 
 @theme inline {
   --font-ui: var(--kanso-font-ui);
