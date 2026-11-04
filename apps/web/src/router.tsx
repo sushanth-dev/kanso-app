@@ -44,6 +44,7 @@ import { GamesRoute } from './routes/games-route.tsx';
 import { UpgradeRoute } from './routes/upgrade-route.tsx';
 import { TournamentsRoute } from './routes/tournaments-route.tsx';
 import { TournamentDetailRoute } from './routes/tournament-detail-route.tsx';
+import { TournamentDossierRoute } from './routes/tournament-dossier-route.tsx';
 import { TransferGapRoute } from './routes/transfer-gap-route.tsx';
 import { PuzzlesRoute } from './routes/puzzles-route.tsx';
 import { CurriculumRoute } from './routes/curriculum-route.tsx';
@@ -404,6 +405,11 @@ const tournamentDetailRoute = createRoute({
   path: '/tournaments/$tournamentId',
   component: TournamentDetailRoute,
 });
+const tournamentDossierRoute = createRoute({
+  getParentRoute: () => accountRoute,
+  path: '/tournaments/$tournamentId/dossier',
+  component: TournamentDossierRoute,
+});
 
 const transferGapRoute = createRoute({
   getParentRoute: () => accountRoute,
@@ -514,6 +520,7 @@ const routeTree = rootRoute.addChildren([
     finishGameRoute,
     tournamentsRoute,
     tournamentDetailRoute,
+    tournamentDossierRoute,
     transferGapRoute,
     upgradeRoute,
   ]),

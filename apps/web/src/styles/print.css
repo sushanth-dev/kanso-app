@@ -1,0 +1,88 @@
+/* ST-186: Printable tournament dossier styles.
+   Optimized for US Letter and A4 black-and-white ink-jet / laser printing.
+   Converts dark/colored surfaces to crisp monochrome ink, hides interactive
+   controls, and enforces strict 1-2 page pagination rules. */
+
+@media print {
+  @page {
+    size: letter portrait;
+    margin: 12mm 15mm;
+  }
+
+  /* Reset document background to pure paper white */
+  html:has(#tournament-dossier),
+  html:has(#tournament-dossier) body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* Hide screen furniture, interactive bars, navigation, and action buttons */
+  header,
+  nav,
+  button,
+  .print\:hidden,
+  #tournament-dossier .no-print {
+    display: none !important;
+  }
+
+  /* Main dossier container */
+  #tournament-dossier {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+  }
+
+  #tournament-dossier * {
+    color: #000000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Pagination boundaries: avoid orphans and mid-card breaks */
+  #tournament-dossier .dossier-card,
+  #tournament-dossier .dossier-section,
+  #tournament-dossier .dossier-table,
+  #tournament-dossier .dossier-board,
+  #tournament-dossier .coach-notes-box {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  #tournament-dossier .page-break-before {
+    break-before: page !important;
+    page-break-before: always !important;
+  }
+
+  /* Crisp monochrome SVG printing */
+  #tournament-dossier svg {
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  /* High-contrast board squares for ink-jet and laser printing */
+  #tournament-dossier .dossier-square-light {
+    fill: #ffffff !important;
+  }
+
+  #tournament-dossier .dossier-square-dark {
+    fill: #e5e5e5 !important;
+  }
+
+  #tournament-dossier .dossier-coord {
+    fill: #000000 !important;
+    font-weight: 600 !important;
+  }
+
+  /* Coach debrief notes lines */
+  #tournament-dossier .coach-notes-line {
+    border-bottom: 1px solid #737373 !important;
+    height: 28px !important;
+  }
+}

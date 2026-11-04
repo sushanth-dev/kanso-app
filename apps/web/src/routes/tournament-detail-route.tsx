@@ -186,13 +186,22 @@ export function TournamentDetailRoute() {
             ) : null}
           </div>
           {detail.games.length > 0 ? (
-            <Button
-              label="Download PGN"
-              href={tournamentPgnUrl(tournamentId)}
-              variant="secondary"
-              size="sm"
-              className="min-h-11"
-            />
+            <div className="flex flex-wrap gap-2">
+              <Button
+                label="Print dossier"
+                href={`/tournaments/${tournamentId}/dossier`}
+                variant="secondary"
+                size="sm"
+                className="min-h-11 press"
+              />
+              <Button
+                label="Download PGN"
+                href={tournamentPgnUrl(tournamentId)}
+                variant="secondary"
+                size="sm"
+                className="min-h-11"
+              />
+            </div>
           ) : null}
         </div>
       </header>
