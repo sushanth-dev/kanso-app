@@ -26,12 +26,13 @@ import {
   getPracticePuzzles,
   getPracticeQueue,
   getPracticeReviews,
+  postWarmup,
   recordPracticePuzzle,
 } from '../contract/routes.ts';
 import * as schema from '../db/schema.ts';
 import { player } from '../db/schema.ts';
 import { readSession } from '../session.ts';
-import { assembleDrill } from './assemble.ts';
+import { assembleDrill, assembleWarmup } from './assemble.ts';
 import { readCalibration } from './calibration.ts';
 import { readDueReviews, readQueue } from './queue.ts';
 import { recordDrill } from './record.ts';
@@ -155,5 +156,24 @@ export function mountPractice(
       },
       200,
     );
+  });
+
+  app.openapi(postWarmup, async (c) => {
+    const playerId = await ownPlayerId(deps.db, deps.getSession, c);
+    if (playerId === null) {
+      return c.json({ code: 'no_session', message: 'Sign in to use this endpoint.' }, 401);
+    }
+    const body = c.req.valid('json');
+    const result = await assembleWarmup(deps.db, playerId, body.tournamentId, body.stream);
+    if (result === 'pool_empty') {
+      return c.json(
+        {
+          code: 'pool_empty',
+          message: 'The puzzle pool cannot supply enough puzzles for the warm-up.',
+        },
+        422,
+      );
+    }
+    return c.json(result, 200);
   });
 }
