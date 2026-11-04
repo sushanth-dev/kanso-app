@@ -367,6 +367,34 @@ export const PracticeSet = z
   .openapi('PracticeSet');
 
 /**
+ * ST-185. Parameters for assembling a pre-tournament 5-puzzle warm-up routine.
+ */
+export const PostWarmup = z
+  .object({
+    tournamentId: z.string().uuid().optional(),
+    stream: Stream.optional(),
+  })
+  .openapi('PostWarmup');
+
+/**
+ * ST-185. One 5-puzzle warm-up routine: 5 puzzles banded at [rating - 300, rating]
+ * matched to the player's active focus or top weakness motif.
+ */
+export const WarmupSet = z
+  .object({
+    kind: WeaknessKind,
+    group: z.string(),
+    theme: z.string().openapi({ example: 'fork' }),
+    rating: z.number().int().openapi({ example: 1500 }),
+    puzzles: z.array(PracticePuzzle).min(1).max(5),
+    focusTitle: z.string().nullable().openapi({
+      description:
+        'The title of the active focus if set, or null if falling back to top leak motif.',
+    }),
+  })
+  .openapi('WarmupSet');
+
+/**
  * ST-156. The confidence the player rated their answer with, asked before
  * any reveal. Absent means the prompt was skipped and stores null.
  */

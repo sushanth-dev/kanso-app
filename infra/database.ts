@@ -9,10 +9,12 @@
  * A NAT instance, not a NAT gateway. The API runs as a Lambda (ADR-0033), which
  * cannot take a public IP the way the Fargate task did, so it reaches the
  * internet - Chess.com, Lichess, SES, SQS - through a NAT from the private
- * subnets. Two `t4g.nano` instances cost about $6 a month; the managed gateway
- * would be about $64, which is more than the database. A single instance per
- * zone is a single point of failure an unpublished stage does not notice; the
- * managed gateway is the launch-time upgrade.
+ * subnets. Public IPv4 costs $0.005/hr ($3.60/month per IP) plus instance compute,
+ * so production routes all private subnets through a single `t4g.nano` NAT instance
+ * in `ap-south-2a` (~$6.40/month total) rather than paying dual IP and instance fees.
+ * The managed gateway would be about $64. A single NAT instance is an accepted
+ * single point of failure for an unpublished stage; the managed gateway is the
+ * launch-time upgrade.
  */
 export const vpc = new sst.aws.Vpc('Vpc', {
   nat: 'ec2',

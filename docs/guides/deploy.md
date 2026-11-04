@@ -62,26 +62,28 @@ at about $24 sits under the alert while a second forgotten stage trips it.
 
 ## What gets created, and what it costs
 
-Per month, at list price for `ap-south-2`, with the stage up the whole month:
+Per month, at measured price for `ap-south-2`, with the stage up the whole month:
 
 | Resource | Monthly |
 | --- | --- |
-| VPC, two public and two private subnets, with two NAT instances | about $6 |
-| RDS `db.t4g.micro`, single AZ, 20 GB gp3 | about $17 |
+| VPC NAT (1 `t4g.nano` instance + 1 public IPv4 address + 4GB gp3 EBS) | about $6.40 |
+| RDS `db.t4g.micro` (1-Year No Upfront RI @ $0.016/hr) + 20 GB gp3 storage | about $13.70 |
 | Lambda and API Gateway HTTP API | about $0 at this traffic |
 | Secrets Manager secret for the database credential | $0.40 |
+| Route 53 (Cloud Map hosted zone) | $0.50 |
 | ECR repository holding the analysis image | about $0.05 |
-| **Total** | **about $24** |
+| **Subtotal (pre-tax)** | **about $21.50** |
+| **Total with 18% GST** | **about $25.30 (~₹2,220 INR)** |
 
-Two notes on that table. The first is that these are list prices rather than a
-bill: the stage this guide was written from lived for hours, not a month, so
-nothing here has been read off a statement yet. The second is that the NAT is a
-pair of `t4g.nano` instances, not a managed gateway. A Lambda cannot take a
-public IP the way the Fargate task did, so it reaches the internet through a
-NAT from the private subnets. Two instances cost about $6 a month; the managed
-gateway would be about $64, which is more than the database. The single point
-of failure an instance is per zone is a launch concern, not a deployment one.
-
+Two notes on that table. The first is that AWS charges $0.005/hr ($3.60/month)
+for each public IPv4 address, so running a NAT instance per availability zone
+adds $7.20/month in IP charges alone. To keep idle costs bounded, both private
+subnets route through a single `t4g.nano` NAT instance in `ap-south-2a`. The
+second is that the database runs on a 1-year No Upfront Reserved Instance lease
+($0 upfront, $0.016/hr recurring), which cuts RDS compute from $17.84 to
+$11.68/month. The single point of failure an instance is per zone is an accepted
+tradeoff for an unpublished stage; a multi-AZ managed gateway ($64+/month) is a
+launch-time upgrade when revenue justifies it.
 The web half does not appear in the table because Cloudflare serves static
 assets inside its free tier. It does add one credential: a scoped
 `CLOUDFLARE_API_TOKEN` in `.env` for the Worker deploy, whose exact scope the

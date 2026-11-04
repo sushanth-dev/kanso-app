@@ -42,6 +42,8 @@ import {
   PracticeReviews,
   PracticeSet,
   ProofSheet,
+  PostWarmup,
+  WarmupSet,
   RecordPracticePuzzle,
   Report,
   SharedAssignment,
@@ -497,6 +499,24 @@ export const recordPracticePuzzle = createRoute({
     400: error('The request body failed validation.'),
     401: error('No session.'),
     422: error('No such puzzle in the pool, or the group has no drill.'),
+  },
+});
+
+export const postWarmup = createRoute({
+  method: 'post',
+  path: '/practice/warmup',
+  tags: ['Practice'],
+  summary: 'Deal a 5-puzzle warm-up routine for pre-tournament activation',
+  description:
+    'ST-185. Deals 5 puzzles banded at [rating - 300, rating] targeted to the player’s active focus or top leak motif before tournament play.',
+  request: {
+    body: json(PostWarmup, 'Tournament and stream parameters for the warm-up.'),
+  },
+  responses: {
+    200: json(WarmupSet, 'The assembled 5-puzzle warm-up set.'),
+    400: error('The request body failed validation.'),
+    401: error('No session.'),
+    422: error('The weakness group has no puzzle drill or the pool is empty.'),
   },
 });
 
@@ -1308,6 +1328,7 @@ export const routes = [
   postEngineReply,
   getPracticePuzzles,
   recordPracticePuzzle,
+  postWarmup,
   deleteGame,
   queueAnalysis,
   listTournaments,
