@@ -2,3 +2,5 @@
 Pre-flight: no shared interfaces
 Task 1: complete (feat(web): add print.css styles and import in styles.css)
 Task 2: complete (feat(web): add static high-contrast DossierBoard diagram component)
+Task 3: complete (feat(web): add TournamentDossierRoute, screen, and router registration)
+Task 4: complete (feat(web): add header print trigger and unit tests)
