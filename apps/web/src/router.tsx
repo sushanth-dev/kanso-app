@@ -351,6 +351,7 @@ const practiceRoute = createRoute({
     stream: 'tournament' | 'online';
     warmup?: boolean;
     tournamentId?: string;
+    actionItemId?: string;
   } => {
     const kind =
       search.kind === 'motif' ||
@@ -373,7 +374,13 @@ const practiceRoute = createRoute({
       typeof search.tournamentId === 'string' && search.tournamentId.length > 0
         ? search.tournamentId
         : undefined;
-    return { kind, group, label, stream, warmup, tournamentId };
+    const actionItemId =
+      typeof search.actionItemId === 'string' &&
+      search.actionItemId.length > 0 &&
+      search.actionItemId.length <= 64
+        ? search.actionItemId
+        : undefined;
+    return { kind, group, label, stream, warmup, tournamentId, actionItemId };
   },
   component: PracticeRoute,
 });

@@ -56,7 +56,7 @@ function uciMove(uci: string): { from: string; to: string; promotion?: string } 
 export type ConfidenceAnswer = 'sure' | 'not_sure' | 'guessed';
 
 export function PracticeRoute() {
-  const { kind, group, label, stream, warmup, tournamentId } = useSearch({
+  const { kind, group, label, stream, warmup, tournamentId, actionItemId } = useSearch({
     from: '/account/practice',
   });
   if (warmup) {
@@ -70,7 +70,15 @@ export function PracticeRoute() {
       </div>
     );
   }
-  return <PracticeScreen kind={kind} group={group} label={label ?? group} stream={stream} />;
+  return (
+    <PracticeScreen
+      kind={kind}
+      group={group}
+      label={label ?? group}
+      stream={stream}
+      actionItemId={actionItemId}
+    />
+  );
 }
 
 /**
@@ -273,11 +281,13 @@ export function PracticeScreen({
   group,
   label,
   stream,
+  actionItemId,
 }: {
   kind: WeaknessKind;
   group: string;
   label: string;
   stream: 'tournament' | 'online';
+  actionItemId?: string;
 }) {
   const query = useQuery(practiceQueryOptions(kind, group, stream));
 
@@ -304,9 +314,16 @@ export function PracticeScreen({
         }
         headingLevel={1}
         actions={
-          <Link hasUnderline href={`/report?stream=${stream}`} className="min-h-11 items-center">
-            Back to the report
-          </Link>
+          <>
+            {actionItemId ? (
+              <Link hasUnderline href="/curriculum" className="min-h-11 items-center">
+                Return to curriculum
+              </Link>
+            ) : null}
+            <Link hasUnderline href={`/report?stream=${stream}`} className="min-h-11 items-center">
+              Back to the report
+            </Link>
+          </>
         }
       />
     );
@@ -323,6 +340,7 @@ export function PracticeScreen({
       kind={kind}
       group={group}
       stream={stream}
+      actionItemId={actionItemId}
     />
   );
 }
@@ -499,6 +517,7 @@ export function DrillSession({
   kind,
   group,
   stream,
+  actionItemId,
 }: {
   puzzles: PracticePuzzle[];
   theme: string;
@@ -508,6 +527,7 @@ export function DrillSession({
   kind: WeaknessKind;
   group: string;
   stream: 'tournament' | 'online';
+  actionItemId?: string;
 }) {
   const [queue, setQueue] = useState<PracticePuzzle[]>(puzzles);
   const [solvedCount, setSolvedCount] = useState(0);
@@ -568,6 +588,11 @@ export function DrillSession({
         headingLevel={1}
         actions={
           <>
+            {actionItemId ? (
+              <Link hasUnderline href="/curriculum" className="min-h-11 items-center font-medium">
+                Return to curriculum assessment
+              </Link>
+            ) : null}
             <Link hasUnderline href="/puzzles" className="min-h-11 items-center">
               See your puzzle queue
             </Link>
@@ -584,8 +609,14 @@ export function DrillSession({
   return (
     <div className="reveal-in space-y-4">
       <header className="space-y-1">
+        {actionItemId ? (
+          <div>
+            <Link hasUnderline href="/curriculum" className="text-sm">
+              ← Return to curriculum
+            </Link>
+          </div>
+        ) : null}
         <Heading level={1}>{label}</Heading>
-        <PracticeDebtCard kind={kind} group={group} stream={stream} />
         <Text as="p" display="block" type="supporting" className="text-sm">
           {queue.length} puzzle{queue.length === 1 ? '' : 's'} to go, {solvedCount} solved. Theme:{' '}
           <span className="font-mono">{theme}</span>

@@ -1117,6 +1117,7 @@ export const ActionItemList = z
     items: z.array(
       ActionItem.extend({
         kind: WeaknessKind,
+        groupKey: z.string(),
         label: z.string(),
         /** The assessment text the model accepted; null while pending. */
         summary: z.string().nullable(),

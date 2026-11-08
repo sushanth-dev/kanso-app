@@ -557,3 +557,25 @@ describe('POST /report/action-items/done (ST-107)', () => {
     expect(after.actionItems[0]!.completedAt).not.toBeNull();
   });
 });
+
+describe('GET /report/action-items (ST-187)', () => {
+  test('returns groupKey for every action item', async () => {
+    const playerId = await makePlayer(OWNER);
+    await harness.db.insert(actionItem).values({
+      playerId,
+      kind: 'motif',
+      groupKey: 'hanging_piece',
+      label: 'Hanging piece',
+      resourceIndex: 0,
+      tier: 'beginner',
+      resource: RESOURCES[0]!,
+      dueAt: new Date(),
+    });
+
+    const res = await app(OWNER, null).request('/report/action-items', { method: 'GET' });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { items: Array<{ groupKey: string; kind: string }> };
+    expect(body.items).toHaveLength(1);
+    expect(body.items[0]?.groupKey).toBe('hanging_piece');
+  });
+});

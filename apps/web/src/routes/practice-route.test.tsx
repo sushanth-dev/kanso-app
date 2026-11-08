@@ -14,7 +14,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { accountApi, type Me } from '../api/account-api.ts';
 import { diagnosisApi, type PatternReport, type PracticeReviewItem } from '../api/diagnosis-api.ts';
 import { createAppRouter } from '../router.tsx';
-import { DrillCard, PracticeDebtCard } from './practice-route.tsx';
+import { DrillCard, PracticeDebtCard, PracticeScreen } from './practice-route.tsx';
 
 /** The pause the drill uses before the setup move; must match the route. */
 const MOVE_PAUSE_MS = 600;
@@ -236,6 +236,45 @@ describe('PracticeRoute', () => {
       await screen.findByRole('heading', { name: 'The warm-up pool is not ready' }),
     ).toBeVisible();
     expect(screen.getByRole('link', { name: 'Back to tournament briefing' })).toBeVisible();
+  });
+
+  test('ST-187: renders return to curriculum link when actionItemId is present', async () => {
+    vi.spyOn(accountApi, 'getMe').mockResolvedValue(meFixture);
+    vi.spyOn(diagnosisApi, 'getPatterns').mockResolvedValue(patternsFixture([]));
+    vi.spyOn(diagnosisApi, 'getPracticePuzzles').mockResolvedValue({
+      kind: 'motif',
+      group: 'hanging_piece',
+      theme: 'hangingPiece',
+      opening: null,
+      retirementState: null,
+      rating: 1500,
+      puzzles: [
+        {
+          id: 'p1',
+          fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+          moves: 'e2e4 e7e5',
+          rating: 1400,
+        },
+      ],
+    });
+
+    const queryClient = new QueryClient();
+    render(
+      <QueryClientProvider client={queryClient}>
+        <PracticeScreen
+          kind="motif"
+          group="hanging_piece"
+          label="Hanging piece"
+          stream="tournament"
+          actionItemId="ai-1"
+        />
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Hanging piece' })).toBeVisible();
+    const returnLink = screen.getByRole('link', { name: '← Return to curriculum' });
+    expect(returnLink).toBeVisible();
+    expect(returnLink).toHaveAttribute('href', '/curriculum');
   });
 });
 

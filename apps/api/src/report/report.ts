@@ -606,6 +606,7 @@ export function mountReport(
         items: items.map((item) => ({
           id: item.id,
           kind: item.kind,
+          groupKey: item.groupKey,
           label: item.label,
           resourceIndex: item.resourceIndex,
           tier: item.tier,
