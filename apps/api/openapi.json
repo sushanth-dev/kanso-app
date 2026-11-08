@@ -7660,6 +7660,16 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "Billing is unconfigured.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
           }
         }
       }

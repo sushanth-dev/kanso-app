@@ -1240,6 +1240,7 @@ export const razorpayWebhook = createRoute({
     204: { description: 'Recorded, or already recorded.' },
     401: error('The webhook signature did not verify.'),
     404: error('No checkout for this order.'),
+    503: error('Billing is unconfigured.'),
   },
 });
 
