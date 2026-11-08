@@ -16,7 +16,7 @@ import type { Context, MiddlewareHandler } from 'hono';
 import { cors } from 'hono/cors';
 import { requestId } from 'hono/request-id';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
-import { routes } from './contract/routes.ts';
+import { razorpayWebhook, routes } from './contract/routes.ts';
 import { mountMe } from './account/me.ts';
 import { mountSessionState } from './account/session-state.ts';
 import { mountConfirmGuardian } from './account/confirm-guardian.ts';
@@ -366,6 +366,13 @@ export function createApp({
     if (razorpay) {
       mountCheckout(app, { db, getSession: effectiveGetSession, razorpay });
       mountRazorpayWebhook(app, { db, razorpay });
+    } else {
+      app.openapi(razorpayWebhook, (c) => {
+        log('error', 'razorpay_webhook_unconfigured', {
+          requestId: c.get('requestId'),
+        });
+        return c.json({ code: 'service_unavailable', message: 'Billing is unconfigured.' }, 503);
+      });
     }
     // ST-130. The coach routes mount unconditionally: without a model they
     // still serve cached texts and answer 503 model_unavailable to generate.
