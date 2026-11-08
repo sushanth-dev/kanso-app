@@ -59,6 +59,10 @@ export function mountRazorpayWebhook(
     const signature = c.req.header('x-razorpay-signature');
     const rawBody = await c.req.raw.text();
     if (!signature || !deps.razorpay.verifyWebhookSignature(rawBody, signature)) {
+      log('warn', 'razorpay_webhook_invalid_signature', {
+        requestId: c.get('requestId'),
+        hasSignature: Boolean(signature),
+      });
       return c.json(
         { code: 'invalid_signature', message: 'The webhook signature did not verify.' },
         401,
@@ -104,6 +108,11 @@ async function handleCapture(c: Context, db: Db, payload: WebhookPayload): Promi
     .where(eq(processedPayment.razorpayOrderId, orderId))
     .limit(1);
   if (!row) {
+    log('warn', 'razorpay_webhook_order_not_found', {
+      requestId: c.get('requestId'),
+      orderId,
+      paymentId,
+    });
     return c.json({ code: 'not_found', message: 'No checkout for this order.' }, 404);
   }
 

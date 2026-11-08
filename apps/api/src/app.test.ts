@@ -186,3 +186,23 @@ describe('the error handler', () => {
     logged.mockRestore();
   });
 });
+
+describe('razorpay webhook delivery failure fallback', () => {
+  test('answers 503 when the route receives a request without razorpay configured', async () => {
+    const errorLog = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const mockDb = {} as NonNullable<Parameters<typeof createApp>[0]>['db'];
+    const app = createApp({ db: mockDb });
+    const response = await app.request('/payments/webhook', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ event: 'payment.captured' }),
+    });
+
+    expect(response.status).toBe(503);
+    const body: unknown = await response.json();
+    expect(ApiError.safeParse(body).success).toBe(true);
+    expect(body).toEqual({ code: 'service_unavailable', message: 'Billing is unconfigured.' });
+    expect(errorLog).toHaveBeenCalled();
+    errorLog.mockRestore();
+  });
+});
