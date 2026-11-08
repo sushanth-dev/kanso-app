@@ -23,6 +23,7 @@ function actionItemFixture(overrides: Partial<ActionItemRow> = {}): ActionItemRo
     id: 'ai-1',
     resourceIndex: 0,
     kind: 'motif',
+    groupKey: 'missed_capture',
     label: 'Missed captures',
     summary: null,
     tier: 'beginner',
@@ -85,6 +86,12 @@ describe('CurriculumRoute', () => {
       `https://www.google.com/search?q=${encodeURIComponent(resourceName)}`,
     );
     expect(screen.getByRole('button', { name: 'Take assessment' })).toBeInTheDocument();
+    const practiceLink = screen.getByRole('link', { name: 'Practice calculation drills' });
+    expect(practiceLink).toBeInTheDocument();
+    expect(practiceLink).toHaveAttribute(
+      'href',
+      '/practice?kind=motif&group=missed_capture&actionItemId=ai-1&label=Missed%20captures',
+    );
   });
 
   test('ST-107: flags a pending action item past its due date', async () => {

@@ -185,14 +185,23 @@ function CurriculumCard({ item }: { item: ActionItemRow }) {
           ) : null}
         </div>
       ) : (
-        <div>
-          <Link
-            onClick={() => setOpen(!open)}
-            aria-expanded={open}
-            className="min-h-11 items-center"
-          >
-            {open ? 'Cancel' : 'Take assessment'}
-          </Link>
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-4">
+            <Link
+              hasUnderline
+              href={`/practice?kind=${item.kind}&group=${encodeURIComponent(item.groupKey)}&actionItemId=${item.id}&label=${encodeURIComponent(item.label)}`}
+              className="min-h-11 items-center"
+            >
+              Practice calculation drills
+            </Link>
+            <Link
+              onClick={() => setOpen(!open)}
+              aria-expanded={open}
+              className="min-h-11 items-center"
+            >
+              {open ? 'Cancel' : 'Take assessment'}
+            </Link>
+          </div>
           {open ? <AssessmentForm item={item} /> : null}
         </div>
       )}
