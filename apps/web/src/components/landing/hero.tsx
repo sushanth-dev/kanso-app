@@ -74,7 +74,7 @@ const SAMPLE_TOURNAMENT = 'A scholastic tournament · K-8 U1200 · 5 rounds';
 // Game - after 15...Nxd7, white to move: the position before 16.Qb8+!! the
 // most famous queen sacrifice in the literature. A real, public-domain
 // position; the board renders it statically, never animated.
-const HERO_FEN = '4k2r/p2n4/4q3/4p1B1/1Q2P3/8/PPP2PPP/2K5 w k - 0 16';
+const HERO_FEN = '4kb1r/p2n1ppp/4q3/4p1B1/4P3/1Q6/PPP2PPP/2KR4 w k - 0 16';
 const HERO_BOARD_LABEL =
   "Position from Morphy's Opera Game, 1858. White to move, before the queen sacrifice 16 Qb8.";
 

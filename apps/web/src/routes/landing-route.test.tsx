@@ -1,3 +1,4 @@
+import { Chess } from 'chess.js';
 import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
@@ -179,5 +180,49 @@ describe('LandingRoute', () => {
         'Kanso Chess is an AI chess training platform for junior players and their coaches, with Stockfish analysis and AI coaching.',
       ),
     ).toBeInTheDocument();
+  });
+
+  test('renders the complete Opera Game position before 16.Qb8+!!', async () => {
+    const game = new Chess();
+    game.loadPgn(
+      '1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 ' +
+        '7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 ' +
+        '12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6 15. Bxd7+ Nxd7',
+    );
+    const pieceName: Record<string, string> = {
+      k: 'king',
+      q: 'queen',
+      r: 'rook',
+      b: 'bishop',
+      n: 'knight',
+      p: 'pawn',
+    };
+    const expected = game
+      .board()
+      .flat()
+      .filter((cell): cell is NonNullable<typeof cell> => cell !== null)
+      .map(
+        (cell) =>
+          `${cell.square} ${cell.color === 'w' ? 'white' : 'black'} ${pieceName[cell.type]}`,
+      )
+      .sort();
+
+    renderLanding();
+
+    const board = await screen.findByRole('img', {
+      name: "Position from Morphy's Opera Game, 1858. White to move, before the queen sacrifice 16 Qb8.",
+    });
+    const rendered = Array.from(board.querySelectorAll('g[role="img"]'))
+      .map((piece) => {
+        const transform = piece.getAttribute('transform') ?? '';
+        const match = /^translate\((\d+),\s*(\d+)\)/.exec(transform);
+        if (match === null) throw new Error(`unexpected piece transform: ${transform}`);
+        const file = String.fromCharCode(97 + Number(match[1]) - 1);
+        const rank = 9 - Number(match[2]);
+        return `${file}${rank} ${piece.getAttribute('aria-label') ?? ''}`;
+      })
+      .sort();
+
+    expect(rendered).toEqual(expected);
   });
 });
